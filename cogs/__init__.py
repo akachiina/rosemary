@@ -1,0 +1,1 @@
+"""Cogs for Rosemary."""

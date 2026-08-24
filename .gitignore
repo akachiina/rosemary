@@ -1,0 +1,25 @@
+# Environment
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Build artifacts
+*.egg-info/
+build/
+dist/
+
+# Runtime data
+data/
+
+# Legacy archive - alecrins-dourados-bot
+legacy/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

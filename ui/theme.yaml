@@ -1,0 +1,126 @@
+# Rosemary visual theme. NOT a translation resource.
+#
+# Layers:
+#   colors  - design tokens referenced from code via theme.color("<name>").
+#   emojis  - injected automatically into every translated string. Any "{<key>}"
+#             used in a language file resolves to the emoji below, so adding a
+#             new entry here makes it usable in any catalog without code changes.
+#   markdown - structural text templates (titles, entries, footers).
+#   styles  - open-ended named presentation styles. Each style may carry color,
+#             template, prefix, suffix and footer; styles inherit through
+#             "extends" and unknown names fall back to "base". Edit this file
+#             to re-theme the whole bot without touching code.
+
+colors:
+  brand: "#57F287"
+  success: "#2ECC71"
+  warning: "#F1C40F"
+  danger: "#E74C3C"
+  info: "#3498DB"
+  gold: "#FFD700"
+  orange: "#FF8C00"
+
+emojis:
+  star: "⭐"
+  success: "✅"
+  error: "❌"
+  warning: "⚠️"
+  info: "ℹ️"
+  loading: "⏳"
+  ban: "🚫"
+  kick: "👢"
+  mute: "🔇"
+  gear: "⚙️"
+  palette: "🎨"
+  envelope: "✉️"
+  door: "🚪"
+  scroll: "📜"
+  pencil: "✏️"
+  members: "👥"
+  plus: "➕"
+  minus: "➖"
+  refresh: "🔄"
+  back: "⬅️"
+  register: "📝"
+  swap: "🔄"
+  trash: "🗑️"
+  crown: "👑"
+  user: "👤"
+  tag: "🏷️"
+  love_letter: "💌"
+  clock: "⏰"
+  numbers: "🔢"
+  frame: "🖼️"
+  cup: "🍵"
+  trophy: "🏆"
+  calendar: "📅"
+  gift: "🎁"
+  bar_chart: "📊"
+  cry: "😢"
+  tada: "🎉"
+  rocket: "🚀"
+  lock: "🔒"
+  unlock: "🔓"
+  hourglass: "⏳"
+
+# markdown: structural text templates rendered inside TextDisplay components.
+# These are visual/theme-level, NOT translated. Placeholders are filled via
+# Theme.md(name, **kwargs); the emojis above are injected automatically, so any
+# template can reference them (e.g. "{success}").
+markdown:
+  title: "# {title}"
+  category: "**{category_label}:** {category}"
+  entry: "**{label}:**\n{value}"
+  edit_title: "# {label}"
+  section: "## {title}"
+  footer: "-# *{text}*"
+
+# styles: named presentation styles used by any component. Properties:
+#   color    - a color token name (see colors above).
+#   template - a markdown template name (see markdown above).
+#   prefix   - decoration rendered before the templated body.
+#   suffix   - decoration rendered after the templated body.
+#   footer   - optional footer line (e.g. for log cards).
+# Styles inherit via "extends"; everything falls back to "base". Emoji tokens
+# may be used in any field and are resolved automatically.
+styles:
+  base:
+    color: "info"
+    template: "title"
+    prefix: ""
+    suffix: ""
+    footer: ""
+  title: { extends: base }
+  entry: { extends: base, template: "entry" }
+  menu: { extends: base, color: "brand" }
+  log: { extends: base }
+  success: { extends: base, color: "success" }
+  warning: { extends: base, color: "warning" }
+  danger: { extends: base, color: "danger" }
+  info: { extends: base, color: "info" }
+  boost_log: { extends: log }
+  boost_preview: { extends: base, color: "success" }
+  bump_reminder: { extends: base, color: "brand" }
+  bump_leaderboard: { extends: base, color: "warning" }
+  bump_no_data: { extends: base, color: "info" }
+  bump_test: { extends: base, color: "brand" }
+  star_tier_1: { extends: base, color: "info" }
+  star_tier_2: { extends: base, color: "success" }
+  star_tier_3: { extends: base, color: "warning" }
+  star_tier_5: { extends: base, color: "gold" }
+  star_tier_8: { extends: base, color: "orange" }
+  star_tier_13: { extends: base, color: "danger" }
+
+# bump defaults: used to reset or provide a base for the MVP role
+bump:
+  mvp_default_name: "🚀 Bump-MVP"
+  mvp_default_color: "warning"
+  mvp_default_emoji: "🚀"
+
+# medals: rank emojis for the weekly bump leaderboard. Keys 1..3 are the top
+# three positions; any other rank falls back to "default".
+medals:
+  1: "🥇"
+  2: "🥈"
+  3: "🥉"
+  default: "📊"

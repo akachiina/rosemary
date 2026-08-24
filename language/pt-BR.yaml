@@ -1,0 +1,1284 @@
+language_meta:
+  name: Português do Brasil
+  flag: 🇧🇷
+about:
+  command:
+    name: sobre
+    description: Sobre a Rosemary
+  title: Sobre a Rosemary
+  text: A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.
+  version: 'Versão: {version}'
+  footer: 'Comandos: /sobre, /idioma, /configuracoes, /cargo_boost, /admin_boost, /banir, /warn, /debug'
+language:
+  command:
+    name: idioma
+    description: Define o idioma do servidor
+  title: Idioma
+  text: Escolha o idioma usado pelo bot neste servidor.
+  updated: '{success} Idioma definido para **{language}**.'
+  invalid: '{error} Idioma desconhecido ''{language}''.
+
+    Disponíveis:
+
+    {available}'
+  current: 'Idioma atual: {language}.'
+general:
+  unknown_error: '{error} Ocorreu um erro inesperado.'
+menu:
+  owner_only: '{error} Este menu é privado. Somente o autor pode interagir.'
+errors:
+  generic: '{error} Algo deu errado.'
+settings:
+  title: Configurações do Bot
+  command:
+    name: configuracoes
+    description: Configura as definições do bot
+  hint: Escolha uma categoria para ver as definições.
+  category_label: Categoria
+  category:
+    placeholder: Selecione uma categoria
+    general: Geral
+    moderation: Moderação
+    logging: Log
+    boost: Cargos Boost
+    bump: Disboard Bump
+    events: Anúncios
+    starboard: Mural de Estrelas
+    birthdays: Aniversários
+  bump.enabled:
+    label: Disboard Bump Ativado
+    description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
+  bump.channel:
+    label: Canal do Bump
+    description: O canal onde o bot do Disboard posta e onde os lembretes serão enviados.
+  bump.ping_role:
+    label: Cargo de Ping
+    description: Cargo a ser mencionado quando o lembrete de bump for enviado.
+  bump.cooldown:
+    label: Cooldown do Bump
+    description: 'Tempo de espera exigido pelo Disboard entre bumps (ex: 2h, 90m).'
+  bump.anti_camping.enabled:
+    label: Anti-camping Ativado
+    description: Trava o canal pouco antes do bump ficar disponível para evitar camping.
+  bump.anti_camping.lock_delay:
+    label: Antecedência do Lock
+    description: 'Quanto tempo antes do bump disponível o canal será travado (ex: 15m).'
+  bump.anti_camping.unlock_delay:
+    label: Delay para Destravar
+    description: 'Tempo após o cooldown para destravar o canal (ex: 15s).'
+  bump.anti_camping.message:
+    label: Mensagem Anti-camping
+    description: A mensagem exibida quando o canal é travado pelo anti-camping.
+  bump.detection_text:
+    label: Texto de Detecção do Bump
+    description: 'Texto enviado pelo Disboard no bump bem-sucedido (ex: "Bump feito"). Ignora maiúsculas/minúsculas.'
+  bump.leaderboard.enabled:
+    label: Placar Semanal Ativado
+    description: Ativa o ranking semanal e o cargo de Bump-MVP.
+  bump.leaderboard.winner_role:
+    label: Cargo do Vencedor
+    description: O cargo temporário concedido ao Bump-MVP da semana.
+  bump.leaderboard.reset_day:
+    label: Dia do Reset Semanal
+    description: Em qual dia da semana o placar reinicia.
+    choices:
+      Monday: Segunda-feira
+      Tuesday: Terça-feira
+      Wednesday: Quarta-feira
+      Thursday: Quinta-feira
+      Friday: Sexta-feira
+      Saturday: Sábado
+      Sunday: Domingo
+  bump.leaderboard.reset_hour:
+    label: Hora do Reset (0-23)
+    description: 'A hora exata do dia para resetar o placar (ex: 20).'
+  edit: Editar
+  back: Voltar
+  close: Fechar
+  prev: Anterior
+  next: Próxima
+  edit_title: 'Editar: {setting}'
+  select_value: Escolha um novo valor.
+  saved: '{success} Valor definido para {setting}.'
+  invalid_value: '{error} Valor inválido para {setting}.'
+  default_value: 'Padrão: {value}'
+  none: Não definido
+  page_indicator: Página {page} de {pages}
+  test:
+    title: '{rocket} Testar Sistema de Bump'
+    hint: Dispare ações reais do sistema de bump para validar sem esperar o cooldown.
+    thank_you: Mensagem de Bump
+    reminder: Enviar Lembrete
+    leaderboard: Postar Placar
+    lock: Travar Canal
+    unlock: Destravar Canal
+    reset: Resetar Semana
+    thank_you_done: '{success} Mensagem de agradecimento enviada no canal de bump.'
+    reminder_done: '{success} Lembrete enviado no canal de bump.'
+    lock_done: '{success} Canal de bump travado.'
+    unlock_done: '{success} Canal de bump destravado.'
+    leaderboard_done: '{success} Placar semanal postado no canal de bump.'
+    no_data: '{error} Não há dados de bump nesta semana para postar.'
+    reset_done: '{success} Semana de bumps resetada.'
+    error: '{error} O sistema de bump não está carregado.'
+    open: Ações de teste
+  log:
+    title: '{gear} Configuração Alterada'
+    description: '{setting}
+
+      Categoria: {category}
+
+      De: {old}
+
+      Para: {new}
+
+      Por: {author}'
+    language_title: '{gear} Idioma Alterado'
+    language_description: 'De: {old}
+
+      Para: {new}
+
+      Por: {author}'
+  bool:
+    'true': Ativado
+    'false': Desativado
+  general.timezone:
+    label: Fuso horário
+    description: Fuso horário usado nos carimbos de data e hora.
+  general.prefix:
+    label: Prefixo do bot
+    description: 'Prefixo dos comandos de texto (ex.: !warn).'
+  general.menu_timeout:
+    label: Tempo de expiração dos menus
+    description: Segundos até um menu interativo expirar (60-900).
+  moderation.enabled:
+    label: Moderação ativada
+    description: Define se os comandos de moderação funcionam neste servidor.
+  moderation.warn_limit:
+    label: Limite de warns
+    description: Warns antes de atingir o limite (1-10).
+  moderation.mute_seconds:
+    label: Duração padrão do mute
+    description: Duração padrão do mute em segundos (60-604800).
+  logging.enabled:
+    label: Log ativado
+    description: Define se os eventos do bot são enviados a um canal de log.
+  logging.channel:
+    label: Canal de log
+    description: Canal onde os eventos do bot são publicados.
+  boost.enabled:
+    label: Cargos boost ativados
+    description: Define se o sistema de cargos boost funciona neste servidor.
+  boost.max_members:
+    label: Limite de membros do cargo boost
+    description: Máximo de membros por cargo boost (1-25).
+  boost.invite_seconds:
+    label: Duração do convite boost
+    description: Por quanto tempo os convites boost ficam válidos.
+  boost.max_pending_invites:
+    label: Limite de convites pendentes
+    description: Máximo de convites pendentes por cargo boost (1-20).
+boost:
+  command:
+    name: cargo_boost
+    description: Painel de cargos boost
+  titles:
+    home: Cargos Boost
+    my_roles: Meus Cargos Boost
+    pending_invites: Convites Pendentes
+    register: Registrar um Cargo
+    register_owner: Quem será o dono?
+    leave: Sair de um Cargo
+    leave_confirm: Sair do Cargo?
+    management_panel: 'Gerenciando: {role_name}'
+    select_color: Escolher Cor
+    manage_members: Membros de {role_name}
+    invites: Convites de {role_name}
+    invite_target: Convidar um Membro
+    transfer_target: Transferir Propriedade
+    remove_confirm: Remover Cargo Boost?
+    admin_panel: Cargos Boost | Admin
+    remove: Remover um Cargo
+    transfer: Transferir um Cargo
+    list_all: Todos os Cargos Boost
+  descriptions:
+    user_panel: Aqui estão os cargos boost do servidor. Gerencie os seus, participe ou saia.
+    as_owner: Você é o dono deste cargo
+    as_member: Você é um membro
+    my_roles_empty: Você ainda não é dono nem participa de nenhum cargo boost.
+    pending_invites_empty: Você não tem convites pendentes.
+    pending_invite_entry: '{invitee} • expira {expires}'
+    register: Escolha o cargo que você possui para registrá-lo como cargo boost. Depois você escolherá
+      quem será o dono.
+    register_owner: Escolha quem será o dono do cargo {role}. Ele receberá uma mensagem privada com as
+      instruções.
+    remove: Escolha um cargo boost para remover.
+    transfer: Escolha um cargo boost para transferir.
+    select_color: Escolha uma cor para o cargo.
+    leave: Escolha um dos cargos que você participa para sair dele.
+    leave_empty: Você não participa de nenhum cargo boost.
+    manage_hint: Use os botões abaixo para personalizar seu cargo.
+    members_count: '{count}/{max_members} membros'
+    manage_members: Gerencie os membros do seu cargo boost (máximo {max_members}).
+    members_empty: Nenhum membro ainda. Use o menu abaixo para adicionar.
+    owner: Você é o dono deste cargo.
+    dm_hint: O membro receberá um convite nas mensagens privadas.
+    transfer_hint: Escolha o novo dono. Ele será avisado por mensagem privada.
+    new_owner: O novo dono receberá uma mensagem privada.
+    confirm_leave: Tem certeza que deseja sair de {role}? O dono será avisado.
+    confirm_removal: Tem certeza que deseja remover {role} do sistema de boost?
+    remove_hint: Você pode manter o cargo no Discord ou excluí-lo.
+    guide_admin: Registre, transfira ou remova cargos boost abaixo.
+    stats: '{roles} cargo(s) • {members} membro(s)'
+    role_entry: 'Dono: {owner} • Membros: {members}'
+    no_roles: Nenhum cargo boost registrado ainda.
+  buttons:
+    my_roles: Meus cargos
+    invites: Convites
+    register: Registrar
+    leave_role: Sair
+    close: Fechar
+    back: Voltar
+    previous: Anterior
+    next: Próximo
+    cancel: Cancelar
+    cancel_invite: Cancelar
+    confirm: Confirmar
+    manage_roles: Gerenciar
+    rename: Renomear
+    change_color: Cor
+    emoji: Emoji
+    icon: Ícone
+    manage_members: Membros
+    transfer: Transferir
+    remove: Remover
+    remove_member: Remover
+    custom_color: Cor customizada
+    add_member: Adicionar
+    add_by_id: Por ID
+    list_all: Listar todos
+    accept_invite: Aceitar
+    decline_invite: Recusar
+    delete_role_yes: Excluir cargo
+    delete_role_no: Manter cargo
+  colors:
+    pink: Rosa Pastel
+    peach: Pêssego Pastel
+    yellow: Amarelo Pastel
+    green: Verde Pastel
+    blue: Azul Pastel
+    lavender: Lavanda Pastel
+    beige: Bege Pastel
+    gray: Cinza Claro
+    white: Branco Suave
+  placeholders:
+    select_role: Escolha um cargo...
+    select_color: Escolha uma cor...
+    select_member: Escolha um membro...
+  modals:
+    add_by_id:
+      title: Adicionar por ID
+      role_label: ID do cargo
+      role_placeholder: Cole o ID do cargo...
+    rename:
+      title: Renomear Cargo
+      label: Novo nome
+      placeholder: Digite o novo nome do cargo...
+    emoji:
+      title: Emoji do Cargo
+      label: Emoji
+      placeholder: Use um único emoji...
+    icon:
+      title: Ícone do Cargo
+      label: Envie uma imagem
+      description: A imagem virará o ícone do cargo (requer Nível 2 de boost).
+    custom_color:
+      title: Cor Customizada
+      label: Código hexadecimal
+      placeholder: '#FF5733 ou FF5733'
+    add_member:
+      title: Adicionar Membro
+      label: Usuário
+      placeholder: '@usuário ou ID'
+    transfer:
+      title: Transferir Propriedade
+      label: Novo dono
+      placeholder: ID do usuário
+    register_owner:
+      title: Dono do Cargo
+      label: Novo dono
+      placeholder: ID do usuário
+  dm:
+    registered: '{crown} Você recebeu um Cargo Boost!
+
+      Olá, {mention}! O cargo boost @{role_name} foi registrado para você no **{server_name}**.
+
+
+      {pencil} Renomeie e escolha um emoji
+
+      {palette} Mude a cor
+
+      {members} Convide até **{max_members}** membros
+
+      {swap} Transfira a posse
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    transferred: '{crown} Propriedade Transferida!
+
+      Olá, {mention}! A propriedade do cargo boost @{role_name} foi transferida para você no **{server_name}**.
+
+
+      {pencil} Renomeie e escolha um emoji
+
+      {palette} Mude a cor
+
+      {members} Convide até **{max_members}** membros
+
+      {swap} Transfira a posse
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    auto_transferred: '{swap} Propriedade Transferida Automaticamente!
+
+      Olá, {mention}! Como o dono anterior saiu do servidor, a propriedade do cargo boost @{role_name}
+      foi transferida para você no **{server_name}**.
+
+
+      Use o painel de cargos boost para gerenciar seu cargo.
+
+      '
+    invite: '{love_letter} Convite para Cargo Boost!
+
+      Olá, {mention}! Você recebeu um convite para fazer parte de um cargo boost no **{server_name}**.
+
+
+      > **{tag} Cargo:** @{role_name}
+
+      > **{user} Convidado por:** {inviter_mention}
+
+      > **{clock} Expira:** {expires}
+
+
+      -# Ao aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!
+
+      '
+    accepted: '{success} Convite Aceito!
+
+      O cargo @{role_name} foi adicionado a você com sucesso.
+
+      -# Para sair do cargo a qualquer momento, use `/cargo_boost`.
+
+      '
+    declined: '{info} Convite Recusado
+
+      Você recusou o convite para o cargo @{role_name}.
+
+      -# O dono do cargo foi notificado sobre sua decisão.
+
+      '
+    owner_accepted: '{success} Convite Aceito!
+
+      {member_mention} aceitou seu convite e foi adicionado ao cargo @{role_name}!
+
+      '
+    owner_declined: '{info} Convite Recusado
+
+      {member_mention} recusou seu convite para o cargo @{role_name}.
+
+      -# Você pode convidar outra pessoa se desejar.
+
+      '
+    member_left: '{door} Você Saiu do Cargo
+
+      Você saiu do cargo @{role_name} com sucesso.
+
+      -# O dono do cargo foi notificado.
+
+      '
+    owner_member_left: '{door} Membro Saiu do Cargo
+
+      {member_mention} saiu do cargo @{role_name}.
+
+      -# Você pode adicionar outro membro se desejar.
+
+      '
+    error: '{error} Ops!
+
+      {body}
+
+      '
+  emoji:
+    owner: Dono
+    members: Membros
+    user: Usuário
+    roles: Cargos
+  success:
+    role_registered: '{success} O cargo {role} foi registrado!'
+    role_removed: '{success} O cargo boost foi removido do sistema.'
+    ownership_transferred: '{success} A propriedade de {role} foi transferida!'
+    role_renamed: '{success} Cargo renomeado de **{old}** para **{new}**.'
+    color_changed: '{success} Cor do cargo atualizada!'
+    emoji_set: '{success} Emoji do cargo definido para {emoji}.'
+    icon_set: '{success} Ícone do cargo atualizado!'
+    member_added: '{success} {member} entrou em {role}.'
+    member_removed: '{success} {member} foi removido do cargo.'
+    invite_sent: '{success} Convite enviado para {member}.'
+    invite_cancelled: '{success} Convite cancelado.'
+    left_role: '{success} Você saiu de {role}.'
+  errors:
+    role_already_registered: '{error} Este cargo já está registrado.'
+    role_not_found: '{error} Cargo não encontrado.'
+    role_not_registered: '{error} Este cargo não está registrado como cargo boost.'
+    forbidden_manage_role: '{error} Não tenho permissão para editar este cargo.'
+    forbidden_add_role: '{error} Não tenho permissão para adicionar este cargo.'
+    forbidden_remove_role: '{error} Não tenho permissão para remover este cargo.'
+    generic_error: '{error} Algo deu errado. Tente novamente.'
+    empty_name: '{error} O nome do cargo não pode estar vazio.'
+    invalid_emoji: '{error} Emoji inválido. Use um único emoji válido.'
+    requires_boost_level_2: '{error} Este servidor precisa de Nível 2 de Boost para emojis e ícones em
+      cargos.'
+    invalid_image: '{error} Imagem inválida. Envie um PNG, JPG ou GIF.'
+    image_download_failed: '{error} Não foi possível baixar a imagem.'
+    icon_too_large: '{error} A imagem é grande demais (limite de 1 MB).'
+    invalid_hex_color: '{error} Cor inválida. Use o formato hexadecimal (ex.: #FF5733).'
+    member_not_found: '{error} Membro não encontrado.'
+    member_is_owner: '{error} O dono já possui o cargo automaticamente.'
+    member_already_added: '{error} Este membro já está no cargo.'
+    member_already_invited: '{error} Este membro já tem um convite pendente.'
+    max_members_reached: '{error} Este cargo atingiu o limite de {max_members} membros.'
+    max_pending_invites: '{error} Este cargo já tem {max_invites} convites pendentes.'
+    cannot_leave_as_owner: '{error} Você é o dono. Transfira a propriedade primeiro.'
+    bot_not_allowed: '{error} Bots não podem ser donos de cargos boost.'
+    dm_failed: '{error} Não foi possível enviar a mensagem privada.'
+    invite_not_found: '{error} Convite não encontrado.'
+    invite_not_for_you: '{error} Este convite pertence a outro usuário.'
+    invite_expired: '{error} Este convite já expirou.'
+    invite_invalid_old: '{error} Este convite não é mais válido.'
+  logs:
+    register:
+      title: '{register} Cargo Boost Registrado'
+      description: '{role}
+
+        Dono: {owner}
+
+        Registrado por: {actor}'
+    remove:
+      title: '{trash} Cargo Boost Removido'
+      description: '{role}
+
+        Dono: {owner}
+
+        Removido por: {actor}
+
+        Cargo excluído: {deleted}'
+    transfer:
+      title: '{swap} Propriedade Transferida'
+      description: '{role}
+
+        Dono anterior: {old_owner}
+
+        Novo dono: {new_owner}
+
+        Transferido por: {actor}'
+    rename:
+      title: '{pencil} Cargo Renomeado'
+      description: '{role}
+
+        De: {old_name}
+
+        Para: {new_name}
+
+        Por: {actor}'
+    color_change:
+      title: '{palette} Cor Alterada'
+      description: '{role}
+
+        Nova cor: {new_color}
+
+        Por: {actor}'
+    emoji_change:
+      title: '{tag} Emoji Alterado'
+      description: '{role}
+
+        Novo emoji: {emoji}
+
+        Por: {actor}'
+    icon:
+      title: '{frame} Ícone Alterado'
+      description: '{role}
+
+        Ícone atualizado por {actor}.'
+    member_add:
+      title: '{plus} Membro Adicionado'
+      description: '{role}
+
+        {member} entrou no cargo.
+
+        Adicionado por: {actor}'
+    member_remove:
+      title: '{minus} Membro Removido'
+      description: '{role}
+
+        {member} foi removido do cargo.
+
+        Removido por: {actor}'
+    member_left:
+      title: '{door} Membro Saiu do Cargo'
+      description: '{role}
+
+        {member} saiu do cargo.
+
+        Dono: {owner}'
+    invite_sent:
+      title: '{love_letter} Convite Enviado'
+      description: '{role}
+
+        Convidado: {invitee}
+
+        Por: {inviter}
+
+        Expira: {expires}'
+    invite_cancelled:
+      title: '{error} Convite Cancelado'
+      description: '{role}
+
+        Convite para {invitee} cancelado.
+
+        Por: {actor}'
+    invite_accepted:
+      title: '{success} Convite Aceito'
+      description: '{role}
+
+        {member} aceitou o convite.
+
+        Convidado por: {inviter}'
+    invite_declined:
+      title: '{error} Convite Recusado'
+      description: '{role}
+
+        {member} recusou o convite.
+
+        Convidado por: {inviter}'
+    invite_expired:
+      title: '{clock} Convite Expirado'
+      description: '{role}
+
+        Convite para {invitee} expirou.
+
+        Convidado por: {inviter}'
+    auto_transfer:
+      title: '{warning} Transferência Automática de Propriedade'
+      description: '{role} foi transferido de {old_owner} para {new_owner}.'
+    orphan_remove:
+      title: '{ban} Cargo Órfão Removido'
+      description: '{role} de {owner} foi removido do sistema.'
+  error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
+bump:
+  messages:
+    anti_camping: 🔒 **|** O canal foi bloqueado temporariamente. O bump estará disponível em instantes!
+    thank_you_title: '{tada} Bump Registrado!'
+    thank_you_description: 'Muito obrigada pelo bump, {mention}! Sua dedicação mantém o servidor brilhando.
+      {cup}
+
+
+      {clock} **|** Voltarei para te lembrar em **{cooldown}!**
+
+      > **Próximo bump:** <t:{next_bump_timestamp}:R>
+
+
+      {trophy} **|** Use `/bump_leaderboard` para ver o placar e disputar o **Bump-MVP!**
+
+      '
+    reminder_title: '{clock} Hora do Bump!'
+    reminder_description: 'Já se passou o cooldown de {cooldown} desde o último bump!
+
+
+      Que tal nos ajudar a receber novos visitantes? Use `/bump` e ganhe um ponto no placar!
+
+      '
+    leaderboard_title: '{trophy} Placar Semanal de Bumps'
+    leaderboard_description: 'Confira quem mais ajudou o servidor esta semana!
+
+
+      **{calendar} Período:** <t:{start_timestamp}:d> - <t:{end_timestamp}:d>
+
+      **{hourglass} A semana termina em:** <t:{next_reset_timestamp}:R>
+
+      **{crown} Vencedor:** {winner_mention} com **{winner_count}** bumps!
+
+
+      **{gift} Prêmio:** Cargo **{role_name}** customizável por 1 semana!
+
+      -# Use `/cargo_boost` para personalizar nome, cor, emoji e convidar membros.
+
+
+      {leaderboard_list}
+
+      '
+    leaderboard_line: '{medal} **{position}º** - {user_mention} **{bump_count}** bumps'
+    no_bumps_title: '{bar_chart} Placar Semanal de Bumps'
+    no_bumps_description: 'Ninguém deu bump esta semana! {cry}
+
+      Seja o primeiro a ajudar usando `/bump`!
+
+      '
+    no_bumps_you: '{bar_chart} Você ainda não deu nenhum bump esta semana! Use `/bump` no canal de bump.'
+  dm:
+    winner_new: '{tada} Você é o Bump-MVP da Semana!
+
+      Olá, {mention}! Sua dedicação manteve o servidor brilhando. Muito obrigada!
+
+
+      > **{bar_chart} Bumps na semana:** `{bump_count}`
+
+      > **{trophy} Cargo:** `{role_name}`
+
+
+      ### {palette} Personalize seu cargo
+
+      Use `/cargo_boost` para customizar:
+
+      > {pencil} Nome e emoji
+
+      > {palette} Cor
+
+      > {members} Convidar até **{max_members}** membros
+
+
+      -# Suas customizações são salvas e voltam caso você ganhe novamente!
+
+
+      Aproveite até o próximo reset.
+
+      '
+    winner_again: '{tada} Bump-MVP mais uma vez!
+
+      Olá, {mention}! Você reconquistou o título. Sua dedicação é admirável!
+
+
+      > **{bar_chart} Bumps na semana:** `{bump_count}`
+
+      > **{trophy} Total de vitórias:** `{total_wins}`
+
+
+      Seu cargo **{role_name}** foi restaurado com suas customizações anteriores!
+
+
+      Continue sendo incrível.
+
+      '
+    winner_lost: '{cry} Seu período como Bump-MVP terminou
+
+      Olá, {mention}! Esta semana outro membro conquistou o título. Não desanime!
+
+
+      > **{bar_chart} Seus bumps:** `{bump_count}`
+
+      > **{crown} Novo vencedor:** {winner_mention}
+
+
+      -# Suas customizações foram salvas e voltam se você ganhar novamente!
+
+
+      Continue dando bumps e reconquiste o trono!
+
+      '
+  logs:
+    bump_recorded:
+      title: '{rocket} Bump Detectado'
+      description: Bump efetuado por {user} no canal {channel}.
+    reminder_sent:
+      title: '{clock} Lembrete Enviado'
+      description: Lembrete de bump enviado no canal {channel}.
+    channel_locked:
+      title: '{lock} Canal Bloqueado'
+      description: Canal {channel} bloqueado temporariamente (anti-camping).
+    channel_unlocked:
+      title: '{unlock} Canal Desbloqueado'
+      description: Canal {channel} desbloqueado.
+    week_reset:
+      title: '{refresh} Semana de Bump Resetada'
+      description: 'O ranking semanal foi resetado.
+
+        Novo MVP: {winner}
+
+        Bumps: {bumps}'
+    no_winner:
+      title: '{bar_chart} Semana Resetada (Sem MVP)'
+      description: A semana foi resetada, mas ninguém realizou bumps.
+    leaderboard_posted:
+      title: '{trophy} Placar Postado'
+      description: O placar semanal foi postado no canal {channel}.
+    no_bumps_posted:
+      title: '{bar_chart} Placar Vazio Postado'
+      description: Nenhum bump registrado esta semana. O card de ‘sem dados’ foi postado no canal {channel}.
+    week_reset_manual:
+      title: '{refresh} Semana Resetada Manualmente'
+      description: A semana de bumps foi resetada manualmente por {author}.
+    bumps_added:
+      title: '{pencil} Bumps de Teste Adicionados'
+      description: '{author} adicionou {count} bump(s) de teste para {user} (total na semana: {total}).'
+  error_disabled: '{error} O sistema de bump está desativado neste servidor.'
+  error_no_channel: '{error} O canal de bump não está configurado. Configure-o em `/settings`.'
+  error_no_role: '{error} O cargo de Bump-MVP não está configurado.'
+  error_role_not_found: '{error} O cargo de vencedor configurado não foi encontrado no servidor.'
+  error_leaderboard_disabled: '{error} O placar semanal de bumps está desativado.'
+  test:
+    no_bumps: '{bar_chart} Nenhum bump registrado esta semana; o placar não foi postado.'
+  success:
+    leaderboard_posted: '{success} Placar semanal postado com sucesso!'
+    week_reset: '{success} Semana de bumps resetada com sucesso!'
+    bumps_added: '{success} {count} bump(s) adicionado(s) para {user_mention}! Total na semana: {total}.'
+  stats:
+    title: '{bar_chart} Suas Estatísticas de Bumps'
+    this_week: '**{calendar} Esta Semana:**
+
+      > {trophy} **Posição:** #{position}
+
+      > {rocket} **Bumps:** {bumps}
+
+      > {members} **Total de bumps:** {total_bumps}
+
+      '
+    history: '**{crown} Histórico:**
+
+      > **{trophy} Vitórias:** {wins}
+
+      '
+    week_start: 'Semana iniciada em: <t:{week_start_ts}:d>'
+    week_end: '{hourglass} A semana termina em: <t:{next_reset_ts}:R>'
+bump_leaderboard:
+  command:
+    name: bump_leaderboard
+    description: Mostra o placar semanal de bumps
+bump_stats:
+  command:
+    name: bump_stats
+    description: Mostra suas estatísticas de bumps
+test_bump:
+  command:
+    name: test_bump
+    description: '[ADMIN] Simula um bump para testar o sistema'
+test_bump_reminder:
+  command:
+    name: test_bump_reminder
+    description: '[ADMIN] Envia o lembrete de bump imediatamente'
+bump_status:
+  command:
+    name: bump_status
+    description: '[ADMIN] Mostra o status do sistema de bump'
+test_bump_leaderboard:
+  command:
+    name: test_bump_leaderboard
+    description: '[ADMIN] Força o cálculo do placar semanal'
+reset_bump_week:
+  command:
+    name: reset_bump_week
+    description: '[ADMIN] Reseta a semana de bump manualmente'
+add_test_bumps:
+  command:
+    name: add_test_bumps
+    description: '[ADMIN] Adiciona bumps de teste para um usuário'
+boost_admin:
+  command:
+    name: admin_boost
+    description: Painel de cargos boost para administradores
+ban:
+  command:
+    name: banir
+    description: Banir um membro
+  confirm_title: Banir este membro?
+  success: '{success} {member} foi banido.'
+  dm: 'Você foi banido de **{guild}** por {moderator}.
+
+    Motivo: {reason}'
+kick:
+  command:
+    name: expulsar
+    description: Expulsar um membro
+  confirm_title: Expulsar este membro?
+  success: '{success} {member} foi expulso.'
+  dm: 'Você foi expulso de **{guild}** por {moderator}.
+
+    Motivo: {reason}'
+mute:
+  command:
+    name: silenciar
+    description: Silenciar um membro por um período
+  confirm_title: Silenciar este membro?
+  success: '{success} {member} foi silenciado por {duration}.'
+  dm: 'Você foi silenciado em **{guild}** por {duration} pelo {moderator}.
+
+    Motivo: {reason}'
+  invalid_duration: '{error} Duração inválida. Use formatos como 10m, 2h ou 3d.'
+  summary: '{member}
+
+    Motivo: {reason}
+
+    Duração: {duration}'
+warn:
+  command:
+    name: warn
+    description: Aplicar um warn a um membro
+  confirm_title: Aplicar warn a este membro?
+  success: '{success} Warn registrado para {member} ({count}/{limit}).'
+  dm: 'Você recebeu um warn em **{guild}** de {moderator}.
+
+    Motivo: {reason}'
+warnings:
+  command:
+    name: warnlist
+    description: Lista os warns de um membro
+  title: Warns de {member}
+  none: '{success} Este membro não tem warns.'
+  entry: '{reason} (por {moderator}, {date})'
+unwarn:
+  command:
+    name: remover_warn
+    description: Remove um warn
+  clear_all_title: Limpar todos os warns?
+  clear_all_summary: Remover todos os warns de {member}?
+  cleared: '{success} Removidos {count} warn(s) de {member}.'
+  removed: '{success} Warn #{index} removido de {member}.'
+  invalid_index: '{error} Não há warn com esse número.'
+  none_for: '{success} Este membro não tem warns para limpar.'
+moderation:
+  confirm_notify: Confirmar e notificar
+  confirm_silent: Confirmar sem notificar
+  confirm_clear: Limpar todos os warns
+  cancel: Cancelar
+  cancelled: Ação cancelada.
+  error_failed: '{error} A ação falhou. Verifique os logs do bot.'
+  no_reason: Nenhum motivo informado
+  summary: '{member}
+
+    Motivo: {reason}'
+  multi_summary: '{targets}
+
+    Motivo: {reason}'
+  error_disabled: '{error} Os comandos de moderação estão desativados neste servidor.'
+  error_no_members: '{error} Mencione pelo menos um membro.'
+  error_self: '{error} Você não pode usar comandos de moderação em si mesmo.'
+  error_self_bot: '{error} O bot não pode moderar a si mesmo.'
+  error_author_permissions: '{error} Você não tem permissão para fazer isso.'
+  error_bot_permissions: '{error} O bot não tem permissão para fazer isso.'
+  error_hierarchy: '{error} Este membro tem um cargo igual ou superior ao meu.'
+  error_bot_hierarchy: '{error} O cargo deste membro é igual ou superior ao do bot.'
+  log:
+    ban:
+      title: Banimento
+    kick:
+      title: Expulsão
+    mute:
+      title: Silenciamento
+    warn:
+      title: Warn
+    member: Alvo
+    moderator: Moderador
+    reason: Motivo
+    duration: Duração
+debug:
+  command:
+    name: debug
+    description: Painel de debug do bot
+  title: Diagnóstico
+  guilds: 'Servidores: {count}'
+  members: 'Membros: {count}'
+  latency: 'Latência: {ms} ms'
+  uptime: 'Ativo há: {uptime}'
+  close: Fechar
+  test_log: Testar log
+  test_log_title: Teste de log
+  test_log_description: Esta mensagem confirma que o canal de log está funcionando.
+  test_log_sent: '{success} Mensagem de teste enviada ao canal de log.'
+  test_log_not_sent: '{error} Não foi possível enviar a mensagem de teste. Verifique a definição do canal
+    de log.'
+time_parser:
+  seconds:
+  - segundo
+  - segundos
+  minutes:
+  - minuto
+  - minutos
+  hours:
+  - hora
+  - horas
+  days:
+  - dia
+  - dias
+cards:
+  editor:
+    title: Editor de Cartões
+    hint: 'Editando `{card_key}`. Placeholders: {placeholders}'
+    placeholders_default: '{{user}}, {{server}}, {{count}}, {{user_avatar}} + qualquer emoji do tema'
+    preview: Prévia
+    invalid: '{warning} Esta composição ainda não pode ser enviada: {error}'
+    saved: '{success} Salvo.'
+    reset_done: '{refresh} Cartão restaurado para a mensagem padrão.'
+    test_sent: '{success} Cartão de teste enviado acima (visível só para você).'
+    add_title: 'Escolha o tipo de bloco para adicionar:'
+    add_placeholder: Escolha um tipo de bloco...
+    empty_level: '*Este nível está vazio. Use Adicionar abaixo.*'
+    buttons:
+      add: Adicionar
+      edit: Editar
+      enter: Abrir
+      delete: Remover
+      up_level: Subir nível
+      test: Testar
+      reset: Restaurar
+      close: Fechar
+      back: Voltar
+      move_up: Subir
+      move_down: Descer
+      compare: Comparar
+    types:
+      text: Texto
+      container: Card (caixa colorida)
+      section: Texto com avatar
+      divider: Divisor
+      gallery: Galeria de imagens
+      row: Botões de link
+    colors:
+      placeholder: Cor de destaque do card...
+      none: Sem cor
+      brand: Verde (marca)
+      success: Verde sucesso
+      warning: Amarelo
+      danger: Vermelho
+      info: Azul
+    spacing:
+      small: Espaçamento pequeno
+      large: Espaçamento grande
+    modals:
+      text_title: Editar texto
+      text_label: Texto (markdown + placeholders)
+      text_placeholder: Escreva o texto aqui...
+      urls_title: Editar galeria de imagens
+      urls_label: Uma URL de imagem por linha
+      urls_placeholder: https://exemplo.com/imagem.png
+      row_title: Editar botões de link
+      row_label: 'Um por linha: Rótulo | https://url'
+      row_placeholder: Site | https://exemplo.com
+    select_placeholder: Escolha um bloco para editar...
+    breadcrumb: 'Caminho: {path}'
+    child_count: '{count} bloco(s) dentro'
+    image_count: '{count} imagem(ns)'
+    button_count: '{count} botão(ões) de link'
+    compare_title: Comparar com o padrão
+    compare_default: O que os membros recebem hoje
+    compare_custom: Sua versão
+    compare_no_default: '*Este cartão não tem prévia padrão.*'
+    using_default: Usando o padrão como base (ainda não salvo).
+    empty_block: (vazio)
+  customize:
+    title: Personalizar Mensagens
+    choose: Escolha uma categoria e depois a mensagem que quer personalizar.
+    empty: Ainda não há mensagens personalizáveis.
+    category_placeholder: Escolha uma categoria...
+    card_placeholder: Escolha uma mensagem...
+    open: Personalizar mensagens
+  errors:
+    document_shape: O documento deve ser um objeto com uma lista 'blocks'.
+    unknown_block: Tipo de bloco desconhecido.
+    depth_exceeded: Blocos aninhados além de {max} níveis não são permitidos.
+    text_not_string: O corpo de um bloco de texto deve ser texto.
+    text_empty: Um bloco de texto ainda está vazio.
+    divider_spacing: O espaçamento do divisor deve ser pequeno ou grande.
+    gallery_count: Galerias precisam de {min}-{max} URLs de imagem.
+    bad_url: Informe uma URL https:// válida.
+    row_count: Linhas de botões precisam de {min}-{max} botões.
+    button_label: Todo botão precisa de rótulo (máx. {max} caracteres).
+    section_children_count: Seções precisam de {min}-{max} filhos de texto.
+    section_children_text: Filhos de seção devem ser blocos de texto.
+    section_accessory_missing: Seções exigem um acessório thumbnail ou botão.
+    accessory_button_label: O botão acessório precisa de rótulo.
+    container_empty: Cards precisam de pelo menos um bloco filho.
+    container_nested: Cards não podem ser aninhados dentro de outros cards.
+    container_child_invalid: Este tipo de bloco não é permitido dentro de um card.
+    color_unknown: Cor desconhecida '{color}'. Use os tokens da paleta.
+    too_many_components: Componentes demais ({count}); o limite é {max}.
+    text_too_long: Texto excede o limite ({chars}/{max} caracteres).
+customize:
+  command:
+    name: personalizar
+    description: Personalize as mensagens do bot neste servidor
+card:
+  boost:
+    dm:
+      registered:
+        title: 'DM: cargo de boost registrado'
+        placeholders: ''
+      transferred:
+        title: 'DM: transferência de dono'
+        placeholders: ''
+      auto_transferred:
+        title: 'DM: transferência automática'
+        placeholders: ''
+      invite:
+        title: 'DM: convite de cargo'
+        placeholders: ''
+      accepted:
+        title: 'DM: convite aceito'
+        placeholders: ''
+      declined:
+        title: 'DM: convite recusado'
+        placeholders: ''
+      owner_accepted:
+        title: 'DM: dono notificado da aceitação'
+        placeholders: ''
+      owner_declined:
+        title: 'DM: dono notificado da recusa'
+        placeholders: ''
+      member_left:
+        title: 'DM: você saiu do cargo'
+        placeholders: ''
+      owner_member_left:
+        title: 'DM: dono notificado da saída'
+        placeholders: ''
+      error:
+        title: 'DM: erro no convite'
+        placeholders: ''
+    logs:
+      register:
+        description:
+          title: 'Log: cargo registrado'
+          placeholders: ''
+      remove:
+        description:
+          title: 'Log: cargo removido'
+          placeholders: ''
+      transfer:
+        description:
+          title: 'Log: transferência de dono'
+          placeholders: ''
+      rename:
+        description:
+          title: 'Log: cargo renomeado'
+          placeholders: ''
+      color_change:
+        description:
+          title: 'Log: cor alterada'
+          placeholders: ''
+      emoji_change:
+        description:
+          title: 'Log: emoji alterado'
+          placeholders: ''
+      icon:
+        description:
+          title: 'Log: ícone alterado'
+          placeholders: ''
+      member_add:
+        description:
+          title: 'Log: membro adicionado'
+          placeholders: ''
+      member_remove:
+        description:
+          title: 'Log: membro removido'
+          placeholders: ''
+      member_left:
+        description:
+          title: 'Log: membro saiu'
+          placeholders: ''
+      invite_sent:
+        description:
+          title: 'Log: convite enviado'
+          placeholders: ''
+      invite_cancelled:
+        description:
+          title: 'Log: convite cancelado'
+          placeholders: ''
+      invite_accepted:
+        description:
+          title: 'Log: convite aceito'
+          placeholders: ''
+      invite_expired:
+        description:
+          title: 'Log: convite expirado'
+          placeholders: ''
+      orphan_remove:
+        description:
+          title: 'Log: cargo órfão removido'
+          placeholders: ''
+      auto_transfer:
+        description:
+          title: 'Log: transferência automática'
+          placeholders: ''
+  bump:
+    dm:
+      winner_new:
+        title: 'DM: novo vencedor MVP'
+        placeholders: ''
+      winner_again:
+        title: 'DM: MVP repetido'
+        placeholders: ''
+      winner_lost:
+        title: 'DM: perdeu o MVP'
+        placeholders: ''
+    reminder:
+      title: Card de lembrete de bump
+      placeholders: ''
+    thank_you:
+      title: Card de agradecimento do bump
+      placeholders: ''
+    leaderboard:
+      title: Post semanal do ranking
+      placeholders: ''
+    no_bumps:
+      title: Aviso de semana sem bumps
+      placeholders: ''
+    anti_camping:
+      title: Mensagem de canal bloqueado
+      placeholders: ''
+    logs:
+      channel_locked:
+        description:
+          title: 'Log: canal bloqueado'
+          placeholders: ''
+      channel_unlocked:
+        description:
+          title: 'Log: canal desbloqueado'
+          placeholders: ''
+      reminder_sent:
+        description:
+          title: 'Log: lembrete enviado'
+          placeholders: ''
+      bump_recorded:
+        description:
+          title: 'Log: bump registrado'
+          placeholders: ''
+      week_reset:
+        description:
+          title: 'Log: fim de semana, vencedor anunciado'
+          placeholders: ''
+      no_winner:
+        description:
+          title: 'Log: semana terminou sem bumps'
+          placeholders: ''
+      no_bumps_posted:
+        description:
+          title: 'Log: aviso de semana vazia postado'
+          placeholders: ''
+      leaderboard_posted:
+        description:
+          title: 'Log: ranking postado'
+          placeholders: ''
+      week_reset_manual:
+        description:
+          title: 'Log: reset manual da semana'
+          placeholders: ''
+      bumps_added:
+        description:
+          title: 'Log: bumps de teste adicionados'
+          placeholders: ''
+  warn:
+    dm:
+      title: DM de advertência
+      placeholders: ''
+  mute:
+    dm:
+      title: DM de silenciamento
+      placeholders: ''
+  kick:
+    dm:
+      title: DM de expulsão
+      placeholders: ''
+  ban:
+    dm:
+      title: DM de banimento
+      placeholders: ''
+  events:
+    welcome:
+      title: Mensagem de boas-vindas
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+    leave:
+      title: Mensagem de saída
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+    ban:
+      title: Mensagem de banimento
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+  birthdays:
+    announce:
+      title: Anúncio de aniversário
+      placeholders: '{{user}}, {{server}}, {{count}}'
+events:
+  enabled:
+    label: Ativar anúncios
+    description: Envia mensagens de entrada, saída e banimento.
+  welcome_channel:
+    label: Canal de boas-vindas
+    description: Canal das mensagens de entrada.
+  leave_channel:
+    label: Canal de saídas
+    description: Canal das mensagens de saída.
+  ban_channel:
+    label: Canal de banimentos
+    description: Canal dos avisos de banimento.
+  raid_protection:
+    label: Proteção contra raid
+    description: Atrasa boas-vindas quando muitos membros entram de uma vez.
+  welcome:
+    title: Bem-vindo ao {server}!
+    body: '{user} acabou de entrar. Diga oi! Membro #{count}.'
+  leave:
+    title: Até a próxima
+    body: '{user_name} saiu do servidor. Agora somos {count} membros.'
+  ban:
+    title: Membro banido
+    body: '{user_name} foi banido do {server}.'
+starboard:
+  enabled:
+    label: Ativar mural de estrelas
+    description: Destaca mensagens populares num quadro.
+  channel:
+    label: Canal do mural
+    description: Onde as mensagens estreladas são postadas.
+  threshold:
+    label: Limite de estrelas
+    description: Estrelas necessárias para entrar no mural.
+  self_star_counts:
+    label: Auto-estrela conta
+    description: Se a estrela do próprio autor conta.
+  allow_bots:
+    label: Permitir bots
+    description: Deixa mensagens de bots entrarem no mural.
+  jump: Ir para a mensagem
+  no_content: '*[Sem conteúdo de texto]*'
+birthdays:
+  enabled:
+    label: Ativar aniversários
+    description: Anuncia os aniversariantes do dia.
+  channel:
+    label: Canal de aniversários
+    description: Canal do cartão de anúncio.
+  role:
+    label: Cargo de aniversariante
+    description: Cargo concedido durante o dia.
+  announce_time:
+    label: Hora do anúncio
+    description: Hora local do post, no formato HH:MM (24h).
+  change_cooldown_days:
+    label: Intervalo para trocar
+    description: Dias até o membro poder trocar a própria data (0 = desligado).
+  errors.admin_only: '{error} Só administradores podem registrar o aniversário de outro membro.'
+  errors.bad_month: '{error} Mês inválido.'
+  errors.bad_day: '{error} Dia inválido para esse mês.'
+  errors.cooldown: '{warning} Você alterou seu aniversário recentemente. Tente em {days} dia(s).'
+  set: '{success} Aniversário registrado para {user}: {date}!'
+  list_title: Aniversários {calendar}
+  list_empty: Nenhum aniversário registrado ainda. Use /aniversario definir!
+  cleared: '{success} Seu aniversário foi removido.'
+  not_found: '{info} Você não tem aniversário registrado.'
+  months: Janeiro,Fevereiro,Março,Abril,Maio,Junho,Julho,Agosto,Setembro,Outubro,Novembro,Dezembro
+  card:
+    title: Feliz aniversário! {gift}
+    body: '{user} está comemorando hoje. Participe da festa!'
+birthday:
+  command:
+    name: aniversario
+    description: Registre e liste aniversários

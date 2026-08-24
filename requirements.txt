@@ -1,0 +1,6 @@
+py-cord
+PyYAML
+aiosqlite
+aiohttp
+python-dotenv
+PyNaCl

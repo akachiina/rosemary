@@ -1,0 +1,1283 @@
+language_meta:
+  name: English
+  flag: 🇺🇸
+about:
+  command:
+    name: about
+    description: About Rosemary
+  title: About Rosemary
+  text: Rosemary is a minimal, multilingual Discord bot built with py-cord.
+  version: 'Version: {version}'
+  footer: 'Commands: /about, /language, /settings, /boost, /boost_admin, /ban, /warn, /debug'
+language:
+  command:
+    name: language
+    description: Set the server language
+  title: Language
+  text: Choose the language used by the bot in this server.
+  updated: '{success} Language set to **{language}**.'
+  invalid: '{error} Unknown language ''{language}''.
+
+    Available:
+
+    {available}'
+  current: 'Current language: {language}.'
+general:
+  unknown_error: '{error} An unexpected error occurred.'
+menu:
+  owner_only: '{error} This menu is private. Only the author can interact.'
+errors:
+  generic: '{error} Something went wrong.'
+settings:
+  title: Bot Settings
+  command:
+    name: settings
+    description: Configure the bot settings
+  hint: Pick a category to browse its settings.
+  category_label: Category
+  category:
+    placeholder: Select a category
+    general: General
+    moderation: Moderation
+    logging: Logging
+    boost: Boost Roles
+    bump: Disboard Bump
+    events: Announcements
+    starboard: Starboard
+    birthdays: Birthdays
+  bump.enabled:
+    label: Disboard Bump Enabled
+    description: Enables or disables the Disboard Bump reminder and leaderboard system.
+  bump.channel:
+    label: Bump Channel
+    description: The channel where the Disboard bot posts and where reminders are sent.
+  bump.ping_role:
+    label: Ping Role
+    description: Role to mention when the bump reminder is sent.
+  bump.cooldown:
+    label: Bump Cooldown
+    description: Cooldown required by Disboard between bumps (e.g. 2h, 90m).
+  bump.anti_camping.enabled:
+    label: Anti-camping Enabled
+    description: Lock the channel shortly before the bump becomes available to prevent camping.
+  bump.anti_camping.lock_delay:
+    label: Lock Advance Time
+    description: How long before the bump is available to lock the channel (e.g. 15m).
+  bump.anti_camping.unlock_delay:
+    label: Unlock Delay
+    description: Time after cooldown to unlock the channel (e.g. 15s).
+  bump.anti_camping.message:
+    label: Anti-camping Message
+    description: The message shown when the channel is locked by anti-camping.
+  bump.detection_text:
+    label: Bump Detection Text
+    description: Text Disboard posts on a successful bump (e.g. "Bump done"). Matching is case-insensitive.
+  bump.leaderboard.enabled:
+    label: Weekly Leaderboard Enabled
+    description: Enables the weekly ranking and Bump-MVP role.
+  bump.leaderboard.winner_role:
+    label: Winner Role
+    description: Temporary role granted to the weekly Bump-MVP.
+  bump.leaderboard.reset_day:
+    label: Weekly Reset Day
+    description: The day of the week when the leaderboard resets.
+    choices:
+      Monday: Monday
+      Tuesday: Tuesday
+      Wednesday: Wednesday
+      Thursday: Thursday
+      Friday: Friday
+      Saturday: Saturday
+      Sunday: Sunday
+  bump.leaderboard.reset_hour:
+    label: Reset Hour (0-23)
+    description: The exact hour of the day to reset the leaderboard (e.g. 20).
+  edit: Edit
+  back: Back
+  close: Close
+  prev: Previous
+  next: Next
+  edit_title: 'Edit: {setting}'
+  select_value: Choose a new value.
+  saved: '{success} Value set for {setting}.'
+  invalid_value: '{error} Invalid value for {setting}.'
+  default_value: 'Default: {value}'
+  test:
+    title: '{rocket} Test Bump System'
+    hint: Trigger real bump system actions to validate without waiting for the cooldown.
+    thank_you: Bump Message
+    reminder: Send Reminder
+    leaderboard: Post Leaderboard
+    lock: Lock Channel
+    unlock: Unlock Channel
+    reset: Reset Week
+    thank_you_done: '{success} Thank-you message sent in the bump channel.'
+    reminder_done: '{success} Reminder sent in the bump channel.'
+    lock_done: '{success} Bump channel locked.'
+    unlock_done: '{success} Bump channel unlocked.'
+    leaderboard_done: '{success} Weekly leaderboard posted in the bump channel.'
+    no_data: '{error} No bump data this week to post.'
+    reset_done: '{success} Bump week reset.'
+    error: '{error} The bump system is not loaded.'
+    open: Test actions
+  none: Not set
+  page_indicator: Page {page} of {pages}
+  log:
+    title: '{gear} Setting Changed'
+    description: '{setting}
+
+      Category: {category}
+
+      From: {old}
+
+      To: {new}
+
+      By: {author}'
+    language_title: '{gear} Language Changed'
+    language_description: 'From: {old}
+
+      To: {new}
+
+      By: {author}'
+  bool:
+    'true': 'On'
+    'false': 'Off'
+  general.timezone:
+    label: Timezone
+    description: Timezone used for timestamps.
+  general.prefix:
+    label: Bot prefix
+    description: Prefix for text commands (e.g. !warn).
+  general.menu_timeout:
+    label: Menu timeout
+    description: Seconds until an interactive menu expires (60-900).
+  moderation.enabled:
+    label: Moderation enabled
+    description: Whether moderation commands work in this server.
+  moderation.warn_limit:
+    label: Warning limit
+    description: Warnings before the limit is reached (1-10).
+  moderation.mute_seconds:
+    label: Default mute duration
+    description: Default mute duration in seconds (60-604800).
+  logging.enabled:
+    label: Logging enabled
+    description: Whether bot events are posted to a log channel.
+  logging.channel:
+    label: Log channel
+    description: Channel where bot events are posted.
+  boost.enabled:
+    label: Boost roles enabled
+    description: Defines whether the boost roles system works in this server.
+  boost.max_members:
+    label: Boost role member limit
+    description: Maximum members per boost role (1-25).
+  boost.invite_seconds:
+    label: Boost invite duration
+    description: How long boost invites stay valid.
+  boost.max_pending_invites:
+    label: Pending invites limit
+    description: Maximum pending invites per boost role (1-20).
+boost:
+  command:
+    name: boost
+    description: Boost roles panel
+  titles:
+    home: Boost Roles
+    my_roles: My Boost Roles
+    pending_invites: Pending Invites
+    register: Register a Role
+    register_owner: Who will be the owner?
+    leave: Leave a Role
+    leave_confirm: Leave Role?
+    management_panel: 'Managing: {role_name}'
+    select_color: Choose a Color
+    manage_members: Members of {role_name}
+    invites: Invites for {role_name}
+    invite_target: Invite a Member
+    transfer_target: Transfer Ownership
+    remove_confirm: Remove Boost Role?
+    admin_panel: Boost Roles | Admin
+    remove: Remove a Role
+    transfer: Transfer a Role
+    list_all: All Boost Roles
+  descriptions:
+    user_panel: Here are the server's boost roles. Manage yours, join or leave.
+    as_owner: You own this role
+    as_member: You are a member
+    my_roles_empty: You do not own or belong to any boost role yet.
+    pending_invites_empty: You have no pending invites.
+    pending_invite_entry: '{invitee} • expires {expires}'
+    register: Pick the role you own to register it as your boost role. Then you will choose who becomes
+      the owner.
+    register_owner: Pick who will be the owner of the role {role}. They will receive a private message
+      with the instructions.
+    remove: Pick a boost role to remove.
+    transfer: Pick a boost role to transfer.
+    select_color: Pick a color for the role.
+    leave: Pick one of the roles you belong to in order to leave it.
+    leave_empty: You are not a member of any boost role.
+    manage_hint: Use the buttons below to customize your role.
+    members_count: '{count}/{max_members} members'
+    manage_members: Manage the members of your boost role (max {max_members}).
+    members_empty: No members yet. Use the menu below to add some.
+    owner: You are the owner of this role.
+    dm_hint: The member will receive an invite in their private messages.
+    transfer_hint: Pick the new owner. They will be notified by private message.
+    new_owner: The new owner will receive a private message.
+    confirm_leave: Are you sure you want to leave {role}? The owner will be notified.
+    confirm_removal: Are you sure you want to remove {role} from the boost system?
+    remove_hint: You can keep the Discord role or delete it.
+    guide_admin: Register, transfer or remove boost roles below.
+    stats: '{roles} role(s) • {members} member(s)'
+    role_entry: 'Owner: {owner} • Members: {members}'
+    no_roles: No boost roles registered yet.
+  buttons:
+    my_roles: My roles
+    invites: Invites
+    register: Register
+    leave_role: Leave
+    close: Close
+    back: Back
+    previous: Previous
+    next: Next
+    cancel: Cancel
+    cancel_invite: Cancel
+    confirm: Confirm
+    manage_roles: Manage
+    rename: Rename
+    change_color: Color
+    emoji: Emoji
+    icon: Icon
+    manage_members: Members
+    transfer: Transfer
+    remove: Remove
+    remove_member: Remove
+    custom_color: Custom color
+    add_member: Add
+    add_by_id: By ID
+    list_all: List all
+    accept_invite: Accept
+    decline_invite: Decline
+    delete_role_yes: Delete role
+    delete_role_no: Keep role
+  colors:
+    pink: Pastel Pink
+    peach: Pastel Peach
+    yellow: Pastel Yellow
+    green: Pastel Green
+    blue: Pastel Blue
+    lavender: Pastel Lavender
+    beige: Pastel Beige
+    gray: Light Gray
+    white: Soft White
+  placeholders:
+    select_role: Choose a role...
+    select_color: Choose a color...
+    select_member: Choose a member...
+  modals:
+    add_by_id:
+      title: Add by ID
+      role_label: Role ID
+      role_placeholder: Paste the role ID...
+    rename:
+      title: Rename Role
+      label: New name
+      placeholder: Type the new role name...
+    emoji:
+      title: Role Emoji
+      label: Emoji
+      placeholder: Use a single emoji...
+    icon:
+      title: Role Icon
+      label: Upload an image
+      description: The image will become the role icon (requires Level 2 boost).
+    custom_color:
+      title: Custom Color
+      label: Hex code
+      placeholder: '#FF5733 or FF5733'
+    add_member:
+      title: Add Member
+      label: User
+      placeholder: '@user or ID'
+    transfer:
+      title: Transfer Ownership
+      label: New owner
+      placeholder: User ID
+    register_owner:
+      title: Role Owner
+      label: New owner
+      placeholder: User ID
+  dm:
+    registered: '{crown} You received a Boost Role!
+
+      Hello, {mention}! The boost role @{role_name} was registered for you on **{server_name}**.
+
+
+      {pencil} Rename and pick an emoji
+
+      {palette} Change the color
+
+      {members} Invite up to **{max_members}** members
+
+      {swap} Transfer ownership
+
+
+      Use the boost roles panel to manage everything.
+
+      '
+    transferred: '{crown} Ownership Transferred!
+
+      Hello, {mention}! Ownership of the boost role @{role_name} was transferred to you on **{server_name}**.
+
+
+      {pencil} Rename and pick an emoji
+
+      {palette} Change the color
+
+      {members} Invite up to **{max_members}** members
+
+      {swap} Transfer ownership
+
+
+      Use the boost roles panel to manage everything.
+
+      '
+    auto_transferred: '{swap} Ownership Transferred Automatically!
+
+      Hello, {mention}! Since the previous owner left the server, ownership of the boost role @{role_name}
+      was transferred to you on **{server_name}**.
+
+
+      Use the boost roles panel to manage your role.
+
+      '
+    invite: '{love_letter} Boost Role Invite!
+
+      Hello, {mention}! You have been invited to join a boost role on **{server_name}**.
+
+
+      > **{tag} Role:** @{role_name}
+
+      > **{user} Invited by:** {inviter_mention}
+
+      > **{clock} Expires:** {expires}
+
+
+      -# By accepting, you will receive the role and can use it on the server. Use the buttons below to
+      reply!
+
+      '
+    accepted: '{success} Invite Accepted!
+
+      The role @{role_name} was added to you successfully.
+
+      -# To leave the role at any time, use `/boost`.
+
+      '
+    declined: '{info} Invite Declined
+
+      You declined the invite for the role @{role_name}.
+
+      -# The role owner was notified about your decision.
+
+      '
+    owner_accepted: '{success} Invite Accepted!
+
+      {member_mention} accepted your invite and was added to the role @{role_name}!
+
+      '
+    owner_declined: '{info} Invite Declined
+
+      {member_mention} declined your invite for the role @{role_name}.
+
+      -# You can invite someone else if you wish.
+
+      '
+    member_left: '{door} You Left the Role
+
+      You left the role @{role_name} successfully.
+
+      -# The role owner was notified.
+
+      '
+    owner_member_left: '{door} Member Left the Role
+
+      {member_mention} left the role @{role_name}.
+
+      -# You can add another member if you wish.
+
+      '
+    error: '{error} Oops!
+
+      {body}
+
+      '
+  emoji:
+    owner: Owner
+    members: Members
+    user: User
+    roles: Roles
+  success:
+    role_registered: '{success} The role {role} was registered!'
+    role_removed: '{success} The boost role was removed from the system.'
+    ownership_transferred: '{success} Ownership of {role} was transferred!'
+    role_renamed: '{success} Role renamed from **{old}** to **{new}**.'
+    color_changed: '{success} Role color updated!'
+    emoji_set: '{success} Role emoji set to {emoji}.'
+    icon_set: '{success} Role icon updated!'
+    member_added: '{success} {member} joined {role}.'
+    member_removed: '{success} {member} was removed from the role.'
+    invite_sent: '{success} Invite sent to {member}.'
+    invite_cancelled: '{success} Invite cancelled.'
+    left_role: '{success} You left {role}.'
+  errors:
+    role_already_registered: '{error} This role is already registered.'
+    role_not_found: '{error} Role not found.'
+    role_not_registered: '{error} This role is not registered as a boost role.'
+    forbidden_manage_role: '{error} I don''t have permission to edit this role.'
+    forbidden_add_role: '{error} I don''t have permission to add this role.'
+    forbidden_remove_role: '{error} I don''t have permission to remove this role.'
+    generic_error: '{error} Something went wrong. Try again.'
+    empty_name: '{error} The role name cannot be empty.'
+    invalid_emoji: '{error} Invalid emoji. Use a single valid emoji.'
+    requires_boost_level_2: '{error} This server needs Boost Level 2 for role emojis and icons.'
+    invalid_image: '{error} Invalid image. Upload a PNG, JPG or GIF.'
+    image_download_failed: '{error} Could not download the image.'
+    icon_too_large: '{error} The image is too large (limit 1 MB).'
+    invalid_hex_color: '{error} Invalid color. Use hex format (e.g. #FF5733).'
+    member_not_found: '{error} Member not found.'
+    member_is_owner: '{error} The owner already has the role automatically.'
+    member_already_added: '{error} This member is already in the role.'
+    member_already_invited: '{error} This member already has a pending invite.'
+    max_members_reached: '{error} This role reached its limit of {max_members} members.'
+    max_pending_invites: '{error} This role has {max_invites} pending invites already.'
+    cannot_leave_as_owner: '{error} You are the owner. Transfer ownership instead.'
+    bot_not_allowed: '{error} Bots cannot own boost roles.'
+    dm_failed: '{error} Could not send the private message.'
+    invite_not_found: '{error} Invite not found.'
+    invite_not_for_you: '{error} This invite belongs to another user.'
+    invite_expired: '{error} This invite has expired.'
+    invite_invalid_old: '{error} This invite is no longer valid.'
+  logs:
+    register:
+      title: '{register} Boost Role Registered'
+      description: '{role}
+
+        Owner: {owner}
+
+        Registered by: {actor}'
+    remove:
+      title: '{trash} Boost Role Removed'
+      description: '{role}
+
+        Owner: {owner}
+
+        Removed by: {actor}
+
+        Role deleted: {deleted}'
+    transfer:
+      title: '{swap} Ownership Transferred'
+      description: '{role}
+
+        Previous owner: {old_owner}
+
+        New owner: {new_owner}
+
+        Transferred by: {actor}'
+    rename:
+      title: '{pencil} Role Renamed'
+      description: '{role}
+
+        From: {old_name}
+
+        To: {new_name}
+
+        By: {actor}'
+    color_change:
+      title: '{palette} Color Changed'
+      description: '{role}
+
+        New color: {new_color}
+
+        By: {actor}'
+    emoji_change:
+      title: '{tag} Emoji Changed'
+      description: '{role}
+
+        New emoji: {emoji}
+
+        By: {actor}'
+    icon:
+      title: '{frame} Icon Changed'
+      description: '{role}
+
+        Icon updated by {actor}.'
+    member_add:
+      title: '{plus} Member Added'
+      description: '{role}
+
+        {member} joined the role.
+
+        Added by: {actor}'
+    member_remove:
+      title: '{minus} Member Removed'
+      description: '{role}
+
+        {member} was removed from the role.
+
+        Removed by: {actor}'
+    member_left:
+      title: '{door} Member Left the Role'
+      description: '{role}
+
+        {member} left the role.
+
+        Owner: {owner}'
+    invite_sent:
+      title: '{love_letter} Invite Sent'
+      description: '{role}
+
+        Invitee: {invitee}
+
+        By: {inviter}
+
+        Expires: {expires}'
+    invite_cancelled:
+      title: '{error} Invite Cancelled'
+      description: '{role}
+
+        Invite for {invitee} cancelled.
+
+        By: {actor}'
+    invite_accepted:
+      title: '{success} Invite Accepted'
+      description: '{role}
+
+        {member} accepted the invite.
+
+        Invited by: {inviter}'
+    invite_declined:
+      title: '{error} Invite Declined'
+      description: '{role}
+
+        {member} declined the invite.
+
+        Invited by: {inviter}'
+    invite_expired:
+      title: '{clock} Invite Expired'
+      description: '{role}
+
+        Invite for {invitee} expired.
+
+        Invited by: {inviter}'
+    auto_transfer:
+      title: '{warning} Automatic Ownership Transfer'
+      description: '{role} was transferred from {old_owner} to {new_owner}.'
+    orphan_remove:
+      title: '{ban} Orphan Role Removed'
+      description: '{role} from {owner} was removed from the system.'
+  error_disabled: '{error} The boost roles system is disabled in this server.'
+bump:
+  messages:
+    anti_camping: 🔒 **|** The channel is temporarily locked. Bump will be available shortly!
+    thank_you_title: '{tada} Bump Recorded!'
+    thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining.
+      {cup}
+
+
+      {clock} **|** I''ll remind you in **{cooldown}!**
+
+      > **Next bump:** <t:{next_bump_timestamp}:R>
+
+
+      {trophy} **|** Use `/bump_leaderboard` to check the weekly rank and compete for **Bump-MVP!**
+
+      '
+    reminder_title: '{clock} Bump Time!'
+    reminder_description: 'The {cooldown} cooldown has passed since the last bump!
+
+
+      How about helping us welcome new visitors? Use `/bump` and earn a point!
+
+      '
+    leaderboard_title: '{trophy} Weekly Bump Leaderboard'
+    leaderboard_description: 'Check out who helped the server the most this week!
+
+
+      **{calendar} Period:** <t:{start_timestamp}:d> - <t:{end_timestamp}:d>
+
+      **{hourglass} The week ends in:** <t:{next_reset_timestamp}:R>
+
+      **{crown} Winner:** {winner_mention} with **{winner_count}** bumps!
+
+
+      **{gift} Prize:** Customizable **{role_name}** role for 1 week!
+
+      -# Use `/boost` to customize name, color, emoji and invite members.
+
+
+      {leaderboard_list}
+
+      '
+    leaderboard_line: '{medal} **{position}º** - {user_mention} **{bump_count}** bumps'
+    no_bumps_title: '{bar_chart} Weekly Bump Leaderboard'
+    no_bumps_description: 'Nobody bumped the server this week! {cry}
+
+      Be the first to help out by using `/bump`!
+
+      '
+    no_bumps_you: '{bar_chart} You haven''t bumped this week yet! Use `/bump` in the bump channel.'
+  dm:
+    winner_new: '{tada} You are the Bump-MVP of the Week!
+
+      Hello, {mention}! Your dedication kept the server shining. Thank you!
+
+
+      > **{bar_chart} Weekly bumps:** `{bump_count}`
+
+      > **{trophy} Role:** `{role_name}`
+
+
+      ### {palette} Customize your role
+
+      Use `/boost` to customize:
+
+      > {pencil} Name and emoji
+
+      > {palette} Color
+
+      > {members} Invite up to **{max_members}** members
+
+
+      -# Your customizations are saved and will return if you win again!
+
+
+      Enjoy it until the next reset.
+
+      '
+    winner_again: '{tada} Bump-MVP once again!
+
+      Hello, {mention}! You''ve reclaimed the title. Your dedication is admirable!
+
+
+      > **{bar_chart} Weekly bumps:** `{bump_count}`
+
+      > **{trophy} Total wins:** `{total_wins}`
+
+
+      Your role **{role_name}** has been restored with your previous customizations!
+
+
+      Keep being awesome.
+
+      '
+    winner_lost: '{cry} Your time as Bump-MVP has ended
+
+      Hello, {mention}! This week another member claimed the title. Don''t be discouraged!
+
+
+      > **{bar_chart} Your bumps:** `{bump_count}`
+
+      > **{crown} New winner:** {winner_mention}
+
+
+      -# Your customizations were saved and will return if you win again!
+
+
+      Keep bumping and reclaim the throne!
+
+      '
+  logs:
+    bump_recorded:
+      title: '{rocket} Bump Detected'
+      description: Bump executed by {user} in {channel}.
+    reminder_sent:
+      title: '{clock} Reminder Sent'
+      description: Bump reminder sent in {channel}.
+    channel_locked:
+      title: '{lock} Channel Locked'
+      description: Channel {channel} temporarily locked (anti-camping).
+    channel_unlocked:
+      title: '{unlock} Channel Unlocked'
+      description: Channel {channel} unlocked.
+    week_reset:
+      title: '{refresh} Bump Week Reset'
+      description: 'The weekly ranking was reset.
+
+        New MVP: {winner}
+
+        Bumps: {bumps}'
+    no_winner:
+      title: '{bar_chart} Week Reset (No MVP)'
+      description: The week was reset, but no bumps were recorded.
+    leaderboard_posted:
+      title: '{trophy} Leaderboard Posted'
+      description: The weekly leaderboard was posted in {channel}.
+    no_bumps_posted:
+      title: '{bar_chart} Empty Leaderboard Posted'
+      description: No bumps recorded this week. The 'no data' card was posted in {channel}.
+    week_reset_manual:
+      title: '{refresh} Week Reset Manually'
+      description: The bump week was reset manually by {author}.
+    bumps_added:
+      title: '{pencil} Test Bumps Added'
+      description: '{author} added {count} test bump(s) for {user} (weekly total: {total}).'
+  error_disabled: '{error} The bump system is disabled in this server.'
+  error_no_channel: '{error} The bump channel is not configured. Set it in `/settings`.'
+  error_no_role: '{error} The Bump-MVP role is not configured.'
+  error_role_not_found: '{error} The configured winner role was not found in the server.'
+  error_leaderboard_disabled: '{error} The weekly bump leaderboard is disabled.'
+  test:
+    no_bumps: '{bar_chart} No bumps recorded this week; the leaderboard was not posted.'
+  success:
+    leaderboard_posted: '{success} Weekly leaderboard posted successfully!'
+    week_reset: '{success} Bump week reset successfully!'
+    bumps_added: '{success} {count} bump(s) added for {user_mention}! Weekly total: {total}.'
+  stats:
+    title: '{bar_chart} Your Bump Statistics'
+    this_week: '**{calendar} This Week:**
+
+      > {trophy} **Position:** #{position}
+
+      > {rocket} **Bumps:** {bumps}
+
+      > {members} **Total bumps:** {total_bumps}
+
+      '
+    history: '**{crown} History:**
+
+      > **{trophy} Wins:** {wins}
+
+      '
+    week_start: 'Week started: <t:{week_start_ts}:d>'
+    week_end: '{hourglass} The week ends in: <t:{next_reset_ts}:R>'
+bump_leaderboard:
+  command:
+    name: bump_leaderboard
+    description: Show the weekly bump leaderboard
+bump_stats:
+  command:
+    name: bump_stats
+    description: Show your bump statistics
+test_bump:
+  command:
+    name: test_bump
+    description: '[ADMIN] Simulate a bump to test the system'
+test_bump_reminder:
+  command:
+    name: test_bump_reminder
+    description: '[ADMIN] Send the bump reminder immediately'
+bump_status:
+  command:
+    name: bump_status
+    description: '[ADMIN] Show the bump system status'
+test_bump_leaderboard:
+  command:
+    name: test_bump_leaderboard
+    description: '[ADMIN] Force the weekly leaderboard calculation'
+reset_bump_week:
+  command:
+    name: reset_bump_week
+    description: '[ADMIN] Manually reset the bump week'
+add_test_bumps:
+  command:
+    name: add_test_bumps
+    description: '[ADMIN] Add test bumps for a user'
+boost_admin:
+  command:
+    name: boost_admin
+    description: Admin boost roles panel
+ban:
+  command:
+    name: ban
+    description: Ban a member
+  confirm_title: Ban this member?
+  success: '{success} {member} was banned.'
+  dm: 'You were banned from **{guild}** by {moderator}.
+
+    Reason: {reason}'
+kick:
+  command:
+    name: kick
+    description: Kick a member
+  confirm_title: Kick this member?
+  success: '{success} {member} was kicked.'
+  dm: 'You were kicked from **{guild}** by {moderator}.
+
+    Reason: {reason}'
+mute:
+  command:
+    name: mute
+    description: Mute a member for a duration
+  confirm_title: Mute this member?
+  success: '{success} {member} was muted for {duration}.'
+  dm: 'You were muted in **{guild}** for {duration} by {moderator}.
+
+    Reason: {reason}'
+  invalid_duration: '{error} Invalid duration. Use formats like 10m, 2h or 3d.'
+  summary: '{member}
+
+    Reason: {reason}
+
+    Duration: {duration}'
+warn:
+  command:
+    name: warn
+    description: Warn a member
+  confirm_title: Warn this member?
+  success: '{success} Warning recorded for {member} ({count}/{limit}).'
+  dm: 'You received a warning in **{guild}** from {moderator}.
+
+    Reason: {reason}'
+warnings:
+  command:
+    name: warnings
+    description: List a member's warnings
+  title: Warnings for {member}
+  none: '{success} This member has no warnings.'
+  entry: '{reason} (by {moderator}, {date})'
+unwarn:
+  command:
+    name: unwarn
+    description: Remove a warning
+  clear_all_title: Clear all warnings?
+  clear_all_summary: Remove every warning from {member}?
+  cleared: '{success} Removed {count} warning(s) from {member}.'
+  removed: '{success} Warning #{index} removed from {member}.'
+  invalid_index: '{error} No warning with that number.'
+  none_for: '{success} This member has no warnings to clear.'
+moderation:
+  confirm_notify: Confirm and notify
+  confirm_silent: Confirm without notifying
+  confirm_clear: Clear all warnings
+  cancel: Cancel
+  cancelled: Action cancelled.
+  error_failed: '{error} The action failed. Check the bot logs.'
+  no_reason: No reason provided
+  summary: '{member}
+
+    Reason: {reason}'
+  multi_summary: '{targets}
+
+    Reason: {reason}'
+  error_disabled: '{error} Moderation commands are disabled in this server.'
+  error_no_members: '{error} Mention at least one member.'
+  error_self: '{error} You cannot use moderation commands on yourself.'
+  error_self_bot: '{error} The bot cannot moderate itself.'
+  error_author_permissions: '{error} You do not have permission to do that.'
+  error_bot_permissions: '{error} The bot does not have permission to do that.'
+  error_hierarchy: '{error} This member''s role is equal to or higher than yours.'
+  error_bot_hierarchy: '{error} This member''s role is equal to or higher than the bot''s.'
+  log:
+    ban:
+      title: Ban
+    kick:
+      title: Kick
+    mute:
+      title: Mute
+    warn:
+      title: Warn
+    member: Target
+    moderator: Moderator
+    reason: Reason
+    duration: Duration
+debug:
+  command:
+    name: debug
+    description: Bot diagnostics panel
+  title: Diagnostics
+  guilds: 'Guilds: {count}'
+  members: 'Members: {count}'
+  latency: 'Latency: {ms} ms'
+  uptime: 'Uptime: {uptime}'
+  close: Close
+  test_log: Test log
+  test_log_title: Log test
+  test_log_description: This message confirms that the logging channel works.
+  test_log_sent: '{success} Test message sent to the log channel.'
+  test_log_not_sent: '{error} Could not send the test message. Check the log channel setting.'
+time_parser:
+  seconds:
+  - second
+  - seconds
+  minutes:
+  - minute
+  - minutes
+  hours:
+  - hour
+  - hours
+  days:
+  - day
+  - days
+cards:
+  editor:
+    title: Card Editor
+    hint: 'Editing `{card_key}`. Placeholders: {placeholders}'
+    placeholders_default: '{{user}}, {{server}}, {{count}}, {{user_avatar}} + any theme emoji'
+    preview: Preview
+    invalid: '{warning} This composition cannot be sent yet: {error}'
+    saved: '{success} Saved.'
+    reset_done: '{refresh} Card restored to the default message.'
+    test_sent: '{success} Test card sent above (visible only to you).'
+    add_title: 'Pick a block type to add:'
+    add_placeholder: Choose a block type...
+    empty_level: '*This level is empty. Use Add below.*'
+    buttons:
+      add: Add
+      edit: Edit
+      enter: Open
+      delete: Remove
+      up_level: Up one level
+      test: Test
+      reset: Reset
+      close: Close
+      back: Back
+      move_up: Up
+      move_down: Down
+      compare: Compare
+    types:
+      text: Text
+      container: Card (colored box)
+      section: Text with avatar
+      divider: Divider
+      gallery: Image gallery
+      row: Link buttons
+    colors:
+      placeholder: Card accent color...
+      none: No color
+      brand: Green (brand)
+      success: Success green
+      warning: Yellow
+      danger: Red
+      info: Blue
+    spacing:
+      small: Small spacing
+      large: Large spacing
+    modals:
+      text_title: Edit text
+      text_label: Text (markdown + placeholders)
+      text_placeholder: Write the text here...
+      urls_title: Edit image gallery
+      urls_label: One image URL per line
+      urls_placeholder: https://example.com/image.png
+      row_title: Edit link buttons
+      row_label: 'One per line: Label | https://url'
+      row_placeholder: Site | https://example.com
+    select_placeholder: Pick a block to work on...
+    breadcrumb: 'Path: {path}'
+    child_count: '{count} block(s) inside'
+    image_count: '{count} image(s)'
+    button_count: '{count} link button(s)'
+    compare_title: Compare with the default
+    compare_default: What members receive now
+    compare_custom: Your version
+    compare_no_default: '*This card has no default preview.*'
+    using_default: Using the default as a base (not saved yet).
+    empty_block: (empty)
+  customize:
+    title: Customize Messages
+    choose: Pick a category, then the message you want to personalize.
+    empty: There are no customizable messages yet.
+    category_placeholder: Choose a category...
+    card_placeholder: Choose a message...
+    open: Customize messages
+  errors:
+    document_shape: Document must be an object with a 'blocks' list.
+    unknown_block: Unknown block type.
+    depth_exceeded: Blocks nested deeper than {max} levels are not allowed.
+    text_not_string: A text block body must be text.
+    text_empty: A text block is still empty.
+    divider_spacing: Divider spacing must be small or large.
+    gallery_count: Galleries need {min}-{max} image URLs.
+    bad_url: Enter a valid https:// URL.
+    row_count: Button rows need {min}-{max} buttons.
+    button_label: Every button needs a label (max {max} characters).
+    section_children_count: Sections need {min}-{max} text children.
+    section_children_text: Section children must be text blocks.
+    section_accessory_missing: Sections need a thumbnail or button accessory.
+    accessory_button_label: The accessory button needs a label.
+    container_empty: Cards need at least one child block.
+    container_nested: Cards cannot be nested inside other cards.
+    container_child_invalid: This block type is not allowed inside a card.
+    color_unknown: Unknown color '{color}'. Use the palette tokens.
+    too_many_components: Too many components ({count}); the limit is {max}.
+    text_too_long: Text exceeds the limit ({chars}/{max} characters).
+customize:
+  command:
+    name: customize
+    description: Customize the bot's messages for this server
+card:
+  boost:
+    dm:
+      registered:
+        title: 'DM: boost role registered'
+        placeholders: ''
+      transferred:
+        title: 'DM: ownership transferred'
+        placeholders: ''
+      auto_transferred:
+        title: 'DM: automatic transfer'
+        placeholders: ''
+      invite:
+        title: 'DM: role invite'
+        placeholders: ''
+      accepted:
+        title: 'DM: invite accepted'
+        placeholders: ''
+      declined:
+        title: 'DM: invite declined'
+        placeholders: ''
+      owner_accepted:
+        title: 'DM: owner notified of acceptance'
+        placeholders: ''
+      owner_declined:
+        title: 'DM: owner notified of refusal'
+        placeholders: ''
+      member_left:
+        title: 'DM: you left the role'
+        placeholders: ''
+      owner_member_left:
+        title: 'DM: owner notified of leave'
+        placeholders: ''
+      error:
+        title: 'DM: invite error'
+        placeholders: ''
+    logs:
+      register:
+        description:
+          title: 'Log: role registered'
+          placeholders: ''
+      remove:
+        description:
+          title: 'Log: role removed'
+          placeholders: ''
+      transfer:
+        description:
+          title: 'Log: ownership transferred'
+          placeholders: ''
+      rename:
+        description:
+          title: 'Log: role renamed'
+          placeholders: ''
+      color_change:
+        description:
+          title: 'Log: color changed'
+          placeholders: ''
+      emoji_change:
+        description:
+          title: 'Log: emoji changed'
+          placeholders: ''
+      icon:
+        description:
+          title: 'Log: icon changed'
+          placeholders: ''
+      member_add:
+        description:
+          title: 'Log: member added'
+          placeholders: ''
+      member_remove:
+        description:
+          title: 'Log: member removed'
+          placeholders: ''
+      member_left:
+        description:
+          title: 'Log: member left'
+          placeholders: ''
+      invite_sent:
+        description:
+          title: 'Log: invite sent'
+          placeholders: ''
+      invite_cancelled:
+        description:
+          title: 'Log: invite cancelled'
+          placeholders: ''
+      invite_accepted:
+        description:
+          title: 'Log: invite accepted'
+          placeholders: ''
+      invite_expired:
+        description:
+          title: 'Log: invite expired'
+          placeholders: ''
+      orphan_remove:
+        description:
+          title: 'Log: orphan role removed'
+          placeholders: ''
+      auto_transfer:
+        description:
+          title: 'Log: automatic transfer'
+          placeholders: ''
+  bump:
+    dm:
+      winner_new:
+        title: 'DM: new MVP winner'
+        placeholders: ''
+      winner_again:
+        title: 'DM: repeated MVP winner'
+        placeholders: ''
+      winner_lost:
+        title: 'DM: MVP lost'
+        placeholders: ''
+    reminder:
+      title: Bump reminder card
+      placeholders: ''
+    thank_you:
+      title: Bump thank-you card
+      placeholders: ''
+    leaderboard:
+      title: Weekly leaderboard post
+      placeholders: ''
+    no_bumps:
+      title: Empty-week notice
+      placeholders: ''
+    anti_camping:
+      title: Channel locked message
+      placeholders: ''
+    logs:
+      channel_locked:
+        description:
+          title: 'Log: channel locked'
+          placeholders: ''
+      channel_unlocked:
+        description:
+          title: 'Log: channel unlocked'
+          placeholders: ''
+      reminder_sent:
+        description:
+          title: 'Log: reminder sent'
+          placeholders: ''
+      bump_recorded:
+        description:
+          title: 'Log: bump recorded'
+          placeholders: ''
+      week_reset:
+        description:
+          title: 'Log: week reset, winner announced'
+          placeholders: ''
+      no_winner:
+        description:
+          title: 'Log: week ended without bumps'
+          placeholders: ''
+      no_bumps_posted:
+        description:
+          title: 'Log: empty-week card posted'
+          placeholders: ''
+      leaderboard_posted:
+        description:
+          title: 'Log: leaderboard posted'
+          placeholders: ''
+      week_reset_manual:
+        description:
+          title: 'Log: manual week reset'
+          placeholders: ''
+      bumps_added:
+        description:
+          title: 'Log: test bumps added'
+          placeholders: ''
+  warn:
+    dm:
+      title: Warn DM
+      placeholders: ''
+  mute:
+    dm:
+      title: Mute DM
+      placeholders: ''
+  kick:
+    dm:
+      title: Kick DM
+      placeholders: ''
+  ban:
+    dm:
+      title: Ban DM
+      placeholders: ''
+  events:
+    welcome:
+      title: Welcome message
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+    leave:
+      title: Leave message
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+    ban:
+      title: Ban message
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+  birthdays:
+    announce:
+      title: Birthday announcement
+      placeholders: '{{user}}, {{server}}, {{count}}'
+events:
+  enabled:
+    label: Enable announcements
+    description: Send welcome, leave and ban messages.
+  welcome_channel:
+    label: Welcome channel
+    description: Channel for member join messages.
+  leave_channel:
+    label: Leave channel
+    description: Channel for member leave messages.
+  ban_channel:
+    label: Ban channel
+    description: Channel for ban announcements.
+  raid_protection:
+    label: Raid protection
+    description: Delay welcomes when many members join at once.
+  welcome:
+    title: Welcome to {server}!
+    body: '{user} just joined. Say hi! Member #{count}.'
+  leave:
+    title: Until next time
+    body: '{user_name} left the server. We are now {count} members.'
+  ban:
+    title: Member banned
+    body: '{user_name} has been banned from {server}.'
+starboard:
+  enabled:
+    label: Enable starboard
+    description: Highlight popular messages on a board.
+  channel:
+    label: Starboard channel
+    description: Where starred messages are posted.
+  threshold:
+    label: Star threshold
+    description: Stars needed to reach the board.
+  self_star_counts:
+    label: Self-stars count
+    description: Whether the author's own star counts.
+  allow_bots:
+    label: Allow bots
+    description: Let bot messages reach the board.
+  jump: Jump to message
+  no_content: '*[No text content]*'
+birthdays:
+  enabled:
+    label: Enable birthdays
+    description: Announce member birthdays daily.
+  channel:
+    label: Birthday channel
+    description: Channel for the announcement card.
+  role:
+    label: Celebrant role
+    description: Role granted for the day.
+  announce_time:
+    label: Announce time
+    description: Local time to post, as HH:MM (24h).
+  change_cooldown_days:
+    label: Change cooldown
+    description: Days before a member may change their own date again (0 = off).
+  errors.admin_only: '{error} Only admins can register another member''s birthday.'
+  errors.bad_month: '{error} Invalid month.'
+  errors.bad_day: '{error} Invalid day for that month.'
+  errors.cooldown: '{warning} You changed your birthday recently. Try again in {days} day(s).'
+  set: '{success} Birthday registered for {user}: {date}!'
+  list_title: Birthdays {calendar}
+  list_empty: No birthdays registered yet. Use /birthday set!
+  cleared: '{success} Your birthday was removed.'
+  not_found: '{info} You don''t have a birthday registered.'
+  months: January,February,March,April,May,June,July,August,September,October,November,December
+  card:
+    title: Happy birthday! {gift}
+    body: '{user} is celebrating today. Join the party!'
+birthday:
+  command:
+    name: birthday
+    description: Register and list birthdays
