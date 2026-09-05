@@ -242,6 +242,18 @@ SETTINGS: dict[str, SettingSpec] = {
             max_value=30,
         ),
         _spec(
+            "updater.enabled",
+            SettingCategory.GENERAL,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "updater.branch",
+            SettingCategory.GENERAL,
+            SettingType.STRING,
+            "main",
+        ),
+        _spec(
             "moderation.mute_seconds",
             SettingCategory.MODERATION,
             SettingType.INTEGER,

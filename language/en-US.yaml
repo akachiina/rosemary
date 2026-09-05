@@ -211,6 +211,12 @@ settings:
   broadcast.delay_seconds:
     label: Broadcast DM delay (0-30s)
     description: Pause between broadcast DMs.
+  updater.enabled:
+    label: Self-update enabled
+    description: Whether /update can restart the bot.
+  updater.branch:
+    label: Update branch
+    description: Git branch to update from.
   tickets.enabled:
     label: Tickets enabled
     description: Whether the ticket panel works.
@@ -930,6 +936,28 @@ serverinfo:
   roles: '**Roles:** {value}'
   channels: '**Channels:** {value}'
   created: '**Created:** {value}'
+update:
+  command:
+    name: update
+    description: '[ADMIN] Update the bot from git'
+updater:
+  error_disabled: '{error} Self-update is disabled on this server.'
+  error_fetch: '{error} Could not fetch updates from git.'
+  error_dirty: '{error} Working tree is dirty ({ahead} local commit(s)) — update refused.'
+  error_backup: '{error} Data backup failed — update aborted.'
+  error_reset: '{error} Git reset failed — check the bot logs.'
+  up_to_date: '{success} Already up to date.'
+  confirm: '{warning} **{behind}** commit(s) behind `origin/{branch}`. Back up data, reset and restart?'
+  confirm_button: Update and restart
+  cancel_button: Cancel
+  cancelled: Update cancelled.
+  logs:
+    updating:
+      title: 'Bot Updating'
+      description: '{moderator} started an update from `{branch}`. The bot will restart.'
+    updated:
+      title: 'Bot Updated'
+      description: 'Update applied — bot restarted successfully.'
 partnerships_add:
   command:
     name: partnerships_add
@@ -1733,6 +1761,19 @@ card:
       ended:
         description:
           title: 'Log: broadcast ended'
+          placeholders: ''
+  updater:
+    confirm:
+      title: Update confirmation text
+      placeholders: '{behind}, {branch}'
+    logs:
+      updating:
+        description:
+          title: 'Log: bot updating'
+          placeholders: ''
+      updated:
+        description:
+          title: 'Log: bot updated'
           placeholders: ''
   kick:
     dm:

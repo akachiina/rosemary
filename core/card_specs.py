@@ -214,6 +214,11 @@ def _build() -> list[CardSpec]:
         CardSpec(key=f"partnerships.logs.{name}.description", category="partnerships")
         for name in PARTNERSHIPS_LOGS
     ]
+    specs += [CardSpec(key="updater.confirm", category="general")]
+    specs += [
+        CardSpec(key=f"updater.logs.{name}.description", category="general")
+        for name in ("updating", "updated")
+    ]
     return specs
 
 

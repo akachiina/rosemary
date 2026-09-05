@@ -46,6 +46,14 @@ Rosemary — a modular, multilingual Discord bot for multiple servers, built on 
 - `cogs/boost_roles.py` + `core/boost_roles.py` (`BoostRoleStore`): boost roles, invites, member panels. `cogs/bump_reminder.py` + `cogs/bump_leaderboard.py` + `core/bump.py` (`BumpStore`): weekly Disboard bump tracking. **Only Disboard is supported** (hardcoded bot ID in `bump_reminder.py`; mention it in copy).
 - These stores use `GuildStorage(use_defaults=False)` with their own filename to avoid leaking the `language` default.
 
+## Ported features (from the legacy single-guild bot)
+
+- `cogs/invites.py` + `core/invites.py` (`InviteStore`): attribution by invite-uses diff, regular/bonus/fake/left counters (`total = regular - left - fake + bonus`), ranking, personal links, blacklist, labels. `{inviter}` placeholder available in welcome cards.
+- `cogs/tickets.py` + `core/tickets.py`: panel with 4 fixed types, close/transcript/reopen/delete buttons (persistent views re-registered in `start()`), text transcripts to the log channel. Ticket must be closed before delete.
+- `cogs/partnerships.py` + `core/partnerships.py`: ads, hourly renewal loop (warn then remove), rep self-renew with repost, audit (read-only) + orphan cleanup.
+- Small: `cogs/utility.py` (`/ping`, `/serverinfo`), `cogs/cleaner.py` (`/limpar` keyword purge), `cogs/anti_invite.py` (external-link filter), `cogs/reminders.py` + `cogs/broadcast.py` (mass-DM, admin, **disabled by default**), `cogs/updater.py` (`/update`: clean-tree check + data backup + reset + restart, disabled by default).
+- Rule for every port: settings in `core/settings.py` + i18n in BOTH catalogs + `CardSpec`s with `mention_default` + `allowed_mentions` on public sends + `send_channel_log(card_key=...)` + tests with the real catalogs and `caplog` asserting zero format warnings.
+
 ## Gotchas
 
 - `cogs/moderation.py` **intentionally omits `from __future__ import annotations`** — py-cord inspects slash-command annotations with `inspect.signature` and stringified annotations break option parsing. Do not add it back. (Other modules do use it.) `tests/test_commands.py` guards this.

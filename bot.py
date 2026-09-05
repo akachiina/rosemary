@@ -73,6 +73,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.settings import SettingsCog
         from rosemary.cogs.starboard import StarboardCog
         from rosemary.cogs.tickets import TicketsCog
+        from rosemary.cogs.updater import UpdaterCog
         from rosemary.cogs.utility import UtilityCog
         from rosemary.cogs.welcome import WelcomeCog
         from rosemary.core import card_specs  # noqa: F401  (fills the card registry)
@@ -107,6 +108,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(BroadcastCog(self))
         self.add_cog(AntiInviteCog(self))
         self.add_cog(UtilityCog(self))
+        self.add_cog(UpdaterCog(self))
         self.add_cog(BoostRolesCog(self))
         self.add_cog(BumpReminderCog(self))
         self.add_cog(BumpLeaderboardCog(self))
