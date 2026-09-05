@@ -137,7 +137,6 @@ class CleanerCog(commands.Cog):
                 ),
             )
         )
-        await view.prepare()
         await ctx.respond(view=view, ephemeral=True)
 
     async def _purge(self, guild_id: int, word: str) -> int:

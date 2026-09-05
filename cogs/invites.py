@@ -918,7 +918,6 @@ class InvitesCog(commands.Cog):
                 ),
             )
         )
-        await view.prepare()
         await ctx.respond(view=view, ephemeral=True)
 
     @discord.slash_command(

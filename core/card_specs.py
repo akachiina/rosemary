@@ -98,6 +98,19 @@ MODERATION_EXTRA_LOGS = [
     "anti_invite.logs.blocked",
 ]
 
+TICKETS_CARDS = [
+    "panel",
+    "created",
+]
+
+TICKETS_LOGS = [
+    "opened",
+    "closed",
+    "reopened",
+    "deleted",
+    "transcript",
+]
+
 SHARED_EXTRA_LOGS = [
     "reminders.logs.sent",
     "broadcast.logs.started",
@@ -164,6 +177,14 @@ def _build() -> list[CardSpec]:
     specs += [
         CardSpec(key=f"{key}.description", category="general")
         for key in SHARED_EXTRA_LOGS
+    ]
+    specs += [
+        CardSpec(key=f"tickets.{name}", category="tickets", rich=(name == "panel"))
+        for name in TICKETS_CARDS
+    ]
+    specs += [
+        CardSpec(key=f"tickets.logs.{name}.description", category="tickets")
+        for name in TICKETS_LOGS
     ]
     return specs
 

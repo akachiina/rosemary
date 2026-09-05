@@ -50,6 +50,7 @@ class SettingCategory(StrEnum):
     STARBOARD = "starboard"
     BIRTHDAYS = "birthdays"
     INVITES = "invites"
+    TICKETS = "tickets"
 
 
 @dataclass(frozen=True)
@@ -172,6 +173,32 @@ SETTINGS: dict[str, SettingSpec] = {
             2,
             min_value=0,
             max_value=30,
+        ),
+        _spec(
+            "tickets.enabled",
+            SettingCategory.TICKETS,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "tickets.panel_channel",
+            SettingCategory.TICKETS,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "tickets.category",
+            SettingCategory.TICKETS,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "tickets.max_open_per_user",
+            SettingCategory.TICKETS,
+            SettingType.INTEGER,
+            3,
+            min_value=1,
+            max_value=10,
         ),
         _spec(
             "moderation.mute_seconds",

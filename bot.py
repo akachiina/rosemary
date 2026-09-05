@@ -71,6 +71,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.reminders import RemindersCog
         from rosemary.cogs.settings import SettingsCog
         from rosemary.cogs.starboard import StarboardCog
+        from rosemary.cogs.tickets import TicketsCog
         from rosemary.cogs.utility import UtilityCog
         from rosemary.cogs.welcome import WelcomeCog
         from rosemary.core import card_specs  # noqa: F401  (fills the card registry)
@@ -111,6 +112,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(InvitesCog(self))
         self.add_cog(WelcomeCog(self))
         self.add_cog(StarboardCog(self))
+        self.add_cog(TicketsCog(self))
         self.add_cog(BirthdayCog(self))
         # py-cord's sync add_cog never calls cog_load (and cog listeners added
         # here only fire on the *next* ready dispatch), so background work must

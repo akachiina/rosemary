@@ -46,6 +46,7 @@ settings:
     starboard: Mural de Estrelas
     birthdays: Aniversários
     invites: Convites
+    tickets: Tickets
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
@@ -209,6 +210,18 @@ settings:
   broadcast.delay_seconds:
     label: Pausa da transmissão (0-30s)
     description: Pausa entre DMs da transmissão.
+  tickets.enabled:
+    label: Tickets ativados
+    description: Se o painel de tickets funciona.
+  tickets.panel_channel:
+    label: Canal do painel
+    description: Canal onde o painel de tickets é postado.
+  tickets.category:
+    label: Categoria dos tickets
+    description: Categoria dos canais de ticket abertos.
+  tickets.max_open_per_user:
+    label: Máx. tickets abertos (1-10)
+    description: Tickets abertos permitidos por membro.
   moderation.mute_seconds:
     label: Duração padrão do mute
     description: Duração padrão do mute em segundos (60-604800).
@@ -898,6 +911,70 @@ serverinfo:
   roles: '**Cargos:** {value}'
   channels: '**Canais:** {value}'
   created: '**Criado em:** {value}'
+tickets_panel:
+  command:
+    name: painel_tickets
+    description: '[ADMIN] Posta o painel de tickets'
+tickets:
+  error_disabled: '{error} Tickets estão desativados neste servidor.'
+  error_no_panel: '{error} Nenhum canal de painel configurado.'
+  error_no_perms: '{error} O bot precisa da permissão Gerenciar Canais.'
+  error_no_category: '{error} Nenhuma categoria de tickets configurada.'
+  error_max_open: '{error} Você já tem tickets demais abertos.'
+  error_not_found: '{error} Ticket não encontrado.'
+  error_forbidden: '{error} Só o dono do ticket ou a staff pode fazer isso.'
+  error_close_first: '{error} Feche o ticket antes de excluir.'
+  panel_posted: '{success} Painel de tickets postado.'
+  panel:
+    title: 'Precisa de ajuda? Abra um ticket'
+    text: 'Escolha um tipo abaixo e vamos te atender.'
+    placeholder: Escolha um tipo de ticket...
+  types:
+    report:
+      label: Denúncia
+      description: Denunciar um membro ou problema
+      prefix: denuncia
+    confidential:
+      label: Confidencial
+      description: Assunto privado com a staff
+      prefix: privado
+    partnership:
+      label: Parceria
+      description: Pedidos de parceria
+      prefix: parceria
+    boost:
+      label: Benefícios boost
+      description: Dúvidas sobre cargos boost
+      prefix: boost
+  confirm: Confirmar
+  cancel: Cancelar
+  cancelled: Cancelado.
+  confirm_text: 'Abrir um ticket de **{type}**?'
+  created_confirm: '{success} Ticket aberto: {channel}'
+  created:
+    title: 'Ticket aberto'
+    text: '{user}, descreva seu problema. A staff vai te atender ({type}).'
+  closed_done: '{success} Ticket fechado.'
+  reopened_done: '{success} Ticket reaberto.'
+  deleted_done: '{success} Ticket excluído.'
+  transcript_sent: '{success} Transcrição enviada ao canal de log.'
+  transcript_failed: '{error} Nenhum canal de log para transcrições.'
+  logs:
+    opened:
+      title: 'Ticket Aberto'
+      description: '{user} abriu um ticket **{type}** em {channel}.'
+    closed:
+      title: 'Ticket Fechado'
+      description: 'Ticket {channel} foi fechado.'
+    reopened:
+      title: 'Ticket Reaberto'
+      description: 'Ticket {channel} foi reaberto.'
+    deleted:
+      title: 'Ticket Excluído'
+      description: 'Ticket {channel} foi excluído.'
+    transcript:
+      title: 'Transcrição de Ticket'
+      description: 'Transcrição de {channel} (pedida por {moderator}).'
 cleaner:
   command:
     name: limpar
@@ -1586,6 +1663,34 @@ card:
     announce:
       title: Anúncio de aniversário
       placeholders: '{{user}}, {{server}}, {{count}}'
+  tickets:
+    panel:
+      title: Cartão do painel de tickets
+      placeholders: ''
+    created:
+      title: Cartão de abertura de ticket
+      placeholders: ''
+    logs:
+      opened:
+        description:
+          title: 'Log: ticket aberto'
+          placeholders: ''
+      closed:
+        description:
+          title: 'Log: ticket fechado'
+          placeholders: ''
+      reopened:
+        description:
+          title: 'Log: ticket reaberto'
+          placeholders: ''
+      deleted:
+        description:
+          title: 'Log: ticket excluído'
+          placeholders: ''
+      transcript:
+        description:
+          title: 'Log: transcrição de ticket'
+          placeholders: ''
   invites:
     leaderboard:
       title: Ranking de convidadores

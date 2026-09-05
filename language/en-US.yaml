@@ -46,6 +46,7 @@ settings:
     starboard: Starboard
     birthdays: Birthdays
     invites: Invites
+    tickets: Tickets
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.
@@ -209,6 +210,18 @@ settings:
   broadcast.delay_seconds:
     label: Broadcast DM delay (0-30s)
     description: Pause between broadcast DMs.
+  tickets.enabled:
+    label: Tickets enabled
+    description: Whether the ticket panel works.
+  tickets.panel_channel:
+    label: Ticket panel channel
+    description: Channel where the ticket panel is posted.
+  tickets.category:
+    label: Ticket category
+    description: Category for opened ticket channels.
+  tickets.max_open_per_user:
+    label: Max open tickets (1-10)
+    description: Open tickets allowed per member.
   moderation.mute_seconds:
     label: Default mute duration
     description: Default mute duration in seconds (60-604800).
@@ -898,6 +911,70 @@ serverinfo:
   roles: '**Roles:** {value}'
   channels: '**Channels:** {value}'
   created: '**Created:** {value}'
+tickets_panel:
+  command:
+    name: tickets_panel
+    description: '[ADMIN] Post the ticket panel'
+tickets:
+  error_disabled: '{error} Tickets are disabled on this server.'
+  error_no_panel: '{error} No ticket panel channel configured.'
+  error_no_perms: '{error} The bot needs Manage Channels permission.'
+  error_no_category: '{error} No ticket category configured.'
+  error_max_open: '{error} You already have too many open tickets.'
+  error_not_found: '{error} Ticket not found.'
+  error_forbidden: '{error} Only the ticket owner or staff can do that.'
+  error_close_first: '{error} Close the ticket before deleting it.'
+  panel_posted: '{success} Ticket panel posted.'
+  panel:
+    title: 'Need help? Open a ticket'
+    text: 'Pick a type below and we will assist you.'
+    placeholder: Choose a ticket type...
+  types:
+    report:
+      label: Report
+      description: Report a member or an issue
+      prefix: report
+    confidential:
+      label: Confidential
+      description: Private matter for the staff
+      prefix: private
+    partnership:
+      label: Partnership
+      description: Partnership requests
+      prefix: partner
+    boost:
+      label: Boost perks
+      description: Questions about boost roles
+      prefix: boost
+  confirm: Confirm
+  cancel: Cancel
+  cancelled: Cancelled.
+  confirm_text: 'Open a **{type}** ticket?'
+  created_confirm: '{success} Ticket opened: {channel}'
+  created:
+    title: 'Ticket opened'
+    text: '{user}, describe your issue. Staff will assist you soon ({type}).'
+  closed_done: '{success} Ticket closed.'
+  reopened_done: '{success} Ticket reopened.'
+  deleted_done: '{success} Ticket deleted.'
+  transcript_sent: '{success} Transcript sent to the log channel.'
+  transcript_failed: '{error} No log channel configured for transcripts.'
+  logs:
+    opened:
+      title: 'Ticket Opened'
+      description: '{user} opened a **{type}** ticket in {channel}.'
+    closed:
+      title: 'Ticket Closed'
+      description: 'Ticket {channel} was closed.'
+    reopened:
+      title: 'Ticket Reopened'
+      description: 'Ticket {channel} was reopened.'
+    deleted:
+      title: 'Ticket Deleted'
+      description: 'Ticket {channel} was deleted.'
+    transcript:
+      title: 'Ticket Transcript'
+      description: 'Transcript of {channel} (requested by {moderator}).'
 cleaner:
   command:
     name: limpar
@@ -1585,6 +1662,34 @@ card:
     announce:
       title: Birthday announcement
       placeholders: '{{user}}, {{server}}, {{count}}'
+  tickets:
+    panel:
+      title: Ticket panel card
+      placeholders: ''
+    created:
+      title: Ticket intro card
+      placeholders: ''
+    logs:
+      opened:
+        description:
+          title: 'Log: ticket opened'
+          placeholders: ''
+      closed:
+        description:
+          title: 'Log: ticket closed'
+          placeholders: ''
+      reopened:
+        description:
+          title: 'Log: ticket reopened'
+          placeholders: ''
+      deleted:
+        description:
+          title: 'Log: ticket deleted'
+          placeholders: ''
+      transcript:
+        description:
+          title: 'Log: ticket transcript'
+          placeholders: ''
   invites:
     leaderboard:
       title: Top inviters ranking
