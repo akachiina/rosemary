@@ -217,7 +217,10 @@ async def test_settings_button_appears_for_category_with_cards(tmp_path, with_sp
 
 
 async def test_settings_no_button_without_cards(tmp_path):
+    from rosemary.core.settings import SettingCategory as _Category
+
     view = SettingsMenuView(make_bot(tmp_path), 1, owner_id=1)
+    view.category = _Category.LOGGING  # no customizable cards in this category
     await view.prepare()
     ids = [
         item.custom_id for item in view.walk_children() if getattr(item, "custom_id", None)

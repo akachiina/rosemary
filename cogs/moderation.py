@@ -513,13 +513,23 @@ class ModerationCog(commands.Cog):
 
         if action == "warn":
             limit = await get_setting(self.bot.storage, guild_id, "moderation.warn_limit")
-            return await t(
+            result = await t(
                 guild_id,
                 "warn.success",
                 member=target.mention,
                 count=count,
                 limit=limit,
             )
+            if count >= limit and await get_setting(
+                self.bot.storage, guild_id, "moderation.auto_ban_enabled"
+            ):
+                try:
+                    await target.ban(reason=reason)
+                    result += "\n" + await t(guild_id, "moderation.auto_ban_applied", limit=limit)
+                except (discord.Forbidden, discord.HTTPException) as exc:
+                    log.warning("Auto-ban failed for %s: %s", target, exc)
+                    result += "\n" + await t(guild_id, "moderation.auto_ban_failed")
+            return result
         if action == "mute":
             return await t(
                 guild_id,

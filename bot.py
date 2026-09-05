@@ -56,16 +56,22 @@ class RosemaryBot(commands.Bot):
         # py-cord has no setup_hook; run once at first on_ready. add_cog is
         # synchronous here (returns None), unlike discord.py.
         from rosemary.cogs.about import AboutCog
+        from rosemary.cogs.anti_invite import AntiInviteCog
         from rosemary.cogs.birthdays import BirthdayCog
         from rosemary.cogs.boost_roles import BoostRolesCog
+        from rosemary.cogs.broadcast import BroadcastCog
         from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
         from rosemary.cogs.bump_reminder import BumpReminderCog
+        from rosemary.cogs.cleaner import CleanerCog
         from rosemary.cogs.customize import CustomizeCog
         from rosemary.cogs.debug import DebugCog
+        from rosemary.cogs.invites import InvitesCog
         from rosemary.cogs.language import LanguageCog
         from rosemary.cogs.moderation import ModerationCog
+        from rosemary.cogs.reminders import RemindersCog
         from rosemary.cogs.settings import SettingsCog
         from rosemary.cogs.starboard import StarboardCog
+        from rosemary.cogs.utility import UtilityCog
         from rosemary.cogs.welcome import WelcomeCog
         from rosemary.core import card_specs  # noqa: F401  (fills the card registry)
         from rosemary.core.i18n import Translator
@@ -93,10 +99,16 @@ class RosemaryBot(commands.Bot):
         self.add_cog(SettingsCog(self))
         self.add_cog(CustomizeCog(self))
         self.add_cog(ModerationCog(self))
+        self.add_cog(CleanerCog(self))
+        self.add_cog(RemindersCog(self))
+        self.add_cog(BroadcastCog(self))
+        self.add_cog(AntiInviteCog(self))
+        self.add_cog(UtilityCog(self))
         self.add_cog(BoostRolesCog(self))
         self.add_cog(BumpReminderCog(self))
         self.add_cog(BumpLeaderboardCog(self))
         self.add_cog(DebugCog(self))
+        self.add_cog(InvitesCog(self))
         self.add_cog(WelcomeCog(self))
         self.add_cog(StarboardCog(self))
         self.add_cog(BirthdayCog(self))
@@ -120,17 +132,37 @@ class RosemaryBot(commands.Bot):
         prefix = await get_setting(bot.storage, message.guild.id, "general.prefix")
         return prefix or _NO_PREFIX
 
+    async def _sync_guild_commands(self, guild: discord.Guild) -> None:
+        """Localize slash command names/descriptions and sync them to one guild."""
+        t = self.translator.t
+        for base_name, cmd in self._command_base_keys.items():
+            key = f"{base_name}.command"
+            cmd.name = await t(guild.id, f"{key}.name")
+            cmd.description = await t(guild.id, f"{key}.description")
+        await self.sync_commands(guild_ids=[guild.id])
+
     async def reapply_command_localization(self) -> None:
         """Re-register slash commands with names/descriptions in each guild's
         language. Commands are synced per guild; on_ready and every /language
         change call this to keep the command list in sync with the guild."""
         for guild in self.guilds:
-            t = self.translator.t
-            for base_name, cmd in self._command_base_keys.items():
-                key = f"{base_name}.command"
-                cmd.name = await t(guild.id, f"{key}.name")
-                cmd.description = await t(guild.id, f"{key}.description")
-            await self.sync_commands(guild_ids=[guild.id])
+            await self._sync_guild_commands(guild)
+
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        """Sync localized slash commands to a newly joined guild.
+
+        Commands are registered per guild (never globally), so without this a
+        server added while the bot is already online would have no commands
+        until the next restart/reconnect.
+        """
+        if not self._setup_done:
+            # Joined before the first ready: on_ready covers this guild.
+            return
+        try:
+            await self._sync_guild_commands(guild)
+            log.info("Commands synced for joined guild %s", guild.id)
+        except Exception as exc:
+            log.error("Failed to sync commands for joined guild %s: %s", guild.id, exc)
 
     async def on_ready(self) -> None:
         """Register cogs on first ready, publish an explicit online presence

@@ -329,3 +329,20 @@ async def test_mute_success_includes_duration(tmp_path, language: str) -> None:
         False,
     )
     assert "10m" in result
+
+
+@pytest.mark.parametrize("language", ["pt-BR", "en-US"])
+@pytest.mark.parametrize("auto_ban", [True, False])
+async def test_warn_limit_auto_ban(tmp_path, language: str, auto_ban: bool) -> None:
+    """Reaching the warn limit bans only when auto-ban is enabled."""
+    cog = _real_cog(tmp_path, language)
+    await cog.bot.storage.set(1, "moderation.warn_limit", 2)
+    await cog.bot.storage.set(1, "moderation.auto_ban_enabled", auto_ban)
+    target = _ActionMember(200)
+    await cog._execute_action(1, "G", _ActionMember(100), target, "warn", "Spam", None, False)
+    assert target.banned is False
+    result = await cog._execute_action(
+        1, "G", _ActionMember(100), target, "warn", "Spam", None, False
+    )
+    assert target.banned is auto_ban
+    assert "{" not in result

@@ -153,7 +153,16 @@ async def test_get_setting_falls_back_to_default_on_bad_stored_value(tmp_path):
 
 async def test_settings_for_category_ordering():
     keys = [s.key for s in settings_for_category(SettingCategory.MODERATION)]
-    assert keys == ["moderation.enabled", "moderation.warn_limit", "moderation.mute_seconds"]
+    assert keys == [
+        "moderation.enabled",
+        "moderation.warn_limit",
+        "moderation.auto_ban_enabled",
+        "cleaner.enabled",
+        "anti_invite.enabled",
+        "anti_invite.warn_on_delete",
+        "anti_invite.exempt_channel",
+        "moderation.mute_seconds",
+    ]
 
 
 async def test_general_prefix_setting_exists():

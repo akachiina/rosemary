@@ -49,6 +49,7 @@ class SettingCategory(StrEnum):
     BUMP = "bump"
     STARBOARD = "starboard"
     BIRTHDAYS = "birthdays"
+    INVITES = "invites"
 
 
 @dataclass(frozen=True)
@@ -113,6 +114,64 @@ SETTINGS: dict[str, SettingSpec] = {
             3,
             min_value=1,
             max_value=10,
+        ),
+        _spec(
+            "moderation.auto_ban_enabled",
+            SettingCategory.MODERATION,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "cleaner.enabled",
+            SettingCategory.MODERATION,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "anti_invite.enabled",
+            SettingCategory.MODERATION,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "anti_invite.warn_on_delete",
+            SettingCategory.MODERATION,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "anti_invite.exempt_channel",
+            SettingCategory.MODERATION,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "reminders.enabled",
+            SettingCategory.GENERAL,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "reminders.delay_seconds",
+            SettingCategory.GENERAL,
+            SettingType.INTEGER,
+            2,
+            min_value=0,
+            max_value=30,
+        ),
+        _spec(
+            "broadcast.enabled",
+            SettingCategory.GENERAL,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "broadcast.delay_seconds",
+            SettingCategory.GENERAL,
+            SettingType.INTEGER,
+            2,
+            min_value=0,
+            max_value=30,
         ),
         _spec(
             "moderation.mute_seconds",
@@ -349,6 +408,60 @@ SETTINGS: dict[str, SettingSpec] = {
             20,
             min_value=0,
             max_value=23,
+        ),
+        _spec(
+            "invites.enabled",
+            SettingCategory.INVITES,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "invites.show_inviter",
+            SettingCategory.INVITES,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "invites.track_leaves",
+            SettingCategory.INVITES,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "invites.count_rejoins",
+            SettingCategory.INVITES,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "invites.fake_delay_days",
+            SettingCategory.INVITES,
+            SettingType.INTEGER,
+            0,
+            min_value=0,
+            max_value=30,
+        ),
+        _spec(
+            "invites.anti_cheat_days",
+            SettingCategory.INVITES,
+            SettingType.INTEGER,
+            0,
+            min_value=0,
+            max_value=90,
+        ),
+        _spec(
+            "invites.leaderboard_enabled",
+            SettingCategory.INVITES,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "invites.leaderboard_size",
+            SettingCategory.INVITES,
+            SettingType.INTEGER,
+            10,
+            min_value=5,
+            max_value=25,
         ),
     ]
 }

@@ -45,6 +45,7 @@ settings:
     events: Anúncios
     starboard: Mural de Estrelas
     birthdays: Aniversários
+    invites: Convites
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
@@ -92,6 +93,30 @@ settings:
   bump.leaderboard.reset_hour:
     label: Hora do Reset (0-23)
     description: 'A hora exata do dia para resetar o placar (ex: 20).'
+  invites.enabled:
+    label: Rastreamento de Convites Ativado
+    description: Rastreia com qual convite cada membro entrou.
+  invites.show_inviter:
+    label: Mostrar Quem Convidou
+    description: Mostra quem convidou cada membro no cartão de boas-vindas.
+  invites.track_leaves:
+    label: Rastrear Saídas
+    description: Desconta do convidador quando um convidado sai.
+  invites.count_rejoins:
+    label: Contar Retornos
+    description: Conta membros que saem e voltam a entrar.
+  invites.fake_delay_days:
+    label: Carência Fake (dias)
+    description: Contas mais novas que isso contam como fake (0 desativa).
+  invites.anti_cheat_days:
+    label: Janela Anti-fraude (dias)
+    description: Retornos por outro convidador na janela não pontuam (0 desativa).
+  invites.leaderboard_enabled:
+    label: Ranking de Convites Ativado
+    description: Ativa o ranking de maiores convidadores.
+  invites.leaderboard_size:
+    label: Tamanho do Ranking (5-25)
+    description: Quantos convidadores o ranking mostra.
   edit: Editar
   back: Voltar
   close: Fechar
@@ -157,6 +182,33 @@ settings:
   moderation.warn_limit:
     label: Limite de warns
     description: Warns antes de atingir o limite (1-10).
+  moderation.auto_ban_enabled:
+    label: Auto-ban no limite
+    description: Bane membros ao atingir o limite de warns.
+  cleaner.enabled:
+    label: Limpeza ativada
+    description: Se o comando de purge por palavra funciona.
+  anti_invite.enabled:
+    label: Anti-convite ativado
+    description: Apaga links de convite externos na hora.
+  anti_invite.warn_on_delete:
+    label: Avisar ao apagar
+    description: Posta um aviso quando um convite é apagado.
+  anti_invite.exempt_channel:
+    label: Canal isento do anti-convite
+    description: Canal onde links de convite são permitidos.
+  reminders.enabled:
+    label: Lembretes ativados
+    description: Se lembretes por DM podem ser usados.
+  reminders.delay_seconds:
+    label: Pausa entre DMs (0-30s)
+    description: Pausa entre DMs de lembrete.
+  broadcast.enabled:
+    label: Transmissões ativadas
+    description: Se transmissão ao vivo pode ser usada.
+  broadcast.delay_seconds:
+    label: Pausa da transmissão (0-30s)
+    description: Pausa entre DMs da transmissão.
   moderation.mute_seconds:
     label: Duração padrão do mute
     description: Duração padrão do mute em segundos (60-604800).
@@ -178,6 +230,51 @@ settings:
   boost.max_pending_invites:
     label: Limite de convites pendentes
     description: Máximo de convites pendentes por cargo boost (1-20).
+  events.enabled:
+    label: Anúncios ativados
+    description: Envia mensagens de entrada, saída e banimento.
+  events.welcome_channel:
+    label: Canal de boas-vindas
+    description: Canal das mensagens de entrada.
+  events.leave_channel:
+    label: Canal de saídas
+    description: Canal das mensagens de saída.
+  events.ban_channel:
+    label: Canal de bans
+    description: Canal dos anúncios de banimento.
+  events.raid_protection:
+    label: Proteção anti-raid
+    description: Atrasa boas-vindas quando muita gente entra de uma vez.
+  starboard.enabled:
+    label: Mural ativado
+    description: Destaca mensagens populares no mural.
+  starboard.channel:
+    label: Canal do mural
+    description: Canal onde as mensagens destacadas são postadas.
+  starboard.threshold:
+    label: Limite de estrelas (1-25)
+    description: Reações necessárias para destacar uma mensagem.
+  starboard.self_star_counts:
+    label: Auto-estrela conta
+    description: Se a estrela do próprio autor conta.
+  starboard.allow_bots:
+    label: Permitir mensagens de bots
+    description: Se mensagens de bots podem ser destacadas.
+  birthdays.enabled:
+    label: Aniversários ativados
+    description: Registra aniversários e posta anúncios.
+  birthdays.channel:
+    label: Canal de aniversários
+    description: Canal dos anúncios de aniversário.
+  birthdays.role:
+    label: Cargo de aniversário
+    description: Cargo dado aos aniversariantes do dia.
+  birthdays.announce_time:
+    label: Hora do anúncio
+    description: 'Hora do anúncio diário (HH:MM, ex: 12:00).'
+  birthdays.change_cooldown_days:
+    label: Carência de troca (dias)
+    description: Dias para poder trocar o aniversário (0-365).
 boost:
   command:
     name: cargo_boost
@@ -784,6 +881,240 @@ add_test_bumps:
   command:
     name: add_test_bumps
     description: '[ADMIN] Adiciona bumps de teste para um usuário'
+ping:
+  command:
+    name: ping
+    description: Mostra a latência do bot
+  title: Pong!
+  latency: 'Latência: {ms}ms'
+serverinfo:
+  command:
+    name: info_servidor
+    description: Mostra informações do servidor
+  title: Informações do Servidor
+  name: '**Nome:** {value}'
+  owner: '**Dono:** {value}'
+  members: '**Membros:** {value}'
+  roles: '**Cargos:** {value}'
+  channels: '**Canais:** {value}'
+  created: '**Criado em:** {value}'
+cleaner:
+  command:
+    name: limpar
+    description: Apaga mensagens contendo uma palavra
+  error_disabled: '{error} A limpeza de mensagens está desativada neste servidor.'
+  error_empty: '{error} Me diga uma palavra para apagar.'
+  confirm_title: 'Apagar tudo com “{word}”?'
+  confirm_text: 'Varre todos os canais legíveis. Não pode ser desfeito.'
+  confirm: Apagar tudo
+  cancel: Cancelar
+  progress: 'Apagando “{word}”…'
+  result: '{success} {count} mensagem(ns) com “{word}” apagadas.'
+  cancelled: Limpeza cancelada.
+  logs:
+    purged:
+      title: 'Mensagens Apagadas'
+      description: '{moderator} apagou {count} mensagem(ns) com “{word}”.'
+anti_invite:
+  warning: '{warning} {user}, links de convite externos não são permitidos aqui.'
+  logs:
+    blocked:
+      title: 'Convite Bloqueado'
+      description: '{user} postou `{code}` em {channel} (apagado).'
+reminders_save:
+  command:
+    name: salvar_lembrete
+    description: '[ADMIN] Salva uma mensagem de lembrete'
+reminders_delete:
+  command:
+    name: apagar_lembrete
+    description: '[ADMIN] Apaga uma mensagem de lembrete'
+reminders_list:
+  command:
+    name: listar_lembretes
+    description: '[ADMIN] Lista mensagens de lembrete'
+reminders_send:
+  command:
+    name: enviar_lembrete
+    description: '[ADMIN] Envia lembrete por DM a todos'
+reminders:
+  error_disabled: '{error} Lembretes estão desativados neste servidor.'
+  saved: '{success} Lembrete `{name}` salvo.'
+  deleted: '{success} Lembrete `{name}` apagado.'
+  not_found: '{error} Nenhum lembrete chamado `{name}`.'
+  list_title: 'Lembretes salvos:
+
+    {names}'
+  list_empty: 'Nenhum lembrete salvo ainda.'
+  done: '{success} Lembrete enviado para {sent} membro(s) ({failed} falharam).'
+  logs:
+    sent:
+      title: 'Lembrete Enviado'
+      description: '{moderator} enviou `{name}` ({sent} enviados, {failed} falharam).'
+broadcast_start:
+  command:
+    name: iniciar_transmissao
+    description: '[ADMIN] Inicia transmissão ao vivo neste canal'
+broadcast_stop:
+  command:
+    name: parar_transmissao
+    description: '[ADMIN] Para a transmissão ao vivo'
+broadcast:
+  error_disabled: '{error} Transmissões estão desativadas neste servidor.'
+  error_active: '{error} Já há uma transmissão rolando.'
+  error_none: '{error} Nenhuma transmissão rolando.'
+  header: '**{title}** (de {server})'
+  started: '{success} Abertura enviada para {sent} membro(s) ({failed} falharam). Poste neste canal para replicar.'
+  ended: '{success} Transmissão encerrada: {relayed} mensagem(ns) ({sent} DMs, {failed} falharam).'
+  logs:
+    started:
+      title: 'Transmissão Iniciada'
+      description: '{moderator} iniciou “{title}” em {channel}.'
+    ended:
+      title: 'Transmissão Encerrada'
+      description: '{moderator} encerrou a transmissão ({relayed} replicadas, {sent} enviadas, {failed} falharam).'
+invites:
+  command:
+    name: convites
+    description: Mostra stats de convites seus ou de outro membro
+  error_disabled: '{error} O rastreamento de convites está desativado neste servidor.'
+  error_leaderboard_disabled: '{error} O ranking de convites está desativado.'
+  stats:
+    title: '{bar_chart} Convites de {user}'
+    breakdown: '{regular} válidos · {bonus} bônus · {fake} fakes · {left} saíram'
+    total: '**Total:** {total} (#{rank})'
+    retention: 'Retenção: {percent}% ({stayed} de {total_real} ainda aqui)'
+    latest: 'Último convidado: {user} {when}'
+    unknown: '{user} ainda não tem convites.'
+  leaderboard:
+    title: '{trophy} Maiores Convidadores'
+    line: '{medal} **{position}.** {user}: **{total}**'
+    empty: 'Nenhum convite rastreado ainda. Compartilhe seu link!'
+  inviter:
+    title: 'Convidado por'
+    body: 'Membro: {user}
+
+      Convidado por: {inviter}
+
+      Código: `{code}`
+
+      Entrou: {when}
+
+      Status: {status}'
+    unknown: 'Sem registro para {user} (entrou antes do rastreamento).'
+  invited:
+    title: 'Membros convidados por {user}'
+    line: '- {user} ({when}, {status})'
+    empty: '{user} ainda não convidou ninguém.'
+  personal:
+    title: 'Seu link de convite'
+    body: 'Compartilhe este link: {link}
+
+      Total: **{total}** ({regular} válidos · {bonus} bônus)'
+    no_channel: '{error} Nenhum canal disponível para criar um convite.'
+  server:
+    title: '{bar_chart} Stats de Convites do Servidor'
+    joins: 'Entradas rastreadas: **{count}**'
+    top: 'Maior convidador: {user} (**{total}**)'
+  status:
+    ok: válido
+    fake: fake
+    flagged: retorno sinalizado
+    rejoin: retorno (não contado)
+    excluded: excluído
+    unknown: desconhecido
+  flags:
+    fake: ' ⚠️ fake'
+    flagged: ' 🚩 retorno sinalizado'
+  bonus:
+    added: '{success} {amount} bônus adicionado(s) para {user} (total: {total}).'
+    removed: '{success} {amount} bônus removido(s) de {user} (total: {total}).'
+    invalid: '{error} O valor deve estar entre -100 e 100, excluindo 0.'
+  sync:
+    success: '{success} {codes} código(s) recontados.'
+  codes:
+    title: 'Códigos de convite'
+    line: '`{code}` — {uses} uso(s) de {inviter}{label}'
+    empty: 'Nenhum código de convite encontrado.'
+  blacklist:
+    added: '{success} {target} adicionado à lista {kind}.'
+    removed: '{success} {target} removido da lista {kind}.'
+    already: '{error} {target} já está na lista {kind}.'
+    missing: '{error} {target} não está na lista {kind}.'
+    missing_role: '{error} Escolha um cargo para a lista de cargos.'
+    missing_member: '{error} Escolha um membro para esta lista.'
+    title: 'Blacklist de convites'
+    empty: 'Todas as listas estão vazias.'
+  reset:
+    confirm_title: Resetar todos os stats de convites?
+    confirm_text: 'Isso apaga todos os joins e contadores. Não pode ser desfeito.'
+    confirm: Confirmar reset
+    cancel: Cancelar
+    success: '{success} Todos os stats de convites foram resetados.'
+    cancelled: Reset cancelado.
+  label:
+    set: '{success} Código `{code}` rotulado como “{label}”.'
+    cleared: '{success} Rótulo removido de `{code}`.'
+  logs:
+    join:
+      title: '{rocket} Membro Entrou Com Convite'
+      description: '{user} entrou via `{code}` de {inviter}{label}{flags}.'
+    leave:
+      title: 'Membro Saiu'
+      description: '{user} (convidado por {inviter}) saiu do servidor.'
+    bonus:
+      title: 'Bônus Ajustado'
+      description: '{moderator} ajustou {user} em {amount} (total: {total}).'
+    sync:
+      title: 'Convites Sincronizados'
+      description: '{codes} código(s) recontados (pedido por {moderator}).'
+    reset:
+      title: 'Convites Resetados'
+      description: 'Stats de convites resetados por {moderator}.'
+invites_leaderboard:
+  command:
+    name: ranking_convites
+    description: Mostra o ranking de maiores convidadores
+who_invited:
+  command:
+    name: quem_convidou
+    description: Mostra quem convidou um membro
+invited:
+  command:
+    name: convidados
+    description: Lista membros convidados por alguém
+my_invite:
+  command:
+    name: meu_convite
+    description: Pega seu link pessoal e seus stats
+server_invites:
+  command:
+    name: stats_convites
+    description: Mostra stats de convites do servidor
+invites_bonus:
+  command:
+    name: bonus_convites
+    description: '[ADMIN] Adiciona ou remove bônus de convites'
+invites_sync:
+  command:
+    name: sincronizar_convites
+    description: '[ADMIN] Reconta usos de convites no Discord'
+invites_codes:
+  command:
+    name: codigos_convite
+    description: '[ADMIN] Lista códigos e usos'
+invites_blacklist:
+  command:
+    name: blacklist_convites
+    description: '[ADMIN] Gerencia a blacklist de convites'
+invites_reset:
+  command:
+    name: resetar_convites
+    description: '[ADMIN] Reseta todos os stats de convites'
+invites_label:
+  command:
+    name: rotular_convite
+    description: '[ADMIN] Rotula um código de convite'
 boost_admin:
   command:
     name: admin_boost
@@ -854,6 +1185,8 @@ moderation:
   cancel: Cancelar
   cancelled: Ação cancelada.
   error_failed: '{error} A ação falhou. Verifique os logs do bot.'
+  auto_ban_applied: 'Auto-ban aplicado (limite de {limit} warns).'
+  auto_ban_failed: '{warning} Warn registrado, mas o auto-ban falhou (verifique permissões).'
   no_reason: Nenhum motivo informado
   summary: '{member}
 
@@ -1202,6 +1535,43 @@ card:
     dm:
       title: DM de banimento
       placeholders: ''
+  cleaner:
+    confirm:
+      title: Texto de confirmação da limpeza
+      placeholders: ''
+    result:
+      title: Texto de resultado da limpeza
+      placeholders: ''
+    logs:
+      purged:
+        description:
+          title: 'Log: mensagens apagadas'
+          placeholders: ''
+  anti_invite:
+    warning:
+      title: Texto de aviso do anti-convite
+      placeholders: ''
+    logs:
+      blocked:
+        description:
+          title: 'Log: convite bloqueado'
+          placeholders: ''
+  reminders:
+    logs:
+      sent:
+        description:
+          title: 'Log: lembrete enviado'
+          placeholders: ''
+  broadcast:
+    logs:
+      started:
+        description:
+          title: 'Log: transmissão iniciada'
+          placeholders: ''
+      ended:
+        description:
+          title: 'Log: transmissão encerrada'
+          placeholders: ''
   events:
     welcome:
       title: Mensagem de boas-vindas
@@ -1216,6 +1586,43 @@ card:
     announce:
       title: Anúncio de aniversário
       placeholders: '{{user}}, {{server}}, {{count}}'
+  invites:
+    leaderboard:
+      title: Ranking de convidadores
+      placeholders: ''
+    stats:
+      title: Cartão de stats de convites
+      placeholders: ''
+    personal:
+      title: Cartão de convite pessoal
+      placeholders: ''
+    invited_list:
+      title: Lista de convidados
+      placeholders: ''
+    server_stats:
+      title: Stats de convites do servidor
+      placeholders: ''
+    logs:
+      join:
+        description:
+          title: 'Log: membro entrou com convite'
+          placeholders: ''
+      leave:
+        description:
+          title: 'Log: convidado saiu'
+          placeholders: ''
+      bonus:
+        description:
+          title: 'Log: bônus ajustado'
+          placeholders: ''
+      sync:
+        description:
+          title: 'Log: convites sincronizados'
+          placeholders: ''
+      reset:
+        description:
+          title: 'Log: convites resetados'
+          placeholders: ''
 events:
   enabled:
     label: Ativar anúncios

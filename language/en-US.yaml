@@ -45,6 +45,7 @@ settings:
     events: Announcements
     starboard: Starboard
     birthdays: Birthdays
+    invites: Invites
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.
@@ -92,6 +93,30 @@ settings:
   bump.leaderboard.reset_hour:
     label: Reset Hour (0-23)
     description: The exact hour of the day to reset the leaderboard (e.g. 20).
+  invites.enabled:
+    label: Invite Tracking Enabled
+    description: Tracks which invite each member joined with.
+  invites.show_inviter:
+    label: Show Inviter
+    description: Show who invited each member in the welcome card.
+  invites.track_leaves:
+    label: Track Leaves
+    description: Subtract from the inviter when an invited member leaves.
+  invites.count_rejoins:
+    label: Count Rejoins
+    description: Count members who leave and rejoin again.
+  invites.fake_delay_days:
+    label: Fake Delay (days)
+    description: Accounts younger than this count as fake (0 disables).
+  invites.anti_cheat_days:
+    label: Anti-cheat Window (days)
+    description: Rejoins via another inviter in this window earn nothing (0 disables).
+  invites.leaderboard_enabled:
+    label: Invites Leaderboard Enabled
+    description: Enables the top inviters ranking.
+  invites.leaderboard_size:
+    label: Leaderboard Size (5-25)
+    description: How many inviters the ranking shows.
   edit: Edit
   back: Back
   close: Close
@@ -157,6 +182,33 @@ settings:
   moderation.warn_limit:
     label: Warning limit
     description: Warnings before the limit is reached (1-10).
+  moderation.auto_ban_enabled:
+    label: Auto-ban at limit
+    description: Ban members reaching the warning limit.
+  cleaner.enabled:
+    label: Message cleaner enabled
+    description: Whether the keyword purge command works.
+  anti_invite.enabled:
+    label: Anti-invite enabled
+    description: Delete external invite links on sight.
+  anti_invite.warn_on_delete:
+    label: Warn on delete
+    description: Post a warning when an invite is deleted.
+  anti_invite.exempt_channel:
+    label: Anti-invite exempt channel
+    description: Channel where invite links are allowed.
+  reminders.enabled:
+    label: Reminders enabled
+    description: Whether saved DM reminders can be used.
+  reminders.delay_seconds:
+    label: Reminder DM delay (0-30s)
+    description: Pause between reminder DMs.
+  broadcast.enabled:
+    label: Broadcasts enabled
+    description: Whether live broadcast relay can be used.
+  broadcast.delay_seconds:
+    label: Broadcast DM delay (0-30s)
+    description: Pause between broadcast DMs.
   moderation.mute_seconds:
     label: Default mute duration
     description: Default mute duration in seconds (60-604800).
@@ -178,6 +230,51 @@ settings:
   boost.max_pending_invites:
     label: Pending invites limit
     description: Maximum pending invites per boost role (1-20).
+  events.enabled:
+    label: Announcements enabled
+    description: Send welcome, leave and ban messages.
+  events.welcome_channel:
+    label: Welcome channel
+    description: Channel for member join messages.
+  events.leave_channel:
+    label: Leave channel
+    description: Channel for member leave messages.
+  events.ban_channel:
+    label: Ban channel
+    description: Channel for ban announcements.
+  events.raid_protection:
+    label: Raid protection
+    description: Delay welcomes when many members join at once.
+  starboard.enabled:
+    label: Starboard enabled
+    description: Highlight popular messages in the starboard channel.
+  starboard.channel:
+    label: Starboard channel
+    description: Channel where highlighted messages are posted.
+  starboard.threshold:
+    label: Star threshold (1-25)
+    description: Reactions needed to highlight a message.
+  starboard.self_star_counts:
+    label: Self-star counts
+    description: Whether the author's own star counts.
+  starboard.allow_bots:
+    label: Allow bot messages
+    description: Whether bot messages can be highlighted.
+  birthdays.enabled:
+    label: Birthdays enabled
+    description: Track birthdays and post announcements.
+  birthdays.channel:
+    label: Birthday channel
+    description: Channel for birthday announcements.
+  birthdays.role:
+    label: Birthday role
+    description: Role granted to celebrants for the day.
+  birthdays.announce_time:
+    label: Announce time
+    description: 'Daily announce time (HH:MM, e.g. 12:00).'
+  birthdays.change_cooldown_days:
+    label: Change cooldown (days)
+    description: Days before a birthday can be changed (0-365).
 boost:
   command:
     name: boost
@@ -784,6 +881,240 @@ add_test_bumps:
   command:
     name: add_test_bumps
     description: '[ADMIN] Add test bumps for a user'
+ping:
+  command:
+    name: ping
+    description: Show the bot latency
+  title: Pong!
+  latency: 'Latency: {ms}ms'
+serverinfo:
+  command:
+    name: serverinfo
+    description: Show server information
+  title: Server Information
+  name: '**Name:** {value}'
+  owner: '**Owner:** {value}'
+  members: '**Members:** {value}'
+  roles: '**Roles:** {value}'
+  channels: '**Channels:** {value}'
+  created: '**Created:** {value}'
+cleaner:
+  command:
+    name: limpar
+    description: Delete messages containing a word
+  error_disabled: '{error} The message cleaner is disabled on this server.'
+  error_empty: '{error} Give me a word to purge.'
+  confirm_title: 'Delete every message with “{word}”?'
+  confirm_text: 'Scans every readable channel. This cannot be undone.'
+  confirm: Delete everything
+  cancel: Cancel
+  progress: 'Purging “{word}”…'
+  result: '{success} Deleted {count} message(s) with “{word}”.'
+  cancelled: Purge cancelled.
+  logs:
+    purged:
+      title: 'Messages Purged'
+      description: '{moderator} purged {count} message(s) with “{word}”.'
+anti_invite:
+  warning: '{warning} {user}, external invite links are not allowed here.'
+  logs:
+    blocked:
+      title: 'Invite Blocked'
+      description: '{user} posted `{code}` in {channel} (deleted).'
+reminders_save:
+  command:
+    name: reminders_save
+    description: '[ADMIN] Save a reminder message'
+reminders_delete:
+  command:
+    name: reminders_delete
+    description: '[ADMIN] Delete a reminder message'
+reminders_list:
+  command:
+    name: reminders_list
+    description: '[ADMIN] List reminder messages'
+reminders_send:
+  command:
+    name: reminders_send
+    description: '[ADMIN] DM a reminder to every member'
+reminders:
+  error_disabled: '{error} Reminders are disabled on this server.'
+  saved: '{success} Reminder `{name}` saved.'
+  deleted: '{success} Reminder `{name}` deleted.'
+  not_found: '{error} No reminder named `{name}`.'
+  list_title: 'Saved reminders:
+
+    {names}'
+  list_empty: 'No reminders saved yet.'
+  done: '{success} Reminder sent to {sent} member(s) ({failed} failed).'
+  logs:
+    sent:
+      title: 'Reminder Sent'
+      description: '{moderator} sent reminder `{name}` ({sent} sent, {failed} failed).'
+broadcast_start:
+  command:
+    name: broadcast_start
+    description: '[ADMIN] Start a live broadcast from this channel'
+broadcast_stop:
+  command:
+    name: broadcast_stop
+    description: '[ADMIN] Stop the live broadcast'
+broadcast:
+  error_disabled: '{error} Broadcasts are disabled on this server.'
+  error_active: '{error} A broadcast is already running.'
+  error_none: '{error} No broadcast is running.'
+  header: '**{title}** (from {server})'
+  started: '{success} Broadcast header sent to {sent} member(s) ({failed} failed). Now post in this channel to relay.'
+  ended: '{success} Broadcast ended: {relayed} message(s) relayed ({sent} DMs, {failed} failed).'
+  logs:
+    started:
+      title: 'Broadcast Started'
+      description: '{moderator} started “{title}” in {channel}.'
+    ended:
+      title: 'Broadcast Ended'
+      description: '{moderator} ended the broadcast ({relayed} relayed, {sent} sent, {failed} failed).'
+invites:
+  command:
+    name: invites
+    description: Show invite stats for yourself or another member
+  error_disabled: '{error} Invite tracking is disabled on this server.'
+  error_leaderboard_disabled: '{error} The invites leaderboard is disabled.'
+  stats:
+    title: '{bar_chart} Invites of {user}'
+    breakdown: '{regular} regular · {bonus} bonus · {fake} fake · {left} left'
+    total: '**Total:** {total} (#{rank})'
+    retention: 'Retention: {percent}% ({stayed} of {total_real} still here)'
+    latest: 'Latest invite: {user} {when}'
+    unknown: '{user} has no invites yet.'
+  leaderboard:
+    title: '{trophy} Top Inviters'
+    line: '{medal} **{position}.** {user}: **{total}**'
+    empty: 'No invites tracked yet. Share your invite link!'
+  inviter:
+    title: 'Invited by'
+    body: 'Member: {user}
+
+      Inviter: {inviter}
+
+      Code: `{code}`
+
+      Joined: {when}
+
+      Status: {status}'
+    unknown: 'No record for {user} (they joined before tracking started).'
+  invited:
+    title: 'Members invited by {user}'
+    line: '- {user} ({when}, {status})'
+    empty: '{user} has not invited anyone yet.'
+  personal:
+    title: 'Your invite link'
+    body: 'Share this link: {link}
+
+      Total: **{total}** ({regular} regular · {bonus} bonus)'
+    no_channel: '{error} No channel available to create an invite.'
+  server:
+    title: '{bar_chart} Server Invite Stats'
+    joins: 'Tracked joins: **{count}**'
+    top: 'Top inviter: {user} (**{total}**)'
+  status:
+    ok: valid
+    fake: fake
+    flagged: flagged rejoin
+    rejoin: rejoin (not counted)
+    excluded: excluded
+    unknown: unknown
+  flags:
+    fake: ' ⚠️ fake'
+    flagged: ' 🚩 flagged rejoin'
+  bonus:
+    added: '{success} Added {amount} bonus invite(s) to {user} (total: {total}).'
+    removed: '{success} Removed {amount} bonus invite(s) from {user} (total: {total}).'
+    invalid: '{error} Amount must be between -100 and 100, excluding 0.'
+  sync:
+    success: '{success} Recounted {codes} invite code(s).'
+  codes:
+    title: 'Invite codes'
+    line: '`{code}` — {uses} use(s) by {inviter}{label}'
+    empty: 'No invite codes found.'
+  blacklist:
+    added: '{success} Added {target} to the {kind} list.'
+    removed: '{success} Removed {target} from the {kind} list.'
+    already: '{error} {target} is already on the {kind} list.'
+    missing: '{error} {target} is not on the {kind} list.'
+    missing_role: '{error} Pick a role for the roles list.'
+    missing_member: '{error} Pick a member for this list.'
+    title: 'Invite blacklist'
+    empty: 'All blacklist lists are empty.'
+  reset:
+    confirm_title: Reset all invite stats?
+    confirm_text: 'This erases every tracked join and counter. This cannot be undone.'
+    confirm: Confirm reset
+    cancel: Cancel
+    success: '{success} All invite stats were reset.'
+    cancelled: Reset cancelled.
+  label:
+    set: '{success} Code `{code}` labeled “{label}”.'
+    cleared: '{success} Label removed from `{code}`.'
+  logs:
+    join:
+      title: '{rocket} Member Joined With Invite'
+      description: '{user} joined via `{code}` from {inviter}{label}{flags}.'
+    leave:
+      title: 'Member Left'
+      description: '{user} (invited by {inviter}) left the server.'
+    bonus:
+      title: 'Bonus Adjusted'
+      description: '{moderator} adjusted {user} by {amount} (total: {total}).'
+    sync:
+      title: 'Invites Synced'
+      description: 'Recounted {codes} code(s) (requested by {moderator}).'
+    reset:
+      title: 'Invites Reset'
+      description: 'Invite stats were reset by {moderator}.'
+invites_leaderboard:
+  command:
+    name: invites_leaderboard
+    description: Show the top inviters ranking
+who_invited:
+  command:
+    name: who_invited
+    description: Show who invited a member
+invited:
+  command:
+    name: invited
+    description: List members invited by someone
+my_invite:
+  command:
+    name: my_invite
+    description: Get your personal invite link and stats
+server_invites:
+  command:
+    name: server_invites
+    description: Show server-wide invite statistics
+invites_bonus:
+  command:
+    name: invites_bonus
+    description: '[ADMIN] Add or remove bonus invites'
+invites_sync:
+  command:
+    name: invites_sync
+    description: '[ADMIN] Recount invite uses from Discord'
+invites_codes:
+  command:
+    name: invites_codes
+    description: '[ADMIN] List invite codes and uses'
+invites_blacklist:
+  command:
+    name: invites_blacklist
+    description: '[ADMIN] Manage the invite blacklist'
+invites_reset:
+  command:
+    name: invites_reset
+    description: '[ADMIN] Reset all invite stats'
+invites_label:
+  command:
+    name: invites_label
+    description: '[ADMIN] Label an invite code'
 boost_admin:
   command:
     name: boost_admin
@@ -854,6 +1185,8 @@ moderation:
   cancel: Cancel
   cancelled: Action cancelled.
   error_failed: '{error} The action failed. Check the bot logs.'
+  auto_ban_applied: 'Auto-ban applied (limit of {limit} warnings).'
+  auto_ban_failed: '{warning} Warning recorded but auto-ban failed (check permissions).'
   no_reason: No reason provided
   summary: '{member}
 
@@ -1193,6 +1526,43 @@ card:
     dm:
       title: Mute DM
       placeholders: ''
+  cleaner:
+    confirm:
+      title: Purge confirmation text
+      placeholders: ''
+    result:
+      title: Purge result text
+      placeholders: ''
+    logs:
+      purged:
+        description:
+          title: 'Log: messages purged'
+          placeholders: ''
+  anti_invite:
+    warning:
+      title: Anti-invite warning text
+      placeholders: ''
+    logs:
+      blocked:
+        description:
+          title: 'Log: invite blocked'
+          placeholders: ''
+  reminders:
+    logs:
+      sent:
+        description:
+          title: 'Log: reminder sent'
+          placeholders: ''
+  broadcast:
+    logs:
+      started:
+        description:
+          title: 'Log: broadcast started'
+          placeholders: ''
+      ended:
+        description:
+          title: 'Log: broadcast ended'
+          placeholders: ''
   kick:
     dm:
       title: Kick DM
@@ -1215,6 +1585,43 @@ card:
     announce:
       title: Birthday announcement
       placeholders: '{{user}}, {{server}}, {{count}}'
+  invites:
+    leaderboard:
+      title: Top inviters ranking
+      placeholders: ''
+    stats:
+      title: Invite stats card
+      placeholders: ''
+    personal:
+      title: Personal invite card
+      placeholders: ''
+    invited_list:
+      title: Invited members list
+      placeholders: ''
+    server_stats:
+      title: Server invite stats
+      placeholders: ''
+    logs:
+      join:
+        description:
+          title: 'Log: member joined with invite'
+          placeholders: ''
+      leave:
+        description:
+          title: 'Log: invited member left'
+          placeholders: ''
+      bonus:
+        description:
+          title: 'Log: bonus invites adjusted'
+          placeholders: ''
+      sync:
+        description:
+          title: 'Log: invites synced'
+          placeholders: ''
+      reset:
+        description:
+          title: 'Log: invites reset'
+          placeholders: ''
 events:
   enabled:
     label: Enable announcements

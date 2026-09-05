@@ -161,6 +161,34 @@ class WelcomeCog(commands.Cog):
             ),
         )
 
+    async def _inviter_mention(self, member: discord.Member) -> str:
+        """Inviter mention for the ``{inviter}`` card placeholder.
+
+        Always returns a string (possibly empty) so customized cards never
+        render a literal ``{inviter}``. Empty when tracking is off, hidden,
+        unattributed, or the record is not there yet (listener race).
+        """
+        from rosemary.core.invites import InviteStore
+
+        try:
+            if not await get_setting(
+                self.bot.storage, member.guild.id, "invites.enabled"
+            ):
+                return ""
+            if not await get_setting(
+                self.bot.storage, member.guild.id, "invites.show_inviter"
+            ):
+                return ""
+            record = await InviteStore(self.bot.storage.data_dir).previous_record(
+                member.guild.id, member.id
+            )
+        except Exception:
+            return ""
+        if not record:
+            return ""
+        inviter_id = record.get("inviter_id")
+        return f"<@{inviter_id}>" if inviter_id else ""
+
     async def _event_channel(
         self, guild: discord.Guild, setting_key: str
     ) -> discord.TextChannel | None:
@@ -189,6 +217,7 @@ class WelcomeCog(commands.Cog):
                 "server": member.guild.name,
                 "count": member.guild.member_count or 0,
                 "user_avatar": member.display_avatar.url,
+                "inviter": await self._inviter_mention(member),
             }
             await self._send_event_card(
                 channel,
@@ -217,6 +246,7 @@ class WelcomeCog(commands.Cog):
                 "user_name": member.display_name,
                 "server": member.guild.name,
                 "count": member.guild.member_count or 0,
+                "inviter": "",
             }
             await self._send_event_card(
                 channel,
@@ -243,6 +273,7 @@ class WelcomeCog(commands.Cog):
                 "user_name": user.name,
                 "server": guild.name,
                 "count": guild.member_count or 0,
+                "inviter": "",
             }
             await self._send_event_card(
                 channel,

@@ -71,6 +71,39 @@ BUMP_LOGS = [
 EVENT_CARDS = ["welcome", "leave", "ban"]
 BIRTHDAY_CARDS = ["announce"]
 
+INVITES_CARDS = [
+    "leaderboard",
+    "stats",
+    "personal",
+    "invited_list",
+    "server_stats",
+]
+
+INVITES_LOGS = [
+    "join",
+    "leave",
+    "bonus",
+    "sync",
+    "reset",
+]
+
+MODERATION_EXTRA_CARDS = [
+    "cleaner.confirm",
+    "cleaner.result",
+    "anti_invite.warning",
+]
+
+MODERATION_EXTRA_LOGS = [
+    "cleaner.logs.purged",
+    "anti_invite.logs.blocked",
+]
+
+SHARED_EXTRA_LOGS = [
+    "reminders.logs.sent",
+    "broadcast.logs.started",
+    "broadcast.logs.ended",
+]
+
 
 def _build() -> list[CardSpec]:
     specs: list[CardSpec] = []
@@ -107,6 +140,30 @@ def _build() -> list[CardSpec]:
     ]
     specs += [
         CardSpec(key=f"bump.logs.{name}.description", category="bump") for name in BUMP_LOGS
+    ]
+    specs += [
+        CardSpec(
+            key=f"invites.{name}",
+            category="invites",
+            rich=(name == "leaderboard"),
+            mention_default="single" if name in ("stats", "personal") else "none",
+        )
+        for name in INVITES_CARDS
+    ]
+    specs += [
+        CardSpec(key=f"invites.logs.{name}.description", category="invites")
+        for name in INVITES_LOGS
+    ]
+    specs += [
+        CardSpec(key=key, category="moderation") for key in MODERATION_EXTRA_CARDS
+    ]
+    specs += [
+        CardSpec(key=f"{key}.description", category="moderation")
+        for key in MODERATION_EXTRA_LOGS
+    ]
+    specs += [
+        CardSpec(key=f"{key}.description", category="general")
+        for key in SHARED_EXTRA_LOGS
     ]
     return specs
 

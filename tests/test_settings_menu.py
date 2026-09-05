@@ -130,7 +130,7 @@ async def test_settings_menu_bump_category_shows_page_indicator(tmp_path):
 async def test_settings_menu_single_page_category_hides_page_indicator(tmp_path):
     bot = FakeBot(GuildStorage(tmp_path))
     view = SettingsMenuView(bot, 1, owner_id=1)
-    view.category = SettingCategory.GENERAL
+    view.category = SettingCategory.LOGGING  # single page: indicator must hide
     await view.prepare()
 
     rendered = "\n".join(
