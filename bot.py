@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -29,6 +30,12 @@ if TYPE_CHECKING:
     from rosemary.core.storage import GuildStorage
 
 log = logging.getLogger(__name__)
+
+#: Discord slash-command name rules: 1-32 lowercase alphanumerics, - and _.
+#: A bad localized name must never break the whole guild sync (400 Invalid
+#: Form Body rejects the entire bulk payload), so invalid resolutions fall
+#: back to the decorator base name with a warning.
+_COMMAND_NAME_RE = re.compile(r"^[\w-]{1,32}$")
 
 #: Sentinel prefix that can never match real chat text. Returning None from
 #: get_prefix raises inside py-cord, so DM messages (no guild) get this instead.
@@ -143,7 +150,17 @@ class RosemaryBot(commands.Bot):
         t = self.translator.t
         for base_name, cmd in self._command_base_keys.items():
             key = f"{base_name}.command"
-            cmd.name = await t(guild.id, f"{key}.name")
+            name = await t(guild.id, f"{key}.name")
+            if not _COMMAND_NAME_RE.match(name) or name != name.lower():
+                log.warning(
+                    "Invalid localized name %r for %s in guild %s; keeping %r",
+                    name,
+                    base_name,
+                    guild.id,
+                    base_name,
+                )
+                name = base_name
+            cmd.name = name
             cmd.description = await t(guild.id, f"{key}.description")
         await self.sync_commands(guild_ids=[guild.id])
 

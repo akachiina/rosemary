@@ -936,6 +936,10 @@ serverinfo:
   roles: '**Roles:** {value}'
   channels: '**Channels:** {value}'
   created: '**Created:** {value}'
+limpar:
+  command:
+    name: limpar
+    description: Delete messages containing a word
 update:
   command:
     name: update
@@ -1098,9 +1102,6 @@ tickets:
       title: 'Ticket Transcript'
       description: 'Transcript of {channel} (requested by {moderator}).'
 cleaner:
-  command:
-    name: limpar
-    description: Delete messages containing a word
   error_disabled: '{error} The message cleaner is disabled on this server.'
   error_empty: '{error} Give me a word to purge.'
   confirm_title: 'Delete every message with “{word}”?'

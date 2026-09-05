@@ -936,6 +936,10 @@ serverinfo:
   roles: '**Cargos:** {value}'
   channels: '**Canais:** {value}'
   created: '**Criado em:** {value}'
+limpar:
+  command:
+    name: limpar
+    description: Apaga mensagens contendo uma palavra
 update:
   command:
     name: update
@@ -1098,9 +1102,6 @@ tickets:
       title: 'Transcrição de Ticket'
       description: 'Transcrição de {channel} (pedida por {moderator}).'
 cleaner:
-  command:
-    name: limpar
-    description: Apaga mensagens contendo uma palavra
   error_disabled: '{error} A limpeza de mensagens está desativada neste servidor.'
   error_empty: '{error} Me diga uma palavra para apagar.'
   confirm_title: 'Apagar tudo com “{word}”?'
