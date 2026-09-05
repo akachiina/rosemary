@@ -51,6 +51,7 @@ class SettingCategory(StrEnum):
     BIRTHDAYS = "birthdays"
     INVITES = "invites"
     TICKETS = "tickets"
+    PARTNERSHIPS = "partnerships"
 
 
 @dataclass(frozen=True)
@@ -199,6 +200,46 @@ SETTINGS: dict[str, SettingSpec] = {
             3,
             min_value=1,
             max_value=10,
+        ),
+        _spec(
+            "partnerships.enabled",
+            SettingCategory.PARTNERSHIPS,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "partnerships.channel",
+            SettingCategory.PARTNERSHIPS,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "partnerships.role",
+            SettingCategory.PARTNERSHIPS,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
+            "partnerships.ping_role",
+            SettingCategory.PARTNERSHIPS,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
+            "partnerships.renewal_days",
+            SettingCategory.PARTNERSHIPS,
+            SettingType.INTEGER,
+            15,
+            min_value=1,
+            max_value=90,
+        ),
+        _spec(
+            "partnerships.grace_days",
+            SettingCategory.PARTNERSHIPS,
+            SettingType.INTEGER,
+            3,
+            min_value=0,
+            max_value=30,
         ),
         _spec(
             "moderation.mute_seconds",

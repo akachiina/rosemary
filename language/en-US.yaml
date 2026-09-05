@@ -47,6 +47,7 @@ settings:
     birthdays: Birthdays
     invites: Invites
     tickets: Tickets
+    partnerships: Partnerships
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.
@@ -222,6 +223,24 @@ settings:
   tickets.max_open_per_user:
     label: Max open tickets (1-10)
     description: Open tickets allowed per member.
+  partnerships.enabled:
+    label: Partnerships enabled
+    description: Whether partnership ads work.
+  partnerships.channel:
+    label: Partnerships channel
+    description: Channel where partnership ads are posted.
+  partnerships.role:
+    label: Partner role
+    description: Role granted to partnership representatives.
+  partnerships.ping_role:
+    label: Partnerships ping role
+    description: Role pinged on partnership expiry.
+  partnerships.renewal_days:
+    label: Renewal period (days)
+    description: Days before a partnership ad expires (1-90).
+  partnerships.grace_days:
+    label: Grace period (days)
+    description: Days after expiry before removal (0-30).
   moderation.mute_seconds:
     label: Default mute duration
     description: Default mute duration in seconds (60-604800).
@@ -911,6 +930,81 @@ serverinfo:
   roles: '**Roles:** {value}'
   channels: '**Channels:** {value}'
   created: '**Created:** {value}'
+partnerships_add:
+  command:
+    name: partnerships_add
+    description: '[ADMIN] Add a partnership'
+partnerships_remove:
+  command:
+    name: partnerships_remove
+    description: '[ADMIN] Remove a partnership'
+partnerships_renew:
+  command:
+    name: partnerships_renew
+    description: Renew your partnership ad
+partnerships_invite:
+  command:
+    name: partnerships_invite
+    description: '[ADMIN] Post the partnership invite text'
+partnerships_list:
+  command:
+    name: partnerships_list
+    description: '[ADMIN] List partnerships'
+partnerships_audit:
+  command:
+    name: partnerships_audit
+    description: '[ADMIN] Audit partnerships without acting'
+partnerships_clean:
+  command:
+    name: partnerships_clean
+    description: '[ADMIN] Remove orphan partnerships'
+partnerships:
+  error_disabled: '{error} Partnerships are disabled on this server.'
+  error_no_channel: '{error} No partnerships channel configured.'
+  error_not_found: '{error} No partnership for {user}.'
+  error_not_rep: '{error} You do not represent any partnership here.'
+  list_empty: 'No partnerships yet.'
+  list_title: 'Partnerships'
+  list_line: '- {user} ({days}d left){warned}'
+  audit_title: 'Partnership Audit'
+  audit_body: 'Expired: {expired}
+
+    Orphaned: {orphans}'
+  invite_text: 'Partner with **{server}**! Talk to the staff to join.'
+  dm:
+    added: 'Your partnership with **{server}** is live!'
+    removed: 'Your partnership with **{server}** has ended.'
+    warning: 'Your partnership ad with **{server}** expires in {days} day(s). Renew it!'
+    expired: 'Your partnership with **{server}** expired and was removed.'
+  invite: '{server} 🤝'
+  success:
+    added: '{success} Partnership added for {user}.'
+    removed: '{success} Partnership removed for {user}.'
+    renewed: '{success} Partnership renewed.'
+    invite_posted: '{success} Partnership invite posted.'
+    cleaned: '{success} Removed {count} orphan partnership(s).'
+  logs:
+    added:
+      title: 'Partnership Added'
+      description: '{author} added a partnership for {user}.'
+    removed:
+      title: 'Partnership Removed'
+      description: '{author} removed the partnership of {user}.'
+    renewed:
+      title: 'Partnership Renewed'
+      description: '{user} renewed their partnership.'
+    warning_sent:
+      title: 'Partnership Warning'
+      description: '{user} was warned ({days}d overdue).'
+    expired:
+      title: 'Partnership Expired'
+      description: 'Partnership of {user} expired. {ping}'
+    invite_posted:
+      title: 'Partnership Invite Posted'
+      description: '{author} posted the partnership invite.'
+    orphans_cleaned:
+      title: 'Orphan Partnerships Cleaned'
+      description: '{author} removed {count} orphan partnership(s).'
 tickets_panel:
   command:
     name: tickets_panel
@@ -1670,6 +1764,7 @@ card:
       title: Ticket intro card
       placeholders: ''
     logs:
+    logs:
       opened:
         description:
           title: 'Log: ticket opened'
@@ -1689,6 +1784,52 @@ card:
       transcript:
         description:
           title: 'Log: ticket transcript'
+          placeholders: ''
+  partnerships:
+    invite:
+      title: Partnership invite text
+      placeholders: '{server}'
+    dm:
+      added:
+        title: 'DM: partnership added'
+        placeholders: ''
+      removed:
+        title: 'DM: partnership removed'
+        placeholders: ''
+      warning:
+        title: 'DM: partnership warning'
+        placeholders: ''
+      expired:
+        title: 'DM: partnership expired'
+        placeholders: ''
+    logs:
+      added:
+        description:
+          title: 'Log: partnership added'
+          placeholders: ''
+      removed:
+        description:
+          title: 'Log: partnership removed'
+          placeholders: ''
+      renewed:
+        description:
+          title: 'Log: partnership renewed'
+          placeholders: ''
+      warning_sent:
+        description:
+          title: 'Log: partnership warning'
+          placeholders: ''
+      expired:
+        description:
+          title: 'Log: partnership expired'
+          placeholders: ''
+      invite_posted:
+        description:
+          title: 'Log: partnership invite posted'
+          placeholders: ''
+      orphans_cleaned:
+        description:
+          title: 'Log: orphan partnerships cleaned'
           placeholders: ''
   invites:
     leaderboard:

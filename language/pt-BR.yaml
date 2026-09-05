@@ -47,6 +47,7 @@ settings:
     birthdays: Aniversários
     invites: Convites
     tickets: Tickets
+    partnerships: Parcerias
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
@@ -222,6 +223,24 @@ settings:
   tickets.max_open_per_user:
     label: Máx. tickets abertos (1-10)
     description: Tickets abertos permitidos por membro.
+  partnerships.enabled:
+    label: Parcerias ativadas
+    description: Se anúncios de parceria funcionam.
+  partnerships.channel:
+    label: Canal de parcerias
+    description: Canal onde os anúncios são postados.
+  partnerships.role:
+    label: Cargo de parceiro
+    description: Cargo dado aos representantes.
+  partnerships.ping_role:
+    label: Cargo de ping de parcerias
+    description: Cargo mencionado na expiração.
+  partnerships.renewal_days:
+    label: Prazo de renovação (dias)
+    description: Dias até o anúncio expirar (1-90).
+  partnerships.grace_days:
+    label: Carência (dias)
+    description: Dias após expirar antes de remover (0-30).
   moderation.mute_seconds:
     label: Duração padrão do mute
     description: Duração padrão do mute em segundos (60-604800).
@@ -911,6 +930,81 @@ serverinfo:
   roles: '**Cargos:** {value}'
   channels: '**Canais:** {value}'
   created: '**Criado em:** {value}'
+partnerships_add:
+  command:
+    name: fazer_parceria
+    description: '[ADMIN] Adiciona uma parceria'
+partnerships_remove:
+  command:
+    name: desfazer_parceria
+    description: '[ADMIN] Remove uma parceria'
+partnerships_renew:
+  command:
+    name: renovar_parceria
+    description: Renova seu anúncio de parceria
+partnerships_invite:
+  command:
+    name: enviar_convite_parceria
+    description: '[ADMIN] Posta o texto de convite'
+partnerships_list:
+  command:
+    name: listar_parcerias
+    description: '[ADMIN] Lista parcerias'
+partnerships_audit:
+  command:
+    name: auditar_parcerias
+    description: '[ADMIN] Audita parcerias sem agir'
+partnerships_clean:
+  command:
+    name: limpar_parcerias_orfas
+    description: '[ADMIN] Remove parcerias órfãs'
+partnerships:
+  error_disabled: '{error} Parcerias estão desativadas neste servidor.'
+  error_no_channel: '{error} Nenhum canal de parcerias configurado.'
+  error_not_found: '{error} Sem parceria para {user}.'
+  error_not_rep: '{error} Você não representa nenhuma parceria aqui.'
+  list_empty: 'Sem parcerias ainda.'
+  list_title: 'Parcerias'
+  list_line: '- {user} ({days}d restantes){warned}'
+  audit_title: 'Auditoria de Parcerias'
+  audit_body: 'Expiradas: {expired}
+
+    Órfãs: {orphans}'
+  invite_text: 'Faça parceria com **{server}**! Fale com a staff para participar.'
+  dm:
+    added: 'Sua parceria com **{server}** está no ar!'
+    removed: 'Sua parceria com **{server}** terminou.'
+    warning: 'Seu anúncio com **{server}** expira em {days} dia(s). Renove!'
+    expired: 'Sua parceria com **{server}** expirou e foi removida.'
+  invite: '{server} 🤝'
+  success:
+    added: '{success} Parceria adicionada para {user}.'
+    removed: '{success} Parceria removida de {user}.'
+    renewed: '{success} Parceria renovada.'
+    invite_posted: '{success} Convite de parceria postado.'
+    cleaned: '{success} {count} parceria(s) órfã(s) removidas.'
+  logs:
+    added:
+      title: 'Parceria Adicionada'
+      description: '{author} adicionou parceria para {user}.'
+    removed:
+      title: 'Parceria Removida'
+      description: '{author} removeu a parceria de {user}.'
+    renewed:
+      title: 'Parceria Renovada'
+      description: '{user} renovou a parceria.'
+    warning_sent:
+      title: 'Aviso de Parceria'
+      description: '{user} foi avisado ({days}d atrasado).'
+    expired:
+      title: 'Parceria Expirada'
+      description: 'Parceria de {user} expirou. {ping}'
+    invite_posted:
+      title: 'Convite Postado'
+      description: '{author} postou o convite de parceria.'
+    orphans_cleaned:
+      title: 'Órfãs Removidas'
+      description: '{author} removeu {count} parceria(s) órfã(s).'
 tickets_panel:
   command:
     name: painel_tickets
@@ -1690,6 +1784,52 @@ card:
       transcript:
         description:
           title: 'Log: transcrição de ticket'
+          placeholders: ''
+  partnerships:
+    invite:
+      title: Texto de convite de parceria
+      placeholders: '{server}'
+    dm:
+      added:
+        title: 'DM: parceria adicionada'
+        placeholders: ''
+      removed:
+        title: 'DM: parceria removida'
+        placeholders: ''
+      warning:
+        title: 'DM: aviso de parceria'
+        placeholders: ''
+      expired:
+        title: 'DM: parceria expirada'
+        placeholders: ''
+    logs:
+      added:
+        description:
+          title: 'Log: parceria adicionada'
+          placeholders: ''
+      removed:
+        description:
+          title: 'Log: parceria removida'
+          placeholders: ''
+      renewed:
+        description:
+          title: 'Log: parceria renovada'
+          placeholders: ''
+      warning_sent:
+        description:
+          title: 'Log: aviso de parceria'
+          placeholders: ''
+      expired:
+        description:
+          title: 'Log: parceria expirada'
+          placeholders: ''
+      invite_posted:
+        description:
+          title: 'Log: convite postado'
+          placeholders: ''
+      orphans_cleaned:
+        description:
+          title: 'Log: órfãs removidas'
           placeholders: ''
   invites:
     leaderboard:

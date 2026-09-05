@@ -68,6 +68,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.invites import InvitesCog
         from rosemary.cogs.language import LanguageCog
         from rosemary.cogs.moderation import ModerationCog
+        from rosemary.cogs.partnerships import PartnershipsCog
         from rosemary.cogs.reminders import RemindersCog
         from rosemary.cogs.settings import SettingsCog
         from rosemary.cogs.starboard import StarboardCog
@@ -100,6 +101,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(SettingsCog(self))
         self.add_cog(CustomizeCog(self))
         self.add_cog(ModerationCog(self))
+        self.add_cog(PartnershipsCog(self))
         self.add_cog(CleanerCog(self))
         self.add_cog(RemindersCog(self))
         self.add_cog(BroadcastCog(self))

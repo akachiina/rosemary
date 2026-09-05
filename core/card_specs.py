@@ -111,6 +111,23 @@ TICKETS_LOGS = [
     "transcript",
 ]
 
+PARTNERSHIPS_DMS = [
+    "added",
+    "removed",
+    "warning",
+    "expired",
+]
+
+PARTNERSHIPS_LOGS = [
+    "added",
+    "removed",
+    "renewed",
+    "warning_sent",
+    "expired",
+    "invite_posted",
+    "orphans_cleaned",
+]
+
 SHARED_EXTRA_LOGS = [
     "reminders.logs.sent",
     "broadcast.logs.started",
@@ -185,6 +202,17 @@ def _build() -> list[CardSpec]:
     specs += [
         CardSpec(key=f"tickets.logs.{name}.description", category="tickets")
         for name in TICKETS_LOGS
+    ]
+    specs += [
+        CardSpec(key="partnerships.invite", category="partnerships", rich=True)
+    ]
+    specs += [
+        CardSpec(key=f"partnerships.dm.{name}", category="partnerships", mention_default="single")
+        for name in PARTNERSHIPS_DMS
+    ]
+    specs += [
+        CardSpec(key=f"partnerships.logs.{name}.description", category="partnerships")
+        for name in PARTNERSHIPS_LOGS
     ]
     return specs
 
