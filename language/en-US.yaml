@@ -975,6 +975,16 @@ cards:
     compare_no_default: '*This card has no default preview.*'
     using_default: Using the default as a base (not saved yet).
     empty_block: (empty)
+    mentions:
+      placeholder: Who may this card ping...
+      saved: '{success} Ping policy saved.'
+  mentions:
+    modes:
+      none: No pings
+      single: One user
+      winner_auto: Winner (auto-post only)
+      role: Role
+      all: Everyone mentioned
   customize:
     title: Customize Messages
     choose: Pick a category, then the message you want to personalize.

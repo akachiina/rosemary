@@ -976,6 +976,16 @@ cards:
     compare_no_default: '*Este cartão não tem prévia padrão.*'
     using_default: Usando o padrão como base (ainda não salvo).
     empty_block: (vazio)
+    mentions:
+      placeholder: Quem este cartão pode mencionar...
+      saved: '{success} Política de menções salva.'
+  mentions:
+    modes:
+      none: Sem pings
+      single: Um usuário
+      winner_auto: Vencedor (só no post automático)
+      role: Cargo
+      all: Todos mencionados
   customize:
     title: Personalizar Mensagens
     choose: Escolha uma categoria e depois a mensagem que quer personalizar.

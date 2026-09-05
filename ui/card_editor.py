@@ -37,6 +37,8 @@ from rosemary.ui.modals import make_text_modal
 LoadDoc = Callable[[int], Awaitable[dict[str, Any] | None]]
 SaveDoc = Callable[[int, dict[str, Any]], Awaitable[None]]
 ResetDoc = Callable[[int], Awaitable[None]]
+LoadMentions = Callable[[int], Awaitable[str | None]]
+SaveMentions = Callable[[int, str], Awaitable[None]]
 
 _COMPOSITE_TYPES = ("container", "section")
 _BLOCK_TYPES = ("text", "container", "section", "divider", "gallery", "row")
@@ -129,6 +131,8 @@ class CardEditorView(MenuView):
         owner_id: int | None = None,
         placeholders_hint: str = "",
         exit_factory: Callable[[], MenuView] | None = None,
+        load_mentions: LoadMentions | None = None,
+        save_mentions: SaveMentions | None = None,
     ) -> None:
         super().__init__(author_id=owner_id)
         self.bot = bot
@@ -137,6 +141,9 @@ class CardEditorView(MenuView):
         self._load_doc = load_doc
         self._save_doc = save_doc
         self._reset_doc = reset_doc
+        self._load_mentions = load_mentions
+        self._save_mentions = save_mentions
+        self.mention_policy: str | None = None
         self.placeholders_hint = placeholders_hint
         self._exit_factory = exit_factory
         self.blocks: list[dict[str, Any]] = []
@@ -166,6 +173,7 @@ class CardEditorView(MenuView):
         self.register("card_compare_close", self._close_compare)
         self.register("card_color", self._set_container_color)
         self.register("card_exit", self._exit_to_origin)
+        self.register("card_mentions", self._set_mentions)
 
     async def _t(self, translation_key: str, **kwargs: Any) -> str:
         return await self.bot.translator.t(self.guild_id, translation_key, **kwargs)
@@ -211,6 +219,11 @@ class CardEditorView(MenuView):
     async def prepare(self) -> None:
         if not self.loaded:
             await self._load_or_seed()
+        if self._load_mentions is not None and self.mention_policy is None:
+            try:
+                self.mention_policy = await self._load_mentions(self.guild_id)
+            except Exception:
+                self.mention_policy = None
         await self._apply_menu_timeout()
         self.clear_items()
         for item in await self.build_editor():
@@ -297,6 +310,9 @@ class CardEditorView(MenuView):
             parts.extend(await self._build_add_screen())
         else:
             parts.extend(await self._build_selection_controls())
+        mentions_row = await self._build_mentions_row()
+        if mentions_row is not None:
+            parts.append(mentions_row)
         parts.extend(await self._build_nav_rows())
         return parts
 
@@ -432,6 +448,37 @@ class CardEditorView(MenuView):
         token = self.blocks[self.path[-1]].get("color")
         for option in select.options:
             option.default = option.value == (token or "")
+        return ActionRow(select)
+
+    def _effective_mention_policy(self) -> str:
+        """Saved override, else the card spec default (never unknown)."""
+        from rosemary.core.mentions import MODES, spec_default
+
+        if self.mention_policy in MODES:
+            return self.mention_policy
+        default = spec_default(self.key)
+        return default if default in MODES else "none"
+
+    async def _build_mentions_row(self) -> discord.ui.ViewItem | None:
+        """Per-card ping policy select (only when a store is wired)."""
+        if self._load_mentions is None or self._save_mentions is None:
+            return None
+        from rosemary.core.mentions import MODES
+
+        current = self._effective_mention_policy()
+        options = [
+            discord.SelectOption(
+                label=str(await self._t(f"cards.mentions.modes.{mode}"))[:100],
+                value=mode,
+                default=(mode == current),
+            )
+            for mode in MODES
+        ]
+        select = self.make_select(
+            custom_id="card_mentions",
+            placeholder=str(await self._t("cards.editor.mentions.placeholder"))[:150],
+            options=options,
+        )
         return ActionRow(select)
 
     async def _build_add_screen(self) -> list[discord.ui.ViewItem]:
@@ -812,6 +859,22 @@ class CardEditorView(MenuView):
         await interaction.response.defer()
         self.blocks[self.path[-1]]["color"] = values[0] or None
         await self._persist()
+        await self.rerender(interaction)
+
+    async def _set_mentions(self, interaction: discord.Interaction) -> None:
+        from rosemary.core.mentions import valid_policy
+
+        values = (interaction.data or {}).get("values") or []
+        if not values or self._save_mentions is None:
+            return
+        policy = values[0]
+        if not valid_policy(policy):
+            return
+        await interaction.response.defer()
+        await self._save_mentions(self.guild_id, policy)
+        self.mention_policy = policy
+        self.flash = await self._t("cards.editor.mentions.saved")
+        self.flash_color = "success"
         await self.rerender(interaction)
 
     async def _translate_issues(self, exc: CardsError) -> str:

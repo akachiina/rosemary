@@ -376,7 +376,9 @@ class ModerationCog(commands.Cog):
                 "mute.summary",
                 member="\n".join(target.mention for target in targets),
                 reason=reason_text,
-                duration=TimeParser.format_duration(duration),
+                duration=(
+                    TimeParser.format_duration(duration) if duration is not None else "-"
+                ),
             )
         elif len(targets) == 1:
             summary = await t(
@@ -438,7 +440,10 @@ class ModerationCog(commands.Cog):
         if notify:
             from rosemary.core.cards import text_or
 
-            duration_display = TimeParser.format_duration(duration)
+            # Only mute carries a duration; ban/kick/warn pass None.
+            duration_display = (
+                TimeParser.format_duration(duration) if duration is not None else None
+            )
             common = {"guild": guild_name, "moderator": moderator.mention, "reason": reason}
             dm_template_key = f"{action}.dm"
             translated = (
@@ -451,7 +456,9 @@ class ModerationCog(commands.Cog):
                 if action == "mute"
                 else await t(guild_id, dm_template_key, **common)
             )
-            variables = {**common, "duration": duration_display}
+            variables = {**common}
+            if duration_display is not None:
+                variables["duration"] = duration_display
             dm_text = await text_or(self.bot, guild_id, dm_template_key, translated, **variables)
             with contextlib.suppress(discord.Forbidden):
                 await target.send(dm_text)
@@ -489,7 +496,11 @@ class ModerationCog(commands.Cog):
                 self.bot.theme.md(
                     "entry",
                     label=await t(guild_id, "moderation.log.duration"),
-                    value=TimeParser.format_duration(duration),
+                    value=(
+                        TimeParser.format_duration(duration)
+                        if duration is not None
+                        else "-"
+                    ),
                 )
             )
         await send_channel_log(
@@ -508,6 +519,15 @@ class ModerationCog(commands.Cog):
                 member=target.mention,
                 count=count,
                 limit=limit,
+            )
+        if action == "mute":
+            return await t(
+                guild_id,
+                "mute.success",
+                member=target.mention,
+                duration=(
+                    TimeParser.format_duration(duration) if duration is not None else "-"
+                ),
             )
         return await t(guild_id, f"{action}.success", member=target.mention)
 

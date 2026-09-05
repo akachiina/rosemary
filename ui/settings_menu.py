@@ -278,6 +278,8 @@ class SettingsMenuView(MenuView):
                     author=interaction.user.mention,
                 ),
                 color="warning",
+                card_key="bump.logs.week_reset_manual.description",
+                mention_user_ids=[interaction.user.id],
             )
             await self._test_flash(interaction, "reset")
 

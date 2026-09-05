@@ -89,6 +89,8 @@ class CustomizeMenuView(MenuView):
             return parts
 
         specs = cards_for_category(self.category)[:_SELECT_LIMIT]
+        from rosemary.core.mentions import effective_policy
+
         options = []
         for spec in specs:
             customized = (
@@ -98,7 +100,18 @@ class CustomizeMenuView(MenuView):
             label = await self._t(spec.title_key)
             if customized:
                 label = f"✓ {label}"
-            options.append(discord.SelectOption(label=label[:100], value=spec.key))
+            try:
+                policy = await effective_policy(self.bot, self.guild_id, spec.key)
+                policy_label = await self._t(f"cards.mentions.modes.{policy}")
+            except Exception:
+                policy_label = ""
+            options.append(
+                discord.SelectOption(
+                    label=label[:100],
+                    value=spec.key,
+                    description=str(policy_label)[:100] or None,
+                )
+            )
         select = self.make_select(
             custom_id="custom_pick_card",
             placeholder=await self._t("cards.customize.card_placeholder"),
@@ -164,6 +177,9 @@ class CustomizeMenuView(MenuView):
         """Swap this message into the composer for ``spec``."""
         await interaction.response.defer()
         store = card_store(self.bot)
+        from rosemary.core.mentions import mention_store
+
+        mentions = mention_store(self.bot)
 
         async def load_doc(guild_id: int):
             return await store.get_document(guild_id, spec.key)
@@ -173,6 +189,12 @@ class CustomizeMenuView(MenuView):
 
         async def reset_doc(guild_id: int) -> None:
             await store.reset(guild_id, spec.key)
+
+        async def load_mentions(guild_id: int) -> str | None:
+            return await mentions.get_policy(guild_id, spec.key)
+
+        async def save_mentions(guild_id: int, policy: str) -> None:
+            await mentions.set_policy(guild_id, spec.key, policy)
 
         editor = CardEditorView(
             self.bot,
@@ -189,6 +211,8 @@ class CustomizeMenuView(MenuView):
                 owner_id=self.author_id,
                 category=self.category,
             ),
+            load_mentions=load_mentions,
+            save_mentions=save_mentions,
         )
         await editor.prepare()
         self.stop()

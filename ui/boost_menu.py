@@ -172,6 +172,7 @@ class _BaseMenu(MenuView):
                 **kwargs,
             ),
             color=color,
+            card_key=description_key,
         )
 
     async def _actor_mention(self) -> str:

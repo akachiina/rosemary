@@ -56,12 +56,18 @@ class BumpStore:
     async def _set_reminder(self, guild_id: int, data: dict[str, Any]) -> None:
         await self._update(guild_id, "reminder", data)
 
-    async def record_bump(self, guild_id: int, user_id: int) -> None:
+    async def record_bump(self, guild_id: int, user_id: int) -> bool:
+        """Record a bump. Returns False if the bump was stale (replayed message)."""
         state = await self.get_reminder(guild_id)
-        state["last_bump_timestamp"] = datetime.now(UTC).isoformat()
+        existing = parse_datetime(state.get("last_bump_timestamp"))
+        new_time = datetime.now(UTC)
+        if existing and new_time <= existing:
+            return False
+        state["last_bump_timestamp"] = new_time.isoformat()
         state["last_bump_user_id"] = user_id
         state["reminder_sent"] = False
         await self._set_reminder(guild_id, state)
+        return True
 
     async def get_last_bump_time(self, guild_id: int) -> datetime | None:
         state = await self.get_reminder(guild_id)

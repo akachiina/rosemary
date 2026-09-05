@@ -97,7 +97,7 @@ class Translator:
                 return str(result)
         return FALLBACK_LANGUAGE
 
-    async def raw(self, guild_id: int | None, key: str) -> str:
+    async def raw(self, guild_id: int | None, key: str) -> Any:
         """Return the unformatted template for ``key`` (placeholders intact).
 
         Missing keys fall back like :meth:`t` and ultimately return the key
@@ -117,10 +117,13 @@ class Translator:
         swallows formatting errors so a bad template never breaks the command.
         """
         template = await self.raw(guild_id, key)
+        if not isinstance(template, str):
+            log.warning("Translation %r is not a string; returning as-is", key)
+            return template
         try:
             variables = {**self._default_placeholders, **variables}
             return template.format(**variables)
-        except (KeyError, IndexError, ValueError) as exc:
+        except (AttributeError, KeyError, IndexError, TypeError, ValueError) as exc:
             log.warning("Failed to format translation %r: %s", key, exc)
             return template
 

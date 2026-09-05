@@ -75,24 +75,31 @@ BIRTHDAY_CARDS = ["announce"]
 def _build() -> list[CardSpec]:
     specs: list[CardSpec] = []
     specs += [
-        CardSpec(key=f"events.{name}", category="events", rich=True)
+        CardSpec(key=f"events.{name}", category="events", rich=True, mention_default="single")
         for name in EVENT_CARDS
     ]
     specs += [
-        CardSpec(key=f"birthdays.{name}", category="birthdays", rich=True)
+        CardSpec(key=f"birthdays.{name}", category="birthdays", rich=True, mention_default="single")
         for name in BIRTHDAY_CARDS
     ]
-    specs += [CardSpec(key=f"boost.dm.{name}", category="boost") for name in BOOST_DMS]
     specs += [
-        CardSpec(key="bump.leaderboard", category="bump", rich=True),
+        CardSpec(key=f"boost.dm.{name}", category="boost", mention_default="single")
+        for name in BOOST_DMS
+    ]
+    specs += [
+        CardSpec(key="bump.leaderboard", category="bump", rich=True, mention_default="winner_auto"),
         CardSpec(key="bump.no_bumps", category="bump", rich=True),
-        CardSpec(key="bump.reminder", category="bump", rich=True),
-        CardSpec(key="bump.thank_you", category="bump", rich=True),
+        CardSpec(key="bump.reminder", category="bump", rich=True, mention_default="role"),
+        CardSpec(key="bump.thank_you", category="bump", rich=True, mention_default="single"),
         CardSpec(key="bump.anti_camping", category="bump"),
     ]
-    specs += [CardSpec(key=f"bump.dm.{name}", category="bump") for name in WINNER_DMS]
     specs += [
-        CardSpec(key=f"{action}.dm", category="moderation") for action in MODERATION_ACTIONS
+        CardSpec(key=f"bump.dm.{name}", category="bump", mention_default="single")
+        for name in WINNER_DMS
+    ]
+    specs += [
+        CardSpec(key=f"{action}.dm", category="moderation", mention_default="single")
+        for action in MODERATION_ACTIONS
     ]
     specs += [
         CardSpec(key=f"boost.logs.{name}.description", category="boost")

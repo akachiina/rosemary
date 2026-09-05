@@ -111,8 +111,11 @@ class WelcomeCog(commands.Cog):
         body_key: str,
         color: str,
         variables: dict,
+        user_id: int | None = None,
     ) -> None:
         """Send a customizable card: override > plain text > default layout."""
+        from rosemary.core.mentions import mentions_for
+
         view = await maybe_view(self.bot, guild_id, key, variables)
         if view is None:
             text = await maybe_text(self.bot, guild_id, key, **variables)
@@ -142,9 +145,21 @@ class WelcomeCog(commands.Cog):
 
                 view = DesignerView(store=False)
                 view.add_item(TextDisplay(text))
-            await channel.send(view=view)
+            await channel.send(
+                view=view,
+                allowed_mentions=await mentions_for(
+                    self.bot, guild_id, key,
+                    user_ids=[user_id] if user_id else [],
+                ),
+            )
             return
-        await channel.send(view=view)
+        await channel.send(
+            view=view,
+            allowed_mentions=await mentions_for(
+                self.bot, guild_id, key,
+                user_ids=[user_id] if user_id else [],
+            ),
+        )
 
     async def _event_channel(
         self, guild: discord.Guild, setting_key: str
@@ -183,6 +198,7 @@ class WelcomeCog(commands.Cog):
                 "events.welcome.body",
                 "brand",
                 variables,
+                member.id,
             )
         except Exception as exc:
             log.error("Welcome message failed for %s: %s", member, exc)
@@ -210,6 +226,7 @@ class WelcomeCog(commands.Cog):
                 "events.leave.body",
                 "warning",
                 variables,
+                member.id,
             )
         except Exception as exc:
             log.error("Leave message failed for %s: %s", member, exc)
@@ -235,6 +252,7 @@ class WelcomeCog(commands.Cog):
                 "events.ban.body",
                 "danger",
                 variables,
+                user.id,
             )
         except Exception as exc:
             log.error("Ban message failed for %s: %s", user, exc)

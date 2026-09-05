@@ -120,6 +120,7 @@ class BoostInviteView(discord.ui.DesignerView):
                 **variables,
             ),
             color=color,
+            card_key=description_key,
         )
 
     # -- handlers -----------------------------------------------------------

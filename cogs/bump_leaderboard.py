@@ -127,6 +127,7 @@ class BumpLeaderboardCog(commands.Cog):
                 await self.bot.translator.t(guild.id, "bump.logs.no_winner.title"),
                 await self.bot.translator.t(guild.id, "bump.logs.no_winner.description"),
                 color="info",
+                card_key="bump.logs.no_winner.description",
             )
             return "no_bumps"
 
@@ -148,6 +149,7 @@ class BumpLeaderboardCog(commands.Cog):
                 await self.bot.translator.t(guild.id, "bump.logs.no_winner.title"),
                 await self.bot.translator.t(guild.id, "bump.error_role_not_found"),
                 color="danger",
+                card_key="bump.logs.no_winner.description",
             )
             await self.bump_store.reset_week(guild.id)
             return "no_role"
@@ -182,15 +184,22 @@ class BumpLeaderboardCog(commands.Cog):
                 bumps=sum(c for _, c in sorted_lb),
             ),
             color="success",
+            card_key="bump.logs.week_reset.description",
+            mention_user_ids=[new_winner_id],
         )
         return "posted"
 
     # -- Helpers -------------------------------------------------------------
 
     async def _post_no_bumps(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
+        from rosemary.core.mentions import mentions_for
+
         override = await maybe_view(self.bot, guild.id, "bump.no_bumps")
         if override is not None:
-            await channel.send(view=override)
+            await channel.send(
+                view=override,
+                allowed_mentions=await mentions_for(self.bot, guild.id, "bump.no_bumps"),
+            )
             return
 
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
@@ -205,7 +214,10 @@ class BumpLeaderboardCog(commands.Cog):
                 TextDisplay(content),
             )
         )
-        await channel.send(view=view)
+        await channel.send(
+            view=view,
+            allowed_mentions=await mentions_for(self.bot, guild.id, "bump.no_bumps"),
+        )
 
     async def _post_leaderboard(
         self,
@@ -216,13 +228,21 @@ class BumpLeaderboardCog(commands.Cog):
         winner_count: int,
         role_name: str | None = None,
     ) -> None:
+        from rosemary.core.mentions import mentions_for
+
         view = (
             await maybe_view(self.bot, guild.id, "bump.leaderboard")
             or await self._build_leaderboard_view(
                 guild, sorted_lb, winner_id, winner_count, role_name,
             )
         )
-        await channel.send(view=view)
+        await channel.send(
+            view=view,
+            allowed_mentions=await mentions_for(
+                self.bot, guild.id, "bump.leaderboard",
+                source="auto", user_ids=[winner_id],
+            ),
+        )
 
     async def _build_leaderboard_view(
         self,
@@ -442,7 +462,15 @@ class BumpLeaderboardCog(commands.Cog):
         view = await self._build_leaderboard_view(
             guild, sorted_lb, winner_id, winner_count, role_name,
         )
-        await ctx.respond(view=view)
+        from rosemary.core.mentions import mentions_for
+
+        await ctx.respond(
+            view=view,
+            allowed_mentions=await mentions_for(
+                self.bot, guild.id, "bump.leaderboard",
+                source="command", user_ids=[winner_id],
+            ),
+        )
 
     @discord.slash_command(
         name="bump_stats",
@@ -614,6 +642,7 @@ class BumpLeaderboardCog(commands.Cog):
                     channel=channel.mention,
                 ),
                 color="info",
+                card_key="bump.logs.no_bumps_posted.description",
             )
             return False
 
@@ -629,7 +658,15 @@ class BumpLeaderboardCog(commands.Cog):
         view = await self._build_leaderboard_view(
             guild, sorted_lb, winner_id, winner_count, role_name,
         )
-        await channel.send(view=view)
+        from rosemary.core.mentions import mentions_for
+
+        await channel.send(
+            view=view,
+            allowed_mentions=await mentions_for(
+                self.bot, guild_id, "bump.leaderboard",
+                source="auto", user_ids=[winner_id],
+            ),
+        )
         await send_channel_log(
             self.bot,
             guild_id,
@@ -641,6 +678,7 @@ class BumpLeaderboardCog(commands.Cog):
                 channel=channel.mention,
             ),
             color="info",
+            card_key="bump.logs.leaderboard_posted.description",
         )
         return True
 
@@ -665,6 +703,8 @@ class BumpLeaderboardCog(commands.Cog):
                 author=ctx.author.mention,
             ),
             color="warning",
+            card_key="bump.logs.week_reset_manual.description",
+            mention_user_ids=[ctx.author.id],
         )
         await ctx.respond(
             await self.bot.translator.t(ctx.guild_id, "bump.success.week_reset"), ephemeral=True
@@ -705,6 +745,8 @@ class BumpLeaderboardCog(commands.Cog):
                 total=total,
             ),
             color="warning",
+            card_key="bump.logs.bumps_added.description",
+            mention_user_ids=[ctx.author.id, user.id],
         )
         await ctx.respond(
             await self.bot.translator.t(

@@ -198,6 +198,7 @@ class BumpReminderCog(commands.Cog):
                     channel=channel.mention,
                 ),
                 color="warning",
+                card_key="bump.logs.channel_locked.description",
             )
         except Exception as exc:
             log.error("Failed to lock bump channel in %s: %s", guild_id, exc)
@@ -247,6 +248,7 @@ class BumpReminderCog(commands.Cog):
                     channel=channel.mention,
                 ),
                 color="success",
+                card_key="bump.logs.channel_unlocked.description",
             )
         except Exception as exc:
             log.error("Failed to unlock bump channel in %s: %s", guild_id, exc)
@@ -274,9 +276,20 @@ class BumpReminderCog(commands.Cog):
         )
 
         try:
+            from rosemary.core.mentions import mentions_for
+
             if content:
-                await channel.send(content)
-            await channel.send(view=view)
+                await channel.send(
+                    content,
+                    allowed_mentions=await mentions_for(
+                        self.bot, guild_id, "bump.reminder",
+                        role_ids=[ping_role_id] if ping_role_id else [],
+                    ),
+                )
+            await channel.send(
+                view=view,
+                allowed_mentions=await mentions_for(self.bot, guild_id, "bump.reminder"),
+            )
             await self.store.mark_reminder_sent(guild_id)
             await send_channel_log(
                 self.bot,
@@ -289,6 +302,7 @@ class BumpReminderCog(commands.Cog):
                     channel=channel.mention,
                 ),
                 color="info",
+                card_key="bump.logs.reminder_sent.description",
             )
         except Exception as exc:
             log.error("Failed to send bump reminder in %s: %s", guild_id, exc)
@@ -321,7 +335,14 @@ class BumpReminderCog(commands.Cog):
         )
 
         try:
-            await channel.send(view=view)
+            from rosemary.core.mentions import mentions_for
+
+            await channel.send(
+                view=view,
+                allowed_mentions=await mentions_for(
+                    self.bot, guild_id, "bump.thank_you", user_ids=[user_id],
+                ),
+            )
         except Exception as exc:
             log.error("Failed to send bump thank you in %s: %s", guild_id, exc)
 
@@ -454,7 +475,11 @@ class BumpReminderCog(commands.Cog):
         if not user_id:
             return
 
-        await self.store.record_bump(guild.id, user_id)
+        recorded = await self.store.record_bump(guild.id, user_id)
+        if not recorded:
+            log.info("Ignoring stale/replayed bump in %s", guild.id)
+            return
+
         await self.store.add_bump(guild.id, user_id)
 
         cooldown = await get_setting(self.bot.storage, guild.id, "bump.cooldown")
@@ -473,6 +498,8 @@ class BumpReminderCog(commands.Cog):
                 channel=message.channel.mention,
             ),
             color="success",
+            card_key="bump.logs.bump_recorded.description",
+            mention_user_ids=[user_id],
         )
 
     # -- Commands ------------------------------------------------------------

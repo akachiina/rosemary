@@ -160,14 +160,15 @@ class StarboardCog(commands.Cog):
                     entry = None
                 else:
                     card = self._build_card(message, stars, jump_label, no_content_label)
-                    await post.edit(view=card)
+                    await post.edit(view=card, allowed_mentions=discord.AllowedMentions.none())
                     self._last_edit[message.id] = time.monotonic()
                     await self.store.update_stars(channel.guild.id, message.id, stars)
                     return
 
             if stars >= config["threshold"]:
                 post = await board.send(
-                    view=self._build_card(message, stars, jump_label, no_content_label)
+                    view=self._build_card(message, stars, jump_label, no_content_label),
+                    allowed_mentions=discord.AllowedMentions.none(),
                 )
                 await self.store.upsert(
                     channel.guild.id,

@@ -81,11 +81,14 @@ class CardSpec:
 
     ``key`` is both the storage key and the i18n prefix: catalogs provide the
     default copy through ``card.<key>.title`` / ``card.<key>.placeholders``.
+    ``mention_default`` is the card's mention policy in
+    :mod:`rosemary.core.mentions` (guilds override it per card in /customize).
     """
 
     key: str
     category: str
     rich: bool = False  # rich cards open the full composer; plain ones a text field
+    mention_default: str = "none"
 
     @property
     def title_key(self) -> str:

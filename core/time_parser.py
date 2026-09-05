@@ -37,8 +37,12 @@ async def localized_aliases(translator, guild_id: int) -> dict[str, set[str]]:
     accepts ``"2 hours"`` in addition to the neutral abbreviations.
     """
     aliases = {unit: set(words) for unit, words in DEFAULT_ALIASES.items()}
+    raw = getattr(translator, "raw", None)
     for unit, key in _ALIAS_KEYS:
-        words = await translator.t(guild_id, key)
+        if callable(raw):
+            words = await translator.raw(guild_id, key)
+        else:  # legacy test fakes exposing only t()
+            words = await translator.t(guild_id, key)
         if isinstance(words, list):
             aliases[unit] |= {str(word).strip().lower() for word in words if word}
     return aliases

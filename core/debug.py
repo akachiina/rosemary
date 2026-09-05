@@ -66,12 +66,20 @@ async def send_channel_log(
     description: str,
     *,
     color: str = "info",
+    card_key: str | None = None,
+    mention_user_ids: tuple[int, ...] | list[int] = (),
+    mention_role_ids: tuple[int, ...] | list[int] = (),
 ) -> bool:
     """Send a Components V2 log message to the guild's configured log channel.
 
     No-ops when logging is disabled or no channel is configured. ``title`` and
     ``description`` must already be translated. Returns whether a message was
     actually sent.
+
+    Mentions inside ``description`` never ping unless the guild opted that log
+    card into pings in /customize: ``card_key`` selects the per-card policy
+    (log cards default to ``none``) and only the explicitly passed candidate
+    ids may ping.
     """
     if not await get_setting(bot.storage, guild_id, "logging.enabled"):
         return False
@@ -94,7 +102,19 @@ async def send_channel_log(
         )
     )
     try:
-        await channel.send(view=view)
+        if card_key is not None:
+            from rosemary.core.mentions import send_log_mentions
+
+            allowed = await send_log_mentions(
+                bot,
+                guild_id,
+                card_key,
+                user_ids=mention_user_ids,
+                role_ids=mention_role_ids,
+            )
+        else:
+            allowed = discord.AllowedMentions.none()
+        await channel.send(view=view, allowed_mentions=allowed)
     except (discord.Forbidden, discord.NotFound, discord.HTTPException) as exc:
         log.warning("Could not send log to channel %s: %s", channel_id, exc)
         return False

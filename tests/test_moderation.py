@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
+from pathlib import Path
 from types import SimpleNamespace
 
 import discord
+import pytest
 
 from rosemary.cogs.moderation import (
     ModerationCog,
@@ -13,8 +16,13 @@ from rosemary.cogs.moderation import (
     WarningsStore,
     _has_permissions,
 )
+from rosemary.core.i18n import Translator
 from rosemary.core.storage import GuildStorage
 from rosemary.core.time_parser import DEFAULT_ALIASES, localized_aliases
+from rosemary.ui.theme import load_theme
+
+ROOT = Path(__file__).resolve().parents[2]
+LANG_DIR = ROOT / "rosemary" / "language"
 
 
 def test_time_parser_valid():
@@ -209,3 +217,115 @@ async def test_can_moderate_blocks_bot_hierarchy(tmp_path):
         False,
         "moderation.error_bot_hierarchy",
     )
+
+
+# -- _execute_action regression: duration=None + format placeholders ---------
+
+
+class _ActionMember:
+    """Fake member supporting every moderation side effect."""
+
+    def __init__(self, member_id: int) -> None:
+        self.id = member_id
+        self.mention = f"<@{member_id}>"
+        self.sent: list[str] = []
+        self.banned = False
+        self.kicked = False
+        self.timed_out = False
+
+    def __str__(self) -> str:
+        return f"User{self.id}"
+
+    async def send(self, content: str) -> None:
+        self.sent.append(content)
+
+    async def ban(self, reason: str | None = None) -> None:
+        self.banned = True
+
+    async def kick(self, reason: str | None = None) -> None:
+        self.kicked = True
+
+    async def timeout_for(self, duration, reason: str | None = None) -> None:
+        assert duration is not None
+        self.timed_out = True
+
+
+def _resolver(language: str):
+    async def resolve(guild_id):
+        return language
+
+    return resolve
+
+
+def _real_cog(tmp_path, language: str) -> ModerationCog:
+    """Cog wired with the real theme + catalogs, like the running bot."""
+    theme = load_theme()
+    translator = Translator(
+        LANG_DIR, resolver=_resolver(language), default_placeholders=theme.emojis
+    )
+    bot = SimpleNamespace(
+        storage=GuildStorage(tmp_path),
+        translator=translator,
+        theme=theme,
+    )
+    return ModerationCog(bot)
+
+
+def _no_format_warnings(caplog) -> list[str]:
+    return [
+        record.getMessage()
+        for record in caplog.records
+        if "Failed to format translation" in record.getMessage()
+    ]
+
+
+@pytest.mark.parametrize("language", ["pt-BR", "en-US"])
+@pytest.mark.parametrize("action", ["ban", "kick", "mute", "warn"])
+@pytest.mark.parametrize("notify", [True, False])
+async def test_execute_action_never_crashes_and_formats(
+    tmp_path, caplog, language: str, action: str, notify: bool
+) -> None:
+    """Every action x notify combo must run without errors or raw placeholders.
+
+    Regression for: ban/kick/warn with notify crashing on
+    ``format_duration(None)``, and ``mute.success`` missing ``{duration}``.
+    """
+    cog = _real_cog(tmp_path, language)
+    moderator = _ActionMember(100)
+    target = _ActionMember(200)
+    duration = timedelta(minutes=10) if action == "mute" else None
+
+    with caplog.at_level(logging.WARNING, logger="rosemary.core.i18n"):
+        result = await cog._execute_action(
+            1, "TestGuild", moderator, target, action, "Spam", duration, notify
+        )
+
+    assert _no_format_warnings(caplog) == []
+    assert "{" not in result and "}" not in result
+    assert target.mention in result
+    if notify:
+        assert len(target.sent) == 1
+        assert "{" not in target.sent[0] and "}" not in target.sent[0]
+    else:
+        assert target.sent == []
+
+    assert target.banned is (action == "ban")
+    assert target.kicked is (action == "kick")
+    assert target.timed_out is (action == "mute")
+
+
+@pytest.mark.parametrize("language", ["pt-BR", "en-US"])
+async def test_mute_success_includes_duration(tmp_path, language: str) -> None:
+    """The mute result must render the duration instead of a raw placeholder."""
+    cog = _real_cog(tmp_path, language)
+    result = await cog._execute_action(
+        1,
+        "TestGuild",
+        _ActionMember(100),
+        _ActionMember(200),
+        "mute",
+        "Spam",
+        timedelta(minutes=10),
+        False,
+    )
+    assert "10m" in result

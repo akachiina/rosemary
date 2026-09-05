@@ -118,7 +118,14 @@ class BirthdayCog(commands.Cog):
             if view is None:
                 text = await maybe_text(self.bot, guild.id, "birthdays.announce", **variables)
                 view = await self._default_card(guild.id, text, variables)
-            await channel.send(view=view)
+            from rosemary.core.mentions import mentions_for
+
+            await channel.send(
+                view=view,
+                allowed_mentions=await mentions_for(
+                    self.bot, guild.id, "birthdays.announce", user_ids=[user_id],
+                ),
+            )
 
             if role is not None and member is not None:
                 with asyncio_exception_guard("role add"):

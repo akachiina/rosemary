@@ -143,6 +143,8 @@ class BoostRolesCog(commands.Cog):
                         owner=member.mention,
                     ),
                     color="danger",
+                    card_key="boost.logs.orphan_remove.description",
+                    mention_user_ids=[member.id],
                 )
                 continue
             new_owner = guild.get_member(members[0])
@@ -182,6 +184,8 @@ class BoostRolesCog(commands.Cog):
                     new_owner=new_owner.mention,
                 ),
                 color="warning",
+                card_key="boost.logs.auto_transfer.description",
+                mention_user_ids=[member.id, new_owner.id],
             )
         for role_id_str in await self.store.get_roles_as_member(guild_id, member.id):
             await self.store.remove_member(guild_id, int(role_id_str), member.id)
