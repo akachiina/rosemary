@@ -180,9 +180,12 @@ def _count_components(view) -> int:
 
 
 async def test_every_category_page_stays_under_discord_limit(tmp_path):
+    from rosemary.ui.settings_menu import ITEMS_PER_PAGE
+
     bot = FakeBot(GuildStorage(tmp_path))
     for category in SettingCategory:
-        pages = max(1, (len(settings_for_category(category)) + 4) // 5)
+        per_page = ITEMS_PER_PAGE
+        pages = max(1, (len(settings_for_category(category)) + per_page - 1) // per_page)
         for page in range(pages):
             for flash in (False, True):
                 view = SettingsMenuView(bot, 1, owner_id=1)

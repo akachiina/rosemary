@@ -38,7 +38,7 @@ from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
 
-ITEMS_PER_PAGE = 5
+ITEMS_PER_PAGE = 7
 
 
 class SettingsMenuView(MenuView):

@@ -442,6 +442,36 @@ SETTINGS: dict[str, SettingSpec] = {
             is_duration=True,
         ),
         _spec(
+            "bump.schedule.enabled",
+            SettingCategory.BUMP,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "bump.schedule.open_time",
+            SettingCategory.BUMP,
+            SettingType.STRING,
+            "06:00",
+        ),
+        _spec(
+            "bump.schedule.close_time",
+            SettingCategory.BUMP,
+            SettingType.STRING,
+            "23:00",
+        ),
+        _spec(
+            "bump.schedule.open_message",
+            SettingCategory.BUMP,
+            SettingType.STRING,
+            "🔓 O canal de bump está aberto! Use `/bump` para ajudar o servidor!",
+        ),
+        _spec(
+            "bump.schedule.close_message",
+            SettingCategory.BUMP,
+            SettingType.STRING,
+            "🔒 O canal de bump está fechado. Voltamos às 06:00!",
+        ),
+        _spec(
             "bump.anti_camping.enabled",
             SettingCategory.BUMP,
             SettingType.BOOLEAN,
@@ -476,36 +506,6 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.BUMP,
             SettingType.STRING,
             "Bump done",
-        ),
-        _spec(
-            "bump.schedule.enabled",
-            SettingCategory.BUMP,
-            SettingType.BOOLEAN,
-            False,
-        ),
-        _spec(
-            "bump.schedule.open_time",
-            SettingCategory.BUMP,
-            SettingType.STRING,
-            "06:00",
-        ),
-        _spec(
-            "bump.schedule.open_message",
-            SettingCategory.BUMP,
-            SettingType.STRING,
-            "🔓 O canal de bump está aberto! Use `/bump` para ajudar o servidor!",
-        ),
-        _spec(
-            "bump.schedule.close_time",
-            SettingCategory.BUMP,
-            SettingType.STRING,
-            "23:00",
-        ),
-        _spec(
-            "bump.schedule.close_message",
-            SettingCategory.BUMP,
-            SettingType.STRING,
-            "🔒 O canal de bump está fechado. Voltamos às 06:00!",
         ),
         _spec(
             "bump.leaderboard.enabled",

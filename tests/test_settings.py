@@ -165,6 +165,20 @@ async def test_settings_for_category_ordering():
     ]
 
 
+async def test_bump_essentials_come_first():
+    """Most-used bump settings (incl. the schedule toggle) fit on page one."""
+    keys = [s.key for s in settings_for_category(SettingCategory.BUMP)]
+    assert keys[:7] == [
+        "bump.enabled",
+        "bump.channel",
+        "bump.ping_role",
+        "bump.cooldown",
+        "bump.schedule.enabled",
+        "bump.schedule.open_time",
+        "bump.schedule.close_time",
+    ]
+
+
 async def test_general_prefix_setting_exists():
     spec = SETTINGS["general.prefix"]
     assert spec.value_type == SettingType.STRING
