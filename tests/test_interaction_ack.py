@@ -166,8 +166,26 @@ async def test_moderation_confirm_defers_first(tmp_path):
     view = ModerationConfirmView(
         bot, guild_id=1, owner_id=9, action="ban", summary="s", on_confirm=slow
     )
-    await view._confirm(OrderInteraction(order), True)
+    await view._confirm_notify(OrderInteraction(order))
     assert order == ["defer", "work", "edit"]
+
+
+async def test_moderation_terminal_state_has_no_buttons(tmp_path):
+    """After confirm/cancel the dialog must render result-only (no row)."""
+    from rosemary.cogs.moderation import ModerationConfirmView
+
+    bot = make_bot(tmp_path)
+
+    async def slow(notify):
+        return "done"
+
+    view = ModerationConfirmView(
+        bot, guild_id=1, owner_id=9, action="ban", summary="s", on_confirm=slow
+    )
+    await view._confirm_notify(OrderInteraction([]))
+    items = await view.build_items()
+    assert len(items) == 1
+    assert [type(item).__name__ for item in view.children] == ["Container"]
 
 
 async def test_clear_warnings_confirm_defers_first(tmp_path):

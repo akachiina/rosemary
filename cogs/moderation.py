@@ -23,13 +23,13 @@ from rosemary.core.settings import get_setting
 from rosemary.core.storage import GuildStorage
 from rosemary.core.time_parser import TimeParser, localized_aliases
 from rosemary.core.timezone import resolve_timezone
+from rosemary.ui.confirm import ConfirmView
 from rosemary.ui.containers import (
     ActionRow,
     TextDisplay,
     designer_container,
     header_display,
 )
-from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
 
@@ -108,11 +108,12 @@ class WarningsStore:
         return removed
 
 
-class ModerationConfirmView(MenuView):
+class ModerationConfirmView(ConfirmView):
     """Confirmation dialog: confirm + notify, confirm silent, or cancel.
 
     The container color reflects the outcome: success (green) after the action,
-    danger (red) on failure, warning (yellow) while pending or cancelled.
+    danger (red) on failure, warning (yellow) while pending or cancelled. The
+    terminal state shows only the result: no title, no summary, no buttons.
     """
 
     def __init__(
@@ -125,54 +126,36 @@ class ModerationConfirmView(MenuView):
         summary: str,
         on_confirm: Any,
     ) -> None:
-        super().__init__(author_id=owner_id)
-        self.bot = bot
-        self.guild_id = guild_id
         self.action = action
         self.summary = summary
-        self.on_confirm = on_confirm
-        self.result: str | None = None
-        self.result_state: str | None = None
-        self.register("mod_confirm_notify", self._make_confirm(True))
-        self.register("mod_confirm_silent", self._make_confirm(False))
+        self._execute = on_confirm
+        self._notify = True
+        super().__init__(
+            bot,
+            guild_id=guild_id,
+            owner_id=owner_id,
+            on_confirm=self._run,
+            failure_key="moderation.error_failed",
+            cancelled_key="moderation.cancelled",
+        )
+        self.register("mod_confirm_notify", self._confirm_notify)
+        self.register("mod_confirm_silent", self._confirm_silent)
         self.register("mod_cancel", self._cancel)
 
-    def _make_confirm(self, notify: bool) -> Any:
-        async def confirm(interaction: discord.Interaction) -> None:
-            await self._confirm(interaction, notify)
+    async def _run(self, interaction: discord.Interaction) -> str:
+        return await self._execute(self._notify)
 
-        return confirm
+    async def _confirm_notify(self, interaction: discord.Interaction) -> None:
+        self._notify = True
+        await self._confirm(interaction)
 
-    async def _confirm(self, interaction: discord.Interaction, notify: bool) -> None:
-        if self.result is not None:
-            return
-        if not interaction.response.is_done():
-            await interaction.response.defer()
+    async def _confirm_silent(self, interaction: discord.Interaction) -> None:
+        self._notify = False
+        await self._confirm(interaction)
+
+    async def question_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
-        try:
-            self.result = await self.on_confirm(notify)
-            self.result_state = "success"
-        except Exception as exc:
-            log.error("Moderation action %s failed: %s", self.action, exc)
-            self.result = await t(self.guild_id, "moderation.error_failed")
-            self.result_state = "danger"
-        self.disable_all_items()
-        await self.rerender(interaction)
-        self.stop()
-
-    async def _cancel(self, interaction: discord.Interaction) -> None:
-        if self.result is not None:
-            return
-        t = self.bot.translator.t
-        self.result = await t(self.guild_id, "moderation.cancelled")
-        self.result_state = "warning"
-        self.disable_all_items()
-        await self.rerender(interaction)
-        self.stop()
-
-    async def build_items(self) -> list[discord.ui.ViewItem]:
-        t = self.bot.translator.t
-        parts = [
+        return [
             TextDisplay(
                 self.bot.theme.md(
                     "title",
@@ -181,32 +164,31 @@ class ModerationConfirmView(MenuView):
             ),
             TextDisplay(self.summary),
         ]
-        if self.result:
-            parts.append(TextDisplay(self.result))
-        container = designer_container(
-            self.bot.theme.color(self.result_state or "warning"), *parts
-        )
-        row = ActionRow(
-            self.make_button(
-                custom_id="mod_confirm_notify",
-                label=await t(self.guild_id, "moderation.confirm_notify"),
-                style=discord.ButtonStyle.success,
-            ),
-            self.make_button(
-                custom_id="mod_confirm_silent",
-                label=await t(self.guild_id, "moderation.confirm_silent"),
-                style=discord.ButtonStyle.secondary,
-            ),
-            self.make_button(
-                custom_id="mod_cancel",
-                label=await t(self.guild_id, "moderation.cancel"),
-                style=discord.ButtonStyle.danger,
-            ),
-        )
-        return [container, row]
+
+    async def action_rows(self) -> list[discord.ui.ViewItem]:
+        t = self.bot.translator.t
+        return [
+            ActionRow(
+                self.make_button(
+                    custom_id="mod_confirm_notify",
+                    label=await t(self.guild_id, "moderation.confirm_notify"),
+                    style=discord.ButtonStyle.success,
+                ),
+                self.make_button(
+                    custom_id="mod_confirm_silent",
+                    label=await t(self.guild_id, "moderation.confirm_silent"),
+                    style=discord.ButtonStyle.secondary,
+                ),
+                self.make_button(
+                    custom_id="mod_cancel",
+                    label=await t(self.guild_id, "moderation.cancel"),
+                    style=discord.ButtonStyle.danger,
+                ),
+            )
+        ]
 
 
-class ClearWarningsView(MenuView):
+class ClearWarningsView(ConfirmView):
     """Confirmation dialog for removing every warning of a member."""
 
     def __init__(
@@ -218,50 +200,29 @@ class ClearWarningsView(MenuView):
         member_mention: str,
         on_confirm: Any,
     ) -> None:
-        super().__init__(author_id=owner_id)
-        self.bot = bot
-        self.guild_id = guild_id
         self.member_mention = member_mention
-        self.on_confirm = on_confirm
-        self.result: str | None = None
-        self.result_state: str | None = None
+        self._clear = on_confirm
+        super().__init__(
+            bot,
+            guild_id=guild_id,
+            owner_id=owner_id,
+            on_confirm=self._run,
+            confirm_style=discord.ButtonStyle.danger,
+            failure_key="moderation.error_failed",
+            cancelled_key="moderation.cancelled",
+        )
         self.register("clear_confirm", self._confirm)
         self.register("clear_cancel", self._cancel)
 
-    async def _confirm(self, interaction: discord.Interaction) -> None:
-        if self.result is not None:
-            return
-        if not interaction.response.is_done():
-            await interaction.response.defer()
-        t = self.bot.translator.t
-        try:
-            count = await self.on_confirm()
-            self.result = await t(
-                self.guild_id, "unwarn.cleared", member=self.member_mention, count=count
-            )
-            self.result_state = "success"
-        except Exception as exc:
-            log.error("Clear warnings failed: %s", exc)
-            self.result = await t(self.guild_id, "moderation.error_failed")
-            self.result_state = "danger"
-        self.disable_all_items()
-        await self.rerender(interaction)
-        self.stop()
+    async def _run(self, interaction: discord.Interaction) -> str:
+        count = await self._clear()
+        return await self.bot.translator.t(
+            self.guild_id, "unwarn.cleared", member=self.member_mention, count=count
+        )
 
-    async def _cancel(self, interaction: discord.Interaction) -> None:
-        if self.result is not None:
-            return
+    async def question_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
-        self.result = await t(self.guild_id, "moderation.cancelled")
-        self.result_state = "warning"
-        self.disable_all_items()
-        await self.rerender(interaction)
-        self.stop()
-
-    async def build_items(self) -> list[discord.ui.ViewItem]:
-        t = self.bot.translator.t
-        container = designer_container(
-            self.bot.theme.color(self.result_state or "warning"),
+        return [
             TextDisplay(
                 self.bot.theme.md(
                     "title", title=await t(self.guild_id, "unwarn.clear_all_title")
@@ -272,21 +233,24 @@ class ClearWarningsView(MenuView):
                     self.guild_id, "unwarn.clear_all_summary", member=self.member_mention
                 )
             ),
-            *( [TextDisplay(self.result)] if self.result else [] ),
-        )
-        row = ActionRow(
-            self.make_button(
-                custom_id="clear_confirm",
-                label=await t(self.guild_id, "moderation.confirm_clear"),
-                style=discord.ButtonStyle.danger,
-            ),
-            self.make_button(
-                custom_id="clear_cancel",
-                label=await t(self.guild_id, "moderation.cancel"),
-                style=discord.ButtonStyle.secondary,
-            ),
-        )
-        return [container, row]
+        ]
+
+    async def action_rows(self) -> list[discord.ui.ViewItem]:
+        t = self.bot.translator.t
+        return [
+            ActionRow(
+                self.make_button(
+                    custom_id="clear_confirm",
+                    label=await t(self.guild_id, "moderation.confirm_clear"),
+                    style=discord.ButtonStyle.danger,
+                ),
+                self.make_button(
+                    custom_id="clear_cancel",
+                    label=await t(self.guild_id, "moderation.cancel"),
+                    style=discord.ButtonStyle.secondary,
+                ),
+            )
+        ]
 
 
 class ModerationCog(commands.Cog):

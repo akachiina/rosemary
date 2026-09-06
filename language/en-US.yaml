@@ -26,6 +26,11 @@ general:
   unknown_error: '{error} An unexpected error occurred.'
 menu:
   owner_only: '{error} This menu is private. Only the author can interact.'
+confirm:
+  confirm: Confirm
+  cancel: Cancel
+  failed: '{error} The action failed. Check the bot logs.'
+  cancelled: Action cancelled.
 errors:
   generic: '{error} Something went wrong.'
 settings:

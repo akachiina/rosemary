@@ -26,6 +26,11 @@ general:
   unknown_error: '{error} Ocorreu um erro inesperado.'
 menu:
   owner_only: '{error} Este menu é privado. Somente o autor pode interagir.'
+confirm:
+  confirm: Confirmar
+  cancel: Cancelar
+  failed: '{error} A ação falhou. Verifique os logs do bot.'
+  cancelled: Ação cancelada.
 errors:
   generic: '{error} Algo deu errado.'
 settings:
