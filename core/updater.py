@@ -48,6 +48,42 @@ def is_newer(current: str, latest: str) -> bool:
     return latest_parsed > current_parsed
 
 
+def describe_target(
+    *,
+    channel: str,
+    current_version: str,
+    latest_tag: str | None,
+    behind: int,
+    branch: str,
+) -> tuple[str | None, str]:
+    """Decide the update target without touching the network or disk.
+
+    Returns ``(target_ref, label)`` where ``target_ref`` is ``None`` when
+    already up to date. ``latest_tag``/``behind`` come from the fetch step;
+    this pure split keeps the decision unit-testable.
+    """
+    if channel == "stable":
+        if latest_tag is None or not is_newer(current_version, latest_tag):
+            return None, ""
+        return latest_tag, latest_tag
+    if behind == 0:
+        return None, ""
+    return f"origin/{branch}", f"{behind} commits"
+
+
+def should_notify_failure(last: str | None, current: str | None) -> tuple[bool, str | None]:
+    """State-change throttle for repeated auto-check failures.
+
+    Returns ``(notify, stored)``: failures notify only when their signature
+    differs from the last one; success (``current=None``) clears the state.
+    """
+    if current is None:
+        return False, None
+    if current == last:
+        return False, last
+    return True, current
+
+
 async def _git(repo: Path, *args: str) -> tuple[int, str, str]:
     process = await asyncio.create_subprocess_exec(
         "git", "-C", str(repo), *args,

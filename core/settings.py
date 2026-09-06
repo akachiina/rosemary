@@ -248,6 +248,14 @@ SETTINGS: dict[str, SettingSpec] = {
             False,
         ),
         _spec(
+            "updater.check_interval_hours",
+            SettingCategory.GENERAL,
+            SettingType.INTEGER,
+            24,
+            min_value=1,
+            max_value=168,
+        ),
+        _spec(
             "updater.channel",
             SettingCategory.GENERAL,
             SettingType.CHOICE,

@@ -217,7 +217,7 @@ def _build() -> list[CardSpec]:
     specs += [CardSpec(key="updater.confirm", category="general")]
     specs += [
         CardSpec(key=f"updater.logs.{name}.description", category="general")
-        for name in ("updating", "updated")
+        for name in ("updating", "updated", "auto_failed")
     ]
     return specs
 

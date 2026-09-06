@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from rosemary.core.updater import (
     backup_data,
+    describe_target,
     is_newer,
     latest_stable,
     parse_tag,
     prune_backups,
+    should_notify_failure,
 )
 
 
@@ -33,6 +35,32 @@ def test_is_newer():
     assert is_newer("2.0.0", "v1.9.9") is False
     assert is_newer("v1.10.0", "v1.9.0") is False
     assert is_newer("bogus", "v1.0.0") is False
+
+
+def test_describe_target():
+    stable = {"channel": "stable", "branch": "main"}
+    assert describe_target(
+        current_version="0.1.0", latest_tag="v0.2.0", behind=0, **stable
+    ) == ("v0.2.0", "v0.2.0")
+    assert describe_target(
+        current_version="0.2.0", latest_tag="v0.2.0", behind=0, **stable
+    ) == (None, "")
+    assert describe_target(
+        current_version="0.1.0", latest_tag=None, behind=0, **stable
+    ) == (None, "")
+    assert describe_target(
+        channel="git", current_version="0.1.0", latest_tag=None, behind=3, branch="main"
+    ) == ("origin/main", "3 commits")
+    assert describe_target(
+        channel="git", current_version="0.1.0", latest_tag=None, behind=0, branch="main"
+    ) == (None, "")
+
+
+def test_should_notify_failure_throttle():
+    assert should_notify_failure(None, "dirty") == (True, "dirty")
+    assert should_notify_failure("dirty", "dirty") == (False, "dirty")
+    assert should_notify_failure("dirty", "fetch") == (True, "fetch")
+    assert should_notify_failure("fetch", None) == (False, None)
 
 
 async def test_backup_and_prune(tmp_path):

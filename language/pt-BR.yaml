@@ -213,7 +213,10 @@ settings:
     description: Pausa entre DMs da transmissão.
   updater.enabled:
     label: Auto-update ativado
-    description: Se /update pode reiniciar o bot.
+    description: Verifica e aplica updates sozinho.
+  updater.check_interval_hours:
+    label: Checar a cada (horas)
+    description: Horas entre checagens automáticas (1-168).
   updater.channel:
     label: Canal de update
     description: Releases estáveis ou cada push do git.
@@ -949,9 +952,8 @@ limpar:
 update:
   command:
     name: update
-    description: '[ADMIN] Atualiza o bot pelo git'
+    description: '[ADMIN] Atualiza o bot'
 updater:
-  error_disabled: '{error} Auto-update está desativado neste servidor.'
   error_fetch: '{error} Não foi possível buscar atualizações no git.'
   error_dirty: '{error} Árvore suja ({ahead} commit(s) locais) — update recusado.'
   error_backup: '{error} Backup dos dados falhou — update abortado.'
@@ -965,6 +967,9 @@ updater:
     updating:
       title: 'Bot Atualizando'
       description: '{moderator} iniciou update para **{target}** (de {previous}). Reiniciando.'
+    auto_failed:
+      title: 'Auto-update Falhou'
+      description: 'Checagem automática falhou ({reason}). Tenta de novo no horário.'
     updated:
       title: 'Bot Atualizado'
       description: 'Update aplicado: {previous} → {current}.'
@@ -1790,6 +1795,10 @@ card:
       updated:
         description:
           title: 'Log: bot atualizado'
+          placeholders: ''
+      auto_failed:
+        description:
+          title: 'Log: auto-update falhou'
           placeholders: ''
   events:
     welcome:

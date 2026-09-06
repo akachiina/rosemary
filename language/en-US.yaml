@@ -212,8 +212,11 @@ settings:
     label: Broadcast DM delay (0-30s)
     description: Pause between broadcast DMs.
   updater.enabled:
-    label: Self-update enabled
-    description: Whether /update can restart the bot.
+    label: Auto-update enabled
+    description: Check and apply updates automatically.
+  updater.check_interval_hours:
+    label: Auto-check every (hours)
+    description: Hours between automatic checks (1-168).
   updater.channel:
     label: Update channel
     description: Stable releases or every git push.
@@ -949,9 +952,8 @@ limpar:
 update:
   command:
     name: update
-    description: '[ADMIN] Update the bot from git'
+    description: '[ADMIN] Update the bot'
 updater:
-  error_disabled: '{error} Self-update is disabled on this server.'
   error_fetch: '{error} Could not fetch updates from git.'
   error_dirty: '{error} Working tree is dirty ({ahead} local commit(s)) — update refused.'
   error_backup: '{error} Data backup failed — update aborted.'
@@ -965,6 +967,9 @@ updater:
     updating:
       title: 'Bot Updating'
       description: '{moderator} started an update to **{target}** (from {previous}). Restarting.'
+    auto_failed:
+      title: 'Auto-update Failed'
+      description: 'Automatic check failed ({reason}). It will retry on schedule.'
     updated:
       title: 'Bot Updated'
       description: 'Update applied: {previous} → {current}.'
@@ -1781,6 +1786,10 @@ card:
       updated:
         description:
           title: 'Log: bot updated'
+          placeholders: ''
+      auto_failed:
+        description:
+          title: 'Log: auto-update failed'
           placeholders: ''
   kick:
     dm:
