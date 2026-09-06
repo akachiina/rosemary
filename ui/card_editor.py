@@ -533,7 +533,14 @@ class CardEditorView(MenuView):
             )
         )
 
-        secondary: list[discord.ui.Button] = []
+        # Close stays first so it never jumps when sibling buttons appear.
+        secondary: list[discord.ui.Button] = [
+            self.make_button(
+                custom_id="card_close",
+                label=await self._t("cards.editor.buttons.close"),
+                style=discord.ButtonStyle.secondary,
+            )
+        ]
         if self.path:
             secondary.append(
                 self.make_button(
@@ -550,13 +557,6 @@ class CardEditorView(MenuView):
                     emoji=theme.emojis.get("back", ""),
                 )
             )
-        secondary.append(
-            self.make_button(
-                custom_id="card_close",
-                label=await self._t("cards.editor.buttons.close"),
-                style=discord.ButtonStyle.secondary,
-            )
-        )
         return [ActionRow(*primary), ActionRow(*secondary)]
 
     async def _build_compare_screen(self) -> list[discord.ui.ViewItem]:

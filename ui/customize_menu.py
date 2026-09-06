@@ -120,14 +120,14 @@ class CustomizeMenuView(MenuView):
         parts.append(ActionRow(select))
         back_row = ActionRow(
             self.make_button(
-                custom_id="custom_back",
-                label=await self._t("cards.editor.buttons.back"),
-                emoji=theme.emojis.get("back", ""),
-            ),
-            self.make_button(
                 custom_id="custom_close",
                 label=await self._t("cards.editor.buttons.close"),
                 style=discord.ButtonStyle.secondary,
+            ),
+            self.make_button(
+                custom_id="custom_back",
+                label=await self._t("cards.editor.buttons.back"),
+                emoji=theme.emojis.get("back", ""),
             ),
         )
         parts.append(back_row)

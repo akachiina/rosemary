@@ -144,6 +144,8 @@ class SettingsMenuView(MenuView):
         await self._apply_value(interaction, key, values[0])
 
     async def _apply_value(self, interaction: discord.Interaction, key: str, raw: Any) -> None:
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         t = self.bot.translator.t
         spec = SETTINGS[key]
         label = await t(self.guild_id, f"settings.{spec.key}.label")
@@ -407,6 +409,7 @@ class SettingsMenuView(MenuView):
             ],
         )
 
+        # Close stays first on every page so it never jumps around.
         nav = [
             self.make_button(
                 custom_id="settings_close",
@@ -415,8 +418,7 @@ class SettingsMenuView(MenuView):
             )
         ]
         if self.page > 0:
-            nav.insert(
-                0,
+            nav.append(
                 self.make_button(
                     custom_id="settings_prev",
                     label=await t(self.guild_id, "settings.prev"),

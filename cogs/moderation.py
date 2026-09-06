@@ -146,6 +146,8 @@ class ModerationConfirmView(MenuView):
     async def _confirm(self, interaction: discord.Interaction, notify: bool) -> None:
         if self.result is not None:
             return
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         t = self.bot.translator.t
         try:
             self.result = await self.on_confirm(notify)
@@ -229,6 +231,8 @@ class ClearWarningsView(MenuView):
     async def _confirm(self, interaction: discord.Interaction) -> None:
         if self.result is not None:
             return
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         t = self.bot.translator.t
         try:
             count = await self.on_confirm()

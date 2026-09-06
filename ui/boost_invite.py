@@ -99,7 +99,9 @@ class BoostInviteView(discord.ui.DesignerView):
         self.clear_items()
         self.add_item(discord.ui.TextDisplay(content))
         self.add_item(discord.ui.ActionRow(self.accept_button, self.decline_button))
-        await interaction.response.edit_message(view=self)
+        # interaction.edit routes to edit_message or edit_original_response
+        # depending on whether the interaction was already deferred.
+        await interaction.edit(view=self)
 
     async def _error(self, interaction: discord.Interaction, key: str, **variables) -> None:
         body = await self._t(key, **variables)
@@ -144,6 +146,8 @@ class BoostInviteView(discord.ui.DesignerView):
         if guild is None or role is None or member is None:
             await self.store.remove_invite(self.guild_id, self.invite_id)
             return await self._error(interaction, "boost.errors.invite_invalid_old")
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         try:
             await member.add_roles(role, reason="Boost role invite accepted")
         except discord.Forbidden:
@@ -185,6 +189,8 @@ class BoostInviteView(discord.ui.DesignerView):
         role = guild.get_role(invite["role_id"]) if guild else None
         member_mention = f"<@{invite.get('invitee_id')}>"
         inviter_mention = f"<@{invite.get('inviter_id', 0)}>"
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         if role is not None:
             owner = guild.get_member(invite.get("inviter_id")) if guild else None
             if owner is not None:

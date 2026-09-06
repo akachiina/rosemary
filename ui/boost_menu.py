@@ -600,6 +600,8 @@ class BoostMenuView(_BaseMenu):
             await self._flash("boost.errors.role_not_found", color="danger")
             return await interaction.edit(view=self)
         old = role.name
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         try:
             await role.edit(name=name, reason="Boost role rename")
         except discord.Forbidden:
@@ -641,6 +643,8 @@ class BoostMenuView(_BaseMenu):
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
             return await interaction.edit(view=self)
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         try:
             await role.edit(unicode_emoji=emoji, reason="Boost role emoji")
         except discord.Forbidden:
@@ -681,6 +685,8 @@ class BoostMenuView(_BaseMenu):
         if not (attachment.content_type or "").startswith("image/"):
             await self._flash("boost.errors.invalid_image", color="danger")
             return await interaction.edit(view=self)
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         try:
             data = await attachment.read()
         except Exception as exc:
@@ -726,6 +732,8 @@ class BoostMenuView(_BaseMenu):
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
             return await self.rerender(interaction)
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         try:
             await role.edit(colour=discord.Colour(int(hex_value, 16)), reason="Boost role color")
         except discord.Forbidden:
@@ -763,6 +771,8 @@ class BoostMenuView(_BaseMenu):
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
             return await interaction.edit(view=self)
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         try:
             await role.edit(
                 colour=discord.Colour(int(match.group(1), 16)), reason="Boost role color"

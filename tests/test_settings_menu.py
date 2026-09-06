@@ -151,8 +151,16 @@ async def test_non_duration_setting_skips_localized_aliases(tmp_path):
     class FakeUser:
         mention = "<@1>"
 
+    class FakeResponse:
+        def is_done(self) -> bool:
+            return False
+
+        async def defer(self) -> None:
+            return None
+
     class FakeInteraction:
         user = FakeUser()
+        response = FakeResponse()
 
         async def edit(self, **kwargs):
             self.edited = True

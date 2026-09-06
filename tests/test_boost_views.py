@@ -229,6 +229,11 @@ class EditRecorder:
 class EditInteraction:
     def __init__(self) -> None:
         self.response = EditRecorder()
+        self.kwargs: dict | None = None
+
+    async def edit(self, **kwargs) -> None:
+        # Mirrors Interaction.edit: routes depending on deferred state.
+        self.kwargs = kwargs
 
 
 async def test_invite_view_is_buttons_only(bot):
@@ -280,8 +285,8 @@ async def test_invite_edit_replaces_components_without_content(bot):
 
     await view._edit(interaction, "done")
 
-    assert interaction.response.kwargs.keys() == {"view"}
-    assert interaction.response.kwargs["view"] is view
+    assert interaction.kwargs.keys() == {"view"}
+    assert interaction.kwargs["view"] is view
     kinds = [type(item).__name__ for item in view.children]
     assert kinds == ["TextDisplay", "ActionRow"]
     assert view.accept_button.disabled is True

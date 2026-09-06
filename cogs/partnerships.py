@@ -304,6 +304,8 @@ class PartnershipsCog(commands.Cog):
             ),
             server=guild.name,
         )
+        if not ctx.response.is_done():
+            await ctx.response.defer(ephemeral=True)
         message = await self._post_ad(guild, text, [])
         if message is None:
             return await ctx.respond(

@@ -537,6 +537,8 @@ class InvitesCog(commands.Cog):
                 break
         link = None
         if channel is not None:
+            if not ctx.response.is_done():
+                await ctx.response.defer(ephemeral=True)
             with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                 for invite in await channel.invites():
                     if (
