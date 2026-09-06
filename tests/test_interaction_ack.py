@@ -191,6 +191,30 @@ async def test_moderation_terminal_state_has_no_buttons(tmp_path):
     assert texts[-1] == "done"
 
 
+async def test_moderation_question_state_is_card_with_buttons(tmp_path):
+    """Before deciding: accent container + heading + one button row."""
+    import discord
+
+    from rosemary.cogs.moderation import ModerationConfirmView
+
+    bot = make_bot(tmp_path)
+
+    async def slow(notify):
+        return "done"
+
+    view = ModerationConfirmView(
+        bot, guild_id=1, owner_id=9, action="ban", summary="s", on_confirm=slow
+    )
+    items = await view.build_items()
+    assert [type(item).__name__ for item in items] == ["Container", "ActionRow"]
+    container = items[0]
+    assert container.color == bot.theme.color("warning")
+    assert container.items[0].content.startswith("# ")
+    row = items[1]
+    assert isinstance(row, discord.ui.ActionRow)
+    assert len(row.children) == 3
+
+
 async def test_clear_warnings_confirm_defers_first(tmp_path):
     from rosemary.cogs.moderation import ClearWarningsView
 

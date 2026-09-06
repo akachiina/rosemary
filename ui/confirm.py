@@ -57,6 +57,7 @@ class ConfirmView(MenuView):
         self.cancel_label = cancel_label
         self.failure_key = failure_key
         self.cancelled_key = cancelled_key
+        self.question_color = "warning"
         self.result: str | None = None
         self.result_state: str | None = None
         self.register("confirm_yes", self._confirm)
@@ -124,4 +125,10 @@ class ConfirmView(MenuView):
                     TextDisplay(self.result),
                 )
             ]
-        return [*await self.question_items(), *await self.action_rows()]
+        return [
+            designer_container(
+                self.bot.theme.color(self.question_color),
+                *await self.question_items(),
+            ),
+            *await self.action_rows(),
+        ]
