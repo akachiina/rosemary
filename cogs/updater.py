@@ -1,8 +1,10 @@
 """Self-update: check, confirm, back up, reset and restart.
 
-Admin-only and disabled by default. Requires a clean working tree (local
-changes are never overwritten blindly). After restarting, guilds that had
-logging enabled are notified through their log channels.
+Two channels: ``git`` follows ``origin/<branch>`` commit by commit, ``stable``
+follows the latest ``vX.Y.Z`` release tag (default). Admin-only and disabled
+by default. Requires a clean working tree (local changes are never
+overwritten blindly). After restarting, guilds that had logging enabled are
+notified through their log channels.
 """
 
 import logging
@@ -13,10 +15,21 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
+from rosemary import __version__
 from rosemary.core.cards import log_description, text_or
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import get_setting
-from rosemary.core.updater import backup_data, compare, fetch, is_clean, prune_backups, reset_hard
+from rosemary.core.updater import (
+    backup_data,
+    compare,
+    fetch,
+    fetch_tags,
+    is_clean,
+    is_newer,
+    latest_stable,
+    prune_backups,
+    reset_hard,
+)
 from rosemary.ui.containers import TextDisplay
 from rosemary.ui.menu import MenuView
 
@@ -55,11 +68,11 @@ class UpdaterCog(commands.Cog):
         if not flag.exists():
             return
         try:
-            guild_ids = [
-                int(line) for line in flag.read_text().splitlines() if line.strip().isdigit()
-            ]
+            lines = [line.strip() for line in flag.read_text().splitlines() if line.strip()]
+            previous = lines[0] if lines and lines[0].startswith("v") else None
+            guild_ids = [int(line) for line in lines if line.isdigit()]
         except OSError:
-            guild_ids = []
+            previous, guild_ids = None, []
         with _suppress_os():
             flag.unlink()
         for guild_id in guild_ids:
@@ -72,6 +85,8 @@ class UpdaterCog(commands.Cog):
                         self.bot,
                         guild_id,
                         "updater.logs.updated.description",
+                        previous=previous or "-",
+                        current=f"v{__version__}",
                     ),
                     color="success",
                     card_key="updater.logs.updated.description",
@@ -93,20 +108,39 @@ class UpdaterCog(commands.Cog):
             return await ctx.respond(
                 await t(guild_id, "updater.error_disabled"), ephemeral=True
             )
+        channel = await get_setting(self.bot.storage, guild_id, "updater.channel")
         branch = await get_setting(self.bot.storage, guild_id, "updater.branch")
         await ctx.response.defer(ephemeral=True)
-        if not await fetch(self._repo, branch):
+
+        target: str | None = None
+        target_label = ""
+        if channel == "stable":
+            tags = await fetch_tags(self._repo)
+            latest = latest_stable(tags)
+            if latest is None or not is_newer(__version__, latest):
+                return await ctx.respond(
+                    await t(guild_id, "updater.up_to_date"), ephemeral=True
+                )
+            target, target_label = latest, latest
+        else:
+            if not await fetch(self._repo, branch):
+                return await ctx.respond(
+                    await t(guild_id, "updater.error_fetch"), ephemeral=True
+                )
+            behind, ahead = await compare(self._repo, branch)
+            if behind == 0:
+                return await ctx.respond(
+                    await t(guild_id, "updater.up_to_date"), ephemeral=True
+                )
+            if not await is_clean(self._repo):
+                return await ctx.respond(
+                    await t(guild_id, "updater.error_dirty", ahead=ahead), ephemeral=True
+                )
+            target, target_label = f"origin/{branch}", f"{behind} commits"
+
+        if channel == "stable" and not await is_clean(self._repo):
             return await ctx.respond(
-                await t(guild_id, "updater.error_fetch"), ephemeral=True
-            )
-        behind, ahead = await compare(self._repo, branch)
-        if behind == 0:
-            return await ctx.respond(
-                await t(guild_id, "updater.up_to_date"), ephemeral=True
-            )
-        if not await is_clean(self._repo):
-            return await ctx.respond(
-                await t(guild_id, "updater.error_dirty", ahead=ahead), ephemeral=True
+                await t(guild_id, "updater.error_dirty", ahead=0), ephemeral=True
             )
 
         view = MenuView(author_id=ctx.author.id)
@@ -123,22 +157,24 @@ class UpdaterCog(commands.Cog):
                 view.add_item(TextDisplay(await t(guild_id, "updater.error_backup")))
                 view.stop()
                 return await interaction.edit(view=view)
-            if not await reset_hard(cog._repo, branch):
+            if target is None or not await reset_hard(cog._repo, target):
                 view.clear_items()
                 view.add_item(TextDisplay(await t(guild_id, "updater.error_reset")))
                 view.stop()
                 return await interaction.edit(view=view)
             await cog._notify_all(
                 moderator=ctx.author.mention,
-                branch=branch,
+                target=target_label,
+                previous=f"v{__version__}",
             )
             try:
                 cog._pending_flag.write_text(
-                    "\n".join(str(g.id) for g in cog.bot.guilds)
+                    f"v{__version__}\n"
+                    + "\n".join(str(g.id) for g in cog.bot.guilds)
                 )
             except OSError as exc:
                 log.warning("Could not write update flag: %s", exc)
-            log.info("Restarting for update (backup at %s)", backup)
+            log.info("Restarting for update to %s (backup at %s)", target, backup)
             os.execv(
                 sys.executable, [sys.executable, str(cog._repo / "bot.py")]
             )
@@ -158,9 +194,8 @@ class UpdaterCog(commands.Cog):
                     self.bot,
                     guild_id,
                     "updater.confirm",
-                    await t(guild_id, "updater.confirm", behind=behind, branch=branch),
-                    behind=behind,
-                    branch=branch,
+                    await t(guild_id, "updater.confirm", target=target_label),
+                    target=target_label,
                 )
             )
         )

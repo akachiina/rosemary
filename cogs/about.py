@@ -26,7 +26,13 @@ class AboutCog(commands.Cog):
     )
     async def about(self, ctx: discord.ApplicationContext) -> None:
         """Show information about Rosemary."""
+        from rosemary.core.settings import get_setting
+
         t = self.bot.translator.t
+        if ctx.guild_id is not None:
+            channel = await get_setting(self.bot.storage, ctx.guild_id, "updater.channel")
+        else:
+            channel = "stable"
         # Sections require an accessory (Thumbnail/Button); plain text must use
         # TextDisplay directly to keep the message valid.
         container = designer_container(
@@ -38,7 +44,9 @@ class AboutCog(commands.Cog):
             ),
             TextDisplay(await t(ctx.guild_id, "about.text")),
             divider(),
-            TextDisplay(await t(ctx.guild_id, "about.version", version=__version__)),
+            TextDisplay(
+                await t(ctx.guild_id, "about.version", version=__version__, channel=channel)
+            ),
         )
         view = DesignerView(store=False)
         view.add_item(container)

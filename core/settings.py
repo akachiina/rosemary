@@ -248,6 +248,13 @@ SETTINGS: dict[str, SettingSpec] = {
             False,
         ),
         _spec(
+            "updater.channel",
+            SettingCategory.GENERAL,
+            SettingType.CHOICE,
+            "stable",
+            choices=("stable", "git"),
+        ),
+        _spec(
             "updater.branch",
             SettingCategory.GENERAL,
             SettingType.STRING,

@@ -7,7 +7,7 @@ about:
     description: Sobre a Rosemary
   title: Sobre a Rosemary
   text: A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.
-  version: 'Versão: {version}'
+  version: 'Versão: {version} ({channel})'
   footer: 'Comandos: /sobre, /idioma, /configuracoes, /cargo_boost, /admin_boost, /banir, /warn, /debug'
 language:
   command:
@@ -214,6 +214,12 @@ settings:
   updater.enabled:
     label: Auto-update ativado
     description: Se /update pode reiniciar o bot.
+  updater.channel:
+    label: Canal de update
+    description: Releases estáveis ou cada push do git.
+    choices:
+      stable: Releases estáveis
+      git: Pushes do git
   updater.branch:
     label: Branch de update
     description: Branch git de onde atualizar.
@@ -951,17 +957,17 @@ updater:
   error_backup: '{error} Backup dos dados falhou — update abortado.'
   error_reset: '{error} Git reset falhou — veja os logs do bot.'
   up_to_date: '{success} Já está atualizado.'
-  confirm: '{warning} **{behind}** commit(s) atrás de `origin/{branch}`. Backup, reset e restart?'
+  confirm: '{warning} Atualizar para **{target}**? Backup, reset e restart?'
   confirm_button: Atualizar e reiniciar
   cancel_button: Cancelar
   cancelled: Update cancelado.
   logs:
     updating:
       title: 'Bot Atualizando'
-      description: '{moderator} iniciou update de `{branch}`. O bot vai reiniciar.'
+      description: '{moderator} iniciou update para **{target}** (de {previous}). Reiniciando.'
     updated:
       title: 'Bot Atualizado'
-      description: 'Update aplicado — bot reiniciado com sucesso.'
+      description: 'Update aplicado: {previous} → {current}.'
 partnerships_add:
   command:
     name: fazer_parceria
@@ -1775,7 +1781,7 @@ card:
   updater:
     confirm:
       title: Texto de confirmação do update
-      placeholders: '{behind}, {branch}'
+      placeholders: '{target}'
     logs:
       updating:
         description:
