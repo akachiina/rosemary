@@ -1,12 +1,12 @@
-"""Shared confirmation dialog with a terminal outcome state.
+"""Shared confirmation dialog with a buttonless terminal state.
 
 Several features need the same flow (moderation actions, warning cleanup):
 ask a question with confirm/cancel buttons, run an async action, then show
-the outcome. The outcome is rendered by :meth:`build_items` itself — a
-result-only container with no buttons — so the terminal state survives the
-rebuild in :meth:`rerender`. Never rely on ``disable_all_items()`` before a
-rebuild: :meth:`prepare` clears and recreates every component, wiping the
-disabled flags.
+the outcome. The outcome reuses the question content plus the result, minus
+the button rows — so the terminal state survives the rebuild in
+:meth:`rerender`. Never rely on ``disable_all_items()`` before a rebuild:
+:meth:`prepare` clears and recreates every component, wiping the disabled
+flags.
 
 Ad-hoc confirms that already clear their items and show plain text (tickets,
 invites reset, cleaner, updater) are equivalent and need no migration.
@@ -120,6 +120,7 @@ class ConfirmView(MenuView):
             return [
                 designer_container(
                     self.bot.theme.color(self.result_state or "info"),
+                    *await self.question_items(),
                     TextDisplay(self.result),
                 )
             ]
