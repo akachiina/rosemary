@@ -7,17 +7,19 @@ and sends a ping when the next bump is available.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from datetime import UTC, datetime, timedelta
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
-from rosemary.core.bump import BumpStore
+from rosemary.core.bump import LOCK_CAMPING, LOCK_SCHEDULE, BumpStore, schedule_open
 from rosemary.core.cards import log_description, maybe_view, text_or
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import get_setting
 from rosemary.core.time_parser import TimeParser
+from rosemary.core.timezone import resolve_timezone
 
 log = logging.getLogger(__name__)
 
@@ -50,12 +52,27 @@ class BumpReminderCog(commands.Cog):
         for guild in self.bot.guilds:
             asyncio.create_task(self._check_pending_reminders(guild.id))
             asyncio.create_task(self._check_and_recover_channel(guild.id))
+        self._schedule_loop.start()
 
     def cog_unload(self) -> None:
         for task in self._reminder_tasks.values():
             task.cancel()
         for task in self._unlock_tasks.values():
             task.cancel()
+        self._schedule_loop.cancel()
+
+    @tasks.loop(minutes=1)
+    async def _schedule_loop(self) -> None:
+        await self.bot.wait_until_ready()
+        for guild in list(self.bot.guilds):
+            try:
+                await self.check_schedule(guild)
+            except Exception as exc:
+                log.error("Bump schedule check failed in %s: %s", guild.id, exc)
+
+    @_schedule_loop.before_loop
+    async def _schedule_before_loop(self) -> None:
+        await self.bot.wait_until_ready()
 
     # -- Core Logic ----------------------------------------------------------
 
@@ -86,8 +103,116 @@ class BumpReminderCog(commands.Cog):
     async def _check_and_recover_channel(self, guild_id: int) -> None:
         await self.bot.wait_until_ready()
         if await self.store.is_channel_locked(guild_id):
+            if await self._schedule_closed(guild_id):
+                # Boot during closed hours: adopt the lock as the schedule's
+                # instead of briefly unlocking it.
+                await self.store.mark_channel_locked(guild_id, LOCK_SCHEDULE)
+                return
             log.warning("Channel was locked in %s on startup, recovering", guild_id)
             await self.unlock_channel(guild_id)
+
+    async def _schedule_closed(self, guild_id: int, *, now: datetime | None = None) -> bool:
+        """Whether the fixed schedule currently mandates a locked channel."""
+        if not await get_setting(self.bot.storage, guild_id, "bump.schedule.enabled"):
+            return False
+        tz = resolve_timezone(
+            await get_setting(self.bot.storage, guild_id, "general.timezone")
+        )
+        local = (now or datetime.now(UTC)).astimezone(tz)
+        return not schedule_open(
+            await get_setting(self.bot.storage, guild_id, "bump.schedule.open_time"),
+            await get_setting(self.bot.storage, guild_id, "bump.schedule.close_time"),
+            local.hour,
+            local.minute,
+        )
+
+    async def check_schedule(self, guild: discord.Guild, *, now: datetime | None = None) -> None:
+        """Enforce the fixed open/close schedule (transition-only actions).
+
+        ``now`` is injectable for tests; the minute loop always passes ``None``.
+        Acting only on transitions keeps messages/logs to one per switch, and
+        re-checking every minute recovers missed switches after downtime.
+        """
+        guild_id = guild.id
+        if not await get_setting(self.bot.storage, guild_id, "bump.enabled"):
+            return
+        if not await get_setting(self.bot.storage, guild_id, "bump.schedule.enabled"):
+            return
+        channel_id = await get_setting(self.bot.storage, guild_id, "bump.channel")
+        channel = guild.get_channel(channel_id) if channel_id else None
+        if not isinstance(channel, discord.TextChannel):
+            return
+
+        closed = await self._schedule_closed(guild_id, now=now)
+        locked = await self.store.is_channel_locked(guild_id)
+        source = await self.store.get_lock_source(guild_id)
+        if closed and not locked:
+            await self._set_schedule_state(guild, channel, locked=True)
+        elif not closed and locked and source == LOCK_SCHEDULE:
+            await self._set_schedule_state(guild, channel, locked=False)
+
+    async def _set_schedule_state(
+        self, guild: discord.Guild, channel: discord.TextChannel, *, locked: bool
+    ) -> None:
+        """Lock/unlock the channel on behalf of the schedule with its message."""
+        from rosemary.core.mentions import mentions_for
+
+        guild_id = guild.id
+        try:
+            overwrites = channel.overwrites
+            default_role = guild.default_role
+            if default_role not in overwrites:
+                overwrites[default_role] = discord.PermissionOverwrite()
+            if locked:
+                overwrites[default_role].send_messages = False
+                key, log_key, color = (
+                    "bump.schedule.close",
+                    "bump.logs.schedule_closed.description",
+                    "warning",
+                )
+            else:
+                overwrites[default_role].send_messages = None
+                key, log_key, color = (
+                    "bump.schedule.open",
+                    "bump.logs.schedule_opened.description",
+                    "success",
+                )
+            await channel.edit(overwrites=overwrites)
+            if locked:
+                await self.store.mark_channel_locked(guild_id, LOCK_SCHEDULE)
+            else:
+                await self.store.mark_channel_unlocked(guild_id)
+
+            message = await text_or(
+                self.bot,
+                guild_id,
+                key,
+                await self._schedule_text(guild_id, locked),
+            )
+            if message:
+                await channel.send(
+                    message,
+                    allowed_mentions=await mentions_for(self.bot, guild_id, key),
+                )
+            await send_channel_log(
+                self.bot,
+                guild_id,
+                await self.bot.translator.t(
+                    guild_id,
+                    f"bump.logs.{'schedule_closed' if locked else 'schedule_opened'}.title",
+                ),
+                await log_description(
+                    self.bot, guild_id, log_key, channel=channel.mention
+                ),
+                color=color,
+                card_key=log_key,
+            )
+        except Exception as exc:
+            log.error("Failed to apply bump schedule in %s: %s", guild_id, exc)
+
+    async def _schedule_text(self, guild_id: int, locked: bool) -> str:
+        setting = f"bump.schedule.{'close' if locked else 'open'}_message"
+        return await get_setting(self.bot.storage, guild_id, setting)
 
     def _schedule_reminder(self, guild_id: int, delay_seconds: float) -> None:
         if guild_id in self._reminder_tasks:
@@ -175,7 +300,7 @@ class BumpReminderCog(commands.Cog):
                 overwrites[default_role] = discord.PermissionOverwrite()
             overwrites[default_role].send_messages = False
             await channel.edit(overwrites=overwrites)
-            await self.store.mark_channel_locked(guild_id)
+            await self.store.mark_channel_locked(guild_id, LOCK_CAMPING)
 
             message = await text_or(
                 self.bot,
@@ -214,6 +339,18 @@ class BumpReminderCog(commands.Cog):
 
         channel = guild.get_channel(channel_id)
         if not isinstance(channel, discord.TextChannel):
+            return
+
+        if await self._schedule_closed(guild_id):
+            # Schedule wins: keep the channel locked, only drop the
+            # anti-camping lock notice so it does not linger.
+            lock_message_id = await self.store.get_lock_message_id(guild_id)
+            if lock_message_id:
+                with contextlib.suppress(discord.NotFound, discord.HTTPException):
+                    await channel.get_partial_message(lock_message_id).delete()
+                await self.store.set_lock_message_id(guild_id, None)
+            await self.store.mark_channel_locked(guild_id, LOCK_SCHEDULE)
+            log.info("Keeping bump channel locked in %s (schedule closed)", guild_id)
             return
 
         try:

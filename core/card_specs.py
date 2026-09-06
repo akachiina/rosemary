@@ -66,6 +66,8 @@ BUMP_LOGS = [
     "leaderboard_posted",
     "week_reset_manual",
     "bumps_added",
+    "schedule_opened",
+    "schedule_closed",
 ]
 
 EVENT_CARDS = ["welcome", "leave", "ban"]
@@ -155,6 +157,8 @@ def _build() -> list[CardSpec]:
         CardSpec(key="bump.reminder", category="bump", rich=True, mention_default="role"),
         CardSpec(key="bump.thank_you", category="bump", rich=True, mention_default="single"),
         CardSpec(key="bump.anti_camping", category="bump"),
+        CardSpec(key="bump.schedule.open", category="bump"),
+        CardSpec(key="bump.schedule.close", category="bump"),
     ]
     specs += [
         CardSpec(key=f"bump.dm.{name}", category="bump", mention_default="single")

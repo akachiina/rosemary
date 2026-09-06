@@ -30,6 +30,44 @@ def parse_datetime(value: str | None) -> datetime | None:
         return None
 
 
+#: Who owns the current channel lock: the fixed schedule or anti-camping.
+LOCK_SCHEDULE = "schedule"
+LOCK_CAMPING = "camping"
+
+
+def parse_time(value: str | None) -> tuple[int, int] | None:
+    """Parse ``"HH:MM"`` into ``(hour, minute)`` (or ``None`` when invalid)."""
+    if not value:
+        return None
+    try:
+        hour_raw, minute_raw = str(value).split(":")
+        hour, minute = int(hour_raw), int(minute_raw)
+    except ValueError:
+        return None
+    if not 0 <= hour <= 23 or not 0 <= minute <= 59:
+        return None
+    return hour, minute
+
+
+def schedule_open(
+    open_time: str | None, close_time: str | None, now_hour: int, now_minute: int
+) -> bool:
+    """Whether the channel should be open right now.
+
+    Handles overnight ranges (e.g. open 22:00, close 08:00). Invalid or equal
+    times mean "always open" so a misconfiguration never locks anyone out.
+    """
+    opened = parse_time(open_time)
+    closed = parse_time(close_time)
+    if opened is None or closed is None or opened == closed:
+        return True
+    now = now_hour * 60 + now_minute
+    start, end = opened[0] * 60 + opened[1], closed[0] * 60 + closed[1]
+    if start < end:
+        return start <= now < end
+    return now >= start or now < end
+
+
 class BumpStore:
     """Manages bump reminder and leaderboard persistence."""
 
@@ -78,15 +116,22 @@ class BumpStore:
         state["reminder_sent"] = True
         await self._set_reminder(guild_id, state)
 
-    async def mark_channel_locked(self, guild_id: int) -> None:
+    async def mark_channel_locked(self, guild_id: int, source: str = LOCK_CAMPING) -> None:
         state = await self.get_reminder(guild_id)
         state["channel_locked"] = True
+        state["lock_source"] = source
         await self._set_reminder(guild_id, state)
 
     async def mark_channel_unlocked(self, guild_id: int) -> None:
         state = await self.get_reminder(guild_id)
         state["channel_locked"] = False
+        state["lock_source"] = None
         await self._set_reminder(guild_id, state)
+
+    async def get_lock_source(self, guild_id: int) -> str | None:
+        state = await self.get_reminder(guild_id)
+        source = state.get("lock_source")
+        return source if source in (LOCK_SCHEDULE, LOCK_CAMPING) else None
 
     async def get_lock_message_id(self, guild_id: int) -> int | None:
         state = await self.get_reminder(guild_id)

@@ -75,6 +75,21 @@ settings:
   bump.detection_text:
     label: Texto de Detecção do Bump
     description: 'Texto enviado pelo Disboard no bump bem-sucedido (ex: "Bump feito"). Ignora maiúsculas/minúsculas.'
+  bump.schedule.enabled:
+    label: Abrir/Fechar Agendado Ativado
+    description: Tranca o canal de bump em horário fixo diário.
+  bump.schedule.open_time:
+    label: Hora de Abertura Diária
+    description: 'Hora que o canal abre todo dia (HH:MM, ex: 06:00).'
+  bump.schedule.open_message:
+    label: Mensagem de Abertura
+    description: Mensagem postada quando o canal abre.
+  bump.schedule.close_time:
+    label: Hora de Fechamento Diária
+    description: 'Hora que o canal fecha todo dia (HH:MM, ex: 23:00).'
+  bump.schedule.close_message:
+    label: Mensagem de Fechamento
+    description: Mensagem postada quando o canal fecha.
   bump.leaderboard.enabled:
     label: Placar Semanal Ativado
     description: Ativa o ranking semanal e o cargo de Bump-MVP.
@@ -845,6 +860,12 @@ bump:
     channel_unlocked:
       title: '{unlock} Canal Desbloqueado'
       description: Canal {channel} desbloqueado.
+    schedule_opened:
+      title: '{unlock} Canal de Bump Aberto'
+      description: Canal {channel} aberto pelo horário.
+    schedule_closed:
+      title: '{lock} Canal de Bump Fechado'
+      description: Canal {channel} fechado pelo horário.
     week_reset:
       title: '{refresh} Semana de Bump Resetada'
       description: 'O ranking semanal foi resetado.
@@ -1689,6 +1710,13 @@ card:
     anti_camping:
       title: Mensagem de canal bloqueado
       placeholders: ''
+    schedule:
+      open:
+        title: Mensagem de abertura agendada
+        placeholders: ''
+      close:
+        title: Mensagem de fechamento agendado
+        placeholders: ''
     logs:
       channel_locked:
         description:
@@ -1697,6 +1725,14 @@ card:
       channel_unlocked:
         description:
           title: 'Log: canal desbloqueado'
+          placeholders: ''
+      schedule_opened:
+        description:
+          title: 'Log: canal aberto pelo horário'
+          placeholders: ''
+      schedule_closed:
+        description:
+          title: 'Log: canal fechado pelo horário'
           placeholders: ''
       reminder_sent:
         description:

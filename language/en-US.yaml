@@ -75,6 +75,21 @@ settings:
   bump.detection_text:
     label: Bump Detection Text
     description: Text Disboard posts on a successful bump (e.g. "Bump done"). Matching is case-insensitive.
+  bump.schedule.enabled:
+    label: Scheduled Open/Close Enabled
+    description: Lock the bump channel on a fixed daily schedule.
+  bump.schedule.open_time:
+    label: Daily Open Time
+    description: 'Time the channel opens every day (HH:MM, e.g. 06:00).'
+  bump.schedule.open_message:
+    label: Opening Message
+    description: Message posted when the channel opens.
+  bump.schedule.close_time:
+    label: Daily Close Time
+    description: 'Time the channel closes every day (HH:MM, e.g. 23:00).'
+  bump.schedule.close_message:
+    label: Closing Message
+    description: Message posted when the channel closes.
   bump.leaderboard.enabled:
     label: Weekly Leaderboard Enabled
     description: Enables the weekly ranking and Bump-MVP role.
@@ -845,6 +860,12 @@ bump:
     channel_unlocked:
       title: '{unlock} Channel Unlocked'
       description: Channel {channel} unlocked.
+    schedule_opened:
+      title: '{unlock} Bump Channel Open'
+      description: Channel {channel} opened on schedule.
+    schedule_closed:
+      title: '{lock} Bump Channel Closed'
+      description: Channel {channel} closed on schedule.
     week_reset:
       title: '{refresh} Bump Week Reset'
       description: 'The weekly ranking was reset.
@@ -1688,6 +1709,13 @@ card:
     anti_camping:
       title: Channel locked message
       placeholders: ''
+    schedule:
+      open:
+        title: Scheduled opening message
+        placeholders: ''
+      close:
+        title: Scheduled closing message
+        placeholders: ''
     logs:
       channel_locked:
         description:
@@ -1696,6 +1724,14 @@ card:
       channel_unlocked:
         description:
           title: 'Log: channel unlocked'
+          placeholders: ''
+      schedule_opened:
+        description:
+          title: 'Log: channel opened on schedule'
+          placeholders: ''
+      schedule_closed:
+        description:
+          title: 'Log: channel closed on schedule'
           placeholders: ''
       reminder_sent:
         description:
