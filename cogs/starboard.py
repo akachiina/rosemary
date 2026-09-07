@@ -244,6 +244,3 @@ class StarboardCog(commands.Cog):
             await self._delete_post(board, entry)
         await self.store.remove(payload.guild_id, payload.message_id)
 
-
-def setup(bot) -> None:
-    bot.add_cog(StarboardCog(bot))

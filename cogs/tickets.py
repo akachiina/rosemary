@@ -66,9 +66,16 @@ class TicketsCog(commands.Cog):
     async def _restore_guild(self, guild: discord.Guild) -> None:
         if not await get_setting(self.bot.storage, guild.id, "tickets.enabled"):
             return
-        self.bot.add_view(TicketPanelView(self.bot, guild.id))
+        # Persistent dispatch matches on item custom_ids, so the registered
+        # views must carry their rows — an item-less view leaves every
+        # button/select dead after a restart.
+        panel_view = TicketPanelView(self.bot, guild.id)
+        panel_view.add_item(await self._panel_select_row(guild.id))
+        self.bot.add_view(panel_view)
         for channel_id in await self.store.open_tickets(guild.id):
-            self.bot.add_view(TicketActionsView(self.bot, guild.id, channel_id))
+            actions_view = TicketActionsView(self.bot, guild.id, channel_id)
+            actions_view.add_item(actions_view.action_row())
+            self.bot.add_view(actions_view)
         panel_id = await self.store.get_panel(guild.id)
         channel = await self._panel_channel(guild)
         if channel is None:
@@ -100,12 +107,21 @@ class TicketsCog(commands.Cog):
             guild_id, f"tickets.types.{ticket_type}.label"
         )
 
+    async def _panel_select_row(self, guild_id: int) -> discord.ui.ActionRow:
+        """The ticket-type picker wrapped for Components V2 sends."""
+        picker = TicketPanelView(self.bot, guild_id)
+        return discord.ui.ActionRow(await picker.open_row())
+
     async def _post_panel(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
+        from rosemary.core.mentions import mentions_for
+
         view = await maybe_view(self.bot, guild.id, "tickets.panel")
         if view is None:
             view = await self._build_panel_view(guild.id)
-        view.add_item(await TicketPanelView(self.bot, guild.id).open_row())
-        message = await channel.send(view=view)
+        view.add_item(await self._panel_select_row(guild.id))
+        message = await channel.send(
+            view=view, allowed_mentions=await mentions_for(self.bot, guild.id, "tickets.panel")
+        )
         await self.store.set_panel(guild.id, message.id)
 
     async def _build_panel_view(self, guild_id: int):
@@ -211,17 +227,16 @@ class TicketsCog(commands.Cog):
     ) -> None:
         from rosemary.core.mentions import mentions_for
 
-        view = await maybe_view(self.bot, guild.id, "tickets.created")
+        variables = {
+            "user": owner.mention,
+            "type": await self._type_label(guild.id, ticket_type),
+        }
+        view = await maybe_view(self.bot, guild.id, "tickets.created", variables)
         if view is None:
             t = self.bot.translator.t
             view = await self._intro_view(
                 guild.id,
-                await t(
-                    guild.id,
-                    "tickets.created.text",
-                    user=owner.mention,
-                    type=await self._type_label(guild.id, ticket_type),
-                ),
+                await t(guild.id, "tickets.created.text", **variables),
             )
         view.add_item(TicketActionsView(self.bot, guild.id, channel.id).action_row())
         await channel.send(
@@ -363,7 +378,9 @@ class TicketsCog(commands.Cog):
             )
         await ctx.response.defer(ephemeral=True)
         await self._post_panel(guild, channel)
-        self.bot.add_view(TicketPanelView(self.bot, guild.id))
+        panel_view = TicketPanelView(self.bot, guild.id)
+        panel_view.add_item(await self._panel_select_row(guild.id))
+        self.bot.add_view(panel_view)
         await ctx.respond(
             await self.bot.translator.t(guild.id, "tickets.panel_posted"),
             ephemeral=True,
@@ -423,6 +440,8 @@ class TicketPanelView(MenuView):
     async def _pick_type(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
         if not values or values[0] not in TICKET_TYPES:
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
             return
         ticket_type = values[0]
         label = await self._t(f"tickets.types.{ticket_type}.label")
@@ -494,17 +513,22 @@ class TicketActionsView(MenuView):
         self.register(_DELETE_PREFIX, self._delete)
 
     def action_row(self):
+        theme = self.bot.theme
+        lock = theme.emoji("lock") if theme else "🔒"
+        register = theme.emoji("register") if theme else "📝"
+        unlock = theme.emoji("unlock") if theme else "🔓"
+        trash = theme.emoji("trash") if theme else "🗑️"
         return discord.ui.ActionRow(
-            self.make_button(custom_id=f"{_CLOSE_PREFIX}:{self.channel_id}", label="🔒"),
+            self.make_button(custom_id=f"{_CLOSE_PREFIX}:{self.channel_id}", label=lock or "🔒"),
             self.make_button(
-                custom_id=f"{_TRANSCRIPT_PREFIX}:{self.channel_id}", label="📝"
+                custom_id=f"{_TRANSCRIPT_PREFIX}:{self.channel_id}", label=register or "📝"
             ),
             self.make_button(
-                custom_id=f"{_REOPEN_PREFIX}:{self.channel_id}", label="🔓"
+                custom_id=f"{_REOPEN_PREFIX}:{self.channel_id}", label=unlock or "🔓"
             ),
             self.make_button(
                 custom_id=f"{_DELETE_PREFIX}:{self.channel_id}",
-                label="🗑️",
+                label=trash or "🗑️",
                 style=discord.ButtonStyle.danger,
             ),
         )
@@ -614,6 +638,3 @@ class TicketActionsView(MenuView):
             await self._t("tickets.deleted_done"), ephemeral=True
         )
 
-
-def setup(bot) -> None:
-    bot.add_cog(TicketsCog(bot))

@@ -104,7 +104,17 @@ _CARDS: dict[str, CardSpec] = {}
 
 def register_cards(*specs: CardSpec) -> None:
     """Add specs to the global registry (idempotent, last write wins)."""
+    from rosemary.core.mentions import MODES
+
     for spec in specs:
+        if spec.mention_default not in MODES:
+            log.warning(
+                "card %s declares unknown mention_default %r; using %r",
+                spec.key,
+                spec.mention_default,
+                "none",
+            )
+            spec = CardSpec(key=spec.key, category=spec.category, rich=spec.rich)
         _CARDS[spec.key] = spec
 
 
@@ -150,13 +160,17 @@ async def maybe_view(
     """Render the guild's override for ``key``, or ``None`` to use defaults.
 
     An invalid stored document logs a warning and returns ``None`` so sends
-    never break because of editor content.
+    never break because of editor content. When ``variables`` is omitted the
+    echo mapping is used, keeping member placeholders literal instead of
+    resolving them to theme emojis.
     """
     doc = await card_store(bot).get_document(guild_id, key)
     if doc is None:
         return None
     try:
-        items = build_items(bot.theme, doc, variables)
+        items = build_items(
+            bot.theme, doc, dict(ECHO_VARIABLES) if variables is None else variables
+        )
     except CardsError as exc:
         log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
         return None
@@ -170,7 +184,8 @@ async def maybe_text(bot, guild_id: int, key: str, **variables: Any) -> str | No
     """Plain-text override for documents made only of top-level text blocks.
 
     Structural documents (containers, sections, galleries...) yield ``None``
-    so callers fall through to :func:`maybe_view` / their default builder.
+    so view-capable call sites can fall through to :func:`maybe_view` and
+    keep the rich layout (see :func:`maybe_flat_text` for text-only sites).
     """
     doc = await card_store(bot).get_document(guild_id, key)
     if doc is None:
@@ -179,6 +194,23 @@ async def maybe_text(bot, guild_id: int, key: str, **variables: Any) -> str | No
     if not isinstance(blocks, list) or not blocks or any(
         not isinstance(block, dict) or block.get("type") != "text" for block in blocks
     ):
+        return None
+    return await maybe_flat_text(bot, guild_id, key, **variables)
+
+
+async def maybe_flat_text(bot, guild_id: int, key: str, **variables: Any) -> str | None:
+    """Flattened-text override for ``key`` (``None`` when not customized).
+
+    Unlike :func:`maybe_text`, structural documents are flattened to their
+    text bodies (link buttons as ``label (url)``), so a rich customization is
+    never silently ignored by text-only call sites — members still receive
+    the customized copy, minus the layout.
+    """
+    doc = await card_store(bot).get_document(guild_id, key)
+    if doc is None:
+        return None
+    blocks = doc.get("blocks")
+    if not isinstance(blocks, list) or not blocks:
         return None
     try:
         items = build_items(bot.theme, doc, dict(variables))
@@ -190,14 +222,26 @@ async def maybe_text(bot, guild_id: int, key: str, **variables: Any) -> str | No
         for item in _walk_texts(items)
         if getattr(item, "content", "").strip()
     ]
+    for item in _walk_texts(items):
+        label = getattr(item, "label", "")
+        url = getattr(item, "url", "")
+        if label and url:
+            bodies.append(f"{str(label).strip()} ({str(url).strip()})")
+        elif label and not getattr(item, "content", ""):
+            bodies.append(str(label).strip())
     return "\n\n".join(bodies) if bodies else None
 
 
 async def text_or(
     bot, guild_id: int, key: str, translated: str, **variables: Any
 ) -> str:
-    """Return the guild's override for ``key`` or the already-translated copy."""
-    override = await maybe_text(bot, guild_id, key, **variables)
+    """Return the guild's override for ``key`` or the already-translated copy.
+
+    Structural overrides are flattened to text (see :func:`maybe_flat_text`);
+    call sites that can send Components V2 should try :func:`maybe_view`
+    first to keep the rich layout.
+    """
+    override = await maybe_flat_text(bot, guild_id, key, **variables)
     return override if override is not None else translated
 
 
@@ -211,7 +255,9 @@ async def log_description(bot, guild_id: int, key: str, **variables: Any) -> str
 def _walk_texts(items):
     for item in items:
         yield item
-        for child in getattr(item, "items", []) or []:
+        for child in list(getattr(item, "items", []) or []) + list(
+            getattr(item, "children", []) or []
+        ):
             yield from _walk_texts([child])
 
 
@@ -222,6 +268,39 @@ ECHO_VARIABLES: dict[str, str] = {
     name: f"{{{name}}}"
     for name in ("user", "user_name", "server", "count", "user_avatar")
 }
+
+#: Sample values for placeholders outside the echo set, used by the editor
+#: preview/compare/test screens so members' copy renders close to the real
+#: send (unknown placeholders otherwise stay literal and look broken).
+PREVIEW_SAMPLES: dict[str, Any] = {
+    "mention": "<@0>",
+    "member": "<@0>",
+    "moderator": "<@0>",
+    "target": "<@0>",
+    "inviter": "<@0>",
+    "winner_mention": "<@0>",
+    "user_mention": "<@0>",
+    "author": "<@0>",
+    "user": "<@0>",
+    "reason": "…",
+    "duration": "…",
+    "channel": "#…",
+    "role_name": "…",
+    "days": 1,
+    "total": 1,
+    "bumps": 1,
+    "count": 1,
+}
+
+
+def preview_variables(**extra: Any) -> dict[str, Any]:
+    """Mapping for editor previews: every placeholder gets a sample value.
+
+    Unlike :data:`ECHO_VARIABLES` (which keeps templates literal for seeding),
+    previews render close to the real send so admins see what members would
+    receive. Explicit ``extra`` values (e.g. the guild name) win.
+    """
+    return {**PREVIEW_SAMPLES, **extra}
 
 
 def safe_format(template: str, mapping: dict[str, Any]) -> str:
@@ -554,8 +633,8 @@ def _build_container(block: dict[str, Any], theme: Any, mapping: dict[str, Any])
     if isinstance(token, str):
         try:
             color = theme.color(token)
-        except KeyError as exc:  # pragma: no cover - validate_document guards this
-            raise CardsError(f"unknown theme color {token!r}") from exc
+        except KeyError as exc:
+            raise CardsError([CardIssue("color_unknown", (("color", token),))]) from exc
     children = [_build_block(child, theme, mapping) for child in block.get("children", [])]
     if color is not None:
         return Container(*children, color=color)

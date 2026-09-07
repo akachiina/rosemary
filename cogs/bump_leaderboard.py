@@ -219,6 +219,60 @@ class BumpLeaderboardCog(commands.Cog):
             allowed_mentions=await mentions_for(self.bot, guild.id, "bump.no_bumps"),
         )
 
+    async def _leaderboard_context(
+        self,
+        guild: discord.Guild,
+        sorted_lb: list[tuple[int, int]],
+        winner_id: int,
+        winner_count: int,
+        role_name: str | None = None,
+    ) -> dict:
+        """Computed values shared by the default view and card overrides."""
+        lines = []
+        for i, (uid, count) in enumerate(sorted_lb[:10], start=1):
+            medal = self.bot.theme.medals.get(
+                str(i),
+                self.bot.theme.medals.get(
+                    "default", self.bot.theme.emoji("bar_chart") or "📊"
+                ),
+            )
+            lines.append(
+                await self.bot.translator.t(
+                    guild.id,
+                    "bump.messages.leaderboard_line",
+                    medal=medal,
+                    position=i,
+                    user_mention=f"<@{uid}>",
+                    bump_count=count,
+                )
+            )
+
+        week_start = await self.bump_store.get_week_start(guild.id)
+        start_ts = int(week_start.timestamp()) if week_start else int(datetime.now(UTC).timestamp())
+
+        reset_day = await get_setting(
+            self.bot.storage, guild.id, "bump.leaderboard.reset_day"
+        )
+        reset_hour = await get_setting(
+            self.bot.storage, guild.id, "bump.leaderboard.reset_hour"
+        )
+        tz = resolve_timezone(
+            await get_setting(self.bot.storage, guild.id, "general.timezone")
+        )
+        next_reset = _next_reset(datetime.now(UTC), reset_day, reset_hour, tz)
+
+        if not role_name:
+            role_name = self.bot.theme.bump.get("mvp_default_name", "🚀 Bump-MVP")
+        return {
+            "winner_mention": f"<@{winner_id}>",
+            "winner_count": winner_count,
+            "role_name": role_name,
+            "leaderboard_list": "\n".join(lines),
+            "start_timestamp": start_ts,
+            "end_timestamp": int(next_reset.timestamp()),
+            "next_reset_timestamp": int(next_reset.timestamp()),
+        }
+
     async def _post_leaderboard(
         self,
         guild: discord.Guild,
@@ -230,12 +284,14 @@ class BumpLeaderboardCog(commands.Cog):
     ) -> None:
         from rosemary.core.mentions import mentions_for
 
-        view = (
-            await maybe_view(self.bot, guild.id, "bump.leaderboard")
-            or await self._build_leaderboard_view(
-                guild, sorted_lb, winner_id, winner_count, role_name,
-            )
+        context = await self._leaderboard_context(
+            guild, sorted_lb, winner_id, winner_count, role_name
         )
+        view = await maybe_view(self.bot, guild.id, "bump.leaderboard", context)
+        if view is None:
+            view = await self._build_leaderboard_view(
+                guild, sorted_lb, winner_id, winner_count, role_name, context,
+            )
         await channel.send(
             view=view,
             allowed_mentions=await mentions_for(
@@ -251,51 +307,16 @@ class BumpLeaderboardCog(commands.Cog):
         winner_id: int,
         winner_count: int,
         role_name: str | None = None,
+        context: dict | None = None,
     ) -> discord.ui.DesignerView:
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        lines = []
-        for i, (uid, count) in enumerate(sorted_lb[:10], start=1):
-            medal = self.bot.theme.medals.get(str(i), self.bot.theme.medals.get("default", "📊"))
-            line = await self.bot.translator.t(
-                guild.id,
-                "bump.messages.leaderboard_line",
-                medal=medal,
-                position=i,
-                user_mention=f"<@{uid}>",
-                bump_count=count,
+        if context is None:
+            context = await self._leaderboard_context(
+                guild, sorted_lb, winner_id, winner_count, role_name
             )
-            lines.append(line)
-
-        week_start = await self.bump_store.get_week_start(guild.id)
-        start_ts = int(week_start.timestamp()) if week_start else int(datetime.now(UTC).timestamp())
-
-        reset_day = await get_setting(
-            self.bot.storage, guild.id, "bump.leaderboard.reset_day"
-        )
-        reset_hour = await get_setting(
-            self.bot.storage, guild.id, "bump.leaderboard.reset_hour"
-        )
-        tz = resolve_timezone(
-            await get_setting(self.bot.storage, guild.id, "general.timezone")
-        )
-        next_reset = _next_reset(datetime.now(UTC), reset_day, reset_hour, tz)
-        end_ts = int(next_reset.timestamp())
-        next_reset_ts = int(next_reset.timestamp())
-
-        if not role_name:
-            role_name = self.bot.theme.bump.get("mvp_default_name", "Bump-MVP")
-
         description = await self.bot.translator.t(
-            guild.id,
-            "bump.messages.leaderboard_description",
-            start_timestamp=start_ts,
-            end_timestamp=end_ts,
-            next_reset_timestamp=next_reset_ts,
-            winner_mention=f"<@{winner_id}>",
-            winner_count=winner_count,
-            role_name=role_name,
-            leaderboard_list="\n".join(lines),
+            guild.id, "bump.messages.leaderboard_description", **context
         )
 
         view = DesignerView(store=False)
@@ -343,9 +364,9 @@ class BumpLeaderboardCog(commands.Cog):
 
         customization = await self.bump_store.get_customization(guild.id, new_winner_id)
         if customization:
-            default_name = self.bot.theme.bump.get("mvp_default_name", "Bump-MVP")
+            default_name = self.bot.theme.bump.get("mvp_default_name", "🚀 Bump-MVP")
             name = customization.get("name", default_name)
-            default_color = self.bot.theme.bump.get("mvp_default_color", "brand")
+            default_color = self.bot.theme.bump.get("mvp_default_color", "warning")
             if customization.get("color"):
                 color = discord.Colour(int(customization["color"], 16))
             else:
@@ -362,9 +383,11 @@ class BumpLeaderboardCog(commands.Cog):
                     reason="Bump MVP restoration",
                 )
         else:
-            name = self.bot.theme.bump.get("mvp_default_name", "Bump-MVP")
-            color = self.bot.theme.color(self.bot.theme.bump.get("mvp_default_color", "brand"))
-            emoji = self.bot.theme.bump.get("mvp_default_emoji", "🚀")
+            name = self.bot.theme.bump.get("mvp_default_name", "🚀 Bump-MVP")
+            color = self.bot.theme.color(self.bot.theme.bump.get("mvp_default_color", "warning"))
+            emoji = self.bot.theme.bump.get(
+                "mvp_default_emoji", self.bot.theme.emoji("rocket") or "🚀"
+            )
             with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                 await role.edit(
                     name=name,
@@ -788,6 +811,3 @@ class BumpLeaderboardCog(commands.Cog):
         await self.bump_store.save_customization(guild_id, current_winner, customization)
         log.info("Auto-saved MVP role customization for %s in %s", current_winner, guild_id)
 
-
-def setup(bot) -> None:
-    bot.add_cog(BumpLeaderboardCog(bot))

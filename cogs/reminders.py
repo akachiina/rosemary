@@ -4,7 +4,6 @@ Admin-only and disabled by default. Sending is paced (one DM at a time with
 a configurable delay) and reports delivered/failed counts to the requester.
 """
 
-import asyncio
 import logging
 
 import discord
@@ -131,17 +130,10 @@ class RemindersCog(commands.Cog):
                 ephemeral=True,
             )
         await ctx.response.defer(ephemeral=True)
+        from rosemary.core.mass_dm import fan_out
+
         delay = await get_setting(self.bot.storage, guild_id, "reminders.delay_seconds")
-        sent, failed = 0, 0
-        for member in list(ctx.guild.members):
-            if member.bot:
-                continue
-            try:
-                await member.send(message)
-                sent += 1
-            except (discord.Forbidden, discord.HTTPException):
-                failed += 1
-            await asyncio.sleep(max(delay, 0))
+        sent, failed = await fan_out(ctx.guild.members, message, delay)
         await send_channel_log(
             self.bot,
             guild_id,
@@ -166,6 +158,3 @@ class RemindersCog(commands.Cog):
             ephemeral=True,
         )
 
-
-def setup(bot) -> None:
-    bot.add_cog(RemindersCog(bot))

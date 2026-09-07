@@ -131,7 +131,14 @@ class RosemaryBot(commands.Bot):
         for cog in self.cogs.values():
             start = getattr(cog, "start", None)
             if start is not None:
-                asyncio.create_task(start())
+                task = asyncio.create_task(start())
+                task.add_done_callback(
+                    lambda t, name=type(cog).__name__: (
+                        log.error("Cog %s start() failed: %s", name, t.exception())
+                        if not t.cancelled() and t.exception()
+                        else None
+                    )
+                )
         # Snapshot the decorator-registered names (English) before any localization
         # mutates them, so per-guild re-syncs can look up the right catalog keys.
         self._command_base_keys = {cmd.name: cmd for cmd in self.pending_application_commands}

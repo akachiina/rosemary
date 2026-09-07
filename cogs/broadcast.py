@@ -138,19 +138,15 @@ class BroadcastCog(commands.Cog):
         )
 
     async def _fan_out(self, guild_id: int, text: str, session: _Session) -> None:
+        from rosemary.core.mass_dm import fan_out
+
         guild = self.bot.get_guild(guild_id)
         if guild is None:
             return
         delay = await get_setting(self.bot.storage, guild_id, "broadcast.delay_seconds")
-        for member in list(guild.members):
-            if member.bot:
-                continue
-            try:
-                await member.send(text)
-                session.sent += 1
-            except (discord.Forbidden, discord.HTTPException):
-                session.failed += 1
-            await asyncio.sleep(max(delay, 0))
+        sent, failed = await fan_out(guild.members, text, delay)
+        session.sent += sent
+        session.failed += failed
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
@@ -162,7 +158,8 @@ class BroadcastCog(commands.Cog):
             return
         if message.channel.id != session.channel_id or message.author.id != session.author_id:
             return
-        if message.content.startswith(("!", "/")):
+        prefix = await get_setting(self.bot.storage, message.guild.id, "general.prefix")
+        if message.content.startswith((prefix or "!", "/")):
             return
         try:
             text = message.content or ""
@@ -173,11 +170,11 @@ class BroadcastCog(commands.Cog):
                 return
             session.relayed += 1
             await self._fan_out(message.guild.id, text, session)
-            await message.add_reaction("✅")
+            await message.add_reaction(self.bot.theme.emoji("success") or "✅")
         except Exception as exc:
             log.error("Broadcast relay failed: %s", exc)
             with _suppress():
-                await message.add_reaction("⏳")
+                await message.add_reaction(self.bot.theme.emoji("loading") or "⏳")
 
 
 def _suppress():
@@ -185,6 +182,3 @@ def _suppress():
 
     return contextlib.suppress(discord.Forbidden, discord.HTTPException)
 
-
-def setup(bot) -> None:
-    bot.add_cog(BroadcastCog(bot))

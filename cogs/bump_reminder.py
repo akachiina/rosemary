@@ -183,16 +183,27 @@ class BumpReminderCog(commands.Cog):
             else:
                 await self.store.mark_channel_unlocked(guild_id)
 
+            ping_role, ping_role_id = await self._ping_role_mention(guild_id)
             message = await text_or(
                 self.bot,
                 guild_id,
                 key,
-                await self._schedule_text(guild_id, locked),
+                await self._localized_message(
+                    guild_id,
+                    f"bump.schedule.{'close' if locked else 'open'}_message",
+                    f"bump.schedule.{'close' if locked else 'open'}_message_default",
+                    {"ping_role": ping_role},
+                ),
             )
             if message:
                 await channel.send(
                     message,
-                    allowed_mentions=await mentions_for(self.bot, guild_id, key),
+                    allowed_mentions=await mentions_for(
+                        self.bot,
+                        guild_id,
+                        key,
+                        role_ids=[ping_role_id] if ping_role_id else [],
+                    ),
                 )
             await send_channel_log(
                 self.bot,
@@ -210,9 +221,31 @@ class BumpReminderCog(commands.Cog):
         except Exception as exc:
             log.error("Failed to apply bump schedule in %s: %s", guild_id, exc)
 
-    async def _schedule_text(self, guild_id: int, locked: bool) -> str:
-        setting = f"bump.schedule.{'close' if locked else 'open'}_message"
-        return await get_setting(self.bot.storage, guild_id, setting)
+    async def _ping_role_mention(self, guild_id: int) -> tuple[str, int | None]:
+        """Render ``{ping_role}`` from the guild's bump ping role (or empty)."""
+        ping_role_id = await get_setting(self.bot.storage, guild_id, "bump.ping_role")
+        if ping_role_id:
+            return f"<@&{ping_role_id}>", int(ping_role_id)
+        return "", None
+
+    async def _localized_message(
+        self, guild_id: int, setting_key: str, default_key: str, variables: dict | None = None
+    ) -> str:
+        """Guild-customized message, else the default in the guild's language.
+
+        A stored setting value always wins (zero migration: customized guilds
+        keep their text). Guilds that never touched the setting get the
+        translated default, so e.g. pt-BR guilds no longer receive the
+        English fallback baked into the setting spec.
+        """
+        from rosemary.core.cards import safe_format
+
+        raw = await self.bot.storage.get(guild_id)
+        if setting_key in raw:
+            template = await get_setting(self.bot.storage, guild_id, setting_key)
+        else:
+            template = await self.bot.translator.t(guild_id, default_key)
+        return safe_format(template, dict(variables or {}))
 
     def _schedule_reminder(self, guild_id: int, delay_seconds: float) -> None:
         if guild_id in self._reminder_tasks:
@@ -302,14 +335,25 @@ class BumpReminderCog(commands.Cog):
             await channel.edit(overwrites=overwrites)
             await self.store.mark_channel_locked(guild_id, LOCK_CAMPING)
 
+            from rosemary.core.mentions import mentions_for
+
             message = await text_or(
                 self.bot,
                 guild_id,
                 "bump.anti_camping",
-                await get_setting(self.bot.storage, guild_id, "bump.anti_camping.message"),
+                await self._localized_message(
+                    guild_id,
+                    "bump.anti_camping.message",
+                    "bump.anti_camping.message_default",
+                ),
             )
             if message:
-                lock_message = await channel.send(message)
+                lock_message = await channel.send(
+                    message,
+                    allowed_mentions=await mentions_for(
+                        self.bot, guild_id, "bump.anti_camping"
+                    ),
+                )
                 await self.store.set_lock_message_id(guild_id, lock_message.id)
 
             await send_channel_log(
@@ -408,9 +452,12 @@ class BumpReminderCog(commands.Cog):
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
 
-        view = await maybe_view(self.bot, guild_id, "bump.reminder") or (
-            await self._build_reminder_view(guild, cooldown_display)
-        )
+        view = await maybe_view(
+            self.bot,
+            guild_id,
+            "bump.reminder",
+            {"cooldown": cooldown_display},
+        ) or (await self._build_reminder_view(guild, cooldown_display))
 
         try:
             from rosemary.core.mentions import mentions_for
@@ -461,14 +508,20 @@ class BumpReminderCog(commands.Cog):
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
         next_bump_time = datetime.now(UTC) + timedelta(seconds=cooldown)
 
-        view = (
-            await maybe_view(self.bot, guild_id, "bump.thank_you")
-            or await self._build_thank_you_view(
-                guild,
-                user_id,
-                cooldown_display,
-                int(next_bump_time.timestamp()),
-            )
+        view = await maybe_view(
+            self.bot,
+            guild_id,
+            "bump.thank_you",
+            {
+                "mention": f"<@{user_id}>",
+                "cooldown": cooldown_display,
+                "next_bump_timestamp": int(next_bump_time.timestamp()),
+            },
+        ) or await self._build_thank_you_view(
+            guild,
+            user_id,
+            cooldown_display,
+            int(next_bump_time.timestamp()),
         )
 
         try:
@@ -547,9 +600,25 @@ class BumpReminderCog(commands.Cog):
 
     # -- Listeners -----------------------------------------------------------
 
+    async def _is_bump_bot(self, message: discord.Message) -> bool:
+        """Check the author against the guild-configured bump bot ID.
+
+        Falls back to the Disboard default when the setting is empty/invalid,
+        so existing guilds keep working without migration.
+        """
+        if not message.guild:
+            return message.author.id == DISBOARD_BOT_ID
+        try:
+            configured = await get_setting(
+                self.bot.storage, message.guild.id, "bump.detection_bot_id"
+            )
+            return message.author.id == int(str(configured).strip())
+        except (TypeError, ValueError, AttributeError):
+            return message.author.id == DISBOARD_BOT_ID
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        if message.author.id != DISBOARD_BOT_ID:
+        if not await self._is_bump_bot(message):
             return
 
         guild = message.guild
@@ -643,7 +712,7 @@ class BumpReminderCog(commands.Cog):
 
     @discord.slash_command(
         name="test_bump",
-        description="[ADMIN] Simula um bump para testar o sistema",
+        description="[ADMIN] Simulate a bump to test the system",
         default_member_permissions=discord.Permissions(administrator=True),
         contexts={discord.InteractionContextType.guild},
     )
@@ -661,17 +730,20 @@ class BumpReminderCog(commands.Cog):
                 await self.bot.translator.t(guild_id, "bump.error_no_channel"), ephemeral=True
             )
 
+        if not ctx.response.is_done():
+            await ctx.response.defer(ephemeral=True)
         await self.store.record_bump(guild_id, ctx.author.id)
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
         self._schedule_reminder(guild_id, cooldown)
-        await ctx.response.defer(ephemeral=True)
         await self.send_thank_you(guild_id, ctx.author.id)
 
-        await ctx.respond("✅ Bump simulated successfully.", ephemeral=True)
+        await ctx.respond(
+            await self.bot.translator.t(guild_id, "bump.test.simulated"), ephemeral=True
+        )
 
     @discord.slash_command(
         name="test_bump_reminder",
-        description="[ADMIN] Envia o lembrete de bump imediatamente",
+        description="[ADMIN] Send the bump reminder immediately",
         default_member_permissions=discord.Permissions(administrator=True),
         contexts={discord.InteractionContextType.guild},
     )
@@ -689,44 +761,49 @@ class BumpReminderCog(commands.Cog):
                 await self.bot.translator.t(guild_id, "bump.error_no_channel"), ephemeral=True
             )
 
-        await ctx.response.defer(ephemeral=True)
+        if not ctx.response.is_done():
+            await ctx.response.defer(ephemeral=True)
         await self.send_reminder(guild_id)
-        await ctx.respond("✅ Reminder sent successfully.", ephemeral=True)
+        await ctx.respond(
+            await self.bot.translator.t(guild_id, "bump.test.reminder_sent"), ephemeral=True
+        )
 
     @discord.slash_command(
         name="bump_status",
-        description="[ADMIN] Mostra o status do sistema de bump",
+        description="[ADMIN] Show the bump system status",
         default_member_permissions=discord.Permissions(administrator=True),
         contexts={discord.InteractionContextType.guild},
     )
     async def bump_status(self, ctx: discord.ApplicationContext) -> None:
         """Show bump system status."""
         guild_id = ctx.guild_id
+        t = self.bot.translator.t
         enabled = await get_setting(self.bot.storage, guild_id, "bump.enabled")
         state = await self.store.get_reminder(guild_id)
 
         last_bump = await self.store.get_last_bump_time(guild_id)
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
 
-        next_bump = "N/A"
+        none_text = await t(guild_id, "bump.status.none")
+        next_bump = none_text
         if last_bump:
             next_bump = f"<t:{int((last_bump + timedelta(seconds=cooldown)).timestamp())}:R>"
-
-            last_bump_display = (
-                f"**Last Bump:** <t:{int(last_bump.timestamp())}:R>"
-                if last_bump
-                else "**Last Bump:** N/A"
+            last_bump_display = await t(
+                guild_id, "bump.status.last_bump", timestamp=int(last_bump.timestamp())
             )
-            lines = [
-                f"**Enabled:** {enabled}",
-                f"**Channel Locked:** {state.get('channel_locked', False)}",
-                f"**Reminder Sent:** {state.get('reminder_sent', True)}",
-                last_bump_display,
-                f"**Next Reminder:** {next_bump}",
-            ]
+        else:
+            last_bump_display = await t(guild_id, "bump.status.last_bump_na")
+        lines = [
+            await t(guild_id, "bump.status.enabled", enabled=enabled),
+            await t(
+                guild_id, "bump.status.channel_locked", locked=state.get("channel_locked", False)
+            ),
+            await t(
+                guild_id, "bump.status.reminder_sent", sent=state.get("reminder_sent", True)
+            ),
+            last_bump_display,
+            await t(guild_id, "bump.status.next_reminder", next=next_bump),
+        ]
 
         await ctx.respond("\n".join(lines), ephemeral=True)
 
-
-def setup(bot) -> None:
-    bot.add_cog(BumpReminderCog(bot))

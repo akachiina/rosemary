@@ -232,6 +232,3 @@ class BoostRolesCog(commands.Cog):
         view = AdminBoostMenuView(self.bot, self._guild_id(ctx), owner_id=ctx.author.id)
         await self._open_menu(ctx, view)
 
-
-def setup(bot) -> None:
-    bot.add_cog(BoostRolesCog(bot))

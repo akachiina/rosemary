@@ -95,7 +95,7 @@ class ConfirmView(MenuView):
                 await interaction.response.defer(ephemeral=True)
             return
         if not interaction.response.is_done():
-            await interaction.response.defer()
+            await interaction.response.defer(ephemeral=True)
         try:
             self.result = await self.on_confirm(interaction)
             self.result_state = "success"
@@ -111,6 +111,8 @@ class ConfirmView(MenuView):
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=True)
             return
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         self.result = await self._t(self.cancelled_key)
         self.result_state = "warning"
         await self.rerender(interaction)

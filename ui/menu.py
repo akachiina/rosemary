@@ -12,11 +12,14 @@ across re-renders; :meth:`MenuView.rerender` handles that automatically.
 from __future__ import annotations
 
 import contextlib
+import logging
 from collections.abc import Awaitable, Callable
 
 import discord
 
 from rosemary.core.settings import MENU_TIMEOUT, get_setting
+
+log = logging.getLogger(__name__)
 
 Handler = Callable[[discord.Interaction], Awaitable[None]]
 
@@ -92,6 +95,8 @@ class MenuView(discord.ui.DesignerView):
         handler = self._find_handler(custom_id)
         if handler is not None:
             button.callback = handler
+        else:
+            log.warning("menu button %r has no handler; clicks will not ACK", custom_id)
         return button
 
     def make_select(
@@ -104,11 +109,17 @@ class MenuView(discord.ui.DesignerView):
         max_values: int = 1,
         disabled: bool = False,
     ) -> discord.ui.Select:
-        """Build a string Select bound to the registered handler for ``custom_id``."""
+        """Build a string Select bound to the registered handler for ``custom_id``.
+
+        Discord rejects selects with anything other than 1-25 options; callers
+        must paginate or truncate before building.
+        """
+        if not 1 <= len(options) <= 25:
+            raise ValueError(f"select {custom_id!r} needs 1-25 options, got {len(options)}")
         select = discord.ui.Select(
             select_type=discord.ComponentType.string_select,
             custom_id=custom_id,
-            placeholder=placeholder,
+            placeholder=(placeholder or "Choose an option")[:150],
             options=options,
             min_values=min_values,
             max_values=max_values,
@@ -117,6 +128,8 @@ class MenuView(discord.ui.DesignerView):
         handler = self._find_handler(custom_id)
         if handler is not None:
             select.callback = handler
+        else:
+            log.warning("menu select %r has no handler; clicks will not ACK", custom_id)
         return select
 
     def add_row(self, *items: discord.ui.ViewItem) -> None:
@@ -211,7 +224,11 @@ class MenuView(discord.ui.DesignerView):
         guild_id = getattr(self, "guild_id", None)
         if bot is None or guild_id is None:
             return
-        self.timeout = await get_setting(bot.storage, guild_id, "general.menu_timeout")
+        try:
+            value = await get_setting(bot.storage, guild_id, "general.menu_timeout")
+            self.timeout = float(value)
+        except (TypeError, ValueError, KeyError, AttributeError):
+            return
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         """Return the items to display for the current state.
@@ -230,7 +247,12 @@ class MenuView(discord.ui.DesignerView):
             # refresh the underlying message directly so the menu still updates.
             message = getattr(interaction, "message", None)
             if message is not None:
-                await message.edit(view=self)
+                with contextlib.suppress(
+                    discord.NotFound, discord.Forbidden, discord.HTTPException
+                ):
+                    await message.edit(view=self)
+        except (discord.Forbidden, discord.HTTPException):
+            log.warning("rerender edit failed for view %s", type(self).__name__)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Only the view owner may interact with the menu."""
@@ -253,9 +275,16 @@ class MenuView(discord.ui.DesignerView):
         Without this, py-cord leaves the interaction unacknowledged and the
         other user sees "the application did not respond".
         """
+        if interaction.response.is_done():
+            return
         bot = getattr(self, "bot", None)
         guild_id = getattr(self, "guild_id", None)
         if bot is None or guild_id is None:
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.send_message(
+                    "Only the menu owner can use these controls.", ephemeral=True
+                )
             return
         message = await bot.translator.t(guild_id, "menu.owner_only")
-        await interaction.response.send_message(message, ephemeral=True)
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.response.send_message(message, ephemeral=True)

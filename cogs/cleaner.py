@@ -181,6 +181,3 @@ def _suppress():
 
     return contextlib.suppress(discord.Forbidden, discord.HTTPException)
 
-
-def setup(bot) -> None:
-    bot.add_cog(CleanerCog(bot))

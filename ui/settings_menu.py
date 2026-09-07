@@ -80,7 +80,12 @@ class SettingsMenuView(MenuView):
             if spec.value_type is SettingType.BOOLEAN:
                 self.register(f"settings_set_value:{key}:true", self._set_value_button)
                 self.register(f"settings_set_value:{key}:false", self._set_value_button)
-            elif spec.value_type in (SettingType.CHOICE, SettingType.CHANNEL, SettingType.ROLE):
+            elif spec.value_type in (
+                SettingType.CHOICE,
+                SettingType.CHANNEL,
+                SettingType.CATEGORY,
+                SettingType.ROLE,
+            ):
                 self.register(f"settings_set:{key}", self._set_value_select)
         self.register("settings_test", self._test_action)
         self.register("settings_test_open", self._open_tests)
@@ -578,13 +583,19 @@ class SettingsMenuView(MenuView):
                 ],
             )
             items.append(discord.ui.ActionRow(select))
-        elif spec.value_type is SettingType.CHANNEL:
+        elif spec.value_type in (SettingType.CHANNEL, SettingType.CATEGORY):
+            # CATEGORY filters the native picker to guild categories only;
+            # without the filter the client lists text/voice channels first
+            # and categories are effectively unpickable.
             select = discord.ui.Select(
                 select_type=discord.ComponentType.channel_select,
                 custom_id=f"settings_set:{spec.key}",
                 placeholder=label,
                 min_values=1,
                 max_values=1,
+                channel_types=[discord.ChannelType.category]
+                if spec.value_type is SettingType.CATEGORY
+                else None,
             )
             select.callback = self._handlers[f"settings_set:{spec.key}"]
             items.append(discord.ui.ActionRow(select))

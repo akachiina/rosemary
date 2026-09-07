@@ -149,13 +149,23 @@ class PartnershipsCog(commands.Cog):
     async def _post_ad(
         self, guild: discord.Guild, content: str, attachments: list[str]
     ):
+        from rosemary.core.mentions import mentions_for
+
         channel = await self._channel(guild)
         if channel is None:
             return None
         ping_role_id = await get_setting(self.bot.storage, guild.id, "partnerships.ping_role")
         prefix = f"<@&{ping_role_id}>\n" if ping_role_id else ""
         try:
-            return await channel.send(f"{prefix}{content}".strip())
+            return await channel.send(
+                f"{prefix}{content}".strip(),
+                allowed_mentions=await mentions_for(
+                    self.bot,
+                    guild.id,
+                    "partnerships.invite",
+                    role_ids=[ping_role_id] if ping_role_id else [],
+                ),
+            )
         except (discord.Forbidden, discord.HTTPException) as exc:
             log.warning("Partnership ad post failed in %s: %s", guild.id, exc)
             return None
@@ -290,6 +300,8 @@ class PartnershipsCog(commands.Cog):
     async def partnerships_invite(self, ctx: discord.ApplicationContext) -> None:
         """Post the guild's partnership pitch in the partnerships channel."""
         guild = ctx.guild
+        if not ctx.response.is_done():
+            await ctx.response.defer(ephemeral=True)
         if not await get_setting(self.bot.storage, guild.id, "partnerships.enabled"):
             return await ctx.respond(
                 await self.bot.translator.t(guild.id, "partnerships.error_disabled"),
@@ -304,8 +316,6 @@ class PartnershipsCog(commands.Cog):
             ),
             server=guild.name,
         )
-        if not ctx.response.is_done():
-            await ctx.response.defer(ephemeral=True)
         message = await self._post_ad(guild, text, [])
         if message is None:
             return await ctx.respond(
@@ -352,7 +362,9 @@ class PartnershipsCog(commands.Cog):
                     "partnerships.list_line",
                     user=f"<@{partner_id}>",
                     days=f"{left:.0f}",
-                    warned="⚠️" if entry.get("warning_sent") else "",
+                    warned=(self.bot.theme.emoji("warning") or "⚠️")
+                    if entry.get("warning_sent")
+                    else "",
                 )
             )
         title = await self.bot.translator.t(guild.id, "partnerships.list_title")
@@ -441,6 +453,3 @@ class PartnershipsCog(commands.Cog):
             ),
             ephemeral=True,
         )
-
-def setup(bot) -> None:
-    bot.add_cog(PartnershipsCog(bot))

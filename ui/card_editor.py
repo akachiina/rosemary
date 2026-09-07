@@ -13,6 +13,7 @@ the feature's registered default builder above the custom document.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -20,7 +21,6 @@ from typing import Any
 import discord
 
 from rosemary.core.cards import (
-    ECHO_VARIABLES,
     CardsError,
     build_items,
     get_default_builder,
@@ -42,7 +42,10 @@ SaveMentions = Callable[[int, str], Awaitable[None]]
 
 _COMPOSITE_TYPES = ("container", "section")
 _BLOCK_TYPES = ("text", "container", "section", "divider", "gallery", "row")
-_THEME_COLORS = ("brand", "success", "warning", "danger", "info")
+_THEME_COLORS = ("brand", "success", "warning", "danger", "info", "gold", "orange")
+
+#: How many blocks the block-picker select shows at once (Discord caps at 25).
+_BLOCK_PAGE_SIZE = 25
 
 
 
@@ -66,14 +69,6 @@ def _skeleton(block_type: str) -> dict[str, Any]:
     if block_type == "row":
         return {"type": "row", "buttons": [{"label": "", "url": ""}]}
     raise ValueError(f"unknown block type {block_type!r}")
-
-
-def _block_label(bot, guild_id: int, block: dict[str, Any]) -> tuple[str, str | None]:
-    """(label, description) for one block inside the picker select."""
-    kind = block.get("type", "?")
-    label = str(bot.translator.t(guild_id, f"cards.editor.types.{kind}"))
-    description: str | None = None
-    return label[:100], description
 
 
 async def _block_option(bot, guild_id: int, index: int, block: dict[str, Any], selected: bool):
@@ -163,6 +158,7 @@ class CardEditorView(MenuView):
     def _register_handlers(self) -> None:
         self.register("card_close", self._close)
         self.register("card_add", self._open_add)
+        self.register("card_add_cancel", self._cancel_add)
         self.register("card_add_type", self._pick_add_type)
         self.register("card_select", self._select_block)
         self.register("card_act", self._act_on_selected)
@@ -202,12 +198,39 @@ class CardEditorView(MenuView):
     def _inside_container(self) -> bool:
         return self._node_type_at_path() == "container"
 
-    async def _persist(self) -> None:
+    async def _persist(self) -> bool:
+        """Validate (draft-tolerant) and save; ``False`` keeps the last save.
+
+        Empty-text skeletons are tolerated so a just-added block can be
+        edited; any other structural problem rejects the change, reloads the
+        last saved document and flashes the translated issues instead of
+        persisting a card that would silently fall back at send time.
+        """
+        from rosemary.core.cards import CardsError, validate_document
+
+        issues = validate_document(self.document(), theme=self.bot.theme, draft=True)
+        if issues:
+            await self._reload()
+            self.flash = await self._t(
+                "cards.editor.invalid",
+                error=await self._translate_issues(CardsError(list(issues))),
+            )
+            self.flash_color = "danger"
+            return False
         await self._save_doc(self.guild_id, self.document())
         self.saved_exists = True
         self.using_default_base = False
         self.flash = await self._t("cards.editor.saved")
         self.flash_color = "success"
+        return True
+
+    async def _reload(self) -> None:
+        """Restore the working copy from the last saved document (or seed)."""
+        self.loaded = False
+        self.path.clear()
+        self.selected = None
+        self.adding = False
+        await self._load_or_seed()
 
     def _clamp_selection(self) -> None:
         total = len(self._current_blocks())
@@ -219,6 +242,8 @@ class CardEditorView(MenuView):
     async def prepare(self) -> None:
         if not self.loaded:
             await self._load_or_seed()
+        self._sanitize_path()
+        self._clamp_selection()
         if self._load_mentions is not None and self.mention_policy is None:
             try:
                 self.mention_policy = await self._load_mentions(self.guild_id)
@@ -265,10 +290,6 @@ class CardEditorView(MenuView):
         if isinstance(default_doc, dict) and isinstance(default_doc.get("blocks"), list):
             return default_doc["blocks"]
         return None
-        await self._apply_menu_timeout()
-        self.clear_items()
-        for item in await self.build_editor():
-            self.add_item(item)
 
     # -- build screens -------------------------------------------------------
 
@@ -281,7 +302,7 @@ class CardEditorView(MenuView):
 
         try:
             parts.extend(
-                build_items(theme, self.document(), ECHO_VARIABLES, draft=True)
+                build_items(theme, self.document(), self._preview_variables(), draft=True)
             )
         except CardsError as exc:
             parts.append(
@@ -318,17 +339,21 @@ class CardEditorView(MenuView):
 
     async def _build_header(self) -> discord.ui.ViewItem:
         theme = self.bot.theme
-        breadcrumb_parts = [self.key.split(".")[-1]]
+        self._sanitize_path()
+        breadcrumb_parts = [self.key]
         node: Any = self.blocks
         for index in self.path:
-            kind = node[index].get("type")
+            block = node[index] if isinstance(node, list) and 0 <= index < len(node) else {}
+            kind = block.get("type", "?") if isinstance(block, dict) else "?"
             label = str(
                 await self.bot.translator.t(
                     self.guild_id, f"cards.editor.types.{kind}"
                 )
             )
-            breadcrumb_parts.append(f"{label} {index + 1}")
-            node = node[index]["children"]
+            total = len(node) if isinstance(node, list) else 1
+            breadcrumb_parts.append(f"{label} {index + 1}/{total}")
+            children = block.get("children") if isinstance(block, dict) else None
+            node = children if isinstance(children, list) else []
 
         lines: list[discord.ui.ViewItem] = [
             TextDisplay(theme.md("title", title=await self._t("cards.editor.title"))),
@@ -361,10 +386,30 @@ class CardEditorView(MenuView):
         if not current:
             rows.append(TextDisplay(await self._t("cards.editor.empty_level")))
         else:
+            # Discord selects cap at 25 options: window around the selection.
+            total = len(current)
+            start = 0
+            if total > _BLOCK_PAGE_SIZE:
+                anchor = self.selected if self.selected is not None else 0
+                start = min(max(anchor - _BLOCK_PAGE_SIZE // 2, 0), total - _BLOCK_PAGE_SIZE)
+            window = current[start : start + _BLOCK_PAGE_SIZE]
             options = [
-                await _block_option(self.bot, self.guild_id, index, block, index == self.selected)
-                for index, block in enumerate(current)
+                await _block_option(
+                    self.bot, self.guild_id, start + index, block,
+                    start + index == self.selected,
+                )
+                for index, block in enumerate(window)
             ]
+            if total > _BLOCK_PAGE_SIZE:
+                rows.append(
+                    TextDisplay(
+                        await self._t(
+                            "cards.editor.paged_blocks",
+                            shown=len(window),
+                            total=total,
+                        )
+                    )
+                )
             select = self.make_select(
                 custom_id="card_select",
                 placeholder=await self._t("cards.editor.select_placeholder"),
@@ -406,14 +451,14 @@ class CardEditorView(MenuView):
             buttons.append(await button("edit", "cards.editor.buttons.edit", "pencil", nothing))
         buttons.append(
             await button(
-                "up", "cards.editor.buttons.move_up", "back", nothing or self.selected == 0
+                "up", "cards.editor.buttons.move_up", "up", nothing or self.selected == 0
             )
         )
         buttons.append(
             await button(
                 "down",
                 "cards.editor.buttons.move_down",
-                "refresh",
+                "down",
                 nothing or self.selected == len(current) - 1,
             )
         )
@@ -427,8 +472,21 @@ class CardEditorView(MenuView):
         buttons.append(delete)
         return ActionRow(*buttons)
 
-    def _ctx_button(self, action: str, emoji_name: str, *, disabled: bool):
-        raise NotImplementedError  # replaced by _context_row
+    def _sanitize_path(self) -> None:
+        """Drop stale path segments (modal submitted after delete/move/reset)."""
+        node: Any = self.blocks
+        for depth, index in enumerate(self.path):
+            if not isinstance(node, list) or not 0 <= index < len(node):
+                del self.path[depth:]
+                self.selected = None
+                return
+            block = node[index]
+            children = block.get("children") if isinstance(block, dict) else None
+            if not isinstance(children, list):
+                del self.path[depth:]
+                self.selected = None
+                return
+            node = children
 
     async def _color_select_row(self) -> discord.ui.ViewItem:
         options = [
@@ -445,7 +503,15 @@ class CardEditorView(MenuView):
             placeholder=await self._t("cards.editor.colors.placeholder"),
             options=options,
         )
-        token = self.blocks[self.path[-1]].get("color")
+        token = None
+        node: Any = self.blocks
+        try:
+            for index in self.path[:-1]:
+                node = node[index]["children"]
+            current = node[self.path[-1]] if self.path else None
+            token = current.get("color") if isinstance(current, dict) else None
+        except (IndexError, KeyError, TypeError):
+            token = None
         for option in select.options:
             option.default = option.value == (token or "")
         return ActionRow(select)
@@ -498,6 +564,13 @@ class CardEditorView(MenuView):
             self.bot.theme.color("info"),
             TextDisplay(await self._t("cards.editor.add_title")),
             ActionRow(select),
+            ActionRow(
+                self.make_button(
+                    custom_id="card_add_cancel",
+                    label=await self._t("cards.editor.buttons.cancel"),
+                    style=discord.ButtonStyle.secondary,
+                )
+            ),
         )
         return [container]
 
@@ -546,7 +619,7 @@ class CardEditorView(MenuView):
                 self.make_button(
                     custom_id="card_uplevel",
                     label=await self._t("cards.editor.buttons.up_level"),
-                    emoji=theme.emojis.get("back", ""),
+                    emoji=theme.emojis.get("up", ""),
                 )
             )
         if self._exit_factory is not None:
@@ -595,7 +668,7 @@ class CardEditorView(MenuView):
         )
         try:
             parts.extend(
-                build_items(theme, self.document(), ECHO_VARIABLES, draft=True)
+                build_items(theme, self.document(), self._preview_variables(), draft=True)
             )
         except CardsError as exc:
             parts.append(
@@ -618,8 +691,8 @@ class CardEditorView(MenuView):
             ActionRow(
                 self.make_button(
                     custom_id="card_compare_close",
-                    label=await self._t("cards.editor.buttons.edit"),
-                    emoji=theme.emojis.get("pencil", ""),
+                    label=await self._t("cards.editor.buttons.back"),
+                    emoji=theme.emojis.get("back", ""),
                     style=discord.ButtonStyle.primary,
                 ),
                 self.make_button(
@@ -647,34 +720,59 @@ class CardEditorView(MenuView):
             return None
         return doc if isinstance(doc, dict) else None
 
+    def _preview_variables(self) -> dict[str, Any]:
+        """Mapping for preview/compare/test: samples for every placeholder.
+
+        Guild-derived values (server name, bot display name, author mention)
+        render for real and every other known placeholder gets a sample
+        value, so neither side of the compare screen shows raw
+        ``{inviter}``-style gaps.
+        """
+        from rosemary.core.cards import preview_variables
+
+        get_guild = getattr(self.bot, "get_guild", None)
+        guild = get_guild(self.guild_id) if callable(get_guild) else None
+        return preview_variables(
+            user=f"<@{self.author_id or 0}>",
+            server=getattr(guild, "name", "…"),
+            user_name=getattr(getattr(guild, "me", None), "display_name", "@voce"),
+        )
+
     def _sample_variables(self) -> dict[str, Any]:
-        guild = self.bot.get_guild(self.guild_id)
-        return {
-            "user": f"<@{self.author_id or 0}>",
-            "user_name": getattr(getattr(guild, "me", None), "display_name", "@voce"),
-            "server": getattr(guild, "name", "…"),
-            "count": 1,
-            "user_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
-        }
+        """Legacy alias kept for the compare screen; prefer _preview_variables."""
+        return self._preview_variables()
 
     # -- handlers ------------------------------------------------------------
 
     async def _close(self, interaction: discord.Interaction) -> None:
-        self.disable_all_items()
-        await interaction.edit(view=self)
+        import contextlib
+
         self.stop()
+        with contextlib.suppress(discord.NotFound, discord.Forbidden, discord.HTTPException):
+            self.disable_all_items()
+            await interaction.edit(view=self)
 
     async def _open_add(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         self.adding = True
+        self.comparing = False
         self.selected = None
+        await self.rerender(interaction)
+
+    async def _cancel_add(self, interaction: discord.Interaction) -> None:
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        self.adding = False
         await self.rerender(interaction)
 
     async def _pick_add_type(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        if not values or values[0] not in _BLOCK_TYPES:
+            self.adding = False
+            return await self.rerender(interaction)
         block = _skeleton(values[0])
         current = self._current_blocks()
         current.append(block)
@@ -688,27 +786,41 @@ class CardEditorView(MenuView):
 
     async def _select_block(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
-        await interaction.response.defer()
-        self.selected = int(values[0])
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        try:
+            index = int(values[0]) if values else -1
+        except (TypeError, ValueError):
+            index = -1
+        if not 0 <= index < len(self._current_blocks()):
+            self.selected = None
+            return await self.rerender(interaction)
+        self.selected = index
         await self.rerender(interaction)
 
     async def _act_on_selected(self, interaction: discord.Interaction) -> None:
-        _, action = interaction.custom_id.split(":", 1)
+        try:
+            _, action = interaction.custom_id.split(":", 1)
+        except ValueError:
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
+            return await self.rerender(interaction)
         self._clamp_selection()
         blocks = self._current_blocks()
         index = self.selected
         if index is None or not 0 <= index < len(blocks):
-            await interaction.response.defer()
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
             return await self.rerender(interaction)
         block = blocks[index]
 
         if action == "enter":
             if block.get("type") not in _COMPOSITE_TYPES:
-                await interaction.response.defer()
+                if not interaction.response.is_done():
+                    await interaction.response.defer(ephemeral=True)
                 return
-            await interaction.response.defer()
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
             self.adding = False
             self.selected = None
             self.path.append(index)
@@ -717,7 +829,8 @@ class CardEditorView(MenuView):
         if action == "edit":
             kind = block["type"]
             if kind in _COMPOSITE_TYPES:
-                await interaction.response.defer()
+                if not interaction.response.is_done():
+                    await interaction.response.defer(ephemeral=True)
                 self.adding = False
                 self.selected = None
                 self.path.append(index)
@@ -735,14 +848,17 @@ class CardEditorView(MenuView):
                     await self._row_modal(block, index)
                 )
             if kind == "divider":
-                await interaction.response.defer()
+                if not interaction.response.is_done():
+                    await interaction.response.defer(ephemeral=True)
                 block["spacing"] = "large" if block.get("spacing") == "small" else "small"
                 await self._persist()
                 return await self.rerender(interaction)
-            await interaction.response.defer()
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
             return
 
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         if action == "up" and index > 0:
             blocks[index - 1], blocks[index] = blocks[index], blocks[index - 1]
             self.selected = index - 1
@@ -767,8 +883,10 @@ class CardEditorView(MenuView):
             custom_id=f"card_text_modal:{self._modal_suffix(index)}",
             label=await self._t("cards.editor.modals.text_label"),
             placeholder=await self._t("cards.editor.modals.text_placeholder"),
-            value=str(block.get("body", "")),
-            max_length=2000,
+            # Discord caps modal input at 4000 chars: prefill longer bodies
+            # truncated rather than failing the modal open with a 400.
+            value=str(block.get("body", ""))[:4000],
+            max_length=4000,
             on_submit=self._text_submit,
         )
 
@@ -778,8 +896,8 @@ class CardEditorView(MenuView):
             custom_id=f"card_urls_modal:{self._modal_suffix(index)}",
             label=await self._t("cards.editor.modals.urls_label"),
             placeholder=await self._t("cards.editor.modals.urls_placeholder"),
-            value="\n".join(block.get("urls", [])),
-            max_length=2000,
+            value="\n".join(block.get("urls", []))[:4000],
+            max_length=4000,
             on_submit=self._urls_submit,
         )
 
@@ -794,24 +912,29 @@ class CardEditorView(MenuView):
             custom_id=f"card_row_modal:{self._modal_suffix(index)}",
             label=await self._t("cards.editor.modals.row_label"),
             placeholder=await self._t("cards.editor.modals.row_placeholder"),
-            value="\n".join(lines),
-            max_length=1000,
+            value="\n".join(lines)[:4000],
+            max_length=4000,
             on_submit=self._row_submit,
         )
 
     async def _up_level(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         if self.path:
             self.path.pop()
             self.selected = None
+        self.adding = False
         await self.rerender(interaction)
 
     async def _reset(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         await self._reset_doc(self.guild_id)
         self.path.clear()
         self.selected = None
         self.adding = False
+        self.comparing = False
+        self.mention_policy = None
         self.saved_exists = False
         seeded = await self._default_blocks()
         if seeded is not None:
@@ -825,9 +948,12 @@ class CardEditorView(MenuView):
         await self.rerender(interaction)
 
     async def _test(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer(ephemeral=True)
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         try:
-            items = build_items(self.bot.theme, self.document())
+            items = build_items(
+                self.bot.theme, self.document(), self._preview_variables(), draft=True
+            )
         except CardsError as exc:
             self.flash = await self._t(
                 "cards.editor.invalid", error=await self._translate_issues(exc)
@@ -843,21 +969,35 @@ class CardEditorView(MenuView):
         await self.rerender(interaction)
 
     async def _open_compare(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         self.comparing = True
+        self.adding = False
         await self.rerender(interaction)
 
     async def _close_compare(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         self.comparing = False
         await self.rerender(interaction)
 
     async def _set_container_color(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
-        if not values or not self.path:
-            return
-        await interaction.response.defer()
-        self.blocks[self.path[-1]]["color"] = values[0] or None
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        self._sanitize_path()
+        if not values or not self.path or values[0] not in (*_THEME_COLORS, ""):
+            return await self.rerender(interaction)
+        try:
+            node: Any = self.blocks
+            for index in self.path[:-1]:
+                node = node[index]["children"]
+            target = node[self.path[-1]]
+        except (IndexError, KeyError, TypeError):
+            return await self.rerender(interaction)
+        if not isinstance(target, dict):
+            return await self.rerender(interaction)
+        target["color"] = values[0] or None
         await self._persist()
         await self.rerender(interaction)
 
@@ -865,13 +1005,17 @@ class CardEditorView(MenuView):
         from rosemary.core.mentions import valid_policy
 
         values = (interaction.data or {}).get("values") or []
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         if not values or self._save_mentions is None:
-            return
+            return await self.rerender(interaction)
         policy = values[0]
         if not valid_policy(policy):
-            return
-        await interaction.response.defer()
-        await self._save_mentions(self.guild_id, policy)
+            return await self.rerender(interaction)
+        try:
+            await self._save_mentions(self.guild_id, policy)
+        except (ValueError, OSError):
+            return await self.rerender(interaction)
         self.mention_policy = policy
         self.flash = await self._t("cards.editor.mentions.saved")
         self.flash_color = "success"
@@ -886,52 +1030,94 @@ class CardEditorView(MenuView):
         return "\n".join(lines) or describe_fallback(exc)
 
     async def _exit_to_origin(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         factory = self._exit_factory
         if factory is None:
             return await self.rerender(interaction)
-        target = factory()
-        await target.prepare()
+        try:
+            target = factory()
+            await target.prepare()
+        except Exception:
+            return await self.rerender(interaction)
+        try:
+            await interaction.edit(view=target)
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            return
         self.stop()
-        await interaction.edit(view=target)
 
     # -- modal submits -------------------------------------------------------
 
     def _resolve_path(self, raw: str) -> list[int]:
         if raw == "root":
             return []
-        return [int(part) for part in raw.split("-")]
+        return [int(part) for part in raw.split("-") if part.lstrip("-").isdigit()]
 
-    def _block_by_path(self, path: list[int], index: int) -> dict[str, Any]:
+    def _block_by_path(self, path: list[int], index: int) -> dict[str, Any] | None:
+        """Locate a block by its modal suffix; ``None`` when stale."""
         node: Any = self.blocks
-        for step in path:
-            node = node[step]["children"]
-        return node[index]
+        try:
+            for step in path:
+                child = node[step]
+                node = child["children"]
+            block = node[index]
+        except (IndexError, KeyError, TypeError):
+            return None
+        return block if isinstance(block, dict) else None
 
     async def _after_modal(self, interaction: discord.Interaction) -> None:
+        if not interaction.response.is_done():
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer(ephemeral=True)
         await self._persist()
         await self.rerender(interaction)
 
+    def _modal_target(
+        self, interaction: discord.Interaction
+    ) -> dict[str, Any] | None:
+        """Parse a modal ``custom_id`` and resolve the block, tolerating stale UI."""
+        try:
+            _, path_raw, index_raw = interaction.custom_id.split(":")
+            path = self._resolve_path(path_raw)
+            index = int(index_raw)
+        except (ValueError, AttributeError):
+            return None
+        self._sanitize_path()
+        return self._block_by_path(path, index)
+
     async def _text_submit(self, interaction: discord.Interaction, value: str) -> None:
-        _, path_raw, index_raw = interaction.custom_id.split(":")
-        block = self._block_by_path(self._resolve_path(path_raw), int(index_raw))
+        block = self._modal_target(interaction)
+        if block is None or block.get("type") != "text":
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
+            return await self.rerender(interaction)
         block["body"] = value.strip("\n")
         await self._after_modal(interaction)
 
     async def _urls_submit(self, interaction: discord.Interaction, value: str) -> None:
-        _, path_raw, index_raw = interaction.custom_id.split(":")
-        block = self._block_by_path(self._resolve_path(path_raw), int(index_raw))
+        block = self._modal_target(interaction)
+        if block is None or block.get("type") != "gallery":
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
+            return await self.rerender(interaction)
         block["urls"] = [line.strip() for line in value.splitlines() if line.strip()]
         await self._after_modal(interaction)
 
     async def _row_submit(self, interaction: discord.Interaction, value: str) -> None:
-        _, path_raw, index_raw = interaction.custom_id.split(":")
-        block = self._block_by_path(self._resolve_path(path_raw), int(index_raw))
+        block = self._modal_target(interaction)
+        if block is None or block.get("type") != "row":
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
+            return await self.rerender(interaction)
         buttons = []
         for line in value.splitlines():
-            label, _, url = line.partition("|")
-            if label.strip():
-                buttons.append({"label": label.strip(), "url": url.strip()})
+            # Split on the LAST pipe so labels may contain "|".
+            label, sep, url = line.rpartition("|")
+            if not sep:
+                label, url = line, ""
+            if not label.strip():
+                continue
+            buttons.append({"label": label.strip()[:80], "url": url.strip()})
         block["buttons"] = buttons
         await self._after_modal(interaction)
 
@@ -940,7 +1126,7 @@ def describe_fallback(exc: CardsError) -> str:
     import logging
 
     logging.getLogger(__name__).debug("untranslated card issues: %s", exc)
-    return "·"
+    return str(exc) or "invalid card"
 
 
 def log_default_failure(key: str, exc: Exception) -> None:

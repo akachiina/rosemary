@@ -20,6 +20,11 @@ colors:
   gold: "#FFD700"
   orange: "#FF8C00"
 
+# NOTE: `user` and `tag` collide with common template variable names. Template
+# variables always win over emoji tokens, so `{user}` renders a mention (never
+# 👤) and `{tag}` only renders 🏷️ where no `tag=` variable is passed.
+# `loading`/`hourglass` and `swap`/`refresh` share glyphs on purpose: separate
+# names keep each surface independently customizable.
 emojis:
   star: "⭐"
   success: "✅"
@@ -62,6 +67,9 @@ emojis:
   lock: "🔒"
   unlock: "🔓"
   hourglass: "⏳"
+  check: "✓"
+  up: "⬆️"
+  down: "⬇️"
 
 # markdown: structural text templates rendered inside TextDisplay components.
 # These are visual/theme-level, NOT translated. Placeholders are filled via

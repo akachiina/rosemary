@@ -215,3 +215,21 @@ async def test_bump_test_screen_also_stays_under_limit(tmp_path):
     view.test_open = True
     await view.prepare()
     assert _count_components(view) <= 38
+
+
+async def test_category_setting_renders_category_filtered_select(tmp_path):
+    """tickets.category must offer guild categories, not text channels."""
+    bot = FakeBot(GuildStorage(tmp_path))
+    view = SettingsMenuView(bot, 1, owner_id=1)
+    view.category = SettingCategory.TICKETS
+    view.editing_key = "tickets.category"
+    await view.prepare()
+
+    selects = [
+        item
+        for item in view.walk_children()
+        if isinstance(item, discord.ui.Select)
+        and item.custom_id == "settings_set:tickets.category"
+    ]
+    assert len(selects) == 1
+    assert discord.ChannelType.category in (selects[0].channel_types or [])

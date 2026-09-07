@@ -324,18 +324,26 @@ class InvitesCog(commands.Cog):
                 )
             )
         # Title carries the user; build the card with the variable filled in.
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
         title = await self.bot.translator.t(
             guild_id, "invites.stats.title", user=target.mention
         )
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay("\n\n".join(lines)),
-            )
+        body = "\n\n".join(lines)
+        view = await self._card_view(
+            guild_id,
+            "invites.stats",
+            title,
+            body,
+            {
+                "user": target.mention,
+                "total": stats["total"],
+                "regular": stats["regular"],
+                "bonus": stats["bonus"],
+                "fake": stats["fake"],
+                "left": stats["left"],
+                "rank": await self._rank_of(guild_id, target.id),
+                "title": title,
+                "body": body,
+            },
         )
         await ctx.respond(view=view, ephemeral=True)
 
@@ -367,7 +375,10 @@ class InvitesCog(commands.Cog):
         lines = []
         for position, (uid, stats) in enumerate(rows, start=1):
             medal = self.bot.theme.medals.get(
-                str(position), self.bot.theme.medals.get("default", "📊")
+                str(position),
+                self.bot.theme.medals.get(
+                    "default", self.bot.theme.emoji("bar_chart") or "📊"
+                ),
             )
             lines.append(
                 await self.bot.translator.t(
@@ -379,8 +390,10 @@ class InvitesCog(commands.Cog):
                     total=stats["total"],
                 )
             )
-        view = await self._public_card(
-            guild_id, "invites.leaderboard.title", "\n".join(lines)
+        title = await self.bot.translator.t(guild_id, "invites.leaderboard.title")
+        body = "\n".join(lines)
+        view = await self._card_view(
+            guild_id, "invites.leaderboard", title, body, {"title": title, "body": body}
         )
         from rosemary.core.mentions import mentions_for
 
@@ -389,10 +402,22 @@ class InvitesCog(commands.Cog):
             allowed_mentions=await mentions_for(self.bot, guild_id, "invites.leaderboard"),
         )
 
-    async def _public_card(self, guild_id: int, title_key: str, body: str):
+    async def _card_view(
+        self, guild_id: int, key: str, title: str, body: str, variables: dict
+    ):
+        """Guild override for ``key``, else the default title/body card.
+
+        Override authors receive ``title``/``body`` plus the card-specific
+        ``variables`` (see ``card.<key>.placeholders`` in the catalogs).
+        """
+        from rosemary.core.cards import maybe_view
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        title = await self.bot.translator.t(guild_id, title_key)
+        view = await maybe_view(
+            self.bot, guild_id, key, {"title": title, "body": body, **variables}
+        )
+        if view is not None:
+            return view
         view = DesignerView(store=False)
         view.add_item(
             designer_container(
@@ -501,15 +526,13 @@ class InvitesCog(commands.Cog):
         title = await self.bot.translator.t(
             guild_id, "invites.invited.title", user=target.mention
         )
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay("\n".join(lines)),
-            )
+        body = "\n".join(lines)
+        view = await self._card_view(
+            guild_id,
+            "invites.invited_list",
+            title,
+            body,
+            {"user": target.mention, "title": title, "body": body},
         )
         await ctx.respond(view=view, ephemeral=True)
 
@@ -569,15 +592,20 @@ class InvitesCog(commands.Cog):
             bonus=stats["bonus"],
         )
         title = await self.bot.translator.t(guild_id, "invites.personal.title")
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay(body),
-            )
+        view = await self._card_view(
+            guild_id,
+            "invites.personal",
+            title,
+            body,
+            {
+                "user": ctx.author.mention,
+                "link": link,
+                "total": stats["total"],
+                "regular": stats["regular"],
+                "bonus": stats["bonus"],
+                "title": title,
+                "body": body,
+            },
         )
         await ctx.respond(view=view, ephemeral=True)
 
@@ -620,15 +648,21 @@ class InvitesCog(commands.Cog):
                 )
             )
         title = await self.bot.translator.t(guild_id, "invites.server.title")
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay("\n\n".join(lines)),
-            )
+        body = "\n\n".join(lines)
+        view = await self._card_view(
+            guild_id,
+            "invites.server_stats",
+            title,
+            body,
+            {
+                "joins": totals["joins"],
+                "regular": totals["regular"],
+                "bonus": totals["bonus"],
+                "fake": totals["fake"],
+                "left": totals["left"],
+                "title": title,
+                "body": body,
+            },
         )
         await ctx.respond(view=view, ephemeral=True)
 
@@ -865,7 +899,8 @@ class InvitesCog(commands.Cog):
         bot = self.bot
 
         async def confirm(interaction: discord.Interaction) -> None:
-            await interaction.response.defer()
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
             await store.reset(guild_id)
             await send_channel_log(
                 bot,
@@ -887,7 +922,8 @@ class InvitesCog(commands.Cog):
             await interaction.edit(view=view)
 
         async def cancel(interaction: discord.Interaction) -> None:
-            await interaction.response.defer()
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
             view.clear_items()
             view.add_item(TextDisplay(await t(guild_id, "invites.reset.cancelled")))
             view.stop()
@@ -947,6 +983,3 @@ class InvitesCog(commands.Cog):
             )
         await ctx.respond(message, ephemeral=True)
 
-
-def setup(bot) -> None:
-    bot.add_cog(InvitesCog(bot))

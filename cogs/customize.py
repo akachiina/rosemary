@@ -20,10 +20,9 @@ class CustomizeCog(commands.Cog):
     )
     async def customize(self, ctx: discord.ApplicationContext) -> None:
         """Open the card picker (ephemeral)."""
+        if not ctx.response.is_done():
+            await ctx.response.defer(ephemeral=True)
         view = CustomizeMenuView(self.bot, ctx.guild_id, owner_id=ctx.author.id)
         await view.prepare()
         await ctx.respond(view=view, ephemeral=True)
 
-
-def setup(bot) -> None:
-    bot.add_cog(CustomizeCog(bot))

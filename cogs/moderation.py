@@ -50,10 +50,19 @@ _ACTION_LOG_COLORS: dict[str, str] = {
 
 
 class WarningsStore:
-    """Warnings persistence on top of :class:`GuildStorage` (per-guild)."""
+    """Warnings persistence in its own ``warnings.json`` (per-guild).
 
-    def __init__(self, storage: GuildStorage) -> None:
-        self.storage = storage
+    Accepts either a :class:`GuildStorage` (uses its ``data_dir``) or a raw
+    data directory, so warnings never mix with ``settings.json`` defaults
+    like ``language``. Existing tests pass ``GuildStorage(tmp_path)`` and
+    keep working unchanged.
+    """
+
+    def __init__(self, storage: GuildStorage | Any) -> None:
+        from pathlib import Path
+
+        data_dir = storage.data_dir if isinstance(storage, GuildStorage) else Path(storage)
+        self.storage = GuildStorage(data_dir, filename="warnings.json", use_defaults=False)
 
     async def _load(self, guild_id: int) -> dict[str, list[dict[str, Any]]]:
         data = await self.storage.get(guild_id)
@@ -477,6 +486,7 @@ class ModerationCog(commands.Cog):
             await t(guild_id, f"moderation.log.{action}.title"),
             "\n".join(fields),
             color=_ACTION_LOG_COLORS[action],
+            card_key=f"moderation.logs.{action}.description",
         )
 
         if action == "warn":

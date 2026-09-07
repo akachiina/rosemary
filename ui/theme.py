@@ -71,7 +71,10 @@ class Theme:
 
     def emoji(self, name: str) -> str:
         """Return an emoji token by name (empty string when unknown)."""
-        return self.emojis.get(name, "")
+        value = self.emojis.get(name, "")
+        if not value:
+            log.debug("Unknown theme emoji %r", name)
+        return value
 
     def md(self, name: str, **kwargs: Any) -> str:
         """Format a named markdown template, injecting theme emojis as defaults."""
@@ -106,6 +109,8 @@ class Theme:
         seen: set[str] = set()
         merged: dict[str, str] = {}
         current = self.styles.get(name) or self.styles.get("base") or {}
+        if name not in self.styles:
+            log.debug("Unknown theme style %r; falling back to base", name)
         while current:
             merged = {**current, **merged}
             parent = current.get("extends")
@@ -145,4 +150,18 @@ def load_theme(path: Path | None = None) -> Theme:
             log.error("Failed to load theme %s: %s", theme_path, exc)
     else:
         log.warning("Theme file not found: %s", theme_path)
+    _validate_theme(theme_path, colors, emojis)
     return Theme(colors, emojis, markdown, styles, bump, medals)
+
+
+def _validate_theme(path: Path, colors: dict[str, str], emojis: dict[str, str]) -> None:
+    """Warn about theme problems at boot instead of failing later in sends.
+
+    Shared emoji values (``loading``/``hourglass``, ``swap``/``refresh``) are
+    intentional aliases so each surface stays independently customizable.
+    """
+    import re
+
+    for name, value in colors.items():
+        if not re.fullmatch(r"#?[0-9a-fA-F]{6}", str(value)):
+            log.warning("Theme %s has invalid color %r=%r (expected hex RRGGBB)", path, name, value)

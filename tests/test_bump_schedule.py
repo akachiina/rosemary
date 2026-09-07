@@ -233,3 +233,116 @@ async def test_camping_unlock_yields_to_closed_schedule(tmp_path):
     assert await cog.store.is_channel_locked(1) is True
     assert await cog.store.get_lock_source(1) == LOCK_SCHEDULE
     assert channel.edit.await_count == 0
+
+
+def _lang_bot(tmp_path, lang):
+    """Bot wired to the real catalogs so defaults resolve per language."""
+    from pathlib import Path
+
+    from rosemary.core.i18n import Translator
+
+    theme = load_theme()
+
+    async def resolve(guild_id):
+        return lang
+
+    class Bot:
+        translator = Translator(
+            Path.cwd() / "language",
+            resolver=resolve,
+            default_placeholders=theme.emojis,
+        )
+
+        def __init__(self):
+            self.storage = GuildStorage(tmp_path)
+
+    Bot.theme = theme
+    return Bot()
+
+
+async def test_open_default_localized_pt_with_ping_role(tmp_path):
+    """pt-BR guilds without customization get the PT default, not English."""
+    import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
+
+    bot = _lang_bot(tmp_path, "pt-BR")
+    cog, _mod = await _cog(bot, {"bump.ping_role": 222})
+    ping_role, ping_role_id = await cog._ping_role_mention(1)
+    assert (ping_role, ping_role_id) == ("<@&222>", 222)
+    message = await cog._localized_message(
+        1,
+        "bump.schedule.open_message",
+        "bump.schedule.open_message_default",
+        {"ping_role": ping_role},
+    )
+    assert "O canal de bump está aberto!" in message
+    assert "<@&222>" in message
+    assert "The bump channel is open" not in message
+
+
+async def test_open_default_localized_en(tmp_path):
+    bot = _lang_bot(tmp_path, "en-US")
+    cog, _mod = await _cog(bot, {})
+    ping_role, ping_role_id = await cog._ping_role_mention(1)
+    assert (ping_role, ping_role_id) == ("", None)
+    message = await cog._localized_message(
+        1,
+        "bump.schedule.open_message",
+        "bump.schedule.open_message_default",
+        {"ping_role": ping_role},
+    )
+    assert "The bump channel is open!" in message
+    assert "<@&" not in message
+
+
+async def test_custom_message_is_preserved(tmp_path):
+    """A guild that customized the text keeps it verbatim (zero migration)."""
+    bot = _lang_bot(tmp_path, "pt-BR")
+    cog, _mod = await _cog(bot, {"bump.schedule.open_message": "custom {ping_role}!"})
+    message = await cog._localized_message(
+        1,
+        "bump.schedule.open_message",
+        "bump.schedule.open_message_default",
+        {"ping_role": "<@&222>"},
+    )
+    assert message == "custom <@&222>!"
+
+
+async def test_close_and_anti_camping_defaults_localized(tmp_path):
+    bot = _lang_bot(tmp_path, "pt-BR")
+    cog, _mod = await _cog(bot, {})
+    close = await cog._localized_message(
+        1, "bump.schedule.close_message", "bump.schedule.close_message_default"
+    )
+    assert "fechado" in close
+    anti = await cog._localized_message(
+        1, "bump.anti_camping.message", "bump.anti_camping.message_default"
+    )
+    assert "bloqueado temporariamente" in anti
+
+
+async def test_open_send_pings_role_by_default(tmp_path):
+    """The open post actually pings the ping role (policy 'role')."""
+    import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
+    from rosemary.core.mentions import spec_default
+
+    assert spec_default("bump.schedule.open") == "role"
+    bot = _lang_bot(tmp_path, "en-US")
+    guild, channel = _guild(bot, tmp_path)
+    cog, _mod = await _cog(
+        bot,
+        {
+            "bump.enabled": True,
+            "bump.channel": 111,
+            "bump.schedule.enabled": True,
+            "bump.schedule.open_time": "06:00",
+            "bump.schedule.close_time": "23:00",
+            "bump.ping_role": 222,
+        },
+    )
+    await cog.store.mark_channel_locked(1, LOCK_SCHEDULE)
+    await cog.check_schedule(guild, now=at(7, 0))
+    assert channel.send.await_count == 1
+    sent_text = channel.send.call_args.args[0]
+    assert "<@&222>" in sent_text
+    allowed = channel.send.call_args.kwargs.get("allowed_mentions")
+    assert [r.id for r in (allowed.roles or [])] == [222]

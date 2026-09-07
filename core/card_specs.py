@@ -36,6 +36,8 @@ WINNER_DMS = ["winner_new", "winner_again", "winner_lost"]
 
 MODERATION_ACTIONS = ["warn", "mute", "kick", "ban"]
 
+MODERATION_LOGS = ["ban", "kick", "mute", "warn"]
+
 BOOST_LOGS = [
     "register",
     "remove",
@@ -157,7 +159,7 @@ def _build() -> list[CardSpec]:
         CardSpec(key="bump.reminder", category="bump", rich=True, mention_default="role"),
         CardSpec(key="bump.thank_you", category="bump", rich=True, mention_default="single"),
         CardSpec(key="bump.anti_camping", category="bump"),
-        CardSpec(key="bump.schedule.open", category="bump"),
+        CardSpec(key="bump.schedule.open", category="bump", mention_default="role"),
         CardSpec(key="bump.schedule.close", category="bump"),
     ]
     specs += [
@@ -167,6 +169,10 @@ def _build() -> list[CardSpec]:
     specs += [
         CardSpec(key=f"{action}.dm", category="moderation", mention_default="single")
         for action in MODERATION_ACTIONS
+    ]
+    specs += [
+        CardSpec(key=f"moderation.logs.{action}.description", category="moderation")
+        for action in MODERATION_LOGS
     ]
     specs += [
         CardSpec(key=f"boost.logs.{name}.description", category="boost")

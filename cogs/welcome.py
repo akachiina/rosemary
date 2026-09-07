@@ -288,6 +288,3 @@ class WelcomeCog(commands.Cog):
         except Exception as exc:
             log.error("Ban message failed for %s: %s", user, exc)
 
-
-def setup(bot) -> None:
-    bot.add_cog(WelcomeCog(bot))

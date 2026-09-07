@@ -35,6 +35,7 @@ class SettingType(StrEnum):
     BOOLEAN = "boolean"
     CHOICE = "choice"
     CHANNEL = "channel"
+    CATEGORY = "category"
     ROLE = "role"
 
 
@@ -190,7 +191,7 @@ SETTINGS: dict[str, SettingSpec] = {
         _spec(
             "tickets.category",
             SettingCategory.TICKETS,
-            SettingType.CHANNEL,
+            SettingType.CATEGORY,
             None,
         ),
         _spec(
@@ -463,13 +464,13 @@ SETTINGS: dict[str, SettingSpec] = {
             "bump.schedule.open_message",
             SettingCategory.BUMP,
             SettingType.STRING,
-            "🔓 O canal de bump está aberto! Use `/bump` para ajudar o servidor!",
+            "🔓 The bump channel is open! Use `/bump` to help the server!",
         ),
         _spec(
             "bump.schedule.close_message",
             SettingCategory.BUMP,
             SettingType.STRING,
-            "🔒 O canal de bump está fechado. Voltamos às 06:00!",
+            "🔒 The bump channel is closed. Back at 06:00!",
         ),
         _spec(
             "bump.anti_camping.enabled",
@@ -499,13 +500,19 @@ SETTINGS: dict[str, SettingSpec] = {
             "bump.anti_camping.message",
             SettingCategory.BUMP,
             SettingType.STRING,
-            "🔒 O canal foi bloqueado temporariamente. O bump estará disponível em instantes!",
+            "🔒 The channel is temporarily locked. Bump will be available shortly!",
         ),
         _spec(
             "bump.detection_text",
             SettingCategory.BUMP,
             SettingType.STRING,
             "Bump done",
+        ),
+        _spec(
+            "bump.detection_bot_id",
+            SettingCategory.BUMP,
+            SettingType.STRING,
+            "302050872383242240",
         ),
         _spec(
             "bump.leaderboard.enabled",
@@ -647,7 +654,7 @@ def coerce_value(
             return (True, str(raw))
         return (False, None)
 
-    if value_type in (SettingType.CHANNEL, SettingType.ROLE):
+    if value_type in (SettingType.CHANNEL, SettingType.CATEGORY, SettingType.ROLE):
         if raw is None or raw == "" or raw == 0:
             return (True, None)
         try:
@@ -685,7 +692,9 @@ def format_value(spec: SettingSpec, value: Any) -> FormattedValue:
             is_default=is_default,
         )
 
-    if value_type is SettingType.CHANNEL:
+    if value_type in (SettingType.CHANNEL, SettingType.CATEGORY):
+        # Note: <#id> does not mention-render for categories, but the id is
+        # still the unambiguous display (names collide, ids don't).
         if value is None:
             return FormattedValue("settings.none", translate=True, is_default=is_default)
         return FormattedValue(f"<#{value}>", translate=False, is_default=is_default)

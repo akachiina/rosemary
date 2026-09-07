@@ -35,7 +35,7 @@ class DebugMenuView(MenuView):
 
     async def _test_log(self, interaction: discord.Interaction) -> None:
         if not interaction.response.is_done():
-            await interaction.response.defer()
+            await interaction.response.defer(ephemeral=True)
         t = self.bot.translator.t
         sent = await send_channel_log(
             self.bot,

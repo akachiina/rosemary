@@ -128,10 +128,27 @@ def spec_default(key: str) -> str:
 
 
 async def effective_policy(bot, guild_id: int, key: str) -> str:
-    """Guild override for ``key``, falling back to the spec default."""
-    override = await mention_store(bot).get_policy(guild_id, key)
-    if override is not None:
-        return override
+    """Guild override for ``key``, falling back to the spec default.
+
+    A corrupted stored value (unknown mode) is repaired on read so one bad
+    write can never wedge the picker or a send.
+    """
+    import logging
+
+    store = mention_store(bot)
+    data = await store._storage.get(guild_id)
+    value = data.get(key)
+    if value is None:
+        return spec_default(key)
+    if isinstance(value, str) and value in MODES:
+        return value
+    logging.getLogger(__name__).warning(
+        "Repairing unknown mention policy %r for card %s in guild %s",
+        value,
+        key,
+        guild_id,
+    )
+    await store.reset(guild_id, key)
     return spec_default(key)
 
 

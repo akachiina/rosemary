@@ -98,6 +98,3 @@ def _suppress():
 
     return contextlib.suppress(discord.Forbidden, discord.HTTPException, discord.NotFound)
 
-
-def setup(bot) -> None:
-    bot.add_cog(AntiInviteCog(bot))

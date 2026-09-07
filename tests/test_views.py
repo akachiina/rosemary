@@ -22,9 +22,14 @@ class FakeTranslator:
 class FakeResponse:
     def __init__(self) -> None:
         self.sent = []
+        self._done = False
+
+    def is_done(self) -> bool:
+        return self._done
 
     async def send_message(self, content, ephemeral=False):
         self.sent.append((content, ephemeral))
+        self._done = True
 
 
 class FakeInteraction:

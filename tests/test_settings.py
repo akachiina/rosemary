@@ -24,6 +24,7 @@ async def test_registry_covers_all_types_and_categories():
         SettingType.INTEGER,
         SettingType.BOOLEAN,
         SettingType.CHANNEL,
+        SettingType.CATEGORY,
         SettingType.CHOICE,
         SettingType.ROLE,
     }
@@ -85,6 +86,17 @@ async def test_coerce_channel():
     assert coerce_value(spec, "123") == (True, 123)
     assert coerce_value(spec, "0") == (True, None)
     assert coerce_value(spec, "abc") == (False, None)
+
+
+async def test_category_setting_coerces_like_channel():
+    spec = SETTINGS["tickets.category"]
+    assert spec.value_type is SettingType.CATEGORY
+    assert coerce_value(spec, None) == (True, None)
+    assert coerce_value(spec, "123") == (True, 123)
+    assert coerce_value(spec, "abc") == (False, None)
+    formatted = format_value(spec, 456)
+    assert formatted.display == "<#456>"
+    assert formatted.translate is False
 
 
 async def test_format_value():

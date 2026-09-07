@@ -80,6 +80,9 @@ settings:
   bump.detection_text:
     label: Bump Detection Text
     description: Text Disboard posts on a successful bump (e.g. "Bump done"). Matching is case-insensitive.
+  bump.detection_bot_id:
+    label: Bump Bot ID
+    description: Discord user ID of the bump bot (default Disboard).
   bump.schedule.enabled:
     label: Scheduled Open/Close Enabled
     description: Lock the bump channel on a fixed daily schedule.
@@ -88,13 +91,13 @@ settings:
     description: 'Time the channel opens every day (HH:MM, e.g. 06:00).'
   bump.schedule.open_message:
     label: Opening Message
-    description: Message posted when the channel opens.
+    description: Message posted when the channel opens. Supports {ping_role}.
   bump.schedule.close_time:
     label: Daily Close Time
     description: 'Time the channel closes every day (HH:MM, e.g. 23:00).'
   bump.schedule.close_message:
     label: Closing Message
-    description: Message posted when the channel closes.
+    description: Message posted when the channel closes. Supports {ping_role}.
   bump.leaderboard.enabled:
     label: Weekly Leaderboard Enabled
     description: Enables the weekly ranking and Bump-MVP role.
@@ -894,12 +897,27 @@ bump:
       title: '{pencil} Test Bumps Added'
       description: '{author} added {count} test bump(s) for {user} (weekly total: {total}).'
   error_disabled: '{error} The bump system is disabled in this server.'
+  schedule:
+    open_message_default: '{unlock} The bump channel is open! {ping_role} Use `/bump` to help the server!'
+    close_message_default: '{lock} The bump channel is closed. Back at 06:00!'
+  anti_camping:
+    message_default: '{lock} The channel is temporarily locked. Bump will be available shortly!'
   error_no_channel: '{error} The bump channel is not configured. Set it in `/settings`.'
   error_no_role: '{error} The Bump-MVP role is not configured.'
   error_role_not_found: '{error} The configured winner role was not found in the server.'
   error_leaderboard_disabled: '{error} The weekly bump leaderboard is disabled.'
   test:
     no_bumps: '{bar_chart} No bumps recorded this week; the leaderboard was not posted.'
+    simulated: '{success} Bump simulated successfully.'
+    reminder_sent: '{success} Reminder sent successfully.'
+  status:
+    enabled: '**Enabled:** {enabled}'
+    channel_locked: '**Channel Locked:** {locked}'
+    reminder_sent: '**Reminder Sent:** {sent}'
+    last_bump: '**Last Bump:** <t:{timestamp}:R>'
+    last_bump_na: '**Last Bump:** N/A'
+    next_reminder: '**Next Reminder:** {next}'
+    none: 'N/A'
   success:
     leaderboard_posted: '{success} Weekly leaderboard posted successfully!'
     week_reset: '{success} Bump week reset successfully!'
@@ -1489,7 +1507,7 @@ cards:
     invalid: '{warning} This composition cannot be sent yet: {error}'
     saved: '{success} Saved.'
     reset_done: '{refresh} Card restored to the default message.'
-    test_sent: '{success} Test card sent above (visible only to you).'
+    test_sent: '{success} Test card sent separately (visible only to you).'
     add_title: 'Pick a block type to add:'
     add_placeholder: Choose a block type...
     empty_level: '*This level is empty. Use Add below.*'
@@ -1506,6 +1524,7 @@ cards:
       move_up: Up
       move_down: Down
       compare: Compare
+      cancel: Cancel
     types:
       text: Text
       container: Card (colored box)
@@ -1521,6 +1540,8 @@ cards:
       warning: Yellow
       danger: Red
       info: Blue
+      gold: Gold
+      orange: Orange
     spacing:
       small: Small spacing
       large: Large spacing
@@ -1532,10 +1553,11 @@ cards:
       urls_label: One image URL per line
       urls_placeholder: https://example.com/image.png
       row_title: Edit link buttons
-      row_label: 'One per line: Label | https://url'
+      row_label: 'One per line: Label | https://url (label may contain |)'
       row_placeholder: Site | https://example.com
     select_placeholder: Pick a block to work on...
     breadcrumb: 'Path: {path}'
+    paged_blocks: 'Showing {shown} of {total} blocks.'
     child_count: '{count} block(s) inside'
     image_count: '{count} image(s)'
     button_count: '{count} link button(s)'
@@ -1543,7 +1565,7 @@ cards:
     compare_default: What members receive now
     compare_custom: Your version
     compare_no_default: '*This card has no default preview.*'
-    using_default: Using the default as a base (not saved yet).
+    using_default: '{warning} Using the default as a base ([NOT SAVED] yet).'
     empty_block: (empty)
     mentions:
       placeholder: Who may this card ping...
@@ -1559,9 +1581,13 @@ cards:
     title: Customize Messages
     choose: Pick a category, then the message you want to personalize.
     empty: There are no customizable messages yet.
+    empty_category: '*No customizable messages in this category.*'
     category_placeholder: Choose a category...
     card_placeholder: Choose a message...
     open: Customize messages
+    prev: Previous
+    next: Next
+    page: 'Page {page}/{pages}'
   errors:
     document_shape: Document must be an object with a 'blocks' list.
     unknown_block: Unknown block type.
@@ -1592,122 +1618,122 @@ card:
     dm:
       registered:
         title: 'DM: boost role registered'
-        placeholders: ''
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
       transferred:
         title: 'DM: ownership transferred'
-        placeholders: ''
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
       auto_transferred:
         title: 'DM: automatic transfer'
-        placeholders: ''
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
       invite:
         title: 'DM: role invite'
-        placeholders: ''
+        placeholders: '{{expires}}, {{inviter_mention}}, {{mention}}, {{role_name}}, {{server_name}}, {{tag}}, {{user}}'
       accepted:
         title: 'DM: invite accepted'
-        placeholders: ''
+        placeholders: '{{role_name}}'
       declined:
         title: 'DM: invite declined'
-        placeholders: ''
+        placeholders: '{{role_name}}'
       owner_accepted:
         title: 'DM: owner notified of acceptance'
-        placeholders: ''
+        placeholders: '{{member_mention}}, {{role_name}}'
       owner_declined:
         title: 'DM: owner notified of refusal'
-        placeholders: ''
+        placeholders: '{{member_mention}}, {{role_name}}'
       member_left:
         title: 'DM: you left the role'
-        placeholders: ''
+        placeholders: '{{role_name}}'
       owner_member_left:
         title: 'DM: owner notified of leave'
-        placeholders: ''
+        placeholders: '{{member_mention}}, {{role_name}}'
       error:
         title: 'DM: invite error'
-        placeholders: ''
+        placeholders: '{{body}}'
     logs:
       register:
         description:
           title: 'Log: role registered'
-          placeholders: ''
+          placeholders: '{{actor}}, {{owner}}, {{role}}'
       remove:
         description:
           title: 'Log: role removed'
-          placeholders: ''
+          placeholders: '{{actor}}, {{deleted}}, {{owner}}, {{role}}'
       transfer:
         description:
           title: 'Log: ownership transferred'
-          placeholders: ''
+          placeholders: '{{actor}}, {{new_owner}}, {{old_owner}}, {{role}}'
       rename:
         description:
           title: 'Log: role renamed'
-          placeholders: ''
+          placeholders: '{{actor}}, {{new_name}}, {{old_name}}, {{role}}'
       color_change:
         description:
           title: 'Log: color changed'
-          placeholders: ''
+          placeholders: '{{actor}}, {{new_color}}, {{role}}'
       emoji_change:
         description:
           title: 'Log: emoji changed'
-          placeholders: ''
+          placeholders: '{{actor}}, {{emoji}}, {{role}}'
       icon:
         description:
           title: 'Log: icon changed'
-          placeholders: ''
+          placeholders: '{{actor}}, {{role}}'
       member_add:
         description:
           title: 'Log: member added'
-          placeholders: ''
+          placeholders: '{{actor}}, {{member}}, {{role}}'
       member_remove:
         description:
           title: 'Log: member removed'
-          placeholders: ''
+          placeholders: '{{actor}}, {{member}}, {{role}}'
       member_left:
         description:
           title: 'Log: member left'
-          placeholders: ''
+          placeholders: '{{member}}, {{owner}}, {{role}}'
       invite_sent:
         description:
           title: 'Log: invite sent'
-          placeholders: ''
+          placeholders: '{{expires}}, {{invitee}}, {{inviter}}, {{role}}'
       invite_cancelled:
         description:
           title: 'Log: invite cancelled'
-          placeholders: ''
+          placeholders: '{{actor}}, {{invitee}}, {{role}}'
       invite_accepted:
         description:
           title: 'Log: invite accepted'
-          placeholders: ''
+          placeholders: '{{inviter}}, {{member}}, {{role}}'
       invite_expired:
         description:
           title: 'Log: invite expired'
-          placeholders: ''
+          placeholders: '{{invitee}}, {{inviter}}, {{role}}'
       orphan_remove:
         description:
           title: 'Log: orphan role removed'
-          placeholders: ''
+          placeholders: '{{owner}}, {{role}}'
       auto_transfer:
         description:
           title: 'Log: automatic transfer'
-          placeholders: ''
+          placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
   bump:
     dm:
       winner_new:
         title: 'DM: new MVP winner'
-        placeholders: ''
+        placeholders: '{{bump_count}}, {{max_members}}, {{mention}}, {{role_name}}'
       winner_again:
         title: 'DM: repeated MVP winner'
-        placeholders: ''
+        placeholders: '{{bump_count}}, {{mention}}, {{role_name}}, {{total_wins}}'
       winner_lost:
         title: 'DM: MVP lost'
-        placeholders: ''
+        placeholders: '{{bump_count}}, {{mention}}, {{winner_mention}}'
     reminder:
       title: Bump reminder card
-      placeholders: ''
+      placeholders: '{{cooldown}}'
     thank_you:
       title: Bump thank-you card
-      placeholders: ''
+      placeholders: '{{mention}}, {{cooldown}}, {{next_bump_timestamp}}'
     leaderboard:
       title: Weekly leaderboard post
-      placeholders: ''
+      placeholders: '{{winner_mention}}, {{winner_count}}, {{role_name}}, {{leaderboard_list}}, {{start_timestamp}}, {{end_timestamp}}, {{next_reset_timestamp}}'
     no_bumps:
       title: Empty-week notice
       placeholders: ''
@@ -1717,39 +1743,39 @@ card:
     schedule:
       open:
         title: Scheduled opening message
-        placeholders: ''
+        placeholders: '{{ping_role}}'
       close:
         title: Scheduled closing message
-        placeholders: ''
+        placeholders: '{{ping_role}}'
     logs:
       channel_locked:
         description:
           title: 'Log: channel locked'
-          placeholders: ''
+          placeholders: '{{channel}}'
       channel_unlocked:
         description:
           title: 'Log: channel unlocked'
-          placeholders: ''
+          placeholders: '{{channel}}'
       schedule_opened:
         description:
           title: 'Log: channel opened on schedule'
-          placeholders: ''
+          placeholders: '{{channel}}'
       schedule_closed:
         description:
           title: 'Log: channel closed on schedule'
-          placeholders: ''
+          placeholders: '{{channel}}'
       reminder_sent:
         description:
           title: 'Log: reminder sent'
-          placeholders: ''
+          placeholders: '{{channel}}'
       bump_recorded:
         description:
           title: 'Log: bump recorded'
-          placeholders: ''
+          placeholders: '{{channel}}, {{user}}'
       week_reset:
         description:
           title: 'Log: week reset, winner announced'
-          placeholders: ''
+          placeholders: '{{bumps}}, {{winner}}'
       no_winner:
         description:
           title: 'Log: week ended without bumps'
@@ -1757,64 +1783,64 @@ card:
       no_bumps_posted:
         description:
           title: 'Log: empty-week card posted'
-          placeholders: ''
+          placeholders: '{{channel}}'
       leaderboard_posted:
         description:
           title: 'Log: leaderboard posted'
-          placeholders: ''
+          placeholders: '{{channel}}'
       week_reset_manual:
         description:
           title: 'Log: manual week reset'
-          placeholders: ''
+          placeholders: '{{author}}'
       bumps_added:
         description:
           title: 'Log: test bumps added'
-          placeholders: ''
+          placeholders: '{{author}}, {{count}}, {{total}}, {{user}}'
   warn:
     dm:
       title: Warn DM
-      placeholders: ''
+      placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   mute:
     dm:
       title: Mute DM
-      placeholders: ''
+      placeholders: '{{duration}}, {{guild}}, {{moderator}}, {{reason}}'
   cleaner:
     confirm:
       title: Purge confirmation text
       placeholders: ''
     result:
       title: Purge result text
-      placeholders: ''
+      placeholders: '{{count}}, {{word}}'
     logs:
       purged:
         description:
           title: 'Log: messages purged'
-          placeholders: ''
+          placeholders: '{{count}}, {{moderator}}, {{word}}'
   anti_invite:
     warning:
       title: Anti-invite warning text
-      placeholders: ''
+      placeholders: '{{user}}'
     logs:
       blocked:
         description:
           title: 'Log: invite blocked'
-          placeholders: ''
+          placeholders: '{{channel}}, {{code}}, {{user}}'
   reminders:
     logs:
       sent:
         description:
           title: 'Log: reminder sent'
-          placeholders: ''
+          placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
   broadcast:
     logs:
       started:
         description:
           title: 'Log: broadcast started'
-          placeholders: ''
+          placeholders: '{{channel}}, {{moderator}}, {{title}}'
       ended:
         description:
           title: 'Log: broadcast ended'
-          placeholders: ''
+          placeholders: '{{failed}}, {{moderator}}, {{relayed}}, {{sent}}'
   updater:
     confirm:
       title: Update confirmation text
@@ -1823,23 +1849,41 @@ card:
       updating:
         description:
           title: 'Log: bot updating'
-          placeholders: ''
+          placeholders: '{{moderator}}, {{previous}}, {{target}}'
       updated:
         description:
           title: 'Log: bot updated'
-          placeholders: ''
+          placeholders: '{{current}}, {{previous}}'
       auto_failed:
         description:
           title: 'Log: auto-update failed'
-          placeholders: ''
+          placeholders: '{{reason}}'
   kick:
     dm:
       title: Kick DM
-      placeholders: ''
+      placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   ban:
     dm:
       title: Ban DM
-      placeholders: ''
+      placeholders: '{{guild}}, {{moderator}}, {{reason}}'
+  moderation:
+    logs:
+      ban:
+        description:
+          title: 'Log: member banned'
+          placeholders: ''
+      kick:
+        description:
+          title: 'Log: member kicked'
+          placeholders: ''
+      mute:
+        description:
+          title: 'Log: member muted'
+          placeholders: ''
+      warn:
+        description:
+          title: 'Log: member warned'
+          placeholders: ''
   events:
     welcome:
       title: Welcome message
@@ -1860,29 +1904,29 @@ card:
       placeholders: ''
     created:
       title: Ticket intro card
-      placeholders: ''
+      placeholders: '{{user}}, {{type}}'
     logs:
     logs:
       opened:
         description:
           title: 'Log: ticket opened'
-          placeholders: ''
+          placeholders: '{{channel}}, {{type}}, {{user}}'
       closed:
         description:
           title: 'Log: ticket closed'
-          placeholders: ''
+          placeholders: '{{channel}}'
       reopened:
         description:
           title: 'Log: ticket reopened'
-          placeholders: ''
+          placeholders: '{{channel}}'
       deleted:
         description:
           title: 'Log: ticket deleted'
-          placeholders: ''
+          placeholders: '{{channel}}'
       transcript:
         description:
           title: 'Log: ticket transcript'
-          placeholders: ''
+          placeholders: '{{channel}}, {{moderator}}'
   partnerships:
     invite:
       title: Partnership invite text
@@ -1890,82 +1934,82 @@ card:
     dm:
       added:
         title: 'DM: partnership added'
-        placeholders: ''
+        placeholders: '{{server}}'
       removed:
         title: 'DM: partnership removed'
-        placeholders: ''
+        placeholders: '{{server}}'
       warning:
         title: 'DM: partnership warning'
-        placeholders: ''
+        placeholders: '{{days}}, {{server}}'
       expired:
         title: 'DM: partnership expired'
-        placeholders: ''
+        placeholders: '{{server}}'
     logs:
       added:
         description:
           title: 'Log: partnership added'
-          placeholders: ''
+          placeholders: '{{author}}, {{user}}'
       removed:
         description:
           title: 'Log: partnership removed'
-          placeholders: ''
+          placeholders: '{{author}}, {{user}}'
       renewed:
         description:
           title: 'Log: partnership renewed'
-          placeholders: ''
+          placeholders: '{{user}}'
       warning_sent:
         description:
           title: 'Log: partnership warning'
-          placeholders: ''
+          placeholders: '{{days}}, {{user}}'
       expired:
         description:
           title: 'Log: partnership expired'
-          placeholders: ''
+          placeholders: '{{ping}}, {{user}}'
       invite_posted:
         description:
           title: 'Log: partnership invite posted'
-          placeholders: ''
+          placeholders: '{{author}}'
       orphans_cleaned:
         description:
           title: 'Log: orphan partnerships cleaned'
-          placeholders: ''
+          placeholders: '{{author}}, {{count}}'
   invites:
     leaderboard:
       title: Top inviters ranking
-      placeholders: ''
+      placeholders: '{{title}}, {{body}}'
     stats:
       title: Invite stats card
-      placeholders: ''
+      placeholders: '{{user}}, {{total}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{rank}}, {{title}}, {{body}}'
     personal:
       title: Personal invite card
-      placeholders: ''
+      placeholders: '{{user}}, {{link}}, {{total}}, {{regular}}, {{bonus}}, {{title}}, {{body}}'
     invited_list:
       title: Invited members list
-      placeholders: ''
+      placeholders: '{{user}}, {{title}}, {{body}}'
     server_stats:
       title: Server invite stats
-      placeholders: ''
+      placeholders: '{{joins}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{title}}, {{body}}'
     logs:
       join:
         description:
           title: 'Log: member joined with invite'
-          placeholders: ''
+          placeholders: '{{code}}, {{flags}}, {{inviter}}, {{label}}, {{user}}'
       leave:
         description:
           title: 'Log: invited member left'
-          placeholders: ''
+          placeholders: '{{inviter}}, {{user}}'
       bonus:
         description:
           title: 'Log: bonus invites adjusted'
-          placeholders: ''
+          placeholders: '{{amount}}, {{moderator}}, {{total}}, {{user}}'
       sync:
         description:
           title: 'Log: invites synced'
-          placeholders: ''
+          placeholders: '{{codes}}, {{moderator}}'
       reset:
         description:
           title: 'Log: invites reset'
-          placeholders: ''
+          placeholders: '{{moderator}}'
 events:
   enabled:
     label: Enable announcements

@@ -418,6 +418,3 @@ def _suppress_os():
 
     return contextlib.suppress(OSError)
 
-
-def setup(bot) -> None:
-    bot.add_cog(UpdaterCog(bot))

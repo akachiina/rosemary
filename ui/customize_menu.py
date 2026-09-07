@@ -8,6 +8,7 @@ wire their own editor instance instead of going through this picker.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import discord
@@ -16,6 +17,8 @@ from rosemary.core.cards import CardSpec, all_cards, card_store, cards_for_categ
 from rosemary.ui.card_editor import CardEditorView
 from rosemary.ui.containers import ActionRow, TextDisplay, designer_container
 from rosemary.ui.menu import MenuView
+
+log = logging.getLogger(__name__)
 
 _SELECT_LIMIT = 25
 
@@ -35,6 +38,7 @@ class CustomizeMenuView(MenuView):
         self.bot = bot
         self.guild_id = guild_id
         self.category = category
+        self.page = 0
         self._register_handlers()
 
     def _register_handlers(self) -> None:
@@ -42,6 +46,8 @@ class CustomizeMenuView(MenuView):
         self.register("custom_pick_category", self._pick_category)
         self.register("custom_pick_card", self._pick_card)
         self.register("custom_back", self._back_to_categories)
+        self.register("custom_prev", self._prev_page)
+        self.register("custom_next", self._next_page)
 
     async def _t(self, key: str, **kwargs: Any) -> str:
         return await self.bot.translator.t(self.guild_id, key, **kwargs)
@@ -73,12 +79,13 @@ class CustomizeMenuView(MenuView):
             return parts
 
         if self.category is None:
-            categories = sorted({spec.category for spec in all_cards()})
+            categories = self._ordered_categories()
+            window, _pages = self._window(categories)
             options = [
                 discord.SelectOption(
-                    label=await self._category_label(value), value=value
+                    label=(await self._category_label(value))[:100], value=value
                 )
-                for value in categories[:_SELECT_LIMIT]
+                for value in window
             ]
             select = self.make_select(
                 custom_id="custom_pick_category",
@@ -86,38 +93,51 @@ class CustomizeMenuView(MenuView):
                 options=options,
             )
             parts.append(ActionRow(select))
+            parts.extend(await self._pager_row(kind="categories"))
             return parts
 
-        specs = cards_for_category(self.category)[:_SELECT_LIMIT]
-        from rosemary.core.mentions import effective_policy
-
-        options = []
-        for spec in specs:
-            customized = (
-                await card_store(self.bot).get_document(self.guild_id, spec.key)
-                is not None
-            )
-            label = await self._t(spec.title_key)
-            if customized:
-                label = f"✓ {label}"
-            try:
-                policy = await effective_policy(self.bot, self.guild_id, spec.key)
-                policy_label = await self._t(f"cards.mentions.modes.{policy}")
-            except Exception:
-                policy_label = ""
-            options.append(
-                discord.SelectOption(
-                    label=label[:100],
-                    value=spec.key,
-                    description=str(policy_label)[:100] or None,
+        specs = cards_for_category(self.category)
+        if not specs:
+            parts.append(
+                designer_container(
+                    theme.color("info"),
+                    TextDisplay(await self._t("cards.customize.empty_category")),
                 )
             )
-        select = self.make_select(
-            custom_id="custom_pick_card",
-            placeholder=await self._t("cards.customize.card_placeholder"),
-            options=options,
-        )
-        parts.append(ActionRow(select))
+        else:
+            from rosemary.core.mentions import effective_policy
+
+            window, _pages = self._window(specs)
+            options = []
+            for spec in window:
+                customized = (
+                    await card_store(self.bot).get_document(self.guild_id, spec.key)
+                    is not None
+                )
+                title = await self._t(spec.title_key)
+                if customized:
+                    check = self.bot.theme.emoji("check") if self.bot.theme else "✓"
+                    title = f"{check or '✓'} {title}"
+                try:
+                    policy = await effective_policy(self.bot, self.guild_id, spec.key)
+                    policy_label = await self._t(f"cards.mentions.modes.{policy}")
+                except Exception:
+                    log.warning("mention policy lookup failed for card %s", spec.key)
+                    policy_label = ""
+                options.append(
+                    discord.SelectOption(
+                        label=title if len(title) <= 100 else title[:99] + "…",
+                        value=spec.key,
+                        description=str(policy_label)[:100] or None,
+                    )
+                )
+            select = self.make_select(
+                custom_id="custom_pick_card",
+                placeholder=await self._t("cards.customize.card_placeholder"),
+                options=options,
+            )
+            parts.append(ActionRow(select))
+            parts.extend(await self._pager_row(kind="cards"))
         back_row = ActionRow(
             self.make_button(
                 custom_id="custom_close",
@@ -133,6 +153,51 @@ class CustomizeMenuView(MenuView):
         parts.append(back_row)
         return parts
 
+    def _ordered_categories(self) -> list[str]:
+        """Categories in /settings order, then any card-only extras sorted."""
+        from rosemary.core.settings import CATEGORIES
+
+        known = [category.value for category in CATEGORIES]
+        present = {spec.category for spec in all_cards()}
+        ordered = [name for name in known if name in present]
+        ordered += sorted(present - set(ordered))
+        return ordered
+
+    def _window(self, items: list) -> tuple[list, int]:
+        """Current page slice; clamps a stale page instead of showing nothing."""
+        pages = max((len(items) + _SELECT_LIMIT - 1) // _SELECT_LIMIT, 1)
+        self.page = min(max(self.page, 0), pages - 1)
+        start = self.page * _SELECT_LIMIT
+        return items[start : start + _SELECT_LIMIT], pages
+
+    async def _pager_row(self, *, kind: str) -> list[discord.ui.ViewItem]:
+        """Prev/Next buttons plus a page footer; empty on a single page."""
+        total = (
+            len(self._ordered_categories())
+            if kind == "categories"
+            else len(cards_for_category(self.category or ""))
+        )
+        pages = max((total + _SELECT_LIMIT - 1) // _SELECT_LIMIT, 1)
+        if pages <= 1:
+            return []
+        return [
+            ActionRow(
+                self.make_button(
+                    custom_id="custom_prev",
+                    label=await self._t("cards.customize.prev"),
+                    disabled=self.page <= 0,
+                ),
+                self.make_button(
+                    custom_id="custom_next",
+                    label=await self._t("cards.customize.next"),
+                    disabled=self.page >= pages - 1,
+                ),
+            ),
+            TextDisplay(
+                await self._t("cards.customize.page", page=self.page + 1, pages=pages)
+            ),
+        ]
+
     async def _category_label(self, value: str) -> str:
         from rosemary.core.settings import SettingCategory
 
@@ -145,37 +210,59 @@ class CustomizeMenuView(MenuView):
     # -- handlers ------------------------------------------------------------
 
     async def _close(self, interaction: discord.Interaction) -> None:
-        self.disable_all_items()
-        await interaction.edit(view=self)
+        import contextlib
+
         self.stop()
+        with contextlib.suppress(discord.NotFound, discord.Forbidden, discord.HTTPException):
+            self.disable_all_items()
+            await interaction.edit(view=self)
 
     async def _pick_category(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         if not values:
-            return
-        await interaction.response.defer()
+            return await self.rerender(interaction)
         self.category = values[0]
+        self.page = 0
         await self.rerender(interaction)
 
     async def _pick_card(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         if not values:
-            return
+            return await self.rerender(interaction)
         spec: CardSpec | None = next(
             (item for item in all_cards() if item.key == values[0]), None
         )
         if spec is None:
-            return
+            return await self.rerender(interaction)
         await self._open_editor(interaction, spec)
 
     async def _back_to_categories(self, interaction: discord.Interaction) -> None:
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         self.category = None
+        self.page = 0
+        await self.rerender(interaction)
+
+    async def _prev_page(self, interaction: discord.Interaction) -> None:
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        self.page = max(self.page - 1, 0)
+        await self.rerender(interaction)
+
+    async def _next_page(self, interaction: discord.Interaction) -> None:
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        self.page += 1
         await self.rerender(interaction)
 
     async def _open_editor(self, interaction: discord.Interaction, spec: CardSpec) -> None:
         """Swap this message into the composer for ``spec``."""
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         store = card_store(self.bot)
         from rosemary.core.mentions import mention_store
 
@@ -189,6 +276,7 @@ class CustomizeMenuView(MenuView):
 
         async def reset_doc(guild_id: int) -> None:
             await store.reset(guild_id, spec.key)
+            await mentions.reset(guild_id, spec.key)
 
         async def load_mentions(guild_id: int) -> str | None:
             return await mentions.get_policy(guild_id, spec.key)
@@ -205,15 +293,18 @@ class CustomizeMenuView(MenuView):
             reset_doc=reset_doc,
             owner_id=self.author_id,
             placeholders_hint=await self._t(spec.placeholders_key),
-            exit_factory=lambda: CustomizeMenuView(
+            exit_factory=lambda _category=self.category: CustomizeMenuView(
                 self.bot,
                 self.guild_id,
                 owner_id=self.author_id,
-                category=self.category,
+                category=_category,
             ),
             load_mentions=load_mentions,
             save_mentions=save_mentions,
         )
         await editor.prepare()
+        try:
+            await interaction.edit(view=editor)
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            return
         self.stop()
-        await interaction.edit(view=editor)

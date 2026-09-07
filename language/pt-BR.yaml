@@ -80,6 +80,9 @@ settings:
   bump.detection_text:
     label: Texto de Detecção do Bump
     description: 'Texto enviado pelo Disboard no bump bem-sucedido (ex: "Bump feito"). Ignora maiúsculas/minúsculas.'
+  bump.detection_bot_id:
+    label: ID do Bot de Bump
+    description: ID Discord do bot de bump (padrão Disboard).
   bump.schedule.enabled:
     label: Abrir/Fechar Agendado Ativado
     description: Tranca o canal de bump em horário fixo diário.
@@ -88,13 +91,13 @@ settings:
     description: 'Hora que o canal abre todo dia (HH:MM, ex: 06:00).'
   bump.schedule.open_message:
     label: Mensagem de Abertura
-    description: Mensagem postada quando o canal abre.
+    description: Mensagem postada quando o canal abre. Suporta {ping_role}.
   bump.schedule.close_time:
     label: Hora de Fechamento Diária
     description: 'Hora que o canal fecha todo dia (HH:MM, ex: 23:00).'
   bump.schedule.close_message:
     label: Mensagem de Fechamento
-    description: Mensagem postada quando o canal fecha.
+    description: Mensagem postada quando o canal fecha. Suporta {ping_role}.
   bump.leaderboard.enabled:
     label: Placar Semanal Ativado
     description: Ativa o ranking semanal e o cargo de Bump-MVP.
@@ -894,12 +897,27 @@ bump:
       title: '{pencil} Bumps de Teste Adicionados'
       description: '{author} adicionou {count} bump(s) de teste para {user} (total na semana: {total}).'
   error_disabled: '{error} O sistema de bump está desativado neste servidor.'
+  schedule:
+    open_message_default: '{unlock} O canal de bump está aberto! {ping_role} Use `/bump` para ajudar o servidor!'
+    close_message_default: '{lock} O canal de bump está fechado. Voltamos às 06:00!'
+  anti_camping:
+    message_default: '{lock} O canal foi bloqueado temporariamente. O bump estará disponível em instantes!'
   error_no_channel: '{error} O canal de bump não está configurado. Configure-o em `/settings`.'
   error_no_role: '{error} O cargo de Bump-MVP não está configurado.'
   error_role_not_found: '{error} O cargo de vencedor configurado não foi encontrado no servidor.'
   error_leaderboard_disabled: '{error} O placar semanal de bumps está desativado.'
   test:
     no_bumps: '{bar_chart} Nenhum bump registrado esta semana; o placar não foi postado.'
+    simulated: '{success} Bump simulado com sucesso.'
+    reminder_sent: '{success} Lembrete enviado com sucesso.'
+  status:
+    enabled: '**Ativo:** {enabled}'
+    channel_locked: '**Canal Bloqueado:** {locked}'
+    reminder_sent: '**Lembrete Enviado:** {sent}'
+    last_bump: '**Último Bump:** <t:{timestamp}:R>'
+    last_bump_na: '**Último Bump:** N/A'
+    next_reminder: '**Próximo Lembrete:** {next}'
+    none: 'N/A'
   success:
     leaderboard_posted: '{success} Placar semanal postado com sucesso!'
     week_reset: '{success} Semana de bumps resetada com sucesso!'
@@ -1490,7 +1508,7 @@ cards:
     invalid: '{warning} Esta composição ainda não pode ser enviada: {error}'
     saved: '{success} Salvo.'
     reset_done: '{refresh} Cartão restaurado para a mensagem padrão.'
-    test_sent: '{success} Cartão de teste enviado acima (visível só para você).'
+    test_sent: '{success} Cartão de teste enviado em separado (visível só para você).'
     add_title: 'Escolha o tipo de bloco para adicionar:'
     add_placeholder: Escolha um tipo de bloco...
     empty_level: '*Este nível está vazio. Use Adicionar abaixo.*'
@@ -1507,6 +1525,7 @@ cards:
       move_up: Subir
       move_down: Descer
       compare: Comparar
+      cancel: Cancelar
     types:
       text: Texto
       container: Card (caixa colorida)
@@ -1522,6 +1541,8 @@ cards:
       warning: Amarelo
       danger: Vermelho
       info: Azul
+      gold: Dourado
+      orange: Laranja
     spacing:
       small: Espaçamento pequeno
       large: Espaçamento grande
@@ -1533,10 +1554,11 @@ cards:
       urls_label: Uma URL de imagem por linha
       urls_placeholder: https://exemplo.com/imagem.png
       row_title: Editar botões de link
-      row_label: 'Um por linha: Rótulo | https://url'
+      row_label: 'Um por linha: Rótulo | https://url (rótulo pode conter |)'
       row_placeholder: Site | https://exemplo.com
     select_placeholder: Escolha um bloco para editar...
     breadcrumb: 'Caminho: {path}'
+    paged_blocks: 'Mostrando {shown} de {total} blocos.'
     child_count: '{count} bloco(s) dentro'
     image_count: '{count} imagem(ns)'
     button_count: '{count} botão(ões) de link'
@@ -1544,7 +1566,7 @@ cards:
     compare_default: O que os membros recebem hoje
     compare_custom: Sua versão
     compare_no_default: '*Este cartão não tem prévia padrão.*'
-    using_default: Usando o padrão como base (ainda não salvo).
+    using_default: '{warning} Usando o padrão como base ([NÃO SALVO] ainda).'
     empty_block: (vazio)
     mentions:
       placeholder: Quem este cartão pode mencionar...
@@ -1560,9 +1582,13 @@ cards:
     title: Personalizar Mensagens
     choose: Escolha uma categoria e depois a mensagem que quer personalizar.
     empty: Ainda não há mensagens personalizáveis.
+    empty_category: '*Nenhuma mensagem personalizável nesta categoria.*'
     category_placeholder: Escolha uma categoria...
     card_placeholder: Escolha uma mensagem...
     open: Personalizar mensagens
+    prev: Anterior
+    next: Próximo
+    page: 'Página {page}/{pages}'
   errors:
     document_shape: O documento deve ser um objeto com uma lista 'blocks'.
     unknown_block: Tipo de bloco desconhecido.
@@ -1593,122 +1619,122 @@ card:
     dm:
       registered:
         title: 'DM: cargo de boost registrado'
-        placeholders: ''
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
       transferred:
         title: 'DM: transferência de dono'
-        placeholders: ''
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
       auto_transferred:
         title: 'DM: transferência automática'
-        placeholders: ''
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
       invite:
         title: 'DM: convite de cargo'
-        placeholders: ''
+        placeholders: '{{expires}}, {{inviter_mention}}, {{mention}}, {{role_name}}, {{server_name}}, {{tag}}, {{user}}'
       accepted:
         title: 'DM: convite aceito'
-        placeholders: ''
+        placeholders: '{{role_name}}'
       declined:
         title: 'DM: convite recusado'
-        placeholders: ''
+        placeholders: '{{role_name}}'
       owner_accepted:
         title: 'DM: dono notificado da aceitação'
-        placeholders: ''
+        placeholders: '{{member_mention}}, {{role_name}}'
       owner_declined:
         title: 'DM: dono notificado da recusa'
-        placeholders: ''
+        placeholders: '{{member_mention}}, {{role_name}}'
       member_left:
         title: 'DM: você saiu do cargo'
-        placeholders: ''
+        placeholders: '{{role_name}}'
       owner_member_left:
         title: 'DM: dono notificado da saída'
-        placeholders: ''
+        placeholders: '{{member_mention}}, {{role_name}}'
       error:
         title: 'DM: erro no convite'
-        placeholders: ''
+        placeholders: '{{body}}'
     logs:
       register:
         description:
           title: 'Log: cargo registrado'
-          placeholders: ''
+          placeholders: '{{actor}}, {{owner}}, {{role}}'
       remove:
         description:
           title: 'Log: cargo removido'
-          placeholders: ''
+          placeholders: '{{actor}}, {{deleted}}, {{owner}}, {{role}}'
       transfer:
         description:
           title: 'Log: transferência de dono'
-          placeholders: ''
+          placeholders: '{{actor}}, {{new_owner}}, {{old_owner}}, {{role}}'
       rename:
         description:
           title: 'Log: cargo renomeado'
-          placeholders: ''
+          placeholders: '{{actor}}, {{new_name}}, {{old_name}}, {{role}}'
       color_change:
         description:
           title: 'Log: cor alterada'
-          placeholders: ''
+          placeholders: '{{actor}}, {{new_color}}, {{role}}'
       emoji_change:
         description:
           title: 'Log: emoji alterado'
-          placeholders: ''
+          placeholders: '{{actor}}, {{emoji}}, {{role}}'
       icon:
         description:
           title: 'Log: ícone alterado'
-          placeholders: ''
+          placeholders: '{{actor}}, {{role}}'
       member_add:
         description:
           title: 'Log: membro adicionado'
-          placeholders: ''
+          placeholders: '{{actor}}, {{member}}, {{role}}'
       member_remove:
         description:
           title: 'Log: membro removido'
-          placeholders: ''
+          placeholders: '{{actor}}, {{member}}, {{role}}'
       member_left:
         description:
           title: 'Log: membro saiu'
-          placeholders: ''
+          placeholders: '{{member}}, {{owner}}, {{role}}'
       invite_sent:
         description:
           title: 'Log: convite enviado'
-          placeholders: ''
+          placeholders: '{{expires}}, {{invitee}}, {{inviter}}, {{role}}'
       invite_cancelled:
         description:
           title: 'Log: convite cancelado'
-          placeholders: ''
+          placeholders: '{{actor}}, {{invitee}}, {{role}}'
       invite_accepted:
         description:
           title: 'Log: convite aceito'
-          placeholders: ''
+          placeholders: '{{inviter}}, {{member}}, {{role}}'
       invite_expired:
         description:
           title: 'Log: convite expirado'
-          placeholders: ''
+          placeholders: '{{invitee}}, {{inviter}}, {{role}}'
       orphan_remove:
         description:
           title: 'Log: cargo órfão removido'
-          placeholders: ''
+          placeholders: '{{owner}}, {{role}}'
       auto_transfer:
         description:
           title: 'Log: transferência automática'
-          placeholders: ''
+          placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
   bump:
     dm:
       winner_new:
         title: 'DM: novo vencedor MVP'
-        placeholders: ''
+        placeholders: '{{bump_count}}, {{max_members}}, {{mention}}, {{role_name}}'
       winner_again:
         title: 'DM: MVP repetido'
-        placeholders: ''
+        placeholders: '{{bump_count}}, {{mention}}, {{role_name}}, {{total_wins}}'
       winner_lost:
         title: 'DM: perdeu o MVP'
-        placeholders: ''
+        placeholders: '{{bump_count}}, {{mention}}, {{winner_mention}}'
     reminder:
       title: Card de lembrete de bump
-      placeholders: ''
+      placeholders: '{{cooldown}}'
     thank_you:
       title: Card de agradecimento do bump
-      placeholders: ''
+      placeholders: '{{mention}}, {{cooldown}}, {{next_bump_timestamp}}'
     leaderboard:
       title: Post semanal do ranking
-      placeholders: ''
+      placeholders: '{{winner_mention}}, {{winner_count}}, {{role_name}}, {{leaderboard_list}}, {{start_timestamp}}, {{end_timestamp}}, {{next_reset_timestamp}}'
     no_bumps:
       title: Aviso de semana sem bumps
       placeholders: ''
@@ -1718,39 +1744,39 @@ card:
     schedule:
       open:
         title: Mensagem de abertura agendada
-        placeholders: ''
+        placeholders: '{{ping_role}}'
       close:
         title: Mensagem de fechamento agendado
-        placeholders: ''
+        placeholders: '{{ping_role}}'
     logs:
       channel_locked:
         description:
           title: 'Log: canal bloqueado'
-          placeholders: ''
+          placeholders: '{{channel}}'
       channel_unlocked:
         description:
           title: 'Log: canal desbloqueado'
-          placeholders: ''
+          placeholders: '{{channel}}'
       schedule_opened:
         description:
           title: 'Log: canal aberto pelo horário'
-          placeholders: ''
+          placeholders: '{{channel}}'
       schedule_closed:
         description:
           title: 'Log: canal fechado pelo horário'
-          placeholders: ''
+          placeholders: '{{channel}}'
       reminder_sent:
         description:
           title: 'Log: lembrete enviado'
-          placeholders: ''
+          placeholders: '{{channel}}'
       bump_recorded:
         description:
           title: 'Log: bump registrado'
-          placeholders: ''
+          placeholders: '{{channel}}, {{user}}'
       week_reset:
         description:
           title: 'Log: fim de semana, vencedor anunciado'
-          placeholders: ''
+          placeholders: '{{bumps}}, {{winner}}'
       no_winner:
         description:
           title: 'Log: semana terminou sem bumps'
@@ -1758,72 +1784,90 @@ card:
       no_bumps_posted:
         description:
           title: 'Log: aviso de semana vazia postado'
-          placeholders: ''
+          placeholders: '{{channel}}'
       leaderboard_posted:
         description:
           title: 'Log: ranking postado'
-          placeholders: ''
+          placeholders: '{{channel}}'
       week_reset_manual:
         description:
           title: 'Log: reset manual da semana'
-          placeholders: ''
+          placeholders: '{{author}}'
       bumps_added:
         description:
           title: 'Log: bumps de teste adicionados'
-          placeholders: ''
+          placeholders: '{{author}}, {{count}}, {{total}}, {{user}}'
   warn:
     dm:
       title: DM de advertência
-      placeholders: ''
+      placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   mute:
     dm:
       title: DM de silenciamento
-      placeholders: ''
+      placeholders: '{{duration}}, {{guild}}, {{moderator}}, {{reason}}'
   kick:
     dm:
       title: DM de expulsão
-      placeholders: ''
+      placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   ban:
     dm:
       title: DM de banimento
-      placeholders: ''
+      placeholders: '{{guild}}, {{moderator}}, {{reason}}'
+  moderation:
+    logs:
+      ban:
+        description:
+          title: 'Log: membro banido'
+          placeholders: ''
+      kick:
+        description:
+          title: 'Log: membro expulso'
+          placeholders: ''
+      mute:
+        description:
+          title: 'Log: membro silenciado'
+          placeholders: ''
+      warn:
+        description:
+          title: 'Log: membro advertido'
+          placeholders: ''
   cleaner:
     confirm:
       title: Texto de confirmação da limpeza
       placeholders: ''
     result:
       title: Texto de resultado da limpeza
-      placeholders: ''
+      placeholders: '{{count}}, {{word}}'
     logs:
       purged:
         description:
           title: 'Log: mensagens apagadas'
-          placeholders: ''
+          placeholders: '{{count}}, {{moderator}}, {{word}}'
   anti_invite:
     warning:
       title: Texto de aviso do anti-convite
-      placeholders: ''
+      placeholders: '{{user}}'
     logs:
       blocked:
         description:
           title: 'Log: convite bloqueado'
-          placeholders: ''
+          placeholders: '{{channel}}, {{code}}, {{user}}'
   reminders:
     logs:
       sent:
         description:
           title: 'Log: lembrete enviado'
-          placeholders: ''
+          placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
   broadcast:
     logs:
       started:
         description:
           title: 'Log: transmissão iniciada'
-          placeholders: ''
+          placeholders: '{{channel}}, {{moderator}}, {{title}}'
       ended:
         description:
           title: 'Log: transmissão encerrada'
-          placeholders: ''
+          placeholders: '{{failed}}, {{moderator}}, {{relayed}}, {{sent}}'
   updater:
     confirm:
       title: Texto de confirmação do update
@@ -1832,15 +1876,15 @@ card:
       updating:
         description:
           title: 'Log: bot atualizando'
-          placeholders: ''
+          placeholders: '{{moderator}}, {{previous}}, {{target}}'
       updated:
         description:
           title: 'Log: bot atualizado'
-          placeholders: ''
+          placeholders: '{{current}}, {{previous}}'
       auto_failed:
         description:
           title: 'Log: auto-update falhou'
-          placeholders: ''
+          placeholders: '{{reason}}'
   events:
     welcome:
       title: Mensagem de boas-vindas
@@ -1861,28 +1905,28 @@ card:
       placeholders: ''
     created:
       title: Cartão de abertura de ticket
-      placeholders: ''
+      placeholders: '{{user}}, {{type}}'
     logs:
       opened:
         description:
           title: 'Log: ticket aberto'
-          placeholders: ''
+          placeholders: '{{channel}}, {{type}}, {{user}}'
       closed:
         description:
           title: 'Log: ticket fechado'
-          placeholders: ''
+          placeholders: '{{channel}}'
       reopened:
         description:
           title: 'Log: ticket reaberto'
-          placeholders: ''
+          placeholders: '{{channel}}'
       deleted:
         description:
           title: 'Log: ticket excluído'
-          placeholders: ''
+          placeholders: '{{channel}}'
       transcript:
         description:
           title: 'Log: transcrição de ticket'
-          placeholders: ''
+          placeholders: '{{channel}}, {{moderator}}'
   partnerships:
     invite:
       title: Texto de convite de parceria
@@ -1890,82 +1934,82 @@ card:
     dm:
       added:
         title: 'DM: parceria adicionada'
-        placeholders: ''
+        placeholders: '{{server}}'
       removed:
         title: 'DM: parceria removida'
-        placeholders: ''
+        placeholders: '{{server}}'
       warning:
         title: 'DM: aviso de parceria'
-        placeholders: ''
+        placeholders: '{{days}}, {{server}}'
       expired:
         title: 'DM: parceria expirada'
-        placeholders: ''
+        placeholders: '{{server}}'
     logs:
       added:
         description:
           title: 'Log: parceria adicionada'
-          placeholders: ''
+          placeholders: '{{author}}, {{user}}'
       removed:
         description:
           title: 'Log: parceria removida'
-          placeholders: ''
+          placeholders: '{{author}}, {{user}}'
       renewed:
         description:
           title: 'Log: parceria renovada'
-          placeholders: ''
+          placeholders: '{{user}}'
       warning_sent:
         description:
           title: 'Log: aviso de parceria'
-          placeholders: ''
+          placeholders: '{{days}}, {{user}}'
       expired:
         description:
           title: 'Log: parceria expirada'
-          placeholders: ''
+          placeholders: '{{ping}}, {{user}}'
       invite_posted:
         description:
           title: 'Log: convite postado'
-          placeholders: ''
+          placeholders: '{{author}}'
       orphans_cleaned:
         description:
           title: 'Log: órfãs removidas'
-          placeholders: ''
+          placeholders: '{{author}}, {{count}}'
   invites:
     leaderboard:
       title: Ranking de convidadores
-      placeholders: ''
+      placeholders: '{{title}}, {{body}}'
     stats:
       title: Cartão de stats de convites
-      placeholders: ''
+      placeholders: '{{user}}, {{total}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{rank}}, {{title}}, {{body}}'
     personal:
       title: Cartão de convite pessoal
-      placeholders: ''
+      placeholders: '{{user}}, {{link}}, {{total}}, {{regular}}, {{bonus}}, {{title}}, {{body}}'
     invited_list:
       title: Lista de convidados
-      placeholders: ''
+      placeholders: '{{user}}, {{title}}, {{body}}'
     server_stats:
       title: Stats de convites do servidor
-      placeholders: ''
+      placeholders: '{{joins}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{title}}, {{body}}'
     logs:
       join:
         description:
           title: 'Log: membro entrou com convite'
-          placeholders: ''
+          placeholders: '{{code}}, {{flags}}, {{inviter}}, {{label}}, {{user}}'
       leave:
         description:
           title: 'Log: convidado saiu'
-          placeholders: ''
+          placeholders: '{{inviter}}, {{user}}'
       bonus:
         description:
           title: 'Log: bônus ajustado'
-          placeholders: ''
+          placeholders: '{{amount}}, {{moderator}}, {{total}}, {{user}}'
       sync:
         description:
           title: 'Log: convites sincronizados'
-          placeholders: ''
+          placeholders: '{{codes}}, {{moderator}}'
       reset:
         description:
           title: 'Log: convites resetados'
-          placeholders: ''
+          placeholders: '{{moderator}}'
 events:
   enabled:
     label: Ativar anúncios

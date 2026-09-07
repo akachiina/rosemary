@@ -351,7 +351,8 @@ async def test_compare_screen_renders_default_and_custom(tmp_path, monkeypatch):
     assert view.using_default_base is True
     assert view.blocks[0]["body"] == "PADRÃO {user}"
     rendered = all_texts(view)
-    assert "PADRÃO {user}" in rendered
+    # Stored templates stay literal, but previews render sample values.
+    assert "PADRÃO <@1>" in rendered
     assert "cards.editor.using_default" in rendered
 
     await view._open_compare(FakeInteraction())

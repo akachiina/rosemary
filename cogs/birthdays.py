@@ -302,6 +302,3 @@ async def default_announce_document(bot, guild_id: int) -> dict:
 
 set_default_builder("birthdays.announce", default_announce_document)
 
-
-def setup(bot) -> None:
-    bot.add_cog(BirthdayCog(bot))

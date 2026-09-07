@@ -85,6 +85,3 @@ class UtilityCog(commands.Cog):
         )
         await ctx.respond(view=view, ephemeral=True)
 
-
-def setup(bot) -> None:
-    bot.add_cog(UtilityCog(bot))
