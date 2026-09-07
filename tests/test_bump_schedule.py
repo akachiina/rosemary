@@ -277,6 +277,9 @@ async def test_open_default_localized_pt_with_ping_role(tmp_path):
     assert "O canal de bump está aberto!" in message
     assert "<@&222>" in message
     assert "The bump channel is open" not in message
+    # Theme emojis resolve in the same pass (no "{unlock}" literal left).
+    assert "{unlock}" not in message
+    assert "\U0001F513" in message
 
 
 async def test_open_default_localized_en(tmp_path):
@@ -292,6 +295,8 @@ async def test_open_default_localized_en(tmp_path):
     )
     assert "The bump channel is open!" in message
     assert "<@&" not in message
+    assert "{unlock}" not in message
+    assert "\U0001F513" in message
 
 
 async def test_custom_message_is_preserved(tmp_path):
@@ -307,6 +312,16 @@ async def test_custom_message_is_preserved(tmp_path):
     assert message == "custom <@&222>!"
 
 
+async def test_custom_message_supports_emoji_tokens(tmp_path):
+    """Custom texts go through the same single pass (theme emojis + vars)."""
+    bot = _lang_bot(tmp_path, "pt-BR")
+    cog, _mod = await _cog(bot, {"bump.schedule.open_message": "{unlock} custom!"})
+    message = await cog._localized_message(
+        1, "bump.schedule.open_message", "bump.schedule.open_message_default"
+    )
+    assert message == "\U0001F513 custom!"
+
+
 async def test_close_and_anti_camping_defaults_localized(tmp_path):
     bot = _lang_bot(tmp_path, "pt-BR")
     cog, _mod = await _cog(bot, {})
@@ -314,10 +329,12 @@ async def test_close_and_anti_camping_defaults_localized(tmp_path):
         1, "bump.schedule.close_message", "bump.schedule.close_message_default"
     )
     assert "fechado" in close
+    assert "{lock}" not in close
     anti = await cog._localized_message(
         1, "bump.anti_camping.message", "bump.anti_camping.message_default"
     )
     assert "bloqueado temporariamente" in anti
+    assert "{lock}" not in anti
 
 
 async def test_open_send_pings_role_by_default(tmp_path):

@@ -237,6 +237,10 @@ class BumpReminderCog(commands.Cog):
         keep their text). Guilds that never touched the setting get the
         translated default, so e.g. pt-BR guilds no longer receive the
         English fallback baked into the setting spec.
+
+        Formatting happens in a single ``safe_format`` pass over theme emojis
+        plus ``variables``: going through ``t()`` instead would abort the
+        whole format (emojis included) on the first unknown placeholder.
         """
         from rosemary.core.cards import safe_format
 
@@ -244,8 +248,11 @@ class BumpReminderCog(commands.Cog):
         if setting_key in raw:
             template = await get_setting(self.bot.storage, guild_id, setting_key)
         else:
-            template = await self.bot.translator.t(guild_id, default_key)
-        return safe_format(template, dict(variables or {}))
+            template = await self.bot.translator.raw(guild_id, default_key)
+        if not isinstance(template, str):
+            template = str(template)
+        mapping = {**(self.bot.theme.emojis if self.bot.theme else {}), **dict(variables or {})}
+        return safe_format(template, mapping)
 
     def _schedule_reminder(self, guild_id: int, delay_seconds: float) -> None:
         if guild_id in self._reminder_tasks:
