@@ -631,10 +631,15 @@ class TicketActionsView(MenuView):
             [int(ticket.get("owner_id") or 0)],
             channel=f"#{channel_id}",
         )
+        # Confirm first: followups post into the ticket channel, which no
+        # longer exists after delete (400 Unknown Channel).
+        try:
+            await interaction.followup.send(
+                await self._t("tickets.deleted_done"), ephemeral=True
+            )
+        except discord.HTTPException:
+            log.warning("Delete confirmation failed in %s", channel_id)
         if isinstance(channel, discord.TextChannel):
             with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                 await channel.delete(reason="Ticket deleted")
-        await interaction.followup.send(
-            await self._t("tickets.deleted_done"), ephemeral=True
-        )
 

@@ -178,3 +178,55 @@ async def test_pick_type_invalid_value_acks(tmp_path):
     interaction = SimpleNamespace(response=FakeResponse(), data={"values": ["bogus"]})
     await view._pick_type(interaction)
     assert ("defer", True) in order
+
+
+async def test_delete_confirms_before_removing_channel(tmp_path):
+    """Regression: followup.send after channel.delete raised 400 Unknown
+    Channel, since followups post into the ticket channel itself."""
+    from rosemary.cogs.tickets import TicketActionsView, TicketsCog
+
+    bot = _bot(tmp_path)
+    await bot.storage.set(1, "tickets.enabled", True)
+    cog = TicketsCog(bot)
+    bot.get_cog = lambda name: cog if name == "TicketsCog" else None
+    await cog.store.open_ticket(1, 10, 100, "report")
+    await cog.store.set_status(1, 10, CLOSED)
+
+    order = []
+    channel = MagicMock(spec=discord.TextChannel)
+
+    async def fake_delete(*, reason=None):
+        order.append("delete")
+
+    channel.delete = fake_delete
+    guild = MagicMock()
+    guild.id = 1
+    guild.get_channel = MagicMock(return_value=channel)
+    bot.get_guild = lambda gid: guild
+
+    class FakeResponse:
+        def is_done(self):
+            return False
+
+        async def defer(self, *, ephemeral=False):
+            order.append(("defer", ephemeral))
+
+        async def send_message(self, content, **kwargs):
+            order.append("send_message")
+
+    class FakeFollowup:
+        async def send(self, content, **kwargs):
+            order.append("followup")
+
+    interaction = SimpleNamespace(
+        response=FakeResponse(),
+        followup=FakeFollowup(),
+        custom_id="tickets_delete:10",
+        user=SimpleNamespace(id=100),
+        guild=guild,
+    )
+    view = TicketActionsView(bot, 1, 10)
+    await view._delete(interaction)
+    assert ("defer", True) in order
+    assert order.index("followup") < order.index("delete")
+    assert await cog.store.get_ticket(1, 10) is None
