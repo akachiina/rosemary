@@ -83,12 +83,16 @@ class CardSpec:
     default copy through ``card.<key>.title`` / ``card.<key>.placeholders``.
     ``mention_default`` is the card's mention policy in
     :mod:`rosemary.core.mentions` (guilds override it per card in /customize).
+    ``variables`` is the contract: the placeholder names the send site
+    provides (see :mod:`rosemary.core.variables`). The editor preview,
+    lint and hint derive from it.
     """
 
     key: str
     category: str
     rich: bool = False  # rich cards open the full composer; plain ones a text field
     mention_default: str = "none"
+    variables: tuple[str, ...] = ()
 
     @property
     def title_key(self) -> str:
@@ -169,7 +173,10 @@ async def maybe_view(
         return None
     try:
         items = build_items(
-            bot.theme, doc, dict(ECHO_VARIABLES) if variables is None else variables
+            bot.theme,
+            doc,
+            dict(ECHO_VARIABLES) if variables is None else variables,
+            card_key=key,
         )
     except CardsError as exc:
         log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
@@ -269,38 +276,35 @@ ECHO_VARIABLES: dict[str, str] = {
     for name in ("user", "user_name", "server", "count", "user_avatar")
 }
 
-#: Sample values for placeholders outside the echo set, used by the editor
-#: preview/compare/test screens so members' copy renders close to the real
-#: send (unknown placeholders otherwise stay literal and look broken).
-PREVIEW_SAMPLES: dict[str, Any] = {
-    "mention": "<@0>",
-    "member": "<@0>",
-    "moderator": "<@0>",
-    "target": "<@0>",
-    "inviter": "<@0>",
-    "winner_mention": "<@0>",
-    "user_mention": "<@0>",
-    "author": "<@0>",
-    "user": "<@0>",
-    "reason": "…",
-    "duration": "…",
-    "channel": "#…",
-    "role_name": "…",
-    "days": 1,
-    "total": 1,
-    "bumps": 1,
-    "count": 1,
-}
+#: Sample values for editor preview/compare/test screens, derived from the
+#: canonical :mod:`rosemary.core.variables` registry (kept here for compat).
+def _preview_samples() -> dict[str, Any]:
+    from rosemary.core.variables import VARIABLES
+
+    return {name: spec.sample for name, spec in VARIABLES.items()}
 
 
-def preview_variables(**extra: Any) -> dict[str, Any]:
+PREVIEW_SAMPLES: dict[str, Any] = _preview_samples()
+
+
+def preview_variables(*names: str, **extra: Any) -> dict[str, Any]:
     """Mapping for editor previews: every placeholder gets a sample value.
 
     Unlike :data:`ECHO_VARIABLES` (which keeps templates literal for seeding),
     previews render close to the real send so admins see what members would
-    receive. Explicit ``extra`` values (e.g. the guild name) win.
+    receive. With ``names`` only those variables are sampled (unknowns
+    skipped); explicit ``extra`` values (e.g. the guild name) win.
     """
-    return {**PREVIEW_SAMPLES, **extra}
+    from rosemary.core.variables import samples_for
+
+    base = samples_for(names) if names else dict(PREVIEW_SAMPLES)
+    base.update(extra)
+    return base
+
+
+def spec_variables(spec: CardSpec) -> tuple[str, ...]:
+    """Placeholder names a card receives (its contract)."""
+    return tuple(spec.variables)
 
 
 def safe_format(template: str, mapping: dict[str, Any]) -> str:
@@ -309,6 +313,63 @@ def safe_format(template: str, mapping: dict[str, Any]) -> str:
         lambda match: str(mapping[match.group(1)]) if match.group(1) in mapping else match.group(0),
         template,
     )
+
+
+def new_block_id() -> str:
+    """Stable random id for one block (editor selections/modals use it)."""
+    import uuid
+
+    return f"b_{uuid.uuid4().hex[:8]}"
+
+
+def ensure_ids(doc: dict[str, Any]) -> dict[str, Any]:
+    """Assign missing block ids in place; returns the document."""
+
+    def walk(blocks: Any) -> None:
+        if not isinstance(blocks, list):
+            return
+        for block in blocks:
+            if not isinstance(block, dict):
+                continue
+            block.setdefault("id", new_block_id())
+            walk(block.get("children"))
+            for button in block.get("buttons", []) or []:
+                if isinstance(button, dict):
+                    button.setdefault("id", new_block_id())
+
+    walk(doc.get("blocks"))
+    return doc
+
+
+def find_by_id(blocks: Any, block_id: str) -> dict[str, Any] | None:
+    """Locate a block by id anywhere in a block tree."""
+    if not isinstance(blocks, list):
+        return None
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        if block.get("id") == block_id:
+            return block
+        for child_key in ("children",):
+            found = find_by_id(block.get(child_key), block_id)
+            if found is not None:
+                return found
+        for button in block.get("buttons", []) or []:
+            if isinstance(button, dict) and button.get("id") == block_id:
+                return button
+    return None
+
+
+def reid_tree(block: dict[str, Any]) -> dict[str, Any]:
+    """Give a (duplicated) block and its descendants fresh ids."""
+    block["id"] = new_block_id()
+    for child in block.get("children", []) or []:
+        if isinstance(child, dict):
+            reid_tree(child)
+    for button in block.get("buttons", []) or []:
+        if isinstance(button, dict):
+            button["id"] = new_block_id()
+    return block
 
 
 # -- validation -------------------------------------------------------------
@@ -339,6 +400,9 @@ _ISSUE_EN: dict[str, str] = {
     "bad_url": "needs an https:// (or http://) url",
     "row_count": "needs {min}-{max} buttons",
     "button_label": "'label' is required (max {max})",
+    "button_unknown_action": "unknown button action '{action}'",
+    "button_url_and_action": "a button cannot have both url and action",
+    "button_unknown_style": "unknown button style '{style}'",
     "section_children_count": "needs {min}-{max} text children",
     "section_children_text": "children must be 'text' blocks",
     "section_accessory_missing": "requires an accessory of type 'thumbnail' or 'button'",
@@ -459,6 +523,8 @@ class _ValidationState:
         spacing = block.get("spacing", "small")
         if spacing not in ("small", "large"):
             self.error("divider_spacing")
+        if "visible" in block and not isinstance(block.get("visible"), bool):
+            self.error("divider_spacing")
 
     def _check_gallery(self, block: dict[str, Any], depth: int) -> None:
         urls = block.get("urls")
@@ -476,10 +542,26 @@ class _ValidationState:
             return
         self.components += len(buttons) - 1
         for button in buttons:
-            label = button.get("label") if isinstance(button, dict) else None
-            if not isinstance(label, str) or not label.strip() or len(label) > LABEL_MAX:
-                self.error("button_label", max=LABEL_MAX)
-            self._check_url(button.get("url") if isinstance(button, dict) else None)
+            self._check_button(button)
+
+    def _check_button(self, button: Any) -> None:
+        from rosemary.core.card_actions import ACTIONS, INTERACTIVE_STYLES
+
+        if not isinstance(button, dict):
+            self.error("button_label", max=LABEL_MAX)
+            return
+        label = button.get("label")
+        if not isinstance(label, str) or not label.strip() or len(label) > LABEL_MAX:
+            self.error("button_label", max=LABEL_MAX)
+        if button.get("action") is not None:
+            if button.get("action") not in ACTIONS:
+                self.error("button_unknown_action", action=button.get("action"))
+            if button.get("url"):
+                self.error("button_url_and_action")
+            if button.get("style") is not None and button.get("style") not in INTERACTIVE_STYLES:
+                self.error("button_unknown_style", style=button.get("style"))
+        else:
+            self._check_url(button.get("url"))
 
     def _check_section(self, block: dict[str, Any], depth: int) -> None:
         children = block.get("children")
@@ -534,6 +616,7 @@ def build_items(
     variables: dict[str, Any] | None = None,
     *,
     draft: bool = False,
+    card_key: str | None = None,
 ) -> list[discord.ui.ViewItem]:
     """Render a validated document into top-level V2 items for a DesignerView.
 
@@ -557,10 +640,15 @@ def build_items(
             and not safe_format(str(block.get("body", "")), mapping).strip()
         )
     ]
-    return [_build_block(block, theme, mapping) for block in blocks]
+    return [_build_block(block, theme, mapping, card_key) for block in blocks]
 
 
-def _build_block(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> discord.ui.ViewItem:
+def _build_block(
+    block: dict[str, Any],
+    theme: Any,
+    mapping: dict[str, Any],
+    card_key: str | None = None,
+) -> discord.ui.ViewItem:
     builder = {
         "text": _build_text,
         "divider": _build_divider,
@@ -569,6 +657,8 @@ def _build_block(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> 
         "section": _build_section,
         "container": _build_container,
     }[block["type"]]
+    if block["type"] == "row":
+        return _build_row(block, theme, mapping, card_key)
     return builder(block, theme, mapping)
 
 
@@ -584,7 +674,7 @@ def _build_divider(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -
     size = discord.SeparatorSpacingSize.large if block.get("spacing") == "large" else (
         discord.SeparatorSpacingSize.small
     )
-    return Separator(spacing=size)
+    return Separator(spacing=size, divider=block.get("visible", True) is not False)
 
 
 def _build_gallery(
@@ -602,12 +692,32 @@ def _build_link_button(label: str, url: str, mapping: dict[str, Any]) -> discord
     )
 
 
-def _build_row(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> ActionRow:
-    buttons = [
-        _build_link_button(button.get("label", ""), button.get("url", ""), mapping)
-        for button in block.get("buttons", [])
-        if isinstance(button, dict)
-    ]
+def _build_action_button(
+    button: dict[str, Any], mapping: dict[str, Any], card_key: str | None
+) -> discord.ui.Button:
+    from rosemary.core.card_actions import button_style, custom_id_for
+
+    return discord.ui.Button(
+        style=button_style(button.get("style")),
+        label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "•",
+        custom_id=custom_id_for(card_key or "", str(button.get("id", ""))),
+        emoji=_fill(button.get("emoji", ""), mapping) or None,
+    )
+
+
+def _build_row(
+    block: dict[str, Any], theme: Any, mapping: dict[str, Any], card_key: str | None = None
+) -> ActionRow:
+    buttons = []
+    for button in block.get("buttons", []):
+        if not isinstance(button, dict):
+            continue
+        if button.get("action") is not None:
+            buttons.append(_build_action_button(button, mapping, card_key))
+        else:
+            buttons.append(
+                _build_link_button(button.get("label", ""), button.get("url", ""), mapping)
+            )
     return ActionRow(*buttons)
 
 
@@ -627,7 +737,9 @@ def _build_section(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -
     return Section(*children, accessory=item)
 
 
-def _build_container(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> Container:
+def _build_container(
+    block: dict[str, Any], theme: Any, mapping: dict[str, Any], card_key: str | None = None
+) -> Container:
     color = None
     token = block.get("color")
     if isinstance(token, str):
@@ -635,7 +747,9 @@ def _build_container(block: dict[str, Any], theme: Any, mapping: dict[str, Any])
             color = theme.color(token)
         except KeyError as exc:
             raise CardsError([CardIssue("color_unknown", (("color", token),))]) from exc
-    children = [_build_block(child, theme, mapping) for child in block.get("children", [])]
+    children = [
+        _build_block(child, theme, mapping, card_key) for child in block.get("children", [])
+    ]
     if color is not None:
         return Container(*children, color=color)
     return Container(*children)

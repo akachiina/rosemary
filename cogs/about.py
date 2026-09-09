@@ -33,21 +33,25 @@ class AboutCog(commands.Cog):
             channel = await get_setting(self.bot.storage, ctx.guild_id, "updater.channel")
         else:
             channel = "stable"
-        # Sections require an accessory (Thumbnail/Button); plain text must use
-        # TextDisplay directly to keep the message valid.
-        container = designer_container(
-            self.bot.theme.color("brand"),
-            TextDisplay(
-                self.bot.theme.md(
-                    "title", title=await t(ctx.guild_id, "about.title")
-                )
-            ),
-            TextDisplay(await t(ctx.guild_id, "about.text")),
-            divider(),
-            TextDisplay(
-                await t(ctx.guild_id, "about.version", version=__version__, channel=channel)
-            ),
-        )
-        view = DesignerView(store=False)
-        view.add_item(container)
+        from rosemary.core.cards import maybe_view
+
+        view = await maybe_view(self.bot, ctx.guild_id, "about.card")
+        if view is None:
+            # Sections require an accessory (Thumbnail/Button); plain text
+            # must use TextDisplay directly to keep the message valid.
+            container = designer_container(
+                self.bot.theme.color("brand"),
+                TextDisplay(
+                    self.bot.theme.md(
+                        "title", title=await t(ctx.guild_id, "about.title")
+                    )
+                ),
+                TextDisplay(await t(ctx.guild_id, "about.text")),
+                divider(),
+                TextDisplay(
+                    await t(ctx.guild_id, "about.version", version=__version__, channel=channel)
+                ),
+            )
+            view = DesignerView(store=False)
+            view.add_item(container)
         await ctx.respond(view=view)

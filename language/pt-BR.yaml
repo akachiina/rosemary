@@ -189,6 +189,13 @@ settings:
       Para: {new}
 
       Por: {author}'
+  logs:
+    language:
+      description: 'De: {old}
+
+        Para: {new}
+
+        Por: {author}'
   bool:
     'true': Ativado
     'false': Desativado
@@ -1466,6 +1473,15 @@ moderation:
       title: Silenciamento
     warn:
       title: Warn
+    logs:
+      ban:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+      kick:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+      mute:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}\n**{duration_label}:**\n{duration}'
+      warn:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
     member: Alvo
     moderator: Moderador
     reason: Motivo
@@ -1483,6 +1499,9 @@ debug:
   test_log: Testar log
   test_log_title: Teste de log
   test_log_description: Esta mensagem confirma que o canal de log está funcionando.
+  logs:
+    test:
+      description: Esta mensagem confirma que o canal de log está funcionando.
   test_log_sent: '{success} Mensagem de teste enviada ao canal de log.'
   test_log_not_sent: '{error} Não foi possível enviar a mensagem de teste. Verifique a definição do canal
     de log.'
@@ -1499,6 +1518,274 @@ time_parser:
   days:
   - dia
   - dias
+actions:
+  open_ticket:
+    label: Abrir ticket
+    description: Abre um ticket de suporte
+  dismiss:
+    label: Dispensar
+    description: Apaga esta mensagem
+  unavailable: Esta ação não está disponível aqui.
+  ticket_created: 'Ticket aberto: {channel}'
+variables:
+  user:
+    label: Usuário
+    description: Menção do membro
+  user_name:
+    label: Nome de usuário
+    description: Nome de exibição do membro
+  user_avatar:
+    label: Avatar do usuário
+    description: URL da imagem do avatar do membro
+  user_mention:
+    label: Menção de usuário
+    description: Menção do usuário
+  server:
+    label: Servidor
+    description: Nome do servidor
+  count:
+    label: Contagem
+    description: Um número deste cartão
+  inviter:
+    label: Quem convidou
+    description: Menção de quem convidou
+  inviter_mention:
+    label: Menção de quem convidou
+    description: Menção de quem convidou
+  member:
+    label: Membro
+    description: Menção do membro
+  member_mention:
+    label: Menção de membro
+    description: Menção do membro
+  mention:
+    label: Menção
+    description: Ping deste cartão
+  moderator:
+    label: Moderador
+    description: Menção do moderador atuante
+  target:
+    label: Alvo
+    description: Menção do membro alvo
+  author:
+    label: Autor
+    description: Menção de quem agiu
+  owner:
+    label: Dono
+    description: Menção do dono
+  actor:
+    label: Atuante
+    description: Menção de quem agiu
+  winner:
+    label: Vencedor
+    description: Menção do vencedor
+  winner_mention:
+    label: Menção do vencedor
+    description: Menção do vencedor
+  invitee:
+    label: Convidado
+    description: Menção do membro convidado
+  reason:
+    label: Motivo
+    description: Texto do motivo
+  duration:
+    label: Duração
+    description: Texto da duração
+  channel:
+    label: Canal
+    description: Menção do canal
+  role:
+    label: Cargo
+    description: Menção do cargo
+  role_name:
+    label: Nome do cargo
+    description: Nome do cargo
+  guild:
+    label: Guilda
+    description: Nome da guilda
+  body:
+    label: Corpo
+    description: Texto principal do cartão
+  title:
+    label: Título
+    description: Título do cartão
+  ping:
+    label: Ping
+    description: Texto do ping
+  ping_role:
+    label: Cargo do ping
+    description: Menção do cargo do ping
+  tag:
+    label: Etiqueta
+    description: Emoji de etiqueta
+  link:
+    label: Link
+    description: URL do link de convite
+  url:
+    label: URL
+    description: URL do link
+  cooldown:
+    label: Espera
+    description: Texto da duração da espera
+  days:
+    label: Dias
+    description: Número de dias
+  total:
+    label: Total
+    description: Número total
+  bumps:
+    label: Bumps
+    description: Número de bumps
+  bump_count:
+    label: Qtd. de bumps
+    description: Número de bumps
+  winner_count:
+    label: Bumps do vencedor
+    description: Bumps do vencedor
+  total_wins:
+    label: Vitórias totais
+    description: Vitórias totais na semana
+  regular:
+    label: Normais
+    description: Qtd. de convites normais
+  bonus:
+    label: Bônus
+    description: Qtd. de convites bônus
+  fake:
+    label: Fakes
+    description: Qtd. de convites falsos
+  left:
+    label: Saíram
+    description: Qtd. de membros que saíram
+  rank:
+    label: Posição
+    description: Posição no placar
+  joins:
+    label: Entradas
+    description: Qtd. de entradas no servidor
+  sent:
+    label: Enviados
+    description: Qtd. de mensagens enviadas
+  failed:
+    label: Falhas
+    description: Qtd. de falhas
+  relayed:
+    label: Retransmitidas
+    description: Qtd. de mensagens retransmitidas
+  codes:
+    label: Códigos
+    description: Qtd. de códigos de convite
+  amount:
+    label: Quantidade
+    description: Quantidade de bônus
+  max_members:
+    label: Limite de membros
+    description: Limite de membros
+  members:
+    label: Membros
+    description: Qtd. de membros
+  code:
+    label: Código
+    description: Código de convite
+  flags:
+    label: Flags
+    description: Texto extra de flags
+  label:
+    label: Rótulo
+    description: Texto do rótulo
+  expires:
+    label: Expira em
+    description: Texto de expiração
+  name:
+    label: Nome
+    description: Texto do nome
+  type:
+    label: Tipo
+    description: Rótulo do tipo
+  word:
+    label: Palavra
+    description: Palavra apagada
+  previous:
+    label: Anterior
+    description: Texto da versão anterior
+  current:
+    label: Atual
+    description: Texto da versão atual
+  old:
+    label: Antigo
+    description: Valor antigo
+  new:
+    label: Novo
+    description: Valor novo
+  deleted:
+    label: Apagado
+    description: Nome do item apagado
+  enabled:
+    label: Ativo
+    description: Se está ativo
+  locked:
+    label: Bloqueado
+    description: Se está bloqueado
+  next:
+    label: Próximo
+    description: Texto do próximo valor
+  when:
+    label: Quando
+    description: Texto de data/hora
+  status:
+    label: Estado
+    description: Texto de estado
+  leaderboard_list:
+    label: Placar
+    description: Linhas do placar
+  position:
+    label: Posição
+    description: Posição no rank
+  medal:
+    label: Medalha
+    description: Emoji da medalha do rank
+  warned:
+    label: Aviso
+    description: Marcador de aviso
+  old_owner:
+    label: Dono anterior
+    description: Menção do dono anterior
+  new_owner:
+    label: Novo dono
+    description: Menção do novo dono
+  old_name:
+    label: Nome antigo
+    description: Nome anterior
+  new_name:
+    label: Nome novo
+    description: Nome novo
+  new_color:
+    label: Nova cor
+    description: Valor da nova cor
+  emoji:
+    label: Emoji
+    description: Valor do emoji
+  orphans:
+    label: Órfãos
+    description: Qtd. de órfãos
+  expired:
+    label: Expirados
+    description: Qtd. de expirados
+  start_timestamp:
+    label: Início
+    description: Timestamp do início do período
+  end_timestamp:
+    label: Fim
+    description: Timestamp do fim do período
+  next_reset_timestamp:
+    label: Próximo reset
+    description: Timestamp do próximo reset
+  next_bump_timestamp:
+    label: Próximo bump
+    description: Timestamp do próximo bump
+  server_name:
+    label: Nome do servidor
+    description: Nome do servidor
 cards:
   editor:
     title: Editor de Cartões
@@ -1526,6 +1813,19 @@ cards:
       move_down: Descer
       compare: Comparar
       cancel: Cancelar
+      save: Salvar
+      discard: Descartar
+      duplicate: Duplicar
+      undo: Desfazer
+      redo: Refazer
+      move_out: Mover p/ fora
+      accessory: Lateral
+      action_add: Adicionar ação
+      more: Mais
+      templates: Modelos
+      history: Histórico
+      export: Exportar
+      import: Importar
     types:
       text: Texto
       container: Card (caixa colorida)
@@ -1546,6 +1846,7 @@ cards:
     spacing:
       small: Espaçamento pequeno
       large: Espaçamento grande
+      hidden: Oculto (espaçador invisível)
     modals:
       text_title: Editar texto
       text_label: Texto (markdown + placeholders)
@@ -1558,7 +1859,62 @@ cards:
       row_placeholder: Site | https://exemplo.com
     select_placeholder: Escolha um bloco para editar...
     breadcrumb: 'Caminho: {path}'
+    arm_delete: 'Clique Remover de novo para confirmar a exclusão.'
+    arm_reset: 'Clique Restaurar de novo para confirmar. Isso restaura o padrão.'
+    arm_discard: 'Clique Descartar de novo para jogar fora as mudanças não salvas.'
+    arm_mentions: 'Clique de novo para permitir mencionar todos.'
+    discarded: '{success} Mudanças não salvas descartadas.'
+    unsaved: '{warning} Mudanças não salvas — use Salvar.'
+    compare_summary: '{same} iguais, {changed} alterados de {total} blocos.'
+    lint_unknown: "'{unknown}' não é um placeholder deste cartão."
+    lint_suggestion: 'Quis dizer {suggestion}?'
+    modal_stale: 'Esse bloco não existe mais. Seu texto foi mantido: {value}'
+    more_title: 'Mais ações:'
+    templates_title: 'Comece de um modelo (substitui o rascunho, desfazível):'
+    templates_placeholder: Escolha um modelo...
+    templates_empty: '*Sem modelos disponíveis.*'
+    templates_applied: '{success} Modelo aplicado como rascunho.'
+  templates:
+    banner:
+      label: Faixa
+      description: Caixa colorida com título, divisor e texto
+    profile:
+      label: Perfil
+      description: Avatar com linhas de nome
+    panel:
+      label: Painel
+      description: Caixa com título, texto e botão de link
+    history_title: 'Versões salvas (restaurar carrega como rascunho):'
+    history_placeholder: Escolha uma versão...
+    history_empty: '*Sem versões salvas ainda. Salve o cartão primeiro.*'
+    history_restored: '{success} Versão restaurada como rascunho.'
+    exported: '{success} Cartão exportado abaixo (visível só para você).'
+    imported: '{success} Cartão importado como rascunho — revise e Salve.'
+    import_invalid: '{error} Não foi possível importar: arquivo não é um cartão válido.'
+    unknown_card: '{error} Cartão desconhecido. Escolha um no menu /personalizar.'
+    confirm_reset: 'Restaurar {key} para o padrão?'
+    import_title: Importar JSON do cartão
+    import_label: Arquivo do cartão (.json)
+    import_description: Um arquivo exportado antes pelo editor.
+    row_buttons_title: 'Botões de link desta linha:'
+    row_buttons_empty: '*Sem botões ainda. Use Adicionar abaixo (máx. 5).*'
+    action_title: 'Escolha uma ação para o botão:'
+    action_placeholder: Escolha uma ação...
+    action_type_title: 'Qual tipo de ticket ele abre?'
+    action_type_placeholder: Escolha um tipo de ticket...
+    accessory_title: 'Conteúdo lateral da seção:'
+    accessory_type_placeholder: Escolha miniatura ou botão...
+    accessory_thumbnail: 'Miniatura (imagem ao lado)'
+    accessory_button: 'Botão (link ao lado)'
+    divider_title: 'Estilo do divisor:'
+    divider_placeholder: Escolha um estilo de divisor...
+    button_title: Editar botão
+    button_label_label: Rótulo
+    button_label_placeholder: Texto do botão...
+    button_url_label: URL
+    button_url_placeholder: https://exemplo.com
     paged_blocks: 'Mostrando {shown} de {total} blocos.'
+    blocks_page: 'Blocos página {page}/{pages}.'
     child_count: '{count} bloco(s) dentro'
     image_count: '{count} imagem(ns)'
     button_count: '{count} botão(ões) de link'
@@ -1578,6 +1934,12 @@ cards:
       winner_auto: Vencedor (só no post automático)
       role: Cargo
       all: Todos mencionados
+    desc:
+      none: Nunca menciona ninguém
+      single: Menciona um usuário do texto
+      winner_auto: Menciona o vencedor só em posts automáticos
+      role: Menciona o cargo configurado
+      all: Pode mencionar todos citados, use com cuidado
   customize:
     title: Personalizar Mensagens
     choose: Escolha uma categoria e depois a mensagem que quer personalizar.
@@ -1600,6 +1962,9 @@ cards:
     bad_url: Informe uma URL https:// válida.
     row_count: Linhas de botões precisam de {min}-{max} botões.
     button_label: Todo botão precisa de rótulo (máx. {max} caracteres).
+    button_unknown_action: "Ação de botão desconhecida '{action}'."
+    button_url_and_action: Um botão não pode ter link e ação ao mesmo tempo.
+    button_unknown_style: "Estilo de botão desconhecido '{style}'."
     section_children_count: Seções precisam de {min}-{max} filhos de texto.
     section_children_text: Filhos de seção devem ser blocos de texto.
     section_accessory_missing: Seções exigem um acessório thumbnail ou botão.
@@ -1650,6 +2015,9 @@ card:
       error:
         title: 'DM: erro no convite'
         placeholders: '{{body}}'
+    preview:
+      title: Cartão de prévia do cargo
+      placeholders: '{{count}}, {{max_members}}, {{owner}}, {{role_name}}'
     logs:
       register:
         description:
@@ -1891,10 +2259,10 @@ card:
       placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
     leave:
       title: Mensagem de saída
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}'
     ban:
       title: Mensagem de banimento
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}'
   birthdays:
     announce:
       title: Anúncio de aniversário
@@ -1989,6 +2357,9 @@ card:
     server_stats:
       title: Stats de convites do servidor
       placeholders: '{{joins}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{title}}, {{body}}'
+    invited_by:
+      title: Cartão de quem convidou
+      placeholders: '{{body}}, {{code}}, {{inviter}}, {{status}}, {{title}}, {{user}}, {{when}}'
     logs:
       join:
         description:
@@ -2010,6 +2381,22 @@ card:
         description:
           title: 'Log: convites resetados'
           placeholders: '{{moderator}}'
+  about:
+    card:
+      title: Cartão sobre
+      placeholders: ''
+  settings:
+    logs:
+      language:
+        description:
+          title: 'Log: idioma alterado'
+          placeholders: '{{author}}, {{new}}, {{old}}'
+  debug:
+    logs:
+      test:
+        description:
+          title: 'Log: mensagem de teste'
+          placeholders: ''
 events:
   enabled:
     label: Ativar anúncios

@@ -469,15 +469,24 @@ class InvitesCog(commands.Cog):
             ),
         )
         title = await self.bot.translator.t(guild_id, "invites.inviter.title")
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay(body),
-            )
+        view = await self._card_view(
+            guild_id,
+            "invites.invited_by",
+            title,
+            body,
+            {
+                "user": member.mention,
+                "inviter": f"<@{inviter_id}>" if inviter_id else "-",
+                "code": record.get("code") or "-",
+                "when": f"<t:{int(datetime.fromisoformat(joined).timestamp())}:R>"
+                if joined
+                else "-",
+                "status": await self.bot.translator.t(
+                    guild_id, f"invites.status.{record.get('status') or 'unknown'}"
+                ),
+                "title": title,
+                "body": body,
+            },
         )
         await ctx.respond(view=view, ephemeral=True)
 

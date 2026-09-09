@@ -451,40 +451,28 @@ class ModerationCog(commands.Cog):
                 guild_id, target.id, reason, moderator.id, moderator_tag
             )
 
-        fields = [
-            self.bot.theme.md(
-                "entry",
-                label=await t(guild_id, "moderation.log.member"),
-                value=target.mention,
+        from rosemary.core.cards import log_description
+
+        description = await log_description(
+            self.bot,
+            guild_id,
+            f"moderation.logs.{action}.description",
+            member=target.mention,
+            moderator=moderator.mention,
+            reason=reason,
+            duration=(
+                TimeParser.format_duration(duration) if duration is not None else "-"
             ),
-            self.bot.theme.md(
-                "entry",
-                label=await t(guild_id, "moderation.log.moderator"),
-                value=moderator.mention,
-            ),
-            self.bot.theme.md(
-                "entry",
-                label=await t(guild_id, "moderation.log.reason"),
-                value=reason,
-            ),
-        ]
-        if action == "mute":
-            fields.append(
-                self.bot.theme.md(
-                    "entry",
-                    label=await t(guild_id, "moderation.log.duration"),
-                    value=(
-                        TimeParser.format_duration(duration)
-                        if duration is not None
-                        else "-"
-                    ),
-                )
-            )
+            member_label=await t(guild_id, "moderation.log.member"),
+            moderator_label=await t(guild_id, "moderation.log.moderator"),
+            reason_label=await t(guild_id, "moderation.log.reason"),
+            duration_label=await t(guild_id, "moderation.log.duration"),
+        )
         await send_channel_log(
             self.bot,
             guild_id,
             await t(guild_id, f"moderation.log.{action}.title"),
-            "\n".join(fields),
+            description,
             color=_ACTION_LOG_COLORS[action],
             card_key=f"moderation.logs.{action}.description",
         )

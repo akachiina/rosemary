@@ -194,6 +194,7 @@ class BumpReminderCog(commands.Cog):
                     f"bump.schedule.{'close' if locked else 'open'}_message_default",
                     {"ping_role": ping_role},
                 ),
+                ping_role=ping_role,
             )
             if message:
                 await channel.send(

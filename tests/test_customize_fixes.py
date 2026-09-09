@@ -132,13 +132,14 @@ async def test_text_or_flattens_structural_override(tmp_path):
 
 
 async def test_persist_rejects_structural_garbage(tmp_path):
-    """Invalid edits are rejected with the last save intact."""
+    """Invalid edits are rejected with the last save intact, draft kept."""
     view, bot = make_editor(tmp_path)
     await view.prepare()
     view.blocks = [{"type": "gallery", "urls": []}]
     assert await view._persist() is False
     assert await card_store(bot).get_document(1, "test.card") is None
-    assert view.blocks != [{"type": "gallery", "urls": []}]
+    assert view.blocks == [{"type": "gallery", "urls": []}]
+    assert view.flash is not None
 
 
 async def test_persist_accepts_empty_text_skeleton(tmp_path):
@@ -163,12 +164,16 @@ async def test_stale_modal_path_does_not_crash(tmp_path):
 
 async def test_row_submit_splits_on_last_pipe(tmp_path):
     """Labels may contain '|' — only the final segment is the URL."""
+    from rosemary.ui.card_editor import _skeleton
+
     view, _bot = make_editor(tmp_path)
     await view.prepare()
-    view.blocks = [{"type": "row", "buttons": []}]
-    interaction = FakeInteraction(custom_id="card_row_modal:root:0")
+    view.blocks = [_skeleton("row")]
+    block_id = view.blocks[0]["id"]
+    interaction = FakeInteraction(custom_id=f"card_row_modal:{block_id}")
     await view._row_submit(interaction, "A | B | https://x.y")
-    assert view.blocks[0]["buttons"] == [{"label": "A | B", "url": "https://x.y"}]
+    [button] = view.blocks[0]["buttons"]
+    assert (button["label"], button["url"]) == ("A | B", "https://x.y")
 
 
 async def test_unknown_mention_policy_is_repaired(tmp_path):
@@ -241,3 +246,144 @@ async def test_invalid_theme_color_warns(tmp_path, caplog):
     with caplog.at_level("WARNING", logger="rosemary.ui.theme"):
         theme_module.load_theme(path)
     assert any("not-a-hex" in record.message for record in caplog.records)
+
+
+async def test_explicit_save_and_undo_redo_flow(tmp_path):
+    """Draft model: touch, undo, save, discard."""
+    from rosemary.ui.card_editor import _skeleton
+
+    view, bot = make_editor(tmp_path)
+    await view.prepare()
+    assert not view.is_dirty()
+    view._touch()
+    view.blocks.append(_skeleton("divider"))
+    assert view.is_dirty()
+    await view._undo_action(FakeInteraction())
+    assert not view.is_dirty()
+    assert len(view.blocks) == 1
+
+
+async def test_delete_arms_before_removing(tmp_path):
+    view, _bot = make_editor(tmp_path)
+    await view.prepare()
+    view.blocks[0]["body"] = "keep"
+    interaction = FakeInteraction(custom_id="card_act:delete")
+    view.selected = 0
+    await view._act_on_selected(interaction)
+    assert len(view.blocks) == 1
+    await view._act_on_selected(FakeInteraction(custom_id="card_act:delete"))
+    assert view.blocks == []
+
+
+async def test_duplicate_reids_block(tmp_path):
+    view, _bot = make_editor(tmp_path)
+    await view.prepare()
+    view.blocks[0]["body"] = "x"
+    view.selected = 0
+    await view._act_on_selected(FakeInteraction(custom_id="card_act:duplicate"))
+    assert len(view.blocks) == 2
+    assert view.blocks[0]["id"] != view.blocks[1]["id"]
+    assert view.blocks[1]["body"] == "x"
+
+
+async def test_modal_by_id_survives_reorder(tmp_path):
+    """A modal opened before a move still edits the right block."""
+    view, _bot = make_editor(tmp_path)
+    await view.prepare()
+    view.blocks.append({"id": "b2", "type": "text", "body": "second"})
+    await view._text_submit(
+        FakeInteraction(custom_id="card_text_modal:b2"), "edited"
+    )
+    assert view.blocks[1]["body"] == "edited"
+
+
+async def test_action_button_roundtrip_validation(tmp_path):
+    """Closed action registry: known actions pass, others fail."""
+    from rosemary.core.cards import validate_document
+
+    theme = load_theme()
+    good = {
+        "v": 1,
+        "blocks": [
+            {
+                "type": "row",
+                "buttons": [
+                    {"label": "Open", "action": "open_ticket", "ticket_type": "report"}
+                ],
+            }
+        ],
+    }
+    assert validate_document(good, theme=theme) == []
+    bad = {
+        "v": 1,
+        "blocks": [
+            {
+                "type": "row",
+                "buttons": [{"label": "X", "action": "explode", "url": "https://x.y"}],
+            }
+        ],
+    }
+    codes = {issue.code for issue in validate_document(bad, theme=theme)}
+    assert {"button_unknown_action", "button_url_and_action"} <= codes
+
+
+async def test_action_custom_id_parse():
+    from rosemary.core.card_actions import custom_id_for, parse_custom_id
+
+    cid = custom_id_for("bump.reminder", "b_12345678")
+    assert len(cid) <= 100
+    assert parse_custom_id(cid) == ("cardact", "bump.reminder", "b_12345678")
+    assert parse_custom_id("tickets_open") is None
+
+
+async def test_templates_apply_as_undoable_draft(tmp_path):
+    from rosemary.core.card_templates import get_template, list_templates
+
+    assert len(list_templates()) >= 3
+    template = get_template("banner")
+    assert template is not None
+    view, _bot = make_editor(tmp_path)
+    await view.prepare()
+    before = len(view.blocks)
+    view._touch()
+    import copy
+
+    view.blocks = copy.deepcopy(template.blocks)
+    assert len(view.blocks) != before or view.is_dirty()
+    await view._undo_action(FakeInteraction())
+    assert not view.is_dirty()
+
+
+async def test_history_append_and_cap(tmp_path):
+    from rosemary.core.card_history import MAX_VERSIONS, CardHistory
+
+    store = CardHistory(tmp_path)
+    for i in range(MAX_VERSIONS + 5):
+        await store.append(1, "k", {"v": 2, "blocks": [{"n": i}]}, None)
+    versions = await store.list(1, "k")
+    assert len(versions) == MAX_VERSIONS
+    doc = await store.get(1, "k", versions[-1]["ver"])
+    assert doc["blocks"] == [{"n": MAX_VERSIONS + 4}]
+
+
+async def test_service_export_import_roundtrip(tmp_path):
+    from rosemary.core.card_service import export_payload, import_payload
+
+    class FakeBot:
+        theme = load_theme()
+
+        def __init__(self):
+            from rosemary.core.storage import GuildStorage
+
+            self.storage = GuildStorage(tmp_path)
+
+    bot = FakeBot()
+    doc = {"v": 2, "blocks": [{"type": "text", "body": "hi {user}"}]}
+    filename, data = export_payload("bump.reminder", doc)
+    assert filename == "bump-reminder.json"
+    import json
+
+    ok, _reason = await import_payload(bot, 1, "bump.reminder", json.loads(data))
+    assert ok is True
+    ok, _reason = await import_payload(bot, 1, "bump.reminder", {"nope": True})
+    assert ok is False

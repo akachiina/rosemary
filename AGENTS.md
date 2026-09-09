@@ -19,7 +19,7 @@ Rosemary — a modular, multilingual Discord bot for multiple servers, built on 
 ## Architecture
 
 - `bot.py` = `RosemaryBot` (single entrypoint) + `main()`. `_setup()` runs once in `on_ready`: registers cogs, loads `language/*.yaml` + `ui/theme.yaml`, snapshots `_command_base_keys` (English decorator names) for per-guild re-localization.
-- Cogs are registered explicitly in `_setup()` (no auto-discovery) — older cogs via `add_cog(Class(bot))`, newer ones via `def setup(bot)`. Commands sync **per guild, never globally** — `on_guild_join()` syncs newly joined servers; without it a new server gets no slash commands until restart.
+- Cogs are registered explicitly in `_setup()` (no auto-discovery) via `add_cog(Class(bot))` — there are no `def setup(bot)` extension hooks. Commands sync **per guild, never globally** — `on_guild_join()` syncs newly joined servers; without it a new server gets no slash commands until restart. `/personalizar` is a command group (`menu/ver/testar/resetar/exportar/importar`).
 - i18n (`core/i18n.py`): YAML sections flatten to dotted keys (`about.title`). `language_meta` (name+flag) is metadata for `/language` choices, **not** a translation key. **en↔pt key parity is enforced by `test_i18n.py`** — always add new keys to both catalogs.
 - **List-valued catalog keys (e.g. `time_parser.*`) must be read via `translator.raw()`, never `t()`** — `t()` calls `.format()` on the template and crashes on lists.
 - **Emojis are never hardcoded**: `t()` auto-injects every `emojis:` entry from `ui/theme.yaml` as a format placeholder, so any `{key}` in a catalog resolves automatically; explicit kwargs override. Colors come from `theme.color("<name>")` (names defined in `ui/theme.yaml` `colors:`/`styles:`).
@@ -33,7 +33,7 @@ Rosemary — a modular, multilingual Discord bot for multiple servers, built on 
 - **`<@id>` inside Components V2 `TextDisplay` still pings** — every public `channel.send`/`ctx.respond` carrying mentions must pass an explicit `allowed_mentions` from `mentions_for(...)`. Ephemeral responses don't need it.
 - `winner_auto` pings one user only when `source="auto"` (weekly post); manual `/bump_leaderboard` passes `source="command"` → silent. `single`/`role` ping only the passed candidate ids.
 - `send_channel_log(..., card_key=..., mention_user_ids=[...])` resolves the log card's policy (log cards default to `none`); calls without `card_key` never ping.
-- Adding a customizable card = `CardSpec` in `core/card_specs.py` + `card.<key>.title`/`.placeholders` in BOTH catalogs (**enforced by `test_customize.py`**) + a sensible `mention_default`.
+- Adding a customizable card = `CardSpec` in `core/card_specs.py` + `card.<key>.title`/`.placeholders` in BOTH catalogs (**enforced by `test_customize.py`**) + a sensible `mention_default` + `variables` contract in `VARIABLES_BY_KEY` (send site must pass exactly those; **enforced by `test_variables.py`**). Placeholder labels live in `variables.<name>.label/.description` (BOTH catalogs); samples in `core/variables.py`. Editor edits a draft with undo + explicit Save/Discard; never auto-persists.
 
 ## Settings system (`core/settings.py`)
 

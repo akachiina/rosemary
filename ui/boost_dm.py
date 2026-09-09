@@ -94,4 +94,18 @@ async def send_preview(
     data: dict[str, Any],
 ) -> None:
     """Send the role-preview card as its own message."""
-    await destination.send(view=await preview_view(bot, guild_id, role, data))
+    from rosemary.core.cards import maybe_view
+
+    max_members = await get_setting(bot.storage, guild_id, "boost.max_members")
+    view = await maybe_view(
+        bot,
+        guild_id,
+        "boost.preview",
+        {
+            "role_name": role.name,
+            "owner": f"<@{data.get('owner_id', 0)}>",
+            "count": len(data.get("members", [])),
+            "max_members": max_members,
+        },
+    )
+    await destination.send(view=view or await preview_view(bot, guild_id, role, data))

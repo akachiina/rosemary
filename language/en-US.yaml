@@ -189,6 +189,13 @@ settings:
       To: {new}
 
       By: {author}'
+  logs:
+    language:
+      description: 'From: {old}
+
+        To: {new}
+
+        By: {author}'
   bool:
     'true': 'On'
     'false': 'Off'
@@ -1466,6 +1473,15 @@ moderation:
       title: Mute
     warn:
       title: Warn
+    logs:
+      ban:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+      kick:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+      mute:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}\n**{duration_label}:**\n{duration}'
+      warn:
+        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
     member: Target
     moderator: Moderator
     reason: Reason
@@ -1483,6 +1499,9 @@ debug:
   test_log: Test log
   test_log_title: Log test
   test_log_description: This message confirms that the logging channel works.
+  logs:
+    test:
+      description: This message confirms that the logging channel works.
   test_log_sent: '{success} Test message sent to the log channel.'
   test_log_not_sent: '{error} Could not send the test message. Check the log channel setting.'
 time_parser:
@@ -1498,6 +1517,274 @@ time_parser:
   days:
   - day
   - days
+actions:
+  open_ticket:
+    label: Open ticket
+    description: Opens a support ticket
+  dismiss:
+    label: Dismiss
+    description: Deletes this message
+  unavailable: This action is not available here.
+  ticket_created: 'Ticket opened: {channel}'
+variables:
+  user:
+    label: User
+    description: Mention of the member
+  user_name:
+    label: User name
+    description: Display name of the member
+  user_avatar:
+    label: User avatar
+    description: Avatar image URL of the member
+  user_mention:
+    label: User mention
+    description: Mention of the user
+  server:
+    label: Server
+    description: Name of the server
+  count:
+    label: Count
+    description: A number for this card
+  inviter:
+    label: Inviter
+    description: Mention of who invited
+  inviter_mention:
+    label: Inviter mention
+    description: Mention of who invited
+  member:
+    label: Member
+    description: Mention of the member
+  member_mention:
+    label: Member mention
+    description: Mention of the member
+  mention:
+    label: Mention
+    description: Ping for this card
+  moderator:
+    label: Moderator
+    description: Mention of the acting moderator
+  target:
+    label: Target
+    description: Mention of the target member
+  author:
+    label: Author
+    description: Mention of who acted
+  owner:
+    label: Owner
+    description: Mention of the owner
+  actor:
+    label: Actor
+    description: Mention of who acted
+  winner:
+    label: Winner
+    description: Mention of the winner
+  winner_mention:
+    label: Winner mention
+    description: Mention of the winner
+  invitee:
+    label: Invitee
+    description: Mention of the invited member
+  reason:
+    label: Reason
+    description: Reason text
+  duration:
+    label: Duration
+    description: Duration text
+  channel:
+    label: Channel
+    description: Mention of the channel
+  role:
+    label: Role
+    description: Mention of the role
+  role_name:
+    label: Role name
+    description: Name of the role
+  guild:
+    label: Guild
+    description: Name of the guild
+  body:
+    label: Body
+    description: Main text of the card
+  title:
+    label: Title
+    description: Title of the card
+  ping:
+    label: Ping
+    description: Ping text
+  ping_role:
+    label: Ping role
+    description: Mention of the ping role
+  tag:
+    label: Tag
+    description: Tag emoji
+  link:
+    label: Link
+    description: Invite link URL
+  url:
+    label: URL
+    description: Link URL
+  cooldown:
+    label: Cooldown
+    description: Cooldown duration text
+  days:
+    label: Days
+    description: Number of days
+  total:
+    label: Total
+    description: Total number
+  bumps:
+    label: Bumps
+    description: Number of bumps
+  bump_count:
+    label: Bump count
+    description: Number of bumps
+  winner_count:
+    label: Winner count
+    description: Winner bump count
+  total_wins:
+    label: Total wins
+    description: Total week wins
+  regular:
+    label: Regular
+    description: Regular invite count
+  bonus:
+    label: Bonus
+    description: Bonus invite count
+  fake:
+    label: Fake
+    description: Fake invite count
+  left:
+    label: Left
+    description: Members who left count
+  rank:
+    label: Rank
+    description: Leaderboard position
+  joins:
+    label: Joins
+    description: Server join count
+  sent:
+    label: Sent
+    description: Messages sent count
+  failed:
+    label: Failed
+    description: Failure count
+  relayed:
+    label: Relayed
+    description: Messages relayed count
+  codes:
+    label: Codes
+    description: Invite code count
+  amount:
+    label: Amount
+    description: Bonus amount
+  max_members:
+    label: Max members
+    description: Member limit
+  members:
+    label: Members
+    description: Member count
+  code:
+    label: Code
+    description: Invite code
+  flags:
+    label: Flags
+    description: Extra flags text
+  label:
+    label: Label
+    description: Label text
+  expires:
+    label: Expiry
+    description: Expiry text
+  name:
+    label: Name
+    description: Name text
+  type:
+    label: Type
+    description: Type label
+  word:
+    label: Word
+    description: Purged word
+  previous:
+    label: Previous
+    description: Previous version text
+  current:
+    label: Current
+    description: Current version text
+  old:
+    label: Old
+    description: Old value
+  new:
+    label: New
+    description: New value
+  deleted:
+    label: Deleted
+    description: Deleted item name
+  enabled:
+    label: Enabled
+    description: Whether enabled
+  locked:
+    label: Locked
+    description: Whether locked
+  next:
+    label: Next
+    description: Next value text
+  when:
+    label: When
+    description: Timestamp text
+  status:
+    label: Status
+    description: Status text
+  leaderboard_list:
+    label: Leaderboard
+    description: Ranking lines
+  position:
+    label: Position
+    description: Rank position
+  medal:
+    label: Medal
+    description: Rank medal emoji
+  warned:
+    label: Warning
+    description: Warning marker
+  old_owner:
+    label: Old owner
+    description: Mention of the previous owner
+  new_owner:
+    label: New owner
+    description: Mention of the new owner
+  old_name:
+    label: Old name
+    description: Previous name
+  new_name:
+    label: New name
+    description: New name
+  new_color:
+    label: New color
+    description: New color value
+  emoji:
+    label: Emoji
+    description: Emoji value
+  orphans:
+    label: Orphans
+    description: Orphan count
+  expired:
+    label: Expired
+    description: Expired count
+  start_timestamp:
+    label: Start time
+    description: Period start timestamp
+  end_timestamp:
+    label: End time
+    description: Period end timestamp
+  next_reset_timestamp:
+    label: Next reset
+    description: Next reset timestamp
+  next_bump_timestamp:
+    label: Next bump
+    description: Next bump timestamp
+  server_name:
+    label: Server name
+    description: Name of the server
 cards:
   editor:
     title: Card Editor
@@ -1525,6 +1812,19 @@ cards:
       move_down: Down
       compare: Compare
       cancel: Cancel
+      save: Save
+      discard: Discard
+      duplicate: Duplicate
+      undo: Undo
+      redo: Redo
+      move_out: Move out
+      accessory: Side content
+      action_add: Add action
+      more: More
+      templates: Templates
+      history: History
+      export: Export
+      import: Import
     types:
       text: Text
       container: Card (colored box)
@@ -1545,6 +1845,7 @@ cards:
     spacing:
       small: Small spacing
       large: Large spacing
+      hidden: Hidden (invisible spacer)
     modals:
       text_title: Edit text
       text_label: Text (markdown + placeholders)
@@ -1557,7 +1858,62 @@ cards:
       row_placeholder: Site | https://example.com
     select_placeholder: Pick a block to work on...
     breadcrumb: 'Path: {path}'
+    arm_delete: 'Press Remove again to confirm deletion.'
+    arm_reset: 'Press Reset again to confirm. This restores the default.'
+    arm_discard: 'Press Discard again to throw away unsaved changes.'
+    arm_mentions: 'Press again to allow mentioning everyone.'
+    discarded: '{success} Unsaved changes discarded.'
+    unsaved: '{warning} Unsaved changes — use Save.'
+    compare_summary: '{same} unchanged, {changed} changed of {total} blocks.'
+    lint_unknown: "'{unknown}' is not a placeholder of this card."
+    lint_suggestion: 'Did you mean {suggestion}?'
+    modal_stale: 'That block no longer exists. Your text was kept: {value}'
+    more_title: 'More actions:'
+    templates_title: 'Start from a template (replaces the draft, undoable):'
+    templates_placeholder: Choose a template...
+    templates_empty: '*No templates available.*'
+    templates_applied: '{success} Template applied as draft.'
+  templates:
+    banner:
+      label: Banner
+      description: Colored box with title, divider and text
+    profile:
+      label: Profile
+      description: Avatar with name lines
+    panel:
+      label: Panel
+      description: Box with title, text and link button
+    history_title: 'Saved versions (restoring loads them as draft):'
+    history_placeholder: Choose a version...
+    history_empty: '*No saved versions yet. Save the card first.*'
+    history_restored: '{success} Version restored as draft.'
+    exported: '{success} Card exported below (visible only to you).'
+    imported: '{success} Card imported as draft — review and Save.'
+    import_invalid: '{error} Could not import: file is not a valid card.'
+    unknown_card: '{error} Unknown card. Pick one from /personalizar menu.'
+    confirm_reset: 'Reset {key} to its default?'
+    import_title: Import card JSON
+    import_label: Card file (.json)
+    import_description: A file previously exported from the composer.
+    row_buttons_title: 'Link buttons of this row:'
+    row_buttons_empty: '*No buttons yet. Use Add below (max 5).*'
+    action_title: 'Choose an action for the button:'
+    action_placeholder: Choose an action...
+    action_type_title: 'Which ticket type does it open?'
+    action_type_placeholder: Choose a ticket type...
+    accessory_title: 'Section side content:'
+    accessory_type_placeholder: Choose thumbnail or button...
+    accessory_thumbnail: 'Thumbnail (image on the side)'
+    accessory_button: 'Button (link on the side)'
+    divider_title: 'Divider style:'
+    divider_placeholder: Choose a divider style...
+    button_title: Edit button
+    button_label_label: Label
+    button_label_placeholder: Button text...
+    button_url_label: URL
+    button_url_placeholder: https://example.com
     paged_blocks: 'Showing {shown} of {total} blocks.'
+    blocks_page: 'Blocks page {page}/{pages}.'
     child_count: '{count} block(s) inside'
     image_count: '{count} image(s)'
     button_count: '{count} link button(s)'
@@ -1577,6 +1933,12 @@ cards:
       winner_auto: Winner (auto-post only)
       role: Role
       all: Everyone mentioned
+    desc:
+      none: Never pings anyone
+      single: Pings one user from the text
+      winner_auto: Pings the winner on automatic posts only
+      role: Pings the configured role
+      all: May ping everyone mentioned, use carefully
   customize:
     title: Customize Messages
     choose: Pick a category, then the message you want to personalize.
@@ -1599,6 +1961,9 @@ cards:
     bad_url: Enter a valid https:// URL.
     row_count: Button rows need {min}-{max} buttons.
     button_label: Every button needs a label (max {max} characters).
+    button_unknown_action: "Unknown button action '{action}'."
+    button_url_and_action: A button cannot have both a link and an action.
+    button_unknown_style: "Unknown button style '{style}'."
     section_children_count: Sections need {min}-{max} text children.
     section_children_text: Section children must be text blocks.
     section_accessory_missing: Sections need a thumbnail or button accessory.
@@ -1649,6 +2014,9 @@ card:
       error:
         title: 'DM: invite error'
         placeholders: '{{body}}'
+    preview:
+      title: Role preview card
+      placeholders: '{{count}}, {{max_members}}, {{owner}}, {{role_name}}'
     logs:
       register:
         description:
@@ -1890,10 +2258,10 @@ card:
       placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
     leave:
       title: Leave message
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}'
     ban:
       title: Ban message
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}'
   birthdays:
     announce:
       title: Birthday announcement
@@ -1989,6 +2357,9 @@ card:
     server_stats:
       title: Server invite stats
       placeholders: '{{joins}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{title}}, {{body}}'
+    invited_by:
+      title: Invited-by card
+      placeholders: '{{body}}, {{code}}, {{inviter}}, {{status}}, {{title}}, {{user}}, {{when}}'
     logs:
       join:
         description:
@@ -2010,6 +2381,22 @@ card:
         description:
           title: 'Log: invites reset'
           placeholders: '{{moderator}}'
+  about:
+    card:
+      title: About card
+      placeholders: ''
+  settings:
+    logs:
+      language:
+        description:
+          title: 'Log: language changed'
+          placeholders: '{{author}}, {{new}}, {{old}}'
+  debug:
+    logs:
+      test:
+        description:
+          title: 'Log: test message'
+          placeholders: ''
 events:
   enabled:
     label: Enable announcements

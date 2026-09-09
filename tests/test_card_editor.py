@@ -117,13 +117,32 @@ def row_ids(view) -> list[list[str]]:
 
 import discord  # noqa: E402
 
+
+def _no_ids(blocks):
+    """Copies of blocks without editor ids, for shape assertions."""
+    import copy
+
+    blocks = copy.deepcopy(blocks)
+
+    def walk(items):
+        for block in items:
+            if isinstance(block, dict):
+                block.pop("id", None)
+                walk(block.get("children") or [])
+                for button in block.get("buttons", []) or []:
+                    if isinstance(button, dict):
+                        button.pop("id", None)
+
+    walk(blocks)
+    return blocks
+
 # -- basics ---------------------------------------------------------------------
 
 
 async def test_prepare_loads_default_skeleton_without_banner(tmp_path):
     view, _store, _bot = make_view(tmp_path)
     await view.prepare()
-    assert view.blocks == [{"type": "text", "body": ""}]
+    assert _no_ids(view.blocks) == [{"type": "text", "body": ""}]
     assert "cards.editor.invalid" not in all_texts(view)
 
 
@@ -247,9 +266,15 @@ async def test_act_up_down_delete(tmp_path):
     assert [b["body"] for b in view.blocks] == ["a", "c", "b"]
     assert view.selected == 1
 
+    # Delete arms first, deletes on the second click; nothing autosaves.
+    await view._act_on_selected(FakeInteraction(custom_id="card_act:delete"))
+    assert [b["body"] for b in view.blocks] == ["a", "c", "b"]
+    assert 1 not in store
     await view._act_on_selected(FakeInteraction(custom_id="card_act:delete"))
     assert [b["body"] for b in view.blocks] == ["a", "b"]
     assert view.selected is None
+    assert 1 not in store
+    await view._save(FakeInteraction())
     assert len(store[1]["blocks"]) == 2
 
 
@@ -270,31 +295,45 @@ async def test_act_enter_composite_then_uplevel(tmp_path):
     assert view.path == []
 
 
-async def test_divider_toggle_via_edit(tmp_path):
+async def test_divider_style_screen(tmp_path):
     view, _store, _bot = make_view(tmp_path)
-    view.blocks = [{"type": "divider", "spacing": "small"}]
+    view.blocks = [{"id": "d1", "type": "divider", "spacing": "small"}]
     view.loaded = True
     view.selected = 0
     await view._act_on_selected(FakeInteraction(custom_id="card_act:edit"))
+    assert view._editing_divider == view.blocks[0].get("id")
+    await view._set_divider_style(FakeInteraction(data={"values": ["large"]}))
     assert view.blocks[0]["spacing"] == "large"
+    assert view.is_dirty()
+    await view._set_divider_style(FakeInteraction(data={"values": ["hidden"]}))
+    assert view.blocks[0].get("visible") is False
 
 
-async def test_add_block_flow_persists_and_acks(tmp_path):
+async def test_add_block_flow_touches_and_acks(tmp_path):
     view, store, _bot = make_view(tmp_path)
     await view.prepare()
     interaction = FakeInteraction(data={"values": ["text"]})
     await view._pick_add_type(interaction)
     assert len(view.blocks) == 2
     assert interaction.order == ["defer", "edit"]
+    assert view.is_dirty()
+    assert 1 not in store
+    # Strict save refuses empty skeletons until they have content.
+    await view._save(FakeInteraction())
+    assert 1 not in store
+    view.blocks[0]["body"] = "seed"
+    view.blocks[1]["body"] = "hi"
+    await view._save(FakeInteraction())
     assert store[1]["v"] == 1
+    assert not view.is_dirty()
 
 
-async def test_add_container_enters_it(tmp_path):
+async def test_add_container_does_not_navigate(tmp_path):
     view, _store, _bot = make_view(tmp_path)
     await view.prepare()
     await view._pick_add_type(FakeInteraction(data={"values": ["container"]}))
-    assert view.path == [1]
-    assert view._inside_container()
+    assert view.path == []
+    assert view.selected == 1
 
 
 async def test_color_select_sets_token(tmp_path):
@@ -318,7 +357,9 @@ async def test_reset_restores_default_and_clears_store(tmp_path):
     view.blocks = [{"type": "divider", "spacing": "large"}]
     await view.prepare()
     await view._reset(FakeInteraction())
-    assert view.blocks == [{"type": "text", "body": ""}]
+    assert _no_ids(view.blocks) == [{"type": "divider", "spacing": "large"}]
+    await view._reset(FakeInteraction())
+    assert _no_ids(view.blocks) == [{"type": "text", "body": ""}]
     assert 1 not in store
 
 

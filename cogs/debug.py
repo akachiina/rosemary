@@ -37,11 +37,16 @@ class DebugMenuView(MenuView):
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=True)
         t = self.bot.translator.t
+        from rosemary.core.cards import log_description
+
         sent = await send_channel_log(
             self.bot,
             self.guild_id,
             await t(self.guild_id, "debug.test_log_title"),
-            await t(self.guild_id, "debug.test_log_description"),
+            await log_description(
+                self.bot, self.guild_id, "debug.logs.test.description"
+            ),
+            card_key="debug.logs.test.description",
         )
         self.flash = await t(
             self.guild_id,

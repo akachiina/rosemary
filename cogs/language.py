@@ -68,17 +68,21 @@ class LanguageCog(commands.Cog):
             old_lang = (await self.bot.storage.get(ctx.guild_id)).get("language")
             await self.bot.storage.set(ctx.guild_id, "language", language)
             message = await t(ctx.guild_id, "language.updated", language=language)
+            from rosemary.core.cards import log_description
+
             await send_channel_log(
                 self.bot,
                 ctx.guild_id,
                 await t(ctx.guild_id, "settings.log.language_title"),
-                await t(
+                await log_description(
+                    self.bot,
                     ctx.guild_id,
-                    "settings.log.language_description",
+                    "settings.logs.language.description",
                     old=old_lang or "-",
                     new=language,
                     author=ctx.author.mention,
                 ),
+                card_key="settings.logs.language.description",
             )
 
         view = DesignerView(store=False)

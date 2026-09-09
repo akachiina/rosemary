@@ -139,6 +139,17 @@ class RosemaryBot(commands.Bot):
                         else None
                     )
                 )
+        # Rebuild card action-button views (persistent dispatch by custom_id).
+        from rosemary.core.card_actions import sync_all_guilds  # noqa: E402
+
+        task = asyncio.create_task(sync_all_guilds(self))
+        task.add_done_callback(
+            lambda t: (
+                log.error("Card action sync failed: %s", t.exception())
+                if not t.cancelled() and t.exception()
+                else None
+            )
+        )
         # Snapshot the decorator-registered names (English) before any localization
         # mutates them, so per-guild re-syncs can look up the right catalog keys.
         self._command_base_keys = {cmd.name: cmd for cmd in self.pending_application_commands}

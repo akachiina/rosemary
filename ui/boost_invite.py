@@ -104,8 +104,16 @@ class BoostInviteView(discord.ui.DesignerView):
         await interaction.edit(view=self)
 
     async def _error(self, interaction: discord.Interaction, key: str, **variables) -> None:
+        from rosemary.core.cards import text_or
+
         body = await self._t(key, **variables)
-        text = await self._t("boost.dm.error", body=body)
+        text = await text_or(
+            self.bot,
+            self.guild_id,
+            "boost.dm.error",
+            await self._t("boost.dm.error", body=body),
+            body=body,
+        )
         await self._edit(interaction, text)
 
     async def _log(self, key: str, *, color: str, **variables) -> None:
@@ -173,9 +181,17 @@ class BoostInviteView(discord.ui.DesignerView):
             member=member_mention,
             inviter=inviter_mention,
         )
+        from rosemary.core.cards import text_or
+
         await self._edit(
             interaction,
-            await self._t("boost.dm.accepted", role_name=role.name),
+            await text_or(
+                self.bot,
+                self.guild_id,
+                "boost.dm.accepted",
+                await self._t("boost.dm.accepted", role_name=role.name),
+                role_name=role.name,
+            ),
         )
 
     async def _decline(self, interaction: discord.Interaction) -> None:
@@ -211,7 +227,15 @@ class BoostInviteView(discord.ui.DesignerView):
                 inviter=inviter_mention,
             )
         role_name = role.name if role else "-"
+        from rosemary.core.cards import text_or
+
         await self._edit(
             interaction,
-            await self._t("boost.dm.declined", role_name=role_name),
+            await text_or(
+                self.bot,
+                self.guild_id,
+                "boost.dm.declined",
+                await self._t("boost.dm.declined", role_name=role_name),
+                role_name=role_name,
+            ),
         )

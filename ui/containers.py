@@ -40,17 +40,18 @@ def header_display(title: str, description: str = "") -> TextDisplay:
     return TextDisplay(content)
 
 
-def divider(spacing: str = "small") -> Separator:
+def divider(spacing: str = "small", visible: bool = True) -> Separator:
     """Build a visual separator.
 
     Args:
         spacing: ``"small"`` or ``"large"``.
+        visible: ``False`` renders an invisible spacer.
     """
     if spacing == "large":
         size = discord.SeparatorSpacingSize.large
     else:
         size = discord.SeparatorSpacingSize.small
-    return Separator(spacing=size)
+    return Separator(spacing=size, divider=visible)
 
 
 def designer_container(color: discord.Colour, *items: discord.ui.ViewItem) -> Container:

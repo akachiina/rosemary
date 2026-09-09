@@ -259,6 +259,27 @@ class CustomizeMenuView(MenuView):
         self.page += 1
         await self.rerender(interaction)
 
+    async def _placeholders_hint(self, spec: CardSpec) -> str:
+        """Human-readable hint built from the card's variable contract.
+
+        ``Label ({name})`` per variable plus a note that any theme emoji
+        works too; falls back to the legacy catalog string when the spec
+        declares no variables.
+        """
+        from rosemary.core.variables import VARIABLES
+
+        parts = []
+        for name in spec.variables:
+            entry = VARIABLES.get(name)
+            if entry is None:
+                parts.append(f"{{{name}}}")
+                continue
+            label = await self._t(entry.label_key)
+            parts.append(f"{label} ({{{name}}})")
+        if parts:
+            return ", ".join(parts)
+        return await self._t(spec.placeholders_key)
+
     async def _open_editor(self, interaction: discord.Interaction, spec: CardSpec) -> None:
         """Swap this message into the composer for ``spec``."""
         if not interaction.response.is_done():
@@ -292,7 +313,7 @@ class CustomizeMenuView(MenuView):
             save_doc=save_doc,
             reset_doc=reset_doc,
             owner_id=self.author_id,
-            placeholders_hint=await self._t(spec.placeholders_key),
+            placeholders_hint=await self._placeholders_hint(spec),
             exit_factory=lambda _category=self.category: CustomizeMenuView(
                 self.bot,
                 self.guild_id,

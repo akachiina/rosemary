@@ -139,96 +139,230 @@ SHARED_EXTRA_LOGS = [
 ]
 
 
+#: Placeholder contract per card: the variable names the send site provides.
+#: The editor preview, lint and hint derive from this map; send sites must
+#: pass exactly these (enforced by tests).
+VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
+    "events.welcome": ("user", "user_name", "server", "count", "user_avatar", "inviter"),
+    "events.leave": ("user", "user_name", "server", "count", "inviter"),
+    "events.ban": ("user", "user_name", "server", "count", "inviter"),
+    "birthdays.announce": ("user", "server", "count"),
+    "boost.dm.registered": ("mention", "role_name", "server_name", "members", "max_members"),
+    "boost.dm.transferred": ("mention", "role_name", "server_name", "members", "max_members"),
+    "boost.dm.auto_transferred": ("mention", "role_name", "server_name"),
+    "boost.dm.invite": (
+        "mention", "user", "role_name", "server_name", "inviter_mention", "expires"
+    ),
+    "boost.dm.accepted": ("role_name",),
+    "boost.dm.declined": ("role_name",),
+    "boost.dm.owner_accepted": ("member_mention", "role_name"),
+    "boost.dm.owner_declined": ("member_mention", "role_name"),
+    "boost.dm.member_left": ("role_name",),
+    "boost.dm.owner_member_left": ("member_mention", "role_name"),
+    "boost.dm.error": ("body",),
+    "boost.preview": ("role_name", "owner", "count", "max_members"),
+    "bump.leaderboard": (
+        "winner_mention", "winner_count", "role_name", "leaderboard_list",
+        "start_timestamp", "end_timestamp", "next_reset_timestamp",
+    ),
+    "bump.no_bumps": (),
+    "bump.reminder": ("cooldown",),
+    "bump.thank_you": ("mention", "cooldown", "next_bump_timestamp"),
+    "bump.anti_camping": (),
+    "bump.schedule.open": ("ping_role",),
+    "bump.schedule.close": ("ping_role",),
+    "bump.dm.winner_new": ("mention", "bump_count", "role_name", "max_members"),
+    "bump.dm.winner_again": ("mention", "bump_count", "role_name", "total_wins"),
+    "bump.dm.winner_lost": ("mention", "bump_count", "winner_mention"),
+    "warn.dm": ("guild", "moderator", "reason"),
+    "mute.dm": ("guild", "moderator", "reason", "duration"),
+    "kick.dm": ("guild", "moderator", "reason"),
+    "ban.dm": ("guild", "moderator", "reason"),
+    "invites.leaderboard": ("title", "body"),
+    "invites.stats": ("user", "total", "regular", "bonus", "fake", "left", "rank", "title", "body"),
+    "invites.personal": ("user", "link", "total", "regular", "bonus", "title", "body"),
+    "invites.invited_list": ("user", "title", "body"),
+    "invites.server_stats": ("joins", "regular", "bonus", "fake", "left", "title", "body"),
+    "invites.invited_by": ("user", "inviter", "code", "when", "status", "title", "body"),
+    "cleaner.confirm": (),
+    "cleaner.result": ("count", "word"),
+    "anti_invite.warning": ("user",),
+    "tickets.panel": (),
+    "tickets.created": ("user", "type"),
+    "partnerships.invite": ("server",),
+    "partnerships.dm.added": ("server",),
+    "partnerships.dm.removed": ("server",),
+    "partnerships.dm.warning": ("days", "server"),
+    "partnerships.dm.expired": ("server",),
+    "updater.confirm": ("target",),
+    "about.card": (),
+}
+
+#: Log bodies render from these message-template variables.
+LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
+    "boost.logs.register.description": ("actor", "owner", "role"),
+    "boost.logs.remove.description": ("actor", "deleted", "owner", "role"),
+    "boost.logs.transfer.description": ("actor", "new_owner", "old_owner", "role"),
+    "boost.logs.rename.description": ("actor", "new_name", "old_name", "role"),
+    "boost.logs.color_change.description": ("actor", "new_color", "role"),
+    "boost.logs.emoji_change.description": ("actor", "emoji", "role"),
+    "boost.logs.icon.description": ("actor", "role"),
+    "boost.logs.member_add.description": ("actor", "member", "role"),
+    "boost.logs.member_remove.description": ("actor", "member", "role"),
+    "boost.logs.member_left.description": ("member", "owner", "role"),
+    "boost.logs.invite_sent.description": ("expires", "invitee", "inviter", "role"),
+    "boost.logs.invite_cancelled.description": ("actor", "invitee", "role"),
+    "boost.logs.invite_accepted.description": ("inviter", "member", "role"),
+    "boost.logs.invite_expired.description": ("invitee", "inviter", "role"),
+    "boost.logs.orphan_remove.description": ("owner", "role"),
+    "boost.logs.auto_transfer.description": ("new_owner", "old_owner", "role"),
+    "bump.logs.channel_locked.description": ("channel",),
+    "bump.logs.channel_unlocked.description": ("channel",),
+    "bump.logs.schedule_opened.description": ("channel",),
+    "bump.logs.schedule_closed.description": ("channel",),
+    "bump.logs.reminder_sent.description": ("channel",),
+    "bump.logs.bump_recorded.description": ("channel", "user"),
+    "bump.logs.week_reset.description": ("winner", "bumps"),
+    "bump.logs.no_winner.description": (),
+    "bump.logs.no_bumps_posted.description": ("channel",),
+    "bump.logs.leaderboard_posted.description": ("channel",),
+    "bump.logs.week_reset_manual.description": ("author",),
+    "bump.logs.bumps_added.description": ("author", "count", "total", "user"),
+    "moderation.logs.ban.description": (),
+    "moderation.logs.kick.description": (),
+    "moderation.logs.mute.description": (),
+    "moderation.logs.warn.description": (),
+    "invites.logs.join.description": ("user", "code", "inviter", "label", "flags"),
+    "invites.logs.leave.description": ("user", "inviter"),
+    "invites.logs.bonus.description": ("moderator", "user", "amount", "total"),
+    "invites.logs.sync.description": ("codes", "moderator"),
+    "invites.logs.reset.description": ("moderator",),
+    "cleaner.logs.purged.description": ("moderator", "word", "count"),
+    "anti_invite.logs.blocked.description": ("user", "channel", "code"),
+    "reminders.logs.sent.description": ("moderator", "name", "sent", "failed"),
+    "broadcast.logs.started.description": ("moderator", "title", "channel"),
+    "broadcast.logs.ended.description": ("moderator", "relayed", "sent", "failed"),
+    "tickets.logs.opened.description": ("user", "type", "channel"),
+    "tickets.logs.closed.description": ("channel",),
+    "tickets.logs.reopened.description": ("channel",),
+    "tickets.logs.deleted.description": ("channel",),
+    "tickets.logs.transcript.description": ("channel", "moderator"),
+    "partnerships.logs.added.description": ("user", "author"),
+    "partnerships.logs.removed.description": ("user", "author"),
+    "partnerships.logs.renewed.description": ("user",),
+    "partnerships.logs.warning_sent.description": ("days", "user"),
+    "partnerships.logs.expired.description": ("user", "ping"),
+    "partnerships.logs.invite_posted.description": ("author",),
+    "partnerships.logs.orphans_cleaned.description": ("author", "count"),
+    "updater.logs.updating.description": ("moderator", "target", "previous"),
+    "updater.logs.updated.description": ("previous", "current"),
+    "updater.logs.auto_failed.description": ("reason",),
+    "settings.logs.language.description": ("old", "new", "author"),
+    "debug.logs.test.description": (),
+}
+
+
+def _spec(key: str, category: str, **kwargs) -> CardSpec:
+    """Build a spec with its variable contract from the maps above."""
+    variables = VARIABLES_BY_KEY.get(key, LOG_VARIABLES_BY_KEY.get(key, ()))
+    return CardSpec(key=key, category=category, variables=variables, **kwargs)
+
+
 def _build() -> list[CardSpec]:
     specs: list[CardSpec] = []
     specs += [
-        CardSpec(key=f"events.{name}", category="events", rich=True, mention_default="single")
+        _spec(f"events.{name}", "events", rich=True, mention_default="single")
         for name in EVENT_CARDS
     ]
     specs += [
-        CardSpec(key=f"birthdays.{name}", category="birthdays", rich=True, mention_default="single")
+        _spec(f"birthdays.{name}", "birthdays", rich=True, mention_default="single")
         for name in BIRTHDAY_CARDS
     ]
     specs += [
-        CardSpec(key=f"boost.dm.{name}", category="boost", mention_default="single")
+        _spec(f"boost.dm.{name}", "boost", mention_default="single")
         for name in BOOST_DMS
     ]
+    specs += [_spec("boost.preview", "boost", rich=True)]
     specs += [
-        CardSpec(key="bump.leaderboard", category="bump", rich=True, mention_default="winner_auto"),
-        CardSpec(key="bump.no_bumps", category="bump", rich=True),
-        CardSpec(key="bump.reminder", category="bump", rich=True, mention_default="role"),
-        CardSpec(key="bump.thank_you", category="bump", rich=True, mention_default="single"),
-        CardSpec(key="bump.anti_camping", category="bump"),
-        CardSpec(key="bump.schedule.open", category="bump", mention_default="role"),
-        CardSpec(key="bump.schedule.close", category="bump"),
+        _spec("bump.leaderboard", "bump", rich=True, mention_default="winner_auto"),
+        _spec("bump.no_bumps", "bump", rich=True),
+        _spec("bump.reminder", "bump", rich=True, mention_default="role"),
+        _spec("bump.thank_you", "bump", rich=True, mention_default="single"),
+        _spec("bump.anti_camping", "bump"),
+        _spec("bump.schedule.open", "bump", mention_default="role"),
+        _spec("bump.schedule.close", "bump"),
     ]
     specs += [
-        CardSpec(key=f"bump.dm.{name}", category="bump", mention_default="single")
+        _spec(f"bump.dm.{name}", "bump", mention_default="single")
         for name in WINNER_DMS
     ]
     specs += [
-        CardSpec(key=f"{action}.dm", category="moderation", mention_default="single")
+        _spec(f"{action}.dm", "moderation", mention_default="single")
         for action in MODERATION_ACTIONS
     ]
     specs += [
-        CardSpec(key=f"moderation.logs.{action}.description", category="moderation")
+        _spec(f"moderation.logs.{action}.description", "moderation")
         for action in MODERATION_LOGS
     ]
     specs += [
-        CardSpec(key=f"boost.logs.{name}.description", category="boost")
+        _spec(f"boost.logs.{name}.description", "boost")
         for name in BOOST_LOGS
     ]
     specs += [
-        CardSpec(key=f"bump.logs.{name}.description", category="bump") for name in BUMP_LOGS
+        _spec(f"bump.logs.{name}.description", "bump") for name in BUMP_LOGS
     ]
     specs += [
-        CardSpec(
-            key=f"invites.{name}",
-            category="invites",
+        _spec(
+            f"invites.{name}",
+            "invites",
             rich=(name == "leaderboard"),
             mention_default="single" if name in ("stats", "personal") else "none",
         )
         for name in INVITES_CARDS
     ]
+    specs += [_spec("invites.invited_by", "invites")]
     specs += [
-        CardSpec(key=f"invites.logs.{name}.description", category="invites")
+        _spec(f"invites.logs.{name}.description", "invites")
         for name in INVITES_LOGS
     ]
     specs += [
-        CardSpec(key=key, category="moderation") for key in MODERATION_EXTRA_CARDS
+        _spec(key, "moderation") for key in MODERATION_EXTRA_CARDS
     ]
     specs += [
-        CardSpec(key=f"{key}.description", category="moderation")
+        _spec(f"{key}.description", "moderation")
         for key in MODERATION_EXTRA_LOGS
     ]
     specs += [
-        CardSpec(key=f"{key}.description", category="general")
+        _spec(f"{key}.description", "general")
         for key in SHARED_EXTRA_LOGS
     ]
     specs += [
-        CardSpec(key=f"tickets.{name}", category="tickets", rich=(name == "panel"))
+        _spec(f"tickets.{name}", "tickets", rich=(name == "panel"))
         for name in TICKETS_CARDS
     ]
     specs += [
-        CardSpec(key=f"tickets.logs.{name}.description", category="tickets")
+        _spec(f"tickets.logs.{name}.description", "tickets")
         for name in TICKETS_LOGS
     ]
     specs += [
-        CardSpec(key="partnerships.invite", category="partnerships", rich=True)
+        _spec("partnerships.invite", "partnerships", rich=True)
     ]
     specs += [
-        CardSpec(key=f"partnerships.dm.{name}", category="partnerships", mention_default="single")
+        _spec(f"partnerships.dm.{name}", "partnerships", mention_default="single")
         for name in PARTNERSHIPS_DMS
     ]
     specs += [
-        CardSpec(key=f"partnerships.logs.{name}.description", category="partnerships")
+        _spec(f"partnerships.logs.{name}.description", "partnerships")
         for name in PARTNERSHIPS_LOGS
     ]
-    specs += [CardSpec(key="updater.confirm", category="general")]
+    specs += [_spec("updater.confirm", "general")]
     specs += [
-        CardSpec(key=f"updater.logs.{name}.description", category="general")
+        _spec(f"updater.logs.{name}.description", "general")
         for name in ("updating", "updated", "auto_failed")
     ]
+    specs += [_spec("about.card", "general", rich=True)]
+    specs += [_spec("settings.logs.language.description", "general")]
+    specs += [_spec("debug.logs.test.description", "general")]
     return specs
 
 

@@ -14,6 +14,7 @@ from collections.abc import Awaitable, Callable
 import discord
 
 SubmitHandler = Callable[[discord.Interaction, str], Awaitable[None]]
+TwoFieldSubmitHandler = Callable[[discord.Interaction, str, str], Awaitable[None]]
 FileSubmitHandler = Callable[[discord.Interaction, list[discord.Attachment]], Awaitable[None]]
 
 
@@ -53,6 +54,52 @@ def make_text_modal(
 
     async def submit(interaction: discord.Interaction) -> None:
         await on_submit(interaction, field.value)
+
+    modal.callback = submit
+    return modal
+
+
+def make_two_field_modal(
+    *,
+    title: str,
+    custom_id: str,
+    first_label: str,
+    first_placeholder: str = "",
+    first_value: str = "",
+    first_max_length: int = 80,
+    second_label: str,
+    second_placeholder: str = "",
+    second_value: str = "",
+    second_max_length: int = 512,
+    on_submit: TwoFieldSubmitHandler,
+) -> discord.ui.DesignerModal:
+    """Build a two-field modal (e.g. label + URL) without fragile separators.
+
+    Values longer than their max are truncated so opening never fails with a
+    Discord 400; callers validate semantics on submit.
+    """
+    first = discord.ui.InputText(
+        placeholder=first_placeholder,
+        value=first_value[:first_max_length],
+        required=False,
+        custom_id="first",
+        min_length=0,
+        max_length=first_max_length,
+    )
+    second = discord.ui.InputText(
+        placeholder=second_placeholder,
+        value=second_value[:second_max_length],
+        required=False,
+        custom_id="second",
+        min_length=0,
+        max_length=second_max_length,
+    )
+    modal = discord.ui.DesignerModal(title=title, custom_id=custom_id)
+    modal.add_item(discord.ui.Label(first_label, item=first))
+    modal.add_item(discord.ui.Label(second_label, item=second))
+
+    async def submit(interaction: discord.Interaction) -> None:
+        await on_submit(interaction, first.value, second.value)
 
     modal.callback = submit
     return modal
