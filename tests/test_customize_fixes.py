@@ -68,6 +68,22 @@ class FakeInteraction:
         self.order.append("edit")
 
 
+def _all_texts(view) -> str:
+    """Concatenate every TextDisplay content rendered in the view."""
+    found: list[str] = []
+
+    def walk(node):
+        content = getattr(node, "content", None)
+        if isinstance(content, str):
+            found.append(content)
+        for child in getattr(node, "items", []) or []:
+            walk(child)
+
+    for child in view.children:
+        walk(child)
+    return "\n".join(found)
+
+
 def make_editor(tmp_path, key="test.card"):
     async def load_doc(guild_id):
         return await card_store(bot).get_document(guild_id, key)
@@ -77,6 +93,9 @@ def make_editor(tmp_path, key="test.card"):
 
     async def reset_doc(guild_id):
         await card_store(bot).reset(guild_id, key)
+        from rosemary.core.mentions import mention_store
+
+        await mention_store(bot).reset(guild_id, key)
 
     bot = FakeBot(tmp_path)
     return (
@@ -131,23 +150,27 @@ async def test_text_or_flattens_structural_override(tmp_path):
     assert await maybe_flat_text(bot, 1, "p") == "PLAIN"
 
 
-async def test_persist_rejects_structural_garbage(tmp_path):
+async def test_explicit_save_rejects_structural_garbage(tmp_path):
     """Invalid edits are rejected with the last save intact, draft kept."""
     view, bot = make_editor(tmp_path)
     await view.prepare()
     view.blocks = [{"type": "gallery", "urls": []}]
-    assert await view._persist() is False
+    interaction = FakeInteraction()
+    await view._save(interaction)
+    assert ("defer", True) in interaction.order
     assert await card_store(bot).get_document(1, "test.card") is None
     assert view.blocks == [{"type": "gallery", "urls": []}]
-    assert view.flash is not None
+    assert "cards.editor.invalid" in _all_texts(view)
 
 
-async def test_persist_accepts_empty_text_skeleton(tmp_path):
-    """Draft-tolerant save: a just-added block persists for later editing."""
-    view, _bot = make_editor(tmp_path)
+async def test_explicit_save_rejects_empty_text(tmp_path):
+    """Strict save refuses an empty text block with a translated error."""
+    view, bot = make_editor(tmp_path)
     await view.prepare()
     view.blocks = [{"type": "text", "body": ""}]
-    assert await view._persist() is True
+    await view._save(FakeInteraction())
+    assert await card_store(bot).get_document(1, "test.card") is None
+    assert "cards.editor.invalid" in _all_texts(view)
 
 
 async def test_stale_modal_path_does_not_crash(tmp_path):
@@ -155,23 +178,24 @@ async def test_stale_modal_path_does_not_crash(tmp_path):
     view, _bot = make_editor(tmp_path)
     await view.prepare()
     view.blocks = [{"type": "text", "body": "a"}]
-    await view._persist()
+    await view._save(FakeInteraction())
     view.blocks = []
     interaction = FakeInteraction(custom_id="card_text_modal:root:0")
     await view._text_submit(interaction, "new")
     assert ("defer", True) in interaction.order
 
 
-async def test_row_submit_splits_on_last_pipe(tmp_path):
-    """Labels may contain '|' — only the final segment is the URL."""
+async def test_button_modal_creates_link_button(tmp_path):
+    """The two-field modal adds a labeled link button to the row."""
     from rosemary.ui.card_editor import _skeleton
 
     view, _bot = make_editor(tmp_path)
     await view.prepare()
     view.blocks = [_skeleton("row")]
+    view.blocks[0]["buttons"] = []
     block_id = view.blocks[0]["id"]
-    interaction = FakeInteraction(custom_id=f"card_row_modal:{block_id}")
-    await view._row_submit(interaction, "A | B | https://x.y")
+    interaction = FakeInteraction(custom_id=f"card_button_modal:{block_id}:new")
+    await view._button_submit(interaction, "A | B", "https://x.y")
     [button] = view.blocks[0]["buttons"]
     assert (button["label"], button["url"]) == ("A | B", "https://x.y")
 
@@ -207,6 +231,29 @@ async def test_picker_pages_overflow_category(tmp_path):
     finally:
         for spec in specs:
             cards_module._CARDS.pop(spec.key, None)
+
+
+async def test_picker_opens_editor_and_returns_to_category(tmp_path):
+    from rosemary.core import card_specs  # noqa: F401
+    from rosemary.core.cards import all_cards
+    from rosemary.ui.card_editor import CardEditorView
+
+    bot = FakeBot(tmp_path)
+    category = next(spec.category for spec in all_cards())
+    spec = next(spec for spec in all_cards() if spec.category == category)
+    picker = CustomizeMenuView(bot, 1, owner_id=1, category=category)
+    await picker.prepare()
+    interaction = FakeInteraction(data={"values": [spec.key]})
+    await picker._pick_card(interaction)
+    editor = interaction.edit_kwargs["view"]
+    assert isinstance(editor, CardEditorView)
+    assert editor.key == spec.key
+
+    back = FakeInteraction()
+    await editor._exit_to_origin(back)
+    returned = back.edit_kwargs["view"]
+    assert isinstance(returned, CustomizeMenuView)
+    assert returned.category == category
 
 
 async def test_preview_variables_cover_placeholders():
@@ -364,6 +411,51 @@ async def test_history_append_and_cap(tmp_path):
     assert len(versions) == MAX_VERSIONS
     doc = await store.get(1, "k", versions[-1]["ver"])
     assert doc["blocks"] == [{"n": MAX_VERSIONS + 4}]
+
+
+async def test_reset_callback_clears_card_and_mentions(tmp_path):
+    view, bot = make_editor(tmp_path)
+    await card_store(bot).save_document(
+        1, "test.card", {"v": 1, "blocks": [{"type": "text", "body": "custom"}]}
+    )
+    from rosemary.core.mentions import mention_store
+
+    await mention_store(bot).set_policy(1, "test.card", "single")
+    await view._reset_doc(1)
+    assert await card_store(bot).get_document(1, "test.card") is None
+    assert await mention_store(bot).get_policy(1, "test.card") is None
+
+
+async def test_service_import_parse_does_not_persist(tmp_path):
+    from rosemary.core.card_service import parse_import_payload
+
+    class FakeBot:
+        theme = load_theme()
+
+        def __init__(self):
+            from rosemary.core.storage import GuildStorage
+
+            self.storage = GuildStorage(tmp_path)
+
+    bot = FakeBot()
+    payload = {
+        "v": 2,
+        "key": "bump.reminder",
+        "blocks": [{"type": "text", "body": "hi {user}"}],
+    }
+    doc, reason = parse_import_payload(payload, bot.theme, expected_key="bump.reminder")
+    assert reason == ""
+    assert doc["blocks"][0]["body"] == "hi {user}"
+    assert await card_store(bot).get_document(1, "bump.reminder") is None
+
+    bad_key, bad_key_reason = parse_import_payload(
+        payload, bot.theme, expected_key="other.card"
+    )
+    assert bad_key is None and bad_key_reason == "invalid"
+    bad_version, bad_version_reason = parse_import_payload(
+        {**payload, "v": 3}, bot.theme, expected_key="bump.reminder"
+    )
+    assert bad_version is None and bad_version_reason == "shape"
 
 
 async def test_service_export_import_roundtrip(tmp_path):

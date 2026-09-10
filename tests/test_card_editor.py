@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+
 import pytest
 
 from rosemary.core.storage import GuildStorage
@@ -70,10 +72,11 @@ def make_view(tmp_path, key="test.card", *, exit_factory=None):
     store: dict[int, dict] = {}
 
     async def load_doc(guild_id):
-        return store.get(guild_id)
+        doc = store.get(guild_id)
+        return copy.deepcopy(doc) if doc is not None else None
 
     async def save_doc(guild_id, doc):
-        store[guild_id] = doc
+        store[guild_id] = copy.deepcopy(doc)
 
     async def reset_doc(guild_id):
         store.pop(guild_id, None)
@@ -144,6 +147,135 @@ async def test_prepare_loads_default_skeleton_without_banner(tmp_path):
     await view.prepare()
     assert _no_ids(view.blocks) == [{"type": "text", "body": ""}]
     assert "cards.editor.invalid" not in all_texts(view)
+
+
+async def test_prepare_seeds_from_catalog_when_no_builder(tmp_path):
+    """No builder: the editor seeds from the card's live catalog copy."""
+    from rosemary.core.card_service import catalog_default_document
+    from rosemary.core.cards import CardSpec, register_cards
+
+    class CatalogTranslator(FakeTranslator):
+        async def raw(self, guild_id, key):
+            catalog = {
+                "card.test.card": "corpo atual {user}",
+                "card.test.card.title": "Cartão teste",
+            }
+            return catalog.get(key, key)
+
+    class CatalogBot(FakeBot):
+        translator = CatalogTranslator()
+
+    register_cards(CardSpec(key="test.card", category="zz-seed", rich=True))
+    try:
+        bot = CatalogBot(tmp_path)
+        seed = await catalog_default_document(bot, 1, "test.card")
+        assert seed is not None
+        bodies = [b["body"] for b in seed["blocks"]]
+        # FakeTranslator.t() echoes keys, so no heading is seeded (never a
+        # raw catalog key in the UI); the resolved body seeds as-is.
+        assert "## card.test.card.title" not in bodies
+        assert "corpo atual {user}" in bodies  # placeholders stay literal
+
+        store: dict[int, dict] = {}
+
+        async def load_doc(guild_id):
+            return store.get(guild_id)
+
+        async def save_doc(guild_id, doc):
+            store[guild_id] = copy.deepcopy(doc)
+
+        async def reset_doc(guild_id):
+            store.pop(guild_id, None)
+
+        view = CardEditorView(
+            bot, 1, "test.card", load_doc=load_doc, save_doc=save_doc,
+            reset_doc=reset_doc, owner_id=1,
+        )
+        await view.prepare()
+        assert view.using_default_base is True
+        assert any("corpo atual" in b.get("body", "") for b in view.blocks)
+
+        # Reset after a saved override returns to the same catalog seed.
+        store[1] = {"v": 1, "blocks": [{"type": "text", "body": "custom"}]}
+        view.loaded = False
+        await view.prepare()
+        await view._reset(FakeInteraction())  # arms
+        await view._reset(FakeInteraction())  # confirms
+        assert await view._default_blocks() is not None
+        assert any("corpo atual" in b.get("body", "") for b in view.blocks)
+        assert 1 not in store
+    finally:
+        import rosemary.core.cards as cards_module
+
+        cards_module._CARDS.pop("test.card", None)
+
+
+async def test_save_persists_and_records_history(tmp_path):
+    view, store, bot = make_view(tmp_path)
+    await view.prepare()
+    view.blocks = [{"type": "text", "body": "conteúdo"}]
+    await view._save(FakeInteraction())
+    assert store[1]["blocks"][0]["body"] == "conteúdo"
+    assert view.is_dirty() is False
+
+    from rosemary.core.card_history import history_store
+
+    versions = await history_store(bot).list(1, "test.card")
+    assert len(versions) == 1
+    assert versions[0]["actor"] == 1
+    doc = await history_store(bot).get(1, "test.card", versions[0]["ver"])
+    assert _no_ids(doc["blocks"]) == [{"type": "text", "body": "conteúdo"}]
+
+
+async def test_discard_restores_saved_version_without_persisting(tmp_path):
+    view, store, _bot = make_view(tmp_path)
+    await view.prepare()
+    view.blocks = [{"type": "text", "body": "salvo"}]
+    await view._save(FakeInteraction())
+    assert store[1]["blocks"][0]["body"] == "salvo"
+
+    # Unsaved edits stay draft-only until Save is pressed.
+    view.blocks[0]["body"] = "rascunho"
+    assert view.is_dirty()
+    interaction = FakeInteraction()
+    await view._discard(interaction)  # arms the two-step discard
+    assert store[1]["blocks"][0]["body"] == "salvo"
+    await view._discard(FakeInteraction())  # confirms: reload last save
+    assert view.blocks[0]["body"] == "salvo"
+    assert view.is_dirty() is False
+    assert store[1]["blocks"][0]["body"] == "salvo"
+
+
+async def test_discard_without_saved_version_restores_seed(tmp_path):
+    view, store, _bot = make_view(tmp_path)
+    await view.prepare()
+    # No default builder for test.card: the seed is the empty skeleton.
+    assert view.using_default_base is False
+    assert view.saved_exists is False
+    view.blocks[0]["body"] = "rascunho"
+    await view._discard(FakeInteraction())
+    await view._discard(FakeInteraction())
+    assert _no_ids(view.blocks) == [{"type": "text", "body": ""}]
+    assert 1 not in store
+
+
+async def test_history_restore_loads_as_draft(tmp_path):
+    view, store, bot = make_view(tmp_path)
+    await view.prepare()
+    view.blocks = [{"type": "text", "body": "v1"}]
+    await view._save(FakeInteraction())
+    view.blocks = [{"type": "text", "body": "v2"}]
+    await view._save(FakeInteraction())
+
+    from rosemary.core.card_history import history_store
+
+    versions = await history_store(bot).list(1, "test.card")
+    oldest = versions[0]
+    interaction = FakeInteraction(data={"values": [str(oldest["ver"])]})
+    await view._pick_history(interaction)
+    assert view.blocks[0]["body"] == "v1"
+    assert view.is_dirty()  # draft only — Save is still required
+    assert store[1]["blocks"][0]["body"] == "v2"  # nothing auto-persisted
 
 
 async def test_nav_rows_never_exceed_five_buttons(tmp_path):
@@ -363,7 +495,54 @@ async def test_reset_restores_default_and_clears_store(tmp_path):
     assert 1 not in store
 
 
+async def test_import_loads_draft_without_persisting(tmp_path):
+    view, store, _bot = make_view(tmp_path)
+    await view.prepare()
+
+    class Attachment:
+        async def read(self):
+            return b'{"v":2,"key":"test.card","blocks":[{"type":"text","body":"imported"}]}'
+
+    await view._import_submit(FakeInteraction(), [Attachment()])
+    assert 1 not in store
+    assert view.blocks == [{"type": "text", "body": "imported", "id": view.blocks[0]["id"]}]
+    assert view.using_default_base is False
+    assert view.is_dirty()
+
+    await view._save(FakeInteraction())
+    assert store[1]["blocks"][0]["body"] == "imported"
+    assert not view.is_dirty()
+
+
+async def test_reset_records_result_in_history(tmp_path):
+    view, store, bot = make_view(tmp_path)
+    store[1] = {"v": 1, "blocks": [{"type": "divider", "spacing": "large"}]}
+    await view.prepare()
+    await view._reset(FakeInteraction())
+    await view._reset(FakeInteraction())
+
+    from rosemary.core.card_history import history_store
+
+    versions = await history_store(bot).list(1, "test.card")
+    assert len(versions) == 1
+    assert versions[0]["actor"] == 1
+    history_doc = await history_store(bot).get(1, "test.card", versions[0]["ver"])
+    assert _no_ids(history_doc["blocks"]) == [{"type": "text", "body": ""}]
+    assert 1 not in store
+
+
+
 # -- compare screen ---------------------------------------------------------------
+
+
+async def test_test_invalid_draft_does_not_send(tmp_path):
+    view, _store, _bot = make_view(tmp_path)
+    await view.prepare()
+    view.blocks = [{"type": "gallery", "urls": []}]
+    interaction = FakeInteraction()
+    await view._test(interaction)
+    assert "send" not in interaction.order
+    assert "cards.editor.invalid" in all_texts(view)
 
 
 async def test_compare_button_hidden_without_builder(tmp_path):
@@ -458,3 +637,101 @@ async def test_editor_states_stay_under_discord_limit(tmp_path, flash):
         total = _count_components(view)
         states.append((state, total))
         assert total <= 38, states
+
+
+@pytest.mark.parametrize("flash", [False, True])
+async def test_editor_states_with_mentions_stay_under_limit(tmp_path, flash):
+    """The mention status line + select must not push states over the cap."""
+    policies: dict[int, str] = {}
+
+    async def load_doc(guild_id):
+        return None
+
+    async def save_doc(guild_id, doc):
+        pass
+
+    async def reset_doc(guild_id):
+        pass
+
+    async def load_mentions(guild_id):
+        return policies.get(guild_id)
+
+    async def save_mentions(guild_id, policy):
+        policies[guild_id] = policy
+
+    view = CardEditorView(
+        FakeBot(tmp_path),
+        1,
+        "test.card",
+        load_doc=load_doc,
+        save_doc=save_doc,
+        reset_doc=reset_doc,
+        owner_id=1,
+        load_mentions=load_mentions,
+        save_mentions=save_mentions,
+    )
+    view.blocks = [
+        {"type": "container", "color": "brand", "children": [{"type": "text", "body": "a"}]},
+        {"type": "section",
+         "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
+         "children": [{"type": "text", "body": "b"}]},
+        {"type": "divider"},
+        {"type": "gallery", "urls": ["https://a.b/x.png"]},
+        {"type": "row", "buttons": [{"label": "L", "url": "https://a.b"}]},
+    ]
+    states = []
+    for state in ("fresh", "selected", "sublevel", "adding", "compare"):
+        view.loaded = True
+        view.adding = view.comparing = False
+        view.selected = None
+        view.path.clear()
+        if state == "selected":
+            view.selected = 0
+        elif state == "sublevel":
+            view.path = [0]
+        elif state == "adding":
+            view.adding = True
+        elif state == "compare":
+            view.comparing = True
+        if flash:
+            view.flash = "cards.editor.saved"
+        await view.prepare()
+        total = _count_components(view)
+        states.append((state, total))
+        assert total <= 38, states
+
+
+async def test_mentions_status_line_shows_current_policy(tmp_path):
+    """The mentions row renders the effective policy, never a placeholder."""
+    policies = {1: "role"}
+
+    async def load_doc(guild_id):
+        return None
+
+    async def save_doc(guild_id, doc):
+        pass
+
+    async def reset_doc(guild_id):
+        pass
+
+    async def load_mentions(guild_id):
+        return policies.get(guild_id)
+
+    async def save_mentions(guild_id, policy):
+        policies[guild_id] = policy
+
+    view = CardEditorView(
+        FakeBot(tmp_path),
+        1,
+        "test.card",
+        load_doc=load_doc,
+        save_doc=save_doc,
+        reset_doc=reset_doc,
+        owner_id=1,
+        load_mentions=load_mentions,
+        save_mentions=save_mentions,
+    )
+    await view.prepare()
+    rendered = all_texts(view)
+    assert "cards.editor.mentions.current" in rendered
+    assert "cards.mentions.modes.role" in rendered  # policy name is rendered

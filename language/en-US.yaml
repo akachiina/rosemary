@@ -1473,19 +1473,19 @@ moderation:
       title: Mute
     warn:
       title: Warn
-    logs:
-      ban:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
-      kick:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
-      mute:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}\n**{duration_label}:**\n{duration}'
-      warn:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
     member: Target
     moderator: Moderator
     reason: Reason
     duration: Duration
+  logs:
+    ban:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+    kick:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+    mute:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}\n**{duration_label}:**\n{duration}'
+    warn:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
 debug:
   command:
     name: debug
@@ -1873,24 +1873,14 @@ cards:
     templates_placeholder: Choose a template...
     templates_empty: '*No templates available.*'
     templates_applied: '{success} Template applied as draft.'
-  templates:
-    banner:
-      label: Banner
-      description: Colored box with title, divider and text
-    profile:
-      label: Profile
-      description: Avatar with name lines
-    panel:
-      label: Panel
-      description: Box with title, text and link button
     history_title: 'Saved versions (restoring loads them as draft):'
     history_placeholder: Choose a version...
     history_empty: '*No saved versions yet. Save the card first.*'
     history_restored: '{success} Version restored as draft.'
     exported: '{success} Card exported below (visible only to you).'
+    export_failed: '{error} Could not send the export file.'
     imported: '{success} Card imported as draft — review and Save.'
     import_invalid: '{error} Could not import: file is not a valid card.'
-    unknown_card: '{error} Unknown card. Pick one from /personalizar menu.'
     confirm_reset: 'Reset {key} to its default?'
     import_title: Import card JSON
     import_label: Card file (.json)
@@ -1915,8 +1905,10 @@ cards:
     paged_blocks: 'Showing {shown} of {total} blocks.'
     blocks_page: 'Blocks page {page}/{pages}.'
     child_count: '{count} block(s) inside'
+    child_summary: '{count} block(s): {preview}'
     image_count: '{count} image(s)'
     button_count: '{count} link button(s)'
+    button_summary: '{count} button(s): {preview}'
     compare_title: Compare with the default
     compare_default: What members receive now
     compare_custom: Your version
@@ -1924,8 +1916,19 @@ cards:
     using_default: '{warning} Using the default as a base ([NOT SAVED] yet).'
     empty_block: (empty)
     mentions:
-      placeholder: Who may this card ping...
+      placeholder: Change ping policy...
+      current: 'Pings: **{policy}** — {description}'
       saved: '{success} Ping policy saved.'
+  templates:
+    banner:
+      label: Banner
+      description: Colored box with title, divider and text
+    profile:
+      label: Profile
+      description: Avatar with name lines
+    panel:
+      label: Panel
+      description: Box with title, text and link button
   mentions:
     modes:
       none: No pings

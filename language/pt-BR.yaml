@@ -1473,19 +1473,19 @@ moderation:
       title: Silenciamento
     warn:
       title: Warn
-    logs:
-      ban:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
-      kick:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
-      mute:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}\n**{duration_label}:**\n{duration}'
-      warn:
-        description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
     member: Alvo
     moderator: Moderador
     reason: Motivo
     duration: Duração
+  logs:
+    ban:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+    kick:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+    mute:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}\n**{duration_label}:**\n{duration}'
+    warn:
+      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
 debug:
   command:
     name: debug
@@ -1874,24 +1874,14 @@ cards:
     templates_placeholder: Escolha um modelo...
     templates_empty: '*Sem modelos disponíveis.*'
     templates_applied: '{success} Modelo aplicado como rascunho.'
-  templates:
-    banner:
-      label: Faixa
-      description: Caixa colorida com título, divisor e texto
-    profile:
-      label: Perfil
-      description: Avatar com linhas de nome
-    panel:
-      label: Painel
-      description: Caixa com título, texto e botão de link
     history_title: 'Versões salvas (restaurar carrega como rascunho):'
     history_placeholder: Escolha uma versão...
     history_empty: '*Sem versões salvas ainda. Salve o cartão primeiro.*'
     history_restored: '{success} Versão restaurada como rascunho.'
     exported: '{success} Cartão exportado abaixo (visível só para você).'
+    export_failed: '{error} Não foi possível enviar o arquivo de exportação.'
     imported: '{success} Cartão importado como rascunho — revise e Salve.'
     import_invalid: '{error} Não foi possível importar: arquivo não é um cartão válido.'
-    unknown_card: '{error} Cartão desconhecido. Escolha um no menu /personalizar.'
     confirm_reset: 'Restaurar {key} para o padrão?'
     import_title: Importar JSON do cartão
     import_label: Arquivo do cartão (.json)
@@ -1916,8 +1906,10 @@ cards:
     paged_blocks: 'Mostrando {shown} de {total} blocos.'
     blocks_page: 'Blocos página {page}/{pages}.'
     child_count: '{count} bloco(s) dentro'
+    child_summary: '{count} bloco(s): {preview}'
     image_count: '{count} imagem(ns)'
     button_count: '{count} botão(ões) de link'
+    button_summary: '{count} botão(ões): {preview}'
     compare_title: Comparar com o padrão
     compare_default: O que os membros recebem hoje
     compare_custom: Sua versão
@@ -1925,8 +1917,19 @@ cards:
     using_default: '{warning} Usando o padrão como base ([NÃO SALVO] ainda).'
     empty_block: (vazio)
     mentions:
-      placeholder: Quem este cartão pode mencionar...
+      placeholder: Mudar política de menções...
+      current: 'Menções: **{policy}** — {description}'
       saved: '{success} Política de menções salva.'
+  templates:
+    banner:
+      label: Faixa
+      description: Caixa colorida com título, divisor e texto
+    profile:
+      label: Perfil
+      description: Avatar com linhas de nome
+    panel:
+      label: Painel
+      description: Caixa com título, texto e botão de link
   mentions:
     modes:
       none: Sem pings

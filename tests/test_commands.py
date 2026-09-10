@@ -9,6 +9,8 @@ type is a real class and that no option's ``_raw_type`` is a ``str``.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import discord
 from discord.enums import SlashCommandOptionType
 from discord.ext import commands
@@ -26,6 +28,69 @@ class _Bot(commands.Bot):
 
 def _all_commands(bot: _Bot) -> list:
     return list(bot.pending_application_commands)
+
+
+def test_customize_is_single_base_command() -> None:
+    bot = _Bot()
+    from rosemary.cogs.customize import CustomizeCog
+
+    bot.add_cog(CustomizeCog(bot))
+    commands = [
+        command
+        for command in _all_commands(bot)
+        if command.qualified_name == "customize"
+    ]
+    assert len(commands) == 1
+    command = commands[0]
+    assert command.options == []
+    assert command.default_member_permissions.manage_guild is True
+    assert command.contexts == {discord.InteractionContextType.guild}
+
+
+async def test_customize_command_opens_picker(monkeypatch) -> None:
+    import rosemary.cogs.customize as customize_module
+    from rosemary.cogs.customize import CustomizeCog
+
+    opened = {}
+
+    class Picker:
+        def __init__(self, bot, guild_id, *, owner_id):
+            opened.update(bot=bot, guild_id=guild_id, owner_id=owner_id)
+
+        async def prepare(self):
+            opened["prepared"] = True
+
+    monkeypatch.setattr(customize_module, "CustomizeMenuView", Picker)
+    bot = _Bot()
+    cog = CustomizeCog(bot)
+
+    class Response:
+        def __init__(self):
+            self.done = False
+
+        def is_done(self):
+            return self.done
+
+        async def defer(self, *, ephemeral=False):
+            self.done = True
+            self.ephemeral = ephemeral
+
+    class Context:
+        response = Response()
+        guild_id = 7
+        author = SimpleNamespace(id=9)
+
+        async def respond(self, **kwargs):
+            self.kwargs = kwargs
+
+    ctx = Context()
+    await cog.customize.callback(cog, ctx)
+    assert opened["bot"] is cog.bot
+    assert opened["guild_id"] == 7
+    assert opened["owner_id"] == 9
+    assert opened["prepared"] is True
+    assert ctx.kwargs["ephemeral"] is True
+    assert isinstance(ctx.kwargs["view"], Picker)
 
 
 def test_command_option_raw_types_are_classes() -> None:

@@ -71,6 +71,9 @@ def _register_default_builders() -> None:
         set_default_builder(f"events.{name}", _builder)
 
 
+_register_default_builders()
+
+
 class WelcomeCog(commands.Cog):
     """Member join / leave / ban announcements."""
 
