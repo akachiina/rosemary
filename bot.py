@@ -150,6 +150,11 @@ class RosemaryBot(commands.Bot):
                 else None
             )
         )
+        # Persistent fallback so pre-restart ephemeral /personalizar panels
+        # dispatch instead of silently ignoring clicks.
+        from rosemary.ui.customize_menu import register_recovery_view  # noqa: E402
+
+        register_recovery_view(self)
         # Snapshot the decorator-registered names (English) before any localization
         # mutates them, so per-guild re-syncs can look up the right catalog keys.
         self._command_base_keys = {cmd.name: cmd for cmd in self.pending_application_commands}
@@ -229,6 +234,43 @@ class RosemaryBot(commands.Bot):
         self, context: discord.ApplicationContext, exception: Exception
     ) -> None:
         log.error("Error in command %s: %s", context.command, exception)
+
+    async def on_view_error(
+        self,
+        error: Exception,
+        item: discord.ui.ViewItem,
+        interaction: discord.Interaction,
+    ) -> None:
+        """Log every component-callback failure (py-cord's default only prints
+        to stderr, which never reaches bot.log) and keep the interaction ACKed
+        so the user never sees "the application did not respond"."""
+        custom_id = getattr(item, "custom_id", None) or "?"
+        view = getattr(interaction, "view", None)
+        view_name = type(view).__name__ if view is not None else "?"
+        log.exception(
+            "Component error in %s (custom_id=%r, user=%s, guild=%s)",
+            view_name,
+            custom_id,
+            getattr(getattr(interaction, "user", None), "id", None),
+            getattr(interaction, "guild_id", None),
+        )
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(
+                    await self.translator.t(
+                        interaction.guild_id, "general.unknown_error"
+                    ),
+                    ephemeral=True,
+                )
+            else:
+                await interaction.response.send_message(
+                    await self.translator.t(
+                        interaction.guild_id, "general.unknown_error"
+                    ),
+                    ephemeral=True,
+                )
+        except Exception:
+            log.debug("view_error ACK fallback also failed", exc_info=True)
 
 
 def main() -> None:

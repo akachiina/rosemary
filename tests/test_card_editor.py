@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 
@@ -720,8 +721,21 @@ async def test_mentions_status_line_shows_current_policy(tmp_path):
     async def save_mentions(guild_id, policy):
         policies[guild_id] = policy
 
+    # Real translator + real catalogs: the echoed-key FakeTranslator can't
+    # distinguish a resolved string from a raw-key fallback.
+    from rosemary.core.i18n import Translator
+
+    async def _ptbr(_guild_id):
+        return "pt-BR"
+
+    bot = FakeBot(tmp_path)
+    bot.translator = Translator(
+        languages_dir=Path(__file__).resolve().parents[1] / "language",
+        resolver=_ptbr,
+    )
+
     view = CardEditorView(
-        FakeBot(tmp_path),
+        bot,
         1,
         "test.card",
         load_doc=load_doc,
@@ -733,5 +747,8 @@ async def test_mentions_status_line_shows_current_policy(tmp_path):
     )
     await view.prepare()
     rendered = all_texts(view)
-    assert "cards.editor.mentions.status" in rendered
-    assert "cards.editor.mentions.on" in rendered  # policy name is rendered
+    assert "cards.editor.mentions.status" not in rendered
+    # The policy name resolves to real text (regression: YAML parsed the
+    # unquoted on/off keys as booleans, so t() fell back to the raw key).
+    assert "cards.editor.mentions.on" not in rendered
+    assert "Pings: **Ligados**" in rendered

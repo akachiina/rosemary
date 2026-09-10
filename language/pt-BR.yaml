@@ -1940,8 +1940,8 @@ cards:
       current: 'Menções: **{policy}** — {description}'
       saved: '{success} Política de menções salva.'
       status: 'Pings: **{state}** — decide se as menções ({{@user}}) deste cartão notificam de verdade.'
-      on: Ligados
-      off: Desligados
+      "on": Ligados
+      "off": Desligados
       enable: Ligar pings
       disable: Desligar pings
       enabled_flash: '{success} Pings ligados — as menções do texto vão notificar.'

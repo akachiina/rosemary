@@ -34,6 +34,29 @@ async def test_catalogs_load_and_key_parity():
     assert _read_keys("en-US")  # non-empty catalog
 
 
+def test_no_boolean_keys():
+    """YAML 1.1 parses unquoted on/off/yes/no/true/false as booleans.
+
+    A boolean key flattens to e.g. ``cards.editor.mentions.true``, which no
+    code requests by name — ``t()`` then falls back to the raw key and the UI
+    renders it literally (the cards.editor.mentions.on/off bug).
+    """
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                assert isinstance(key, str), (
+                    f"boolean/None key parsed in catalog at {path} "
+                    f"({key!r}); quote the key in both YAML files"
+                )
+                walk(value, f"{path}.{key}")
+
+    for code in ("en-US", "pt-BR"):
+        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+        walk(data, code)
+
+
 def test_settings_descriptions_fit_modal_placeholder():
     """Discord modal placeholders cap at 100 chars, so every settings
     description must stay within the limit (bump.detection_text regression)."""

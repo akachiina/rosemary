@@ -8,6 +8,7 @@ wire their own editor instance instead of going through this picker.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import Any
 
@@ -212,8 +213,6 @@ class CustomizeMenuView(MenuView):
     # -- handlers ------------------------------------------------------------
 
     async def _close(self, interaction: discord.Interaction) -> None:
-        import contextlib
-
         self.stop()
         with contextlib.suppress(discord.NotFound, discord.Forbidden, discord.HTTPException):
             self.disable_all_items()
@@ -230,6 +229,12 @@ class CustomizeMenuView(MenuView):
         await self.rerender(interaction)
 
     async def _pick_card(self, interaction: discord.Interaction) -> None:
+        log.debug(
+            "custom_pick_card clicked (guild=%s, values=%s, message=%s)",
+            self.guild_id,
+            (interaction.data or {}).get("values"),
+            getattr(getattr(interaction, "message", None), "id", None),
+        )
         values = (interaction.data or {}).get("values") or []
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=True)
@@ -328,8 +333,112 @@ class CustomizeMenuView(MenuView):
             save_mentions=save_mentions,
         )
         await editor.prepare()
+        log.debug(
+            "opening editor for card %s (guild=%s, message=%s)",
+            spec.key,
+            self.guild_id,
+            getattr(getattr(interaction, "message", None), "id", None),
+        )
         try:
             await interaction.edit(view=editor)
-        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+        except discord.NotFound:
+            log.warning(
+                "customize editor open failed: interaction/message gone "
+                "(stale panel? card=%s guild=%s)",
+                spec.key,
+                self.guild_id,
+            )
+        except (discord.Forbidden, discord.HTTPException):
+            log.exception("customize editor open failed for card %s", spec.key)
             return
         self.stop()
+
+
+# -- stale-message recovery ---------------------------------------------------
+
+#: Picker component ids that must keep working after a bot restart. Ephemeral
+#: messages survive the restart looking alive, but the live view is gone, so
+#: py-cord silently no-ops the click. A persistent view registered at boot
+#: catches them via the ``(component_type, None, custom_id)`` store fallback.
+_PICKER_PERSISTENT_IDS = (
+    "custom_pick_category",
+    "custom_pick_card",
+    "custom_back",
+    "custom_close",
+    "custom_prev",
+    "custom_next",
+)
+
+
+class CustomizeMenuRecoveryView(MenuView):
+    """Persistent fallback for stale (pre-restart) picker messages.
+
+    Re-opens a fresh picker so pre-restart ephemeral panels dispatch again
+    instead of doing nothing. Handlers bound here are the last-resort match —
+    exact ``(type, message_id, custom_id)`` entries always win, so this never
+    intercepts clicks on live menus.
+    """
+
+    def __init__(self, bot) -> None:
+        # author_id None: anyone clicking a stale panel gets a working menu.
+        super().__init__(author_id=None, timeout=None)
+        self.bot = bot
+        self.guild_id = None
+        self._register_handlers()
+        # ``add_view`` only indexes ids that exist as real view children, so a
+        # dispatch-only view still carries minimal stub components. They are
+        # never rendered: this view is registered bot-wide, never sent.
+        for custom_id in _PICKER_PERSISTENT_IDS:
+            if custom_id.startswith("custom_pick"):
+                item = self.make_select(
+                    custom_id=custom_id,
+                    placeholder="stale",
+                    options=[discord.SelectOption(label="stale", value="stale")],
+                )
+            else:
+                item = self.make_button(custom_id=custom_id, label="stale")
+            self.add_item(discord.ui.ActionRow(item))
+
+    async def _t(self, key: str, **kwargs: Any) -> str:
+        return await self.bot.translator.t(self.guild_id, key, **kwargs)
+
+    async def _recover(self, interaction: discord.Interaction) -> None:
+        """Replace the stale message with a fresh picker and re-own it."""
+        guild_id = interaction.guild_id
+        if guild_id is None or not interaction.response.is_done():
+            # Never ACK-less: defer covers missing guild and double-ACK cases.
+            with contextlib.suppress(discord.HTTPException):
+                await interaction.response.defer(ephemeral=True)
+            if guild_id is None:
+                return
+        log.info(
+            "stale customize panel recovered (guild=%s, custom_id=%s, message=%s)",
+            guild_id,
+            interaction.custom_id,
+            getattr(getattr(interaction, "message", None), "id", None),
+        )
+        view = CustomizeMenuView(self.bot, guild_id, owner_id=interaction.user.id)
+        try:
+            await view.prepare()
+            await interaction.edit(view=view)
+            return
+        except discord.NotFound:
+            log.warning(
+                "stale customize panel could not be edited (message gone, guild=%s)",
+                guild_id,
+            )
+        except (discord.Forbidden, discord.HTTPException):
+            log.exception("stale customize panel recovery failed (guild=%s)", guild_id)
+        # Edit failed (expired interaction token, deleted message): give the
+        # user a fresh panel as a followup so the click still yields a menu.
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.followup.send(view=view, ephemeral=True)
+
+    def _register_handlers(self) -> None:
+        for custom_id in _PICKER_PERSISTENT_IDS:
+            self.register(custom_id, self._recover)
+
+
+def register_recovery_view(bot) -> None:
+    """Register the stale-picker fallback; call once at boot (on_ready)."""
+    bot.add_view(CustomizeMenuRecoveryView(bot))

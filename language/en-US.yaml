@@ -1939,8 +1939,8 @@ cards:
       current: 'Pings: **{policy}** — {description}'
       saved: '{success} Ping policy saved.'
       status: 'Pings: **{state}** — decides whether the mentions ({{@user}}) in this card actually notify.'
-      on: On
-      off: Off
+      "on": On
+      "off": Off
       enable: Turn pings on
       disable: Turn pings off
       enabled_flash: '{success} Pings on — mentions in the text will notify.'

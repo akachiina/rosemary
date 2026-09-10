@@ -114,3 +114,23 @@ def test_theme_styles_resolution():
     # Rendering test
     rendered = theme.styled("sub", body="hello")
     assert rendered == "✅ ⭐ helloB"
+
+
+def test_every_theme_emoji_is_discord_valid():
+    """Every emoji in ui/theme.yaml must be usable as a component emoji.
+
+    Buttons/selects pass theme glyphs to Discord as ``emoji.name``, and
+    Discord rejects anything outside the RGI emoji set with 400 Invalid Form
+    Body (``emoji.name: Invalid emoji``) — which made the /personalizar
+    editor fail to open when the text-only '✓' was used as a button emoji.
+    This sweep keeps every future theme emoji button-safe.
+    """
+    from discord.utils import UNICODE_EMOJIS
+
+    theme = load_theme()
+    assert theme.emojis  # non-empty
+    for name, glyph in theme.emojis.items():
+        assert glyph in UNICODE_EMOJIS, (
+            f"theme emoji {name!r} ({glyph!r}) is not a valid Discord emoji; "
+            "components using it would be rejected with 400 50035"
+        )
