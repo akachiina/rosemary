@@ -117,7 +117,7 @@ class WelcomeCog(commands.Cog):
         user_id: int | None = None,
     ) -> None:
         """Send a customizable card: override > plain text > default layout."""
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         view = await maybe_view(self.bot, guild_id, key, variables)
         if view is None:
@@ -150,7 +150,7 @@ class WelcomeCog(commands.Cog):
                 view.add_item(TextDisplay(text))
             await channel.send(
                 view=view,
-                allowed_mentions=await mentions_for(
+                allowed_mentions=await allowed_for_ids(
                     self.bot, guild_id, key,
                     user_ids=[user_id] if user_id else [],
                 ),
@@ -158,7 +158,7 @@ class WelcomeCog(commands.Cog):
             return
         await channel.send(
             view=view,
-            allowed_mentions=await mentions_for(
+            allowed_mentions=await allowed_for_ids(
                 self.bot, guild_id, key,
                 user_ids=[user_id] if user_id else [],
             ),

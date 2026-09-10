@@ -103,12 +103,16 @@ async def send_channel_log(
     )
     try:
         if card_key is not None:
-            from rosemary.core.mentions import send_log_mentions
+            from rosemary.core.mentions import allowed_for_text
 
-            allowed = await send_log_mentions(
+            # Pings are content-driven: the <@id> tokens actually present in
+            # the description may ping (when the guild's toggle allows), and
+            # explicitly passed candidate ids are merged in.
+            allowed = await allowed_for_text(
                 bot,
                 guild_id,
                 card_key,
+                description,
                 user_ids=mention_user_ids,
                 role_ids=mention_role_ids,
             )

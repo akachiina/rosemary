@@ -1,4 +1,11 @@
-"""Mention policies: resolver, store and card-spec defaults."""
+"""Mentions engine: store, spec defaults, legacy-value mapping, repair-on-read.
+
+The policy matrix (``none``/``single``/``winner_auto``/``role``/``all``) was
+replaced by mentions-as-content (see :mod:`tests.test_mention_placeholders`):
+pings are decided by the ``<@id>`` tokens actually present in the resolved
+text, gated by a per-card on/off toggle. What stays here is the storage and
+the spec-declared defaults that back the toggle.
+"""
 
 from __future__ import annotations
 
@@ -9,56 +16,21 @@ from rosemary.core.cards import get_card
 from rosemary.core.mentions import (
     MODES,
     MentionStore,
+    effective_pings,
     effective_policy,
-    mentions_for,
-    resolve_allowed_mentions,
+    pings_default,
+    set_pings_for,
     spec_default,
+    valid_policy,
 )
 
 
 def test_modes_known():
+    """Stored vocabulary is unchanged: legacy values keep working."""
     assert set(MODES) == {"none", "single", "winner_auto", "role", "all"}
 
 
-def test_resolve_none_never_pings():
-    allowed = resolve_allowed_mentions("none", [1, 2, 3], [4])
-    assert allowed.to_dict() == {"parse": []}
-
-
-def test_resolve_single_pings_first_user_only():
-    allowed = resolve_allowed_mentions("single", [111, 222])
-    data = allowed.to_dict()
-    assert data.get("users") == [111]
-    assert "users" not in data.get("parse", [])
-
-
-def test_resolve_single_without_candidates_is_none():
-    assert resolve_allowed_mentions("single", []).to_dict() == {"parse": []}
-
-
-def test_resolve_winner_auto_only_on_auto_source():
-    auto = resolve_allowed_mentions("winner_auto", [111, 222], source="auto")
-    assert auto.to_dict().get("users") == [111]
-    cmd = resolve_allowed_mentions("winner_auto", [111, 222], source="command")
-    assert cmd.to_dict() == {"parse": []}
-
-
-def test_resolve_role_pings_role_only():
-    allowed = resolve_allowed_mentions("role", [], [555])
-    data = allowed.to_dict()
-    assert data.get("roles") == [555]
-    assert data.get("users", None) in (None, False)
-
-
-def test_resolve_role_without_role_is_none():
-    assert resolve_allowed_mentions("role", [111], []).to_dict() == {"parse": []}
-
-
-def test_resolve_unknown_policy_is_none():
-    assert resolve_allowed_mentions("bogus", [1]).to_dict() == {"parse": []}
-
-
-def test_spec_defaults():
+def test_spec_defaults_back_the_toggle():
     assert spec_default("bump.leaderboard") == "winner_auto"
     assert spec_default("bump.reminder") == "role"
     assert spec_default("bump.thank_you") == "single"
@@ -69,6 +41,21 @@ def test_spec_defaults():
     assert spec_default("boost.logs.register.description") == "none"
     assert spec_default("no.such.card") == "none"
     assert get_card("bump.leaderboard").mention_default == "winner_auto"
+
+
+def test_pings_default_derives_from_spec():
+    assert pings_default("bump.thank_you") is True
+    assert pings_default("bump.leaderboard") is True
+    assert pings_default("bump.no_bumps") is False
+    assert pings_default("moderation.logs.ban.description") is False
+    assert pings_default("no.such.card") is False
+
+
+def test_valid_policy():
+    assert valid_policy("single") is True
+    assert valid_policy("bogus") is False
+    assert valid_policy(None) is False
+    assert valid_policy(7) is False
 
 
 async def test_store_roundtrip(tmp_path):
@@ -97,9 +84,34 @@ async def test_effective_policy_prefers_override(tmp_path):
     assert await effective_policy(bot, 1, "bump.leaderboard") == "none"
 
 
-async def test_mentions_for_command_never_pings_leaderboard(tmp_path):
+async def test_effective_pings_maps_legacy_values(tmp_path):
+    """Every legacy non-none value means 'pings on' — no migration needed."""
     bot = _Bot(tmp_path)
-    allowed = await mentions_for(bot, 1, "bump.leaderboard", source="command", user_ids=[7])
-    assert allowed.to_dict() == {"parse": []}
-    auto = await mentions_for(bot, 1, "bump.leaderboard", source="auto", user_ids=[7])
-    assert auto.to_dict().get("users") == [7]
+    store = MentionStore(tmp_path)
+    assert await effective_pings(bot, 1, "bump.thank_you") is True  # spec default
+    await store.set_policy(1, "bump.thank_you", "single")
+    assert await effective_pings(bot, 1, "bump.thank_you") is True
+    await store.set_policy(1, "bump.thank_you", "winner_auto")
+    assert await effective_pings(bot, 1, "bump.thank_you") is True
+    await store.set_policy(1, "bump.thank_you", "role")
+    assert await effective_pings(bot, 1, "bump.thank_you") is True
+    await store.set_policy(1, "bump.thank_you", "all")
+    assert await effective_pings(bot, 1, "bump.thank_you") is True
+    await store.set_policy(1, "bump.thank_you", "none")
+    assert await effective_pings(bot, 1, "bump.thank_you") is False
+
+
+async def test_toggle_roundtrip(tmp_path):
+    bot = _Bot(tmp_path)
+    await set_pings_for(bot, 1, "bump.no_bumps", True)
+    assert await effective_pings(bot, 1, "bump.no_bumps") is True
+    await set_pings_for(bot, 1, "bump.no_bumps", False)
+    assert await effective_pings(bot, 1, "bump.no_bumps") is False
+
+
+async def test_corrupt_value_repairs_on_read(tmp_path):
+    bot = _Bot(tmp_path)
+    store = MentionStore(tmp_path)
+    await store._storage.set(1, "bump.thank_you", "garbage")
+    assert await effective_pings(bot, 1, "bump.thank_you") is True  # falls to default
+    assert await store.get_policy(1, "bump.thank_you") is None  # repaired away

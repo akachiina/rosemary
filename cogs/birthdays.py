@@ -118,11 +118,11 @@ class BirthdayCog(commands.Cog):
             if view is None:
                 text = await maybe_text(self.bot, guild.id, "birthdays.announce", **variables)
                 view = await self._default_card(guild.id, text, variables)
-            from rosemary.core.mentions import mentions_for
+            from rosemary.core.mentions import allowed_for_ids
 
             await channel.send(
                 view=view,
-                allowed_mentions=await mentions_for(
+                allowed_mentions=await allowed_for_ids(
                     self.bot, guild.id, "birthdays.announce", user_ids=[user_id],
                 ),
             )

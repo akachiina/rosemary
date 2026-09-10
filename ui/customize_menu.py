@@ -105,7 +105,7 @@ class CustomizeMenuView(MenuView):
                 )
             )
         else:
-            from rosemary.core.mentions import effective_policy
+            from rosemary.core.mentions import effective_pings
 
             window, _pages = self._window(specs)
             options = []
@@ -119,8 +119,10 @@ class CustomizeMenuView(MenuView):
                     check = self.bot.theme.emoji("check") if self.bot.theme else "✓"
                     title = f"{check or '✓'} {title}"
                 try:
-                    policy = await effective_policy(self.bot, self.guild_id, spec.key)
-                    policy_label = await self._t(f"cards.mentions.modes.{policy}")
+                    pings = await effective_pings(self.bot, self.guild_id, spec.key)
+                    policy_label = await self._t(
+                        "cards.editor.mentions.on" if pings else "cards.editor.mentions.off"
+                    )
                 except Exception:
                     log.warning("mention policy lookup failed for card %s", spec.key)
                     policy_label = ""
@@ -260,25 +262,27 @@ class CustomizeMenuView(MenuView):
         await self.rerender(interaction)
 
     async def _placeholders_hint(self, spec: CardSpec) -> str:
-        """Human-readable hint built from the card's variable contract.
+        """Human-readable hint built strictly from the card's variable contract.
 
-        ``Label ({name})`` per variable plus a note that any theme emoji
-        works too; falls back to the legacy catalog string when the spec
-        declares no variables.
+        ``{name}`` per contracted variable (resolved mentions render as
+        ``{@name}`` so admins learn the canonical spelling). Cards with an
+        empty contract get the theme-emoji note only — never a generic string
+        listing placeholders the card does not actually receive.
         """
         from rosemary.core.variables import VARIABLES
 
+        mention_kinds = {"mention"}
         parts = []
         for name in spec.variables:
             entry = VARIABLES.get(name)
             if entry is None:
                 parts.append(f"{{{name}}}")
                 continue
-            label = await self._t(entry.label_key)
-            parts.append(f"{label} ({{{name}}})")
+            spelling = f"{{@{name}}}" if entry.kind in mention_kinds else f"{{{name}}}"
+            parts.append(spelling)
         if parts:
             return ", ".join(parts)
-        return await self._t(spec.placeholders_key)
+        return await self._t("cards.editor.placeholders_none")
 
     async def _open_editor(self, interaction: discord.Interaction, spec: CardSpec) -> None:
         """Swap this message into the composer for ``spec``."""

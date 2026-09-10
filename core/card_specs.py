@@ -195,7 +195,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "partnerships.dm.warning": ("days", "server"),
     "partnerships.dm.expired": ("server",),
     "updater.confirm": ("target",),
-    "about.card": (),
+    "about.card": ("version", "channel"),
 }
 
 #: Log bodies render from these message-template variables.
@@ -228,10 +228,19 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "bump.logs.leaderboard_posted.description": ("channel",),
     "bump.logs.week_reset_manual.description": ("author",),
     "bump.logs.bumps_added.description": ("author", "count", "total", "user"),
-    "moderation.logs.ban.description": (),
-    "moderation.logs.kick.description": (),
-    "moderation.logs.mute.description": (),
-    "moderation.logs.warn.description": (),
+    "moderation.logs.ban.description": (
+        "member", "moderator", "reason", "member_label", "moderator_label", "reason_label",
+    ),
+    "moderation.logs.kick.description": (
+        "member", "moderator", "reason", "member_label", "moderator_label", "reason_label",
+    ),
+    "moderation.logs.mute.description": (
+        "member", "moderator", "reason", "duration",
+        "member_label", "moderator_label", "reason_label", "duration_label",
+    ),
+    "moderation.logs.warn.description": (
+        "member", "moderator", "reason", "member_label", "moderator_label", "reason_label",
+    ),
     "invites.logs.join.description": ("user", "code", "inviter", "label", "flags"),
     "invites.logs.leave.description": ("user", "inviter"),
     "invites.logs.bonus.description": ("moderator", "user", "amount", "total"),

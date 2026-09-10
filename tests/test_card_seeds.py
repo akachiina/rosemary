@@ -172,6 +172,40 @@ async def test_reset_restores_catalog_seed_not_skeleton(tmp_path):
     assert await load_doc(1) is None  # override removed
 
 
+@pytest.mark.parametrize("language", ["en-US", "pt-BR"])
+async def test_every_seeded_placeholder_is_within_contract(tmp_path, language):
+    """Placeholders the seed introduces must be the card's declared contract.
+
+    Guards the editor experience: a seed referencing a name the send site
+    never provides would make every preview show the lint warning container
+    (the yellow "'version' não é um placeholder deste cartão" from the bug
+    report) even though nothing is wrong with the admin's text.
+    """
+    import re
+
+    from rosemary.core.variables import ALIASES
+
+    class LanguageBot(CatalogBot):
+        def __init__(self, tmp_path):
+            super().__init__(tmp_path)
+            self.translator._translator.resolver = lambda _gid: language
+
+    bot = LanguageBot(tmp_path)
+    offenders = []
+    for spec in all_cards():
+        doc = await catalog_default_document(bot, 1, spec.key)
+        if doc is None:
+            continue
+        allowed = set(spec.variables) | set(ALIASES) | set(bot.theme.emojis)
+        found = set()
+        for body in _text_bodies(doc):
+            found |= set(re.findall(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}", body))
+        unknown = found - allowed
+        if unknown:
+            offenders.append(f"{language}:{spec.key}:{sorted(unknown)}")
+    assert offenders == []
+
+
 def _count_components(view) -> int:
     """Discord-style component count, nesting included (same as cap test)."""
 

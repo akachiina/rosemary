@@ -1593,6 +1593,9 @@ variables:
   channel:
     label: Channel
     description: Mention of the channel
+  version:
+    label: Version
+    description: Current bot version
   role:
     label: Role
     description: Mention of the role
@@ -1746,6 +1749,18 @@ variables:
   warned:
     label: Warning
     description: Warning marker
+  member_label:
+    label: Member label
+    description: Label of the "Member" field in logs
+  moderator_label:
+    label: Moderator label
+    description: Label of the "Moderator" field in logs
+  reason_label:
+    label: Reason label
+    description: Label of the "Reason" field in logs
+  duration_label:
+    label: Duration label
+    description: Label of the "Duration" field in logs
   old_owner:
     label: Old owner
     description: Mention of the previous owner
@@ -1789,7 +1804,7 @@ cards:
   editor:
     title: Card Editor
     hint: 'Editing `{card_key}`. Placeholders: {placeholders}'
-    placeholders_default: '{{user}}, {{server}}, {{count}}, {{user_avatar}} + any theme emoji'
+    placeholders_none: 'none specific + any theme emoji'
     preview: Preview
     invalid: '{warning} This composition cannot be sent yet: {error}'
     saved: '{success} Saved.'
@@ -1825,6 +1840,7 @@ cards:
       history: History
       export: Export
       import: Import
+      placeholders: View placeholders
     types:
       text: Text
       container: Card (colored box)
@@ -1869,6 +1885,9 @@ cards:
     lint_suggestion: 'Did you mean {suggestion}?'
     modal_stale: 'That block no longer exists. Your text was kept: {value}'
     more_title: 'More actions:'
+    placeholders_title: 'Placeholders for this card:'
+    placeholders_empty: 'This card has no specific placeholders — write freely and use any theme emoji.'
+    placeholders_emoji_note: '-# Any theme emoji also works: {star} {{star}}, {user} {{user}}…'
     templates_title: 'Start from a template (replaces the draft, undoable):'
     templates_placeholder: Choose a template...
     templates_empty: '*No templates available.*'
@@ -1919,6 +1938,13 @@ cards:
       placeholder: Change ping policy...
       current: 'Pings: **{policy}** — {description}'
       saved: '{success} Ping policy saved.'
+      status: 'Pings: **{state}** — decides whether the mentions ({{@user}}) in this card actually notify.'
+      on: On
+      off: Off
+      enable: Turn pings on
+      disable: Turn pings off
+      enabled_flash: '{success} Pings on — mentions in the text will notify.'
+      disabled_flash: '{warning} Pings off — nothing in this card will notify.'
   templates:
     banner:
       label: Banner

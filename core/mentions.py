@@ -32,55 +32,6 @@ MODES: tuple[str, ...] = ("none", "single", "winner_auto", "role", "all")
 DEFAULT_MODE = "none"
 
 
-def resolve_allowed_mentions(
-    policy: str,
-    user_ids: tuple[int, ...] | list[int] = (),
-    role_ids: tuple[int, ...] | list[int] = (),
-    source: str = "auto",
-) -> discord.AllowedMentions:
-    """Build an ``AllowedMentions`` for ``policy``.
-
-    ``user_ids``/``role_ids`` are the *candidates* found in the card text
-    (winner, bumper, celebrant...). Only the ids permitted by the policy are
-    included; everything else parses as plain text (still clickable, no ping).
-    """
-    if policy == "all":
-        return discord.AllowedMentions.all()
-    if policy == "single":
-        ids = [int(uid) for uid in list(user_ids)[:1] if int(uid) > 0]
-        if not ids:
-            return discord.AllowedMentions.none()
-        return discord.AllowedMentions(
-            everyone=False,
-            users=[discord.Object(id=uid) for uid in ids],
-            roles=False,
-            replied_user=False,
-        )
-    if policy == "winner_auto":
-        if source != "auto":
-            return discord.AllowedMentions.none()
-        ids = [int(uid) for uid in list(user_ids)[:1] if int(uid) > 0]
-        if not ids:
-            return discord.AllowedMentions.none()
-        return discord.AllowedMentions(
-            everyone=False,
-            users=[discord.Object(id=uid) for uid in ids],
-            roles=False,
-            replied_user=False,
-        )
-    if policy == "role":
-        ids = [int(rid) for rid in list(role_ids) if int(rid) > 0]
-        if not ids:
-            return discord.AllowedMentions.none()
-        return discord.AllowedMentions(
-            everyone=False,
-            users=False,
-            roles=[discord.Object(id=rid) for rid in ids],
-            replied_user=False,
-        )
-    return discord.AllowedMentions.none()
-
-
 class MentionStore:
     """Per-guild storage of per-card mention policy overrides.
 
@@ -152,39 +103,6 @@ async def effective_policy(bot, guild_id: int, key: str) -> str:
     return spec_default(key)
 
 
-async def mentions_for(
-    bot,
-    guild_id: int,
-    key: str,
-    *,
-    source: str = "auto",
-    user_ids: tuple[int, ...] | list[int] = (),
-    role_ids: tuple[int, ...] | list[int] = (),
-) -> discord.AllowedMentions:
-    """Resolve the effective ``AllowedMentions`` for one card send."""
-    policy = await effective_policy(bot, guild_id, key)
-    return resolve_allowed_mentions(policy, user_ids, role_ids, source)
-
-
-async def send_log_mentions(
-    bot,
-    guild_id: int,
-    key: str,
-    *,
-    user_ids: tuple[int, ...] | list[int] = (),
-    role_ids: tuple[int, ...] | list[int] = (),
-) -> discord.AllowedMentions:
-    """Resolve mentions for a staff-log entry (never auto-pings by default).
-
-    Log cards default to ``none``; a guild may opt a specific log card into
-    ``single``/``all`` in /customize, in which case only the explicitly passed
-    candidate ids may ping.
-    """
-    return await mentions_for(
-        bot, guild_id, key, source="auto", user_ids=user_ids, role_ids=role_ids,
-    )
-
-
 def describe_policy(policy: str) -> str:
     """I18n key suffix for a policy (labels live under ``cards.mentions.*``)."""
     return policy if policy in MODES else DEFAULT_MODE
@@ -193,3 +111,123 @@ def describe_policy(policy: str) -> str:
 def valid_policy(value: Any) -> bool:
     """Whether ``value`` is a known mention policy name."""
     return isinstance(value, str) and value in MODES
+
+
+# -- pings toggle ------------------------------------------------------------
+#: The editor exposes one per-card question: may this card ping at all?
+#: Stored values reuse the legacy vocabulary (``none`` = off, anything else
+#: = on) so old ``mentions.json`` files keep working with no migration;
+#: ``mention_default != "none"`` is the per-card default.
+
+
+def pings_default(key: str) -> bool:
+    """Whether the card spec opts into pings by default."""
+    return spec_default(key) != "none"
+
+
+async def effective_pings(bot, guild_id: int, key: str) -> bool:
+    """Guild's pings toggle for ``key`` (override, else the spec default)."""
+    store = mention_store(bot)
+    value = await store.get_policy(guild_id, key)
+    if value is None:
+        return pings_default(key)
+    return value != "none"
+
+
+async def set_pings_for(bot, guild_id: int, key: str, enabled: bool) -> None:
+    """Persist one card's pings toggle bound to the bot's data directory."""
+    await mention_store(bot).set_policy(guild_id, key, "all" if enabled else "none")
+
+
+def _parse_mention_tokens(text: str) -> tuple[list[int], list[int]]:
+    """``(user_ids, role_ids)`` found in already-resolved text."""
+    import re as _re
+
+    token = _re.compile(r"<@!?([0-9]{1,20})>|<@&([0-9]{1,20})>")
+    users: list[int] = []
+    roles: list[int] = []
+    for found in token.finditer(text):
+        role_id, user_id = found.group(2), found.group(1)
+        (roles if role_id else users).append(int(role_id or user_id))
+    return list(dict.fromkeys(users)), list(dict.fromkeys(roles))
+
+
+def _allowed_for(users: list[int], roles: list[int]) -> discord.AllowedMentions:
+    if not users and not roles:
+        return discord.AllowedMentions.none()
+    return discord.AllowedMentions(
+        everyone=False,
+        users=[discord.Object(id=uid) for uid in users] if users else False,
+        roles=[discord.Object(id=rid) for rid in roles] if roles else False,
+        replied_user=False,
+    )
+
+
+async def allowed_for_ids(
+    bot,
+    guild_id: int,
+    key: str,
+    *,
+    user_ids: tuple[int, ...] | list[int] = (),
+    role_ids: tuple[int, ...] | list[int] = (),
+    silent: bool = False,
+) -> discord.AllowedMentions:
+    """``AllowedMentions`` for a send whose candidates are known by id.
+
+    Pings off (toggle or ``silent``) -> ``none()``; on -> exactly the passed
+    candidate ids may ping. This replaces the legacy ``mentions_for`` policy
+    matrix at send sites.
+    """
+    if silent or not await effective_pings(bot, guild_id, key):
+        return discord.AllowedMentions.none()
+    users = [int(uid) for uid in user_ids if int(uid) > 0]
+    roles = [int(rid) for rid in role_ids if int(rid) > 0]
+    return _allowed_for(users, roles)
+
+
+async def allowed_for_text(
+    bot,
+    guild_id: int,
+    key: str,
+    text: str,
+    *,
+    silent: bool = False,
+    user_ids: tuple[int, ...] | list[int] = (),
+    role_ids: tuple[int, ...] | list[int] = (),
+) -> discord.AllowedMentions:
+    """``AllowedMentions`` for already-resolved text (staff logs, DM bodies).
+
+    Only the ``<@id>``/``<@&id>`` tokens actually present in ``text`` may ping,
+    plus any explicitly passed candidate ids, and only when the guild's pings
+    toggle for ``key`` is on. Log cards default to off, so staff logs stay
+    silent unless a guild explicitly opts in.
+    """
+    if silent or not await effective_pings(bot, guild_id, key):
+        return discord.AllowedMentions.none()
+    users, roles = _parse_mention_tokens(text)
+    users += [int(uid) for uid in user_ids if int(uid) > 0]
+    roles += [int(rid) for rid in role_ids if int(rid) > 0]
+    return _allowed_for(list(dict.fromkeys(users)), list(dict.fromkeys(roles)))
+
+
+async def allowed_for_document(
+    bot,
+    guild_id: int,
+    key: str,
+    doc: dict[str, Any],
+    mapping: dict[str, Any],
+    *,
+    silent: bool = False,
+) -> discord.AllowedMentions:
+    """``AllowedMentions`` for a card document rendered with ``mapping``.
+
+    Parses the mention tokens the document resolves to (bodies and button
+    labels), so customized text decides who can ping — the position of
+    ``{@user}``/``{user}`` in the content is the admin's choice, not code's.
+    """
+    if silent or not await effective_pings(bot, guild_id, key):
+        return discord.AllowedMentions.none()
+    from rosemary.core.cards import document_mention_ids
+
+    users, roles = document_mention_ids(doc, mapping)
+    return _allowed_for(users, roles)

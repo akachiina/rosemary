@@ -113,14 +113,14 @@ class TicketsCog(commands.Cog):
         return discord.ui.ActionRow(await picker.open_row())
 
     async def _post_panel(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         view = await maybe_view(self.bot, guild.id, "tickets.panel")
         if view is None:
             view = await self._build_panel_view(guild.id)
         view.add_item(await self._panel_select_row(guild.id))
         message = await channel.send(
-            view=view, allowed_mentions=await mentions_for(self.bot, guild.id, "tickets.panel")
+            view=view, allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.panel")
         )
         await self.store.set_panel(guild.id, message.id)
 
@@ -225,7 +225,7 @@ class TicketsCog(commands.Cog):
         owner: discord.Member,
         ticket_type: str,
     ) -> None:
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         variables = {
             "user": owner.mention,
@@ -241,7 +241,7 @@ class TicketsCog(commands.Cog):
         view.add_item(TicketActionsView(self.bot, guild.id, channel.id).action_row())
         await channel.send(
             view=view,
-            allowed_mentions=await mentions_for(self.bot, guild.id, "tickets.created"),
+            allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.created"),
         )
 
     async def _intro_view(self, guild_id: int, body: str):

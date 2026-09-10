@@ -177,7 +177,7 @@ async def test_picker_lists_spec_and_opens_editor(tmp_path, with_spec):
     assert isinstance(interaction.edit_kwargs["view"], CardEditorView)
     editor = interaction.edit_kwargs["view"]
     assert editor.key == "test.hello"
-    assert editor.placeholders_hint == "card.test.hello.placeholders"
+    assert editor.placeholders_hint == "cards.editor.placeholders_none"
 
 
 async def test_editor_exit_returns_to_picker(tmp_path, with_spec):

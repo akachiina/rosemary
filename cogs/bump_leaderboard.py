@@ -192,13 +192,13 @@ class BumpLeaderboardCog(commands.Cog):
     # -- Helpers -------------------------------------------------------------
 
     async def _post_no_bumps(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         override = await maybe_view(self.bot, guild.id, "bump.no_bumps")
         if override is not None:
             await channel.send(
                 view=override,
-                allowed_mentions=await mentions_for(self.bot, guild.id, "bump.no_bumps"),
+                allowed_mentions=await allowed_for_ids(self.bot, guild.id, "bump.no_bumps"),
             )
             return
 
@@ -216,7 +216,7 @@ class BumpLeaderboardCog(commands.Cog):
         )
         await channel.send(
             view=view,
-            allowed_mentions=await mentions_for(self.bot, guild.id, "bump.no_bumps"),
+            allowed_mentions=await allowed_for_ids(self.bot, guild.id, "bump.no_bumps"),
         )
 
     async def _leaderboard_context(
@@ -282,7 +282,7 @@ class BumpLeaderboardCog(commands.Cog):
         winner_count: int,
         role_name: str | None = None,
     ) -> None:
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         context = await self._leaderboard_context(
             guild, sorted_lb, winner_id, winner_count, role_name
@@ -294,9 +294,9 @@ class BumpLeaderboardCog(commands.Cog):
             )
         await channel.send(
             view=view,
-            allowed_mentions=await mentions_for(
+            allowed_mentions=await allowed_for_ids(
                 self.bot, guild.id, "bump.leaderboard",
-                source="auto", user_ids=[winner_id],
+                user_ids=[winner_id],
             ),
         )
 
@@ -485,13 +485,13 @@ class BumpLeaderboardCog(commands.Cog):
         view = await self._build_leaderboard_view(
             guild, sorted_lb, winner_id, winner_count, role_name,
         )
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         await ctx.respond(
             view=view,
-            allowed_mentions=await mentions_for(
+            allowed_mentions=await allowed_for_ids(
                 self.bot, guild.id, "bump.leaderboard",
-                source="command", user_ids=[winner_id],
+                user_ids=[winner_id], silent=True,
             ),
         )
 
@@ -681,13 +681,13 @@ class BumpLeaderboardCog(commands.Cog):
         view = await self._build_leaderboard_view(
             guild, sorted_lb, winner_id, winner_count, role_name,
         )
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         await channel.send(
             view=view,
-            allowed_mentions=await mentions_for(
+            allowed_mentions=await allowed_for_ids(
                 self.bot, guild_id, "bump.leaderboard",
-                source="auto", user_ids=[winner_id],
+                user_ids=[winner_id],
             ),
         )
         await send_channel_log(

@@ -29,11 +29,10 @@ Rosemary — a modular, multilingual Discord bot for multiple servers, built on 
 
 ## Mentions (`core/mentions.py`)
 
-- Every `CardSpec` declares `mention_default`; guilds override per card in `/customize` (persisted in `mentions.json` via `MentionStore`, missing key = spec default, no migration ever needed). Modes: `none` / `single` / `winner_auto` / `role` / `all`.
-- **`<@id>` inside Components V2 `TextDisplay` still pings** — every public `channel.send`/`ctx.respond` carrying mentions must pass an explicit `allowed_mentions` from `mentions_for(...)`. Ephemeral responses don't need it.
-- `winner_auto` pings one user only when `source="auto"` (weekly post); manual `/bump_leaderboard` passes `source="command"` → silent. `single`/`role` ping only the passed candidate ids.
-- `send_channel_log(..., card_key=..., mention_user_ids=[...])` resolves the log card's policy (log cards default to `none`); calls without `card_key` never ping.
-- Adding a customizable card = `CardSpec` in `core/card_specs.py` + `card.<key>.title`/`.placeholders` in BOTH catalogs (**enforced by `test_customize.py`**) + a sensible `mention_default` + `variables` contract in `VARIABLES_BY_KEY` (send site must pass exactly those; **enforced by `test_variables.py`**). Placeholder labels live in `variables.<name>.label/.description` (BOTH catalogs); samples in `core/variables.py`. Editor edits a draft with undo + explicit Save/Discard; never auto-persists.
+- **Mentions are content**: the position of a ping is wherever `{@name}` (or legacy `{name}` for a mention variable) appears in the card text. The renderer collects the `<@id>`/`<@&id>` tokens the resolved text actually contains and builds `AllowedMentions` from them — never pass `allowed_mentions` by hand for card sends.
+- Per-card pings toggle in `/customize` (`mentions.json` via `MentionStore`, missing key = `mention_default != "none"` from the spec; stored vocabulary is unchanged, so old `single`/`role`/... values read as "on" — no migration). Entry points: `allowed_for_ids` (candidates by id), `allowed_for_text` (tokens in already-resolved text), `allowed_for_document` (tokens a document resolves to), `render_card_message` in `core/card_service.py` (view + allowed in one call). `silent=True` forces no ping (manual `/bump_leaderboard` winner).
+- `send_channel_log(..., card_key=..., mention_user_ids=[...])` resolves pings from the description text plus the passed ids; log cards default to off; calls without `card_key` never ping.
+- Adding a customizable card = `CardSpec` in `core/card_specs.py` + `card.<key>.title` in BOTH catalogs (**enforced by `test_customize.py`**) + a sensible `mention_default` + `variables` contract in `VARIABLES_BY_KEY` (send site must pass exactly those; **enforced by `test_variables.py`**; the seed↔contract sweep is `test_card_seeds.py`). Placeholder labels live in `variables.<name>.label/.description` (BOTH catalogs); samples in `core/variables.py`. Editor edits a draft with undo + explicit Save/Discard; never auto-persists.
 
 ## Settings system (`core/settings.py`)
 

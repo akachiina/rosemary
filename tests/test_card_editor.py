@@ -733,5 +733,5 @@ async def test_mentions_status_line_shows_current_policy(tmp_path):
     )
     await view.prepare()
     rendered = all_texts(view)
-    assert "cards.editor.mentions.current" in rendered
-    assert "cards.mentions.modes.role" in rendered  # policy name is rendered
+    assert "cards.editor.mentions.status" in rendered
+    assert "cards.editor.mentions.on" in rendered  # policy name is rendered

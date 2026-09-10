@@ -35,7 +35,8 @@ class AboutCog(commands.Cog):
             channel = "stable"
         from rosemary.core.cards import maybe_view
 
-        view = await maybe_view(self.bot, ctx.guild_id, "about.card")
+        variables = {"version": __version__, "channel": channel}
+        view = await maybe_view(self.bot, ctx.guild_id, "about.card", variables)
         if view is None:
             # Sections require an accessory (Thumbnail/Button); plain text
             # must use TextDisplay directly to keep the message valid.

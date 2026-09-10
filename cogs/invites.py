@@ -395,11 +395,11 @@ class InvitesCog(commands.Cog):
         view = await self._card_view(
             guild_id, "invites.leaderboard", title, body, {"title": title, "body": body}
         )
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         await ctx.respond(
             view=view,
-            allowed_mentions=await mentions_for(self.bot, guild_id, "invites.leaderboard"),
+            allowed_mentions=await allowed_for_ids(self.bot, guild_id, "invites.leaderboard"),
         )
 
     async def _card_view(

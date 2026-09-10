@@ -155,7 +155,7 @@ class BumpReminderCog(commands.Cog):
         self, guild: discord.Guild, channel: discord.TextChannel, *, locked: bool
     ) -> None:
         """Lock/unlock the channel on behalf of the schedule with its message."""
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         guild_id = guild.id
         try:
@@ -199,7 +199,7 @@ class BumpReminderCog(commands.Cog):
             if message:
                 await channel.send(
                     message,
-                    allowed_mentions=await mentions_for(
+                    allowed_mentions=await allowed_for_ids(
                         self.bot,
                         guild_id,
                         key,
@@ -343,7 +343,7 @@ class BumpReminderCog(commands.Cog):
             await channel.edit(overwrites=overwrites)
             await self.store.mark_channel_locked(guild_id, LOCK_CAMPING)
 
-            from rosemary.core.mentions import mentions_for
+            from rosemary.core.mentions import allowed_for_ids
 
             message = await text_or(
                 self.bot,
@@ -358,7 +358,7 @@ class BumpReminderCog(commands.Cog):
             if message:
                 lock_message = await channel.send(
                     message,
-                    allowed_mentions=await mentions_for(
+                    allowed_mentions=await allowed_for_ids(
                         self.bot, guild_id, "bump.anti_camping"
                     ),
                 )
@@ -468,19 +468,19 @@ class BumpReminderCog(commands.Cog):
         ) or (await self._build_reminder_view(guild, cooldown_display))
 
         try:
-            from rosemary.core.mentions import mentions_for
+            from rosemary.core.mentions import allowed_for_ids
 
             if content:
                 await channel.send(
                     content,
-                    allowed_mentions=await mentions_for(
+                    allowed_mentions=await allowed_for_ids(
                         self.bot, guild_id, "bump.reminder",
                         role_ids=[ping_role_id] if ping_role_id else [],
                     ),
                 )
             await channel.send(
                 view=view,
-                allowed_mentions=await mentions_for(self.bot, guild_id, "bump.reminder"),
+                allowed_mentions=await allowed_for_ids(self.bot, guild_id, "bump.reminder"),
             )
             await self.store.mark_reminder_sent(guild_id)
             await send_channel_log(
@@ -533,11 +533,11 @@ class BumpReminderCog(commands.Cog):
         )
 
         try:
-            from rosemary.core.mentions import mentions_for
+            from rosemary.core.mentions import allowed_for_ids
 
             await channel.send(
                 view=view,
-                allowed_mentions=await mentions_for(
+                allowed_mentions=await allowed_for_ids(
                     self.bot, guild_id, "bump.thank_you", user_ids=[user_id],
                 ),
             )

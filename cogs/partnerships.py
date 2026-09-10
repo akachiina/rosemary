@@ -149,7 +149,7 @@ class PartnershipsCog(commands.Cog):
     async def _post_ad(
         self, guild: discord.Guild, content: str, attachments: list[str]
     ):
-        from rosemary.core.mentions import mentions_for
+        from rosemary.core.mentions import allowed_for_ids
 
         channel = await self._channel(guild)
         if channel is None:
@@ -159,7 +159,7 @@ class PartnershipsCog(commands.Cog):
         try:
             return await channel.send(
                 f"{prefix}{content}".strip(),
-                allowed_mentions=await mentions_for(
+                allowed_mentions=await allowed_for_ids(
                     self.bot,
                     guild.id,
                     "partnerships.invite",

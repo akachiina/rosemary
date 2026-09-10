@@ -17,6 +17,7 @@ import discord
 from rosemary.core.cards import (
     DOCUMENT_VERSION,
     ECHO_VARIABLES,
+    CardsError,
     build_items,
     get_default_builder,
     safe_format,
@@ -287,3 +288,43 @@ def log_default_failure(key: str, exc: Exception) -> None:
     logging.getLogger(__name__).warning(
         "default builder failed for card %s: %s", key, exc
     )
+
+
+async def render_card_message(
+    bot,
+    guild_id: int,
+    key: str,
+    variables: dict[str, Any] | None = None,
+    *,
+    silent: bool = False,
+) -> tuple[discord.ui.DesignerView | None, discord.AllowedMentions]:
+    """Render a card for a real send: ``(view, allowed_mentions)``.
+
+    Resolution: saved override else the feature default (builder or seeded
+    catalog copy) — ``None`` only when the card resolves no document at all,
+    in which case the caller falls back to its own default view and computes
+    mentions for that text via ``mentions.allowed_for_text``. Otherwise the
+    returned ``allowed_mentions`` is derived from the document itself: only
+    ``<@id>``/``<@&id>`` tokens the resolved text actually contains may ping,
+    and only when the guild's pings toggle for the card is on (or the caller
+    forces ``silent``). An invalid stored document renders ``None`` so the
+    caller's default path takes over — sends never break on editor content.
+    """
+    from rosemary.core.mentions import allowed_for_document
+
+    doc = await get_effective_document(bot, guild_id, key)
+    if doc is None:
+        return None, discord.AllowedMentions.none()
+    mapping = {
+        **(getattr(bot.theme, "emojis", {}) or {}),
+        **(dict(ECHO_VARIABLES) if variables is None else variables),
+    }
+    try:
+        view = await render_document(bot, doc, mapping, card_key=key)
+    except CardsError as exc:
+        log_default_failure(key, exc)
+        return None, discord.AllowedMentions.none()
+    allowed = await allowed_for_document(
+        bot, guild_id, key, doc, mapping, silent=silent
+    )
+    return view, allowed

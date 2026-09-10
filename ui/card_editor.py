@@ -208,6 +208,7 @@ class CardEditorView(MenuView):
         self._show_more: bool = False
         self._show_templates: bool = False
         self._show_history: bool = False
+        self._show_placeholders: bool = False
         self._register_handlers()
 
     # -- state ---------------------------------------------------------------
@@ -241,6 +242,7 @@ class CardEditorView(MenuView):
         self.register("card_undo", self._undo_action)
         self.register("card_more", self._open_more)
         self.register("card_more_back", self._more_back)
+        self.register("card_placeholders", self._open_placeholders)
         self.register("card_templates", self._open_templates)
         self.register("card_template_pick", self._pick_template)
         self.register("card_history", self._open_history)
@@ -253,7 +255,8 @@ class CardEditorView(MenuView):
         self.register("card_compare_close", self._close_compare)
         self.register("card_color", self._set_container_color)
         self.register("card_exit", self._exit_to_origin)
-        self.register("card_mentions", self._set_mentions)
+        self.register("card_pings_on", self._pings_on)
+        self.register("card_pings_off", self._pings_off)
 
     def _touch(self) -> None:
         """Snapshot for undo; call after every draft mutation."""
@@ -353,6 +356,7 @@ class CardEditorView(MenuView):
         self._show_more = False
         self._show_templates = False
         self._show_history = False
+        self._show_placeholders = False
         self._block_page = 0
         await self._load_or_seed()
         self.flash = await self._t("cards.editor.discarded")
@@ -454,11 +458,13 @@ class CardEditorView(MenuView):
             return await self._build_compare_screen()
 
         parts: list[discord.ui.ViewItem] = [await self._build_header()]
-        if self._show_more or self._show_templates or self._show_history:
+        if self._show_more or self._show_templates or self._show_history or self._show_placeholders:
             if self._show_templates:
                 parts.extend(await self._build_templates_screen())
             elif self._show_history:
                 parts.extend(await self._build_history_screen())
+            elif self._show_placeholders:
+                parts.extend(await self._build_placeholders_screen())
             else:
                 parts.extend(await self._build_more_screen())
             return parts
@@ -586,7 +592,7 @@ class CardEditorView(MenuView):
                     "cards.editor.hint",
                     card_key=self.key,
                     placeholders=self.placeholders_hint
-                    or await self._t("cards.editor.placeholders_default"),
+                    or await self._t("cards.editor.placeholders_none"),
                 )
             ),
             TextDisplay(
@@ -802,37 +808,68 @@ class CardEditorView(MenuView):
         return default if default in MODES else "none"
 
     async def _build_mentions_row(self) -> list[discord.ui.ViewItem]:
-        """Per-card ping policy: current status line + select (only when wired)."""
+        """Per-card pings toggle: status line + on/off buttons (only when wired)."""
         if self._load_mentions is None or self._save_mentions is None:
             return []
-        from rosemary.core.mentions import MODES
+        from rosemary.core.mentions import pings_default
 
-        current = self._effective_mention_policy()
+        try:
+            stored = await self._load_mentions(self.guild_id)
+        except Exception:
+            stored = None
+        enabled = (
+            pings_default(self.key) if stored is None else stored != "none"
+        )
+        theme = self.bot.theme
         status = designer_container(
-            self.bot.theme.color("info"),
+            theme.color("info"),
             TextDisplay(
                 await self._t(
-                    "cards.editor.mentions.current",
-                    policy=str(await self._t(f"cards.mentions.modes.{current}")),
-                    description=str(await self._t(f"cards.mentions.desc.{current}")),
+                    "cards.editor.mentions.status",
+                    state=await self._t(
+                        "cards.editor.mentions.on" if enabled else "cards.editor.mentions.off"
+                    ),
                 )
             ),
         )
-        options = [
-            discord.SelectOption(
-                label=str(await self._t(f"cards.mentions.modes.{mode}"))[:100],
-                value=mode,
-                description=str(await self._t(f"cards.mentions.desc.{mode}"))[:100],
-                default=(mode == current),
-            )
-            for mode in MODES
+        return [
+            status,
+            ActionRow(
+                self.make_button(
+                    custom_id="card_pings_on",
+                    label=await self._t("cards.editor.mentions.enable"),
+                    emoji=theme.emojis.get("check", ""),
+                    style=discord.ButtonStyle.success if enabled else discord.ButtonStyle.secondary,
+                    disabled=enabled,
+                ),
+                self.make_button(
+                    custom_id="card_pings_off",
+                    label=await self._t("cards.editor.mentions.disable"),
+                    emoji=theme.emojis.get("error", ""),
+                    style=(
+                        discord.ButtonStyle.danger if not enabled
+                        else discord.ButtonStyle.secondary
+                    ),
+                    disabled=not enabled,
+                ),
+            ),
         ]
-        select = self.make_select(
-            custom_id="card_mentions",
-            placeholder=str(await self._t("cards.editor.mentions.placeholder"))[:150],
-            options=options,
+
+    async def _set_pings(self, interaction: discord.Interaction, enabled: bool) -> None:
+        """Persist the pings toggle through the injected store (one step)."""
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        if self._save_mentions is None:
+            return await self.rerender(interaction)
+        await self._save_mentions(self.guild_id, "all" if enabled else "none")
+        self.mention_policy = "all" if enabled else "none"
+        self.flash = await self._t(
+            "cards.editor.mentions.enabled_flash"
+            if enabled
+            else "cards.editor.mentions.disabled_flash"
         )
-        return [status, ActionRow(select)]
+        self.flash_color = "success" if enabled else "warning"
+        await self.rerender(interaction)
 
     async def _build_add_screen(self) -> list[discord.ui.ViewItem]:
         allowed = ["text"] if self._inside_section() else list(_BLOCK_TYPES)
@@ -1450,6 +1487,11 @@ class CardEditorView(MenuView):
                     label=await self._t("cards.editor.buttons.import"),
                 ),
                 self.make_button(
+                    custom_id="card_placeholders",
+                    label=await self._t("cards.editor.buttons.placeholders"),
+                    emoji=theme.emojis.get("numbers", ""),
+                ),
+                self.make_button(
                     custom_id="card_reset",
                     label=await self._t("cards.editor.buttons.reset"),
                     style=discord.ButtonStyle.danger,
@@ -1459,12 +1501,59 @@ class CardEditorView(MenuView):
             ),
         ]
 
+    async def _build_placeholders_screen(self) -> list[discord.ui.ViewItem]:
+        """Cheatsheet: this card's contract, one entry per placeholder.
+
+        Generated from the registries (variables + spec contract) — a card
+        added tomorrow gets its cheatsheet for free. Mention variables show
+        the ``{@name}`` spelling; every entry carries its translated label,
+        description and the sample used in previews/tests.
+        """
+        from rosemary.core.cards import get_card
+        from rosemary.core.variables import VARIABLES
+
+        spec = get_card(self.key)
+        lines: list[str] = [await self._t("cards.editor.placeholders_title")]
+        if spec is None or not spec.variables:
+            lines.append(await self._t("cards.editor.placeholders_empty"))
+        else:
+            for name in spec.variables:
+                entry = VARIABLES.get(name)
+                label = (
+                    await self._t(entry.label_key)
+                    if entry is not None
+                    else name
+                )
+                description = (
+                    await self._t(entry.description_key)
+                    if entry is not None
+                    else ""
+                )
+                spelling = (
+                    f"{{@{name}}}"
+                    if entry is not None and entry.kind == "mention"
+                    else f"{{{name}}}"
+                )
+                line = f"**{label}** — `{spelling}`"
+                if description and description != entry.description_key:
+                    line += f"\n-# {description}"
+                lines.append(line)
+        lines.append(await self._t("cards.editor.placeholders_emoji_note"))
+        return [
+            designer_container(
+                self.bot.theme.color("info"),
+                TextDisplay("\n\n".join(lines)),
+                ActionRow(await self._back_button()),
+            )
+        ]
+
     async def _open_more(self, interaction: discord.Interaction) -> None:
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=True)
         self._show_more = True
         self._show_templates = False
         self._show_history = False
+        self._show_placeholders = False
         await self.rerender(interaction)
 
     async def _more_back(self, interaction: discord.Interaction) -> None:
@@ -1473,6 +1562,18 @@ class CardEditorView(MenuView):
         self._show_more = False
         self._show_templates = False
         self._show_history = False
+        self._show_placeholders = False
+        self._show_placeholders = False
+        await self.rerender(interaction)
+
+    async def _open_placeholders(self, interaction: discord.Interaction) -> None:
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        self._show_more = False
+        self._show_templates = False
+        self._show_history = False
+        self._show_placeholders = False
+        self._show_placeholders = True
         await self.rerender(interaction)
 
     async def _build_templates_screen(self) -> list[discord.ui.ViewItem]:
@@ -1530,6 +1631,7 @@ class CardEditorView(MenuView):
         self._show_more = False
         self._show_templates = False
         self._show_history = False
+        self._show_placeholders = False
         self._block_page = 0
         self.using_default_base = False
         self.flash = await self._t("cards.editor.templates_applied")
@@ -1599,6 +1701,7 @@ class CardEditorView(MenuView):
         self._show_more = False
         self._show_templates = False
         self._show_history = False
+        self._show_placeholders = False
         self._block_page = 0
         self.using_default_base = False
         self.flash = await self._t("cards.editor.history_restored")
@@ -1666,6 +1769,7 @@ class CardEditorView(MenuView):
         self._show_more = False
         self._show_templates = False
         self._show_history = False
+        self._show_placeholders = False
         self._block_page = 0
         self.using_default_base = False
         self.flash = await self._t("cards.editor.imported")
@@ -2109,6 +2213,7 @@ class CardEditorView(MenuView):
         self._show_more = False
         self._show_templates = False
         self._show_history = False
+        self._show_placeholders = False
         self._block_page = 0
         self.mention_policy = None
         self.saved_exists = False
@@ -2190,31 +2295,11 @@ class CardEditorView(MenuView):
         target["color"] = values[0] or None
         await self.rerender(interaction)
 
-    async def _set_mentions(self, interaction: discord.Interaction) -> None:
-        from rosemary.core.mentions import valid_policy
+    async def _pings_on(self, interaction: discord.Interaction) -> None:
+        await self._set_pings(interaction, True)
 
-        values = (interaction.data or {}).get("values") or []
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
-        if not values or self._save_mentions is None:
-            return await self.rerender(interaction)
-        policy = values[0]
-        if not valid_policy(policy):
-            return await self.rerender(interaction)
-        if policy == "all" and self._armed != "mentions:all":
-            self._armed = "mentions:all"
-            self.flash = await self._t("cards.editor.arm_mentions")
-            self.flash_color = "danger"
-            return await self.rerender(interaction)
-        self._armed = None
-        try:
-            await self._save_mentions(self.guild_id, policy)
-        except (ValueError, OSError):
-            return await self.rerender(interaction)
-        self.mention_policy = policy
-        self.flash = await self._t("cards.editor.mentions.saved")
-        self.flash_color = "success"
-        await self.rerender(interaction)
+    async def _pings_off(self, interaction: discord.Interaction) -> None:
+        await self._set_pings(interaction, False)
 
     async def _lint_lines(self) -> list[str]:
         """Unknown-placeholder hints for the draft (never blocks saving)."""

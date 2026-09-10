@@ -31,6 +31,7 @@ the call site instead of breaking sends.
 
 from __future__ import annotations
 
+import copy
 import logging
 import re
 from collections.abc import Callable
@@ -58,6 +59,10 @@ _CONTAINER_CHILDREN = frozenset({"text", "divider", "gallery", "row", "section"}
 _SECTION_ACCESSORIES = frozenset({"thumbnail", "button"})
 
 _PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
+#: Mention placeholder ``{@name}``: same value as ``{name}``, but records
+#: the substituted id so the renderer can build ``AllowedMentions``.
+_MENTION_RE = re.compile(r"\{@([a-zA-Z_][a-zA-Z0-9_]*)\}")
+_MENTION_TOKEN_RE = re.compile(r"<@!?([0-9]{1,20})>|<@&([0-9]{1,20})>")
 _URL_RE = re.compile(r"https?://\S+")
 
 
@@ -315,6 +320,68 @@ def safe_format(template: str, mapping: dict[str, Any]) -> str:
     )
 
 
+def safe_format_mentions(
+    template: str,
+    mapping: dict[str, Any],
+) -> tuple[str, dict[str, tuple[str, int]]]:
+    """Substitute ``{name}`` and ``{@name}``, collecting resolved mentions.
+
+    ``{@name}`` resolves to the *same value* as ``{name}`` — it only marks the
+    substitution as a mention, so the renderer knows which ids the customized
+    text actually contains. Returns ``(text, mentions)`` where ``mentions``
+    maps the placeholder name to ``("user" | "role", id)`` parsed from the
+    ``<@id>``/``<@&id>`` token the variable resolved to. An ``{@name}`` whose
+    value carries no mention token resolves silently (nothing collected);
+    unknown names stay literal.
+    """
+    resolved = safe_format(template, mapping)
+    collected: dict[str, tuple[str, int]] = {}
+
+    def collect(match: re.Match[str]) -> str:
+        name = match.group(1)
+        value = mapping.get(name)
+        if value is not None and name not in collected:
+            found = _MENTION_TOKEN_RE.search(str(value))
+            if found:
+                role_id, user_id = found.group(2), found.group(1)
+                collected[name] = ("role" if role_id else "user", int(role_id or user_id))
+        return str(value) if value is not None else match.group(0)
+
+    text = _MENTION_RE.sub(collect, resolved)
+    return text, collected
+
+
+def document_mention_ids(
+    doc: dict[str, Any], mapping: dict[str, Any]
+) -> tuple[list[int], list[int]]:
+    """``(user_ids, role_ids)`` referenced by ``{@name}`` fields in ``doc``.
+
+    Walks exactly the fields the renderer substitutes as text (block bodies
+    and button/accessory labels) and parses the Discord id each ``{@name}``
+    resolves to. Order-preserving de-duplication, so a mention repeated in
+    the text pings once. Fields without ``{@...}`` are skipped without any
+    regex work — the common case for un-customized cards.
+    """
+    users: list[int] = []
+    roles: list[int] = []
+
+    def visit(node: Any) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in ("body", "label") and isinstance(value, str) and "{@" in value:
+                    _text, collected = safe_format_mentions(value, mapping)
+                    for kind, found_id in collected.values():
+                        (roles if kind == "role" else users).append(found_id)
+                else:
+                    visit(value)
+        elif isinstance(node, list):
+            for item in node:
+                visit(item)
+
+    visit(doc.get("blocks", []))
+    return list(dict.fromkeys(users)), list(dict.fromkeys(roles))
+
+
 def new_block_id() -> str:
     """Stable random id for one block (editor selections/modals use it)."""
     import uuid
@@ -499,8 +566,9 @@ class _ValidationState:
         if not isinstance(url, str):
             self.error("bad_url")
             return False
-        # Placeholders like {user_avatar} resolve at send time; accept them.
-        if _PLACEHOLDER_RE.search(url):
+        # Placeholders like {user_avatar} resolve at send time; accept them
+        # (both spellings — {name} and the explicit {@name} mention form).
+        if _PLACEHOLDER_RE.search(url) or _MENTION_RE.search(url):
             return len(url) <= URL_MAX * 2
         if not _URL_RE.match(url) or len(url) > URL_MAX:
             self.error("bad_url")
@@ -630,6 +698,7 @@ def build_items(
         raise CardsError(errors)
     # Theme emojis are defaults; caller variables win on name clashes.
     mapping: dict[str, Any] = {**(getattr(theme, "emojis", {}) or {}), **(variables or {})}
+    doc = resolve_mention_fields(doc, mapping)
     blocks = [
         block
         for block in doc.get("blocks", [])
@@ -664,6 +733,46 @@ def _build_block(
 
 def _fill(body: Any, mapping: dict[str, Any]) -> str:
     return safe_format(str(body), mapping)
+
+
+def _has_mention_fields(node: Any) -> bool:
+    """Whether any text field in the block tree contains an ``{@name}``."""
+    if isinstance(node, str):
+        return "{@" in node
+    if isinstance(node, dict):
+        return any(_has_mention_fields(value) for value in node.values())
+    if isinstance(node, list):
+        return any(_has_mention_fields(item) for item in node)
+    return False
+
+
+def resolve_mention_fields(
+    doc: dict[str, Any], mapping: dict[str, Any]
+) -> dict[str, Any]:
+    """Resolve ``{@name}`` fields to their values, returning the document.
+
+    Returns the original object untouched when no ``{@...}`` field exists
+    (the common case — zero copying); otherwise a deep copy with every
+    ``{@name}`` replaced by the same value ``{name}`` would resolve to.
+    Mention tokens in URLs are meaningless, but resolving them keeps the
+    document renderer single-pass.
+    """
+    if not _has_mention_fields(doc.get("blocks", [])):
+        return doc
+    doc = copy.deepcopy(doc)
+
+    def fill(value: Any) -> Any:
+        if isinstance(value, str) and "{@" in value:
+            text, _ids = safe_format_mentions(value, mapping)
+            return text
+        if isinstance(value, dict):
+            return {key: fill(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [fill(item) for item in value]
+        return value
+
+    doc["blocks"] = fill(doc.get("blocks", []))
+    return doc
 
 
 def _build_text(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> TextDisplay:

@@ -1594,6 +1594,9 @@ variables:
   channel:
     label: Canal
     description: Menção do canal
+  version:
+    label: Versão
+    description: Versão atual do bot
   role:
     label: Cargo
     description: Menção do cargo
@@ -1747,6 +1750,18 @@ variables:
   warned:
     label: Aviso
     description: Marcador de aviso
+  member_label:
+    label: Rótulo de membro
+    description: Rótulo do campo "Membro" nos registros
+  moderator_label:
+    label: Rótulo de moderador
+    description: Rótulo do campo "Moderador" nos registros
+  reason_label:
+    label: Rótulo de motivo
+    description: Rótulo do campo "Motivo" nos registros
+  duration_label:
+    label: Rótulo de duração
+    description: Rótulo do campo "Duração" nos registros
   old_owner:
     label: Dono anterior
     description: Menção do dono anterior
@@ -1790,7 +1805,7 @@ cards:
   editor:
     title: Editor de Cartões
     hint: 'Editando `{card_key}`. Placeholders: {placeholders}'
-    placeholders_default: '{{user}}, {{server}}, {{count}}, {{user_avatar}} + qualquer emoji do tema'
+    placeholders_none: 'nenhum específico + qualquer emoji do tema'
     preview: Prévia
     invalid: '{warning} Esta composição ainda não pode ser enviada: {error}'
     saved: '{success} Salvo.'
@@ -1826,6 +1841,7 @@ cards:
       history: Histórico
       export: Exportar
       import: Importar
+      placeholders: Ver placeholders
     types:
       text: Texto
       container: Card (caixa colorida)
@@ -1870,6 +1886,9 @@ cards:
     lint_suggestion: 'Quis dizer {suggestion}?'
     modal_stale: 'Esse bloco não existe mais. Seu texto foi mantido: {value}'
     more_title: 'Mais ações:'
+    placeholders_title: 'Placeholders deste cartão:'
+    placeholders_empty: 'Este cartão não tem placeholders específicos — escreva livremente e use qualquer emoji do tema.'
+    placeholders_emoji_note: '-# Qualquer emoji do tema também funciona: {star} {{star}}, {user} {{user}}…'
     templates_title: 'Comece de um modelo (substitui o rascunho, desfazível):'
     templates_placeholder: Escolha um modelo...
     templates_empty: '*Sem modelos disponíveis.*'
@@ -1920,6 +1939,13 @@ cards:
       placeholder: Mudar política de menções...
       current: 'Menções: **{policy}** — {description}'
       saved: '{success} Política de menções salva.'
+      status: 'Pings: **{state}** — decide se as menções ({{@user}}) deste cartão notificam de verdade.'
+      on: Ligados
+      off: Desligados
+      enable: Ligar pings
+      disable: Desligar pings
+      enabled_flash: '{success} Pings ligados — as menções do texto vão notificar.'
+      disabled_flash: '{warning} Pings desligados — nada neste cartão vai notificar.'
   templates:
     banner:
       label: Faixa
