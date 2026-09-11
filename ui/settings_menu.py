@@ -14,7 +14,6 @@ from typing import Any
 
 import discord
 
-from rosemary.core.cards import cards_for_category
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import (
     CATEGORIES,
@@ -90,7 +89,6 @@ class SettingsMenuView(MenuView):
         self.register("settings_test", self._test_action)
         self.register("settings_test_open", self._open_tests)
         self.register("settings_test_close", self._close_tests)
-        self.register("settings_customize", self._open_customize)
 
     # -- handlers ----------------------------------------------------------
 
@@ -290,21 +288,6 @@ class SettingsMenuView(MenuView):
             )
             await self._test_flash(interaction, "reset")
 
-    async def _open_customize(self, interaction: discord.Interaction) -> None:
-        """Open the message composer rooted at the current category."""
-        await interaction.response.defer()
-        from rosemary.ui.customize_menu import CustomizeMenuView
-
-        picker = CustomizeMenuView(
-            self.bot,
-            self.guild_id,
-            owner_id=self.author_id,
-            category=self.category.value,
-        )
-        await picker.prepare()
-        self.stop()
-        await interaction.edit(view=picker)
-
     async def _open_tests(self, interaction: discord.Interaction) -> None:
         """Open the dedicated test-actions sub-screen (keeps pages under 40)."""
         await interaction.response.defer()
@@ -442,17 +425,6 @@ class SettingsMenuView(MenuView):
             divider(),
             *sections,
         ]
-        if cards_for_category(self.category.value):
-            theme_emojis = self.bot.theme.emojis
-            customize_row = discord.ui.ActionRow(
-                self.make_button(
-                    custom_id="settings_customize",
-                    label=await t(self.guild_id, "cards.customize.open"),
-                    style=discord.ButtonStyle.primary,
-                    emoji=theme_emojis.get("palette", ""),
-                )
-            )
-            items.append(customize_row)
         if self.category is SettingCategory.BUMP:
             items.append(await self._open_tests_button(t))
         items.extend(

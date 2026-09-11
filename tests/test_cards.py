@@ -8,12 +8,10 @@ from rosemary.core.cards import (
     MAX_COMPONENTS,
     MAX_TEXT_CHARS,
     CardsError,
-    CardStore,
     build_items,
     safe_format,
     validate_document,
 )
-from rosemary.core.storage import GuildStorage
 from rosemary.ui.containers import Container, Section, TextDisplay
 from rosemary.ui.theme import load_theme
 
@@ -248,22 +246,6 @@ def test_build_items_raises_cards_error_on_invalid(theme):
 
 
 # -- persistence -------------------------------------------------------------
+# Per-card persistence moved to theme files: covered by tests/test_themes.py
+# (ThemeStore import/export/selection) and tests/test_themes_menu.py.
 
-
-async def test_card_store_roundtrip_and_reset(tmp_path):
-    store = CardStore(tmp_path)
-    doc = _doc({"type": "text", "body": "custom"})
-    assert await store.get_document(1, "events.welcome") is None
-    await store.save_document(1, "events.welcome", doc)
-    assert await store.get_document(1, "events.welcome") == doc
-    assert await store.get_document(2, "events.welcome") is None
-    assert await store.customized_keys(1) == {"events.welcome"}
-    await store.reset(1, "events.welcome")
-    assert await store.get_document(1, "events.welcome") is None
-
-
-async def test_card_store_lives_in_its_own_file(tmp_path):
-    CardStore(tmp_path)
-    settings_storage = GuildStorage(tmp_path)
-    assert (tmp_path / "1" / "settings.json").exists() is False
-    assert await settings_storage.get(1) == {"language": "en-US"}

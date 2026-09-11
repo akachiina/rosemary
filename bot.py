@@ -70,7 +70,6 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
         from rosemary.cogs.bump_reminder import BumpReminderCog
         from rosemary.cogs.cleaner import CleanerCog
-        from rosemary.cogs.customize import CustomizeCog
         from rosemary.cogs.debug import DebugCog
         from rosemary.cogs.invites import InvitesCog
         from rosemary.cogs.language import LanguageCog
@@ -79,6 +78,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.reminders import RemindersCog
         from rosemary.cogs.settings import SettingsCog
         from rosemary.cogs.starboard import StarboardCog
+        from rosemary.cogs.themes import ThemesCog
         from rosemary.cogs.tickets import TicketsCog
         from rosemary.cogs.updater import UpdaterCog
         from rosemary.cogs.utility import UtilityCog
@@ -91,6 +91,9 @@ class RosemaryBot(commands.Bot):
 
         data_dir = Path(__file__).resolve().parent / "data"
         self.storage = GuildStorage(data_dir=data_dir)
+        from rosemary.core.themes import ThemeStore
+
+        self._theme_store = ThemeStore(data_dir)
 
         async def _resolver(guild_id: int | None) -> str:
             settings = await self.storage.get(guild_id) if guild_id is not None else {}
@@ -107,8 +110,8 @@ class RosemaryBot(commands.Bot):
         self.add_cog(AboutCog(self))
         self.add_cog(LanguageCog(self))
         self.add_cog(SettingsCog(self))
-        self.add_cog(CustomizeCog(self))
         self.add_cog(ModerationCog(self))
+        self.add_cog(ThemesCog(self))
         self.add_cog(PartnershipsCog(self))
         self.add_cog(CleanerCog(self))
         self.add_cog(RemindersCog(self))
@@ -150,11 +153,6 @@ class RosemaryBot(commands.Bot):
                 else None
             )
         )
-        # Persistent fallback so pre-restart ephemeral /personalizar panels
-        # dispatch instead of silently ignoring clicks.
-        from rosemary.ui.customize_menu import register_recovery_view  # noqa: E402
-
-        register_recovery_view(self)
         # Snapshot the decorator-registered names (English) before any localization
         # mutates them, so per-guild re-syncs can look up the right catalog keys.
         self._command_base_keys = {cmd.name: cmd for cmd in self.pending_application_commands}
@@ -195,17 +193,18 @@ class RosemaryBot(commands.Bot):
             await self._sync_guild_commands(guild)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
-        """Sync localized slash commands to a newly joined guild.
-
-        Commands are registered per guild (never globally), so without this a
-        server added while the bot is already online would have no commands
-        until the next restart/reconnect.
-        """
+        """Sync localized slash commands to a newly joined guild and snapshot
+        its theme. Commands are registered per guild (never globally), so
+        without this a server added while the bot is already online would have
+        no commands until the next restart/reconnect."""
         if not self._setup_done:
             # Joined before the first ready: on_ready covers this guild.
             return
         try:
             await self._sync_guild_commands(guild)
+            from rosemary.core.themes import preload_themes
+
+            await preload_themes(self)
             log.info("Commands synced for joined guild %s", guild.id)
         except Exception as exc:
             log.error("Failed to sync commands for joined guild %s: %s", guild.id, exc)
@@ -216,6 +215,12 @@ class RosemaryBot(commands.Bot):
         connected), then sync commands instantly per guild in its language."""
         if self._setup_done is False:
             self._setup()
+
+        # Snapshot each guild's effective theme (theme_for is synchronous).
+        from rosemary.core.themes import preload_themes
+
+        await preload_themes(self)
+
 
         await self.change_presence(status=discord.Status.online)
         log.info("Rosemary online as %s", self.user)

@@ -1,0 +1,43 @@
+# Rosemary's built-in theme: the tokens ui/theme.yaml ships, now editable.
+# Copy this file, rename it, tweak values — or import modified copies per guild.
+name: default
+
+colors:
+  brand: "#57F287"
+  success: "#57F287"
+  warning: "#FEE75C"
+  danger: "#ED4245"
+  info: "#5865F2"
+  gold: "#FAA61A"
+  orange: "#E67E22"
+
+emojis:
+  check: "✅"
+  error: "❌"
+  warning: "⚠️"
+  info: "ℹ️"
+  star: "⭐"
+  crown: "👑"
+  refresh: "🔄"
+  loading: "⏳"
+  hourglass: "⏳"
+  swap: "🔁"
+  palette: "🎨"
+  gear: "⚙️"
+
+markdown:
+  title: "# {title}"
+  entry: "**{label}:** {value}"
+  footer: "-# {text}"
+
+styles:
+  base:
+    color: info
+    template: title
+  log:
+    extends: base
+    color: info
+    footer: footer
+  boost_preview:
+    extends: base
+    color: brand

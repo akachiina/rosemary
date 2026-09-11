@@ -99,57 +99,6 @@ async def test_settings_nav_close_always_first(tmp_path):
             )
 
 
-async def test_card_editor_close_first_with_and_without_siblings(tmp_path):
-    from rosemary.ui.card_editor import CardEditorView
-    from rosemary.ui.menu import MenuView
-
-    async def load_doc(guild_id):
-        return None
-
-    async def save_doc(guild_id, doc):
-        return None
-
-    async def reset_doc(guild_id):
-        return None
-
-    bot = make_bot(tmp_path)
-    for kwargs in ({}, {"path": [0], "exit": True}):
-        view = CardEditorView(
-            bot,
-            1,
-            "test.key",
-            load_doc=load_doc,
-            save_doc=save_doc,
-            reset_doc=reset_doc,
-            placeholders_hint="",
-            exit_factory=(lambda: MenuView(author_id=1)) if kwargs.get("exit") else None,
-        )
-        await view.prepare()
-        if kwargs.get("path"):
-            view.path = [0]
-            view.blocks = [{"type": "container", "children": []}]
-        items = await view.build_editor()
-        rows = [i for i in items if isinstance(i, discord.ui.ActionRow)]
-        secondary = rows[-1]
-        assert nav_ids(secondary)[0] == "card_close"
-
-
-async def test_customize_back_row_close_first(tmp_path):
-    import rosemary.core.card_specs  # noqa: F401
-    from rosemary.ui.customize_menu import CustomizeMenuView
-
-    bot = make_bot(tmp_path)
-    view = CustomizeMenuView(bot, 1, owner_id=1, category="bump")
-    await view.prepare()
-    rows = [
-        item
-        for item in view.children
-        if isinstance(item, discord.ui.ActionRow)
-    ]
-    back_row = rows[-1]
-    assert nav_ids(back_row)[0] == "custom_close"
-
-
 # -- defer-before-work ---------------------------------------------------------
 
 

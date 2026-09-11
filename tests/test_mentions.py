@@ -1,32 +1,23 @@
-"""Mentions engine: store, spec defaults, legacy-value mapping, repair-on-read.
+"""Mentions engine: theme-driven pings and spec-declared defaults.
 
 The policy matrix (``none``/``single``/``winner_auto``/``role``/``all``) was
-replaced by mentions-as-content (see :mod:`tests.test_mention_placeholders`):
-pings are decided by the ``<@id>`` tokens actually present in the resolved
-text, gated by a per-card on/off toggle. What stays here is the storage and
-the spec-declared defaults that back the toggle.
+replaced by mentions-as-content: pings are decided by the ``<@id>`` tokens
+actually present in the resolved text (see
+:mod:`tests.test_mention_placeholders`), gated by a per-card on/off toggle that
+now lives in the guild's active theme file (``pings:`` section) instead of
+``mentions.json``. What stays here is the spec-declared defaults that back the
+toggle when the theme does not override it.
 """
 
 from __future__ import annotations
 
-import pytest
-
 import rosemary.core.card_specs  # noqa: F401  (populates the card registry)
 from rosemary.core.cards import get_card
-from rosemary.core.mentions import (
-    MODES,
-    MentionStore,
-    effective_pings,
-    effective_policy,
-    pings_default,
-    set_pings_for,
-    spec_default,
-    valid_policy,
-)
+from rosemary.core.mentions import MODES, pings_default, spec_default, theme_pings
 
 
 def test_modes_known():
-    """Stored vocabulary is unchanged: legacy values keep working."""
+    """The policy vocabulary is unchanged (spec defaults still declare it)."""
     assert set(MODES) == {"none", "single", "winner_auto", "role", "all"}
 
 
@@ -51,67 +42,42 @@ def test_pings_default_derives_from_spec():
     assert pings_default("no.such.card") is False
 
 
-def test_valid_policy():
-    assert valid_policy("single") is True
-    assert valid_policy("bogus") is False
-    assert valid_policy(None) is False
-    assert valid_policy(7) is False
-
-
-async def test_store_roundtrip(tmp_path):
-    store = MentionStore(tmp_path)
-    assert await store.get_policy(1, "bump.leaderboard") is None
-    await store.set_policy(1, "bump.leaderboard", "all")
-    assert await store.get_policy(1, "bump.leaderboard") == "all"
-    await store.reset(1, "bump.leaderboard")
-    assert await store.get_policy(1, "bump.leaderboard") is None
-    with pytest.raises(ValueError):
-        await store.set_policy(1, "bump.leaderboard", "bogus")
-
-
 class _Bot:
-    def __init__(self, tmp_path):
+    """Bot fake with no theme cache: theme_pings must fall back to defaults."""
+
+    def __init__(self, tmp_path, themes_dir=None):
         from rosemary.core.storage import GuildStorage
+        from rosemary.core.themes import ThemeStore
+        from rosemary.ui.theme import load_theme
 
         self.storage = GuildStorage(tmp_path)
+        self.theme = load_theme()
+        self._theme_store = ThemeStore(tmp_path, themes_dir=themes_dir)
 
 
-async def test_effective_policy_prefers_override(tmp_path):
+async def test_theme_pings_falls_back_to_spec_default(tmp_path):
     bot = _Bot(tmp_path)
-    assert await effective_policy(bot, 1, "bump.leaderboard") == "winner_auto"
-    store = MentionStore(tmp_path)
-    await store.set_policy(1, "bump.leaderboard", "none")
-    assert await effective_policy(bot, 1, "bump.leaderboard") == "none"
+    assert theme_pings(bot, 1, "bump.thank_you") is True
+    assert theme_pings(bot, 1, "bump.no_bumps") is False
+    assert theme_pings(bot, 1, "no.such.card") is False
 
 
-async def test_effective_pings_maps_legacy_values(tmp_path):
-    """Every legacy non-none value means 'pings on' — no migration needed."""
-    bot = _Bot(tmp_path)
-    store = MentionStore(tmp_path)
-    assert await effective_pings(bot, 1, "bump.thank_you") is True  # spec default
-    await store.set_policy(1, "bump.thank_you", "single")
-    assert await effective_pings(bot, 1, "bump.thank_you") is True
-    await store.set_policy(1, "bump.thank_you", "winner_auto")
-    assert await effective_pings(bot, 1, "bump.thank_you") is True
-    await store.set_policy(1, "bump.thank_you", "role")
-    assert await effective_pings(bot, 1, "bump.thank_you") is True
-    await store.set_policy(1, "bump.thank_you", "all")
-    assert await effective_pings(bot, 1, "bump.thank_you") is True
-    await store.set_policy(1, "bump.thank_you", "none")
-    assert await effective_pings(bot, 1, "bump.thank_you") is False
+async def test_theme_pings_reads_active_theme_override(tmp_path):
+    from rosemary.core.themes import ThemeStore, preload_themes
 
+    themes_dir = tmp_path / "themes"
+    themes_dir.mkdir()
+    (themes_dir / "quiet.yaml").write_text(
+        "name: quiet\npings:\n  bump.thank_you: false\n  bump.no_bumps: true\n",
+        encoding="utf-8",
+    )
+    store = ThemeStore(tmp_path, themes_dir=themes_dir)
+    await store.set_active(1, "quiet")
 
-async def test_toggle_roundtrip(tmp_path):
-    bot = _Bot(tmp_path)
-    await set_pings_for(bot, 1, "bump.no_bumps", True)
-    assert await effective_pings(bot, 1, "bump.no_bumps") is True
-    await set_pings_for(bot, 1, "bump.no_bumps", False)
-    assert await effective_pings(bot, 1, "bump.no_bumps") is False
+    bot = _Bot(tmp_path, themes_dir=themes_dir)
+    bot.guilds = [type("G", (), {"id": 1})()]
+    await preload_themes(bot)
 
-
-async def test_corrupt_value_repairs_on_read(tmp_path):
-    bot = _Bot(tmp_path)
-    store = MentionStore(tmp_path)
-    await store._storage.set(1, "bump.thank_you", "garbage")
-    assert await effective_pings(bot, 1, "bump.thank_you") is True  # falls to default
-    assert await store.get_policy(1, "bump.thank_you") is None  # repaired away
+    assert theme_pings(bot, 1, "bump.thank_you") is False  # theme says off
+    assert theme_pings(bot, 1, "bump.no_bumps") is True  # theme says on
+    assert theme_pings(bot, 1, "bump.leaderboard") is True  # not overridden

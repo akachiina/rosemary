@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from string import Formatter
 
 import yaml
 
@@ -129,42 +128,6 @@ async def test_command_metadata_is_localized():
     assert await pt.t(1, "about.command.name") == "sobre"
     assert await pt.t(1, "language.command.name") == "idioma"
     assert await pt.t(1, "language.command.description") == "Define o idioma do servidor"
-
-
-async def test_cards_editor_catalog_resolves_in_both_languages(caplog):
-    theme = load_theme()
-    formatter = Formatter()
-    for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
-        flat = _flatten(data["cards"]["editor"])
-        keys = [f"cards.editor.{key}" for key, value in flat.items() if isinstance(value, str)]
-        translator = Translator(
-            LANG_DIR,
-            resolver=_resolver(code),
-            default_placeholders=theme.emojis,
-        )
-        with caplog.at_level("WARNING", logger="rosemary.core.i18n"):
-            for key in keys:
-                template = flat[key.removeprefix("cards.editor.")]
-                fields = {
-                    field_name
-                    for _, field_name, _, _ in formatter.parse(template)
-                    if field_name
-                }
-                variables = {field_name: "sample" for field_name in fields}
-                if "key" in variables:
-                    template = await translator.raw(1, key)
-                    rendered = template.format(**variables)
-                else:
-                    rendered = await translator.t(1, key, **variables)
-                assert rendered != key
-        assert not [
-            record
-            for record in caplog.records
-            if record.name == "rosemary.core.i18n"
-            and record.levelno >= 30
-        ]
 
 
 async def test_theme_emojis_are_auto_injected():

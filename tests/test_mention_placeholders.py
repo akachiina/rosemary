@@ -18,19 +18,20 @@ from rosemary.core.cards import (
     safe_format_mentions,
 )
 from rosemary.core.mentions import (
-    MentionStore,
     allowed_for_document,
     allowed_for_ids,
     allowed_for_text,
-    effective_pings,
     pings_default,
-    set_pings_for,
+    theme_pings,
 )
 
 
 class _Theme:
     emojis: dict[str, str] = {}
     colors: dict[str, int] = {"brand": 0x5865F2}
+
+    def color(self, name):
+        return self.colors[name]
 
 
 class _Translator:
@@ -150,34 +151,59 @@ def test_pings_default_follows_spec():
     assert pings_default("bump.logs.week_reset.description") is False
 
 
-async def test_pings_effective_and_toggle(tmp_path):
-    bot = _Bot(tmp_path)
-    assert await effective_pings(bot, 1, "bump.thank_you") is True
-    await set_pings_for(bot, 1, "bump.thank_you", False)
-    assert await effective_pings(bot, 1, "bump.thank_you") is False
-    await set_pings_for(bot, 1, "bump.thank_you", True)
-    assert await effective_pings(bot, 1, "bump.thank_you") is True
+async def _pings_bot(tmp_path, pings_yaml: str):
+    """Bot fake with a small theme store whose active theme sets ``pings``."""
+    from rosemary.core.storage import GuildStorage
+    from rosemary.core.themes import ThemeStore
+    from rosemary.ui.theme import load_theme
+
+    themes_dir = tmp_path / "themes"
+    themes_dir.mkdir(exist_ok=True)
+    (themes_dir / "t.yaml").write_text(pings_yaml, encoding="utf-8")
+    store = ThemeStore(tmp_path, themes_dir=themes_dir)
+    await store.set_active(1, "t")
+
+    class Bot:
+        pass
+
+    bot = Bot()
+    bot.storage = GuildStorage(tmp_path)
+    bot.theme = load_theme()
+    bot._theme_store = store
+    bot.guilds = [type("G", (), {"id": 1})()]
+    return bot
 
 
-async def test_legacy_store_values_map_to_toggle(tmp_path):
-    bot = _Bot(tmp_path)
-    store = MentionStore(tmp_path)
-    await store.set_policy(1, "bump.thank_you", "single")
-    assert await effective_pings(bot, 1, "bump.thank_you") is True
-    await store.set_policy(1, "bump.thank_you", "none")
-    assert await effective_pings(bot, 1, "bump.thank_you") is False
+async def test_pings_theme_override(tmp_path):
+    from rosemary.core.themes import preload_themes
+
+    bot = await _pings_bot(tmp_path, "name: t\npings:\n  bump.thank_you: false\n")
+    await preload_themes(bot)
+    assert theme_pings(bot, 1, "bump.thank_you") is False
+
+
+async def test_pings_theme_unset_keeps_spec_default(tmp_path):
+    from rosemary.core.themes import preload_themes
+
+    bot = await _pings_bot(tmp_path, "name: t\n")
+    await preload_themes(bot)
+    assert theme_pings(bot, 1, "bump.thank_you") is True
+    assert theme_pings(bot, 1, "bump.no_bumps") is False
 
 
 # -- allowed_for_* entry points ----------------------------------------------
 
 
 async def test_allowed_for_ids_gated_by_toggle(tmp_path):
-    bot = _Bot(tmp_path)
-    allowed = await allowed_for_ids(bot, 1, "bump.thank_you", user_ids=[7])
-    assert allowed.to_dict().get("users") == [7]
-    await set_pings_for(bot, 1, "bump.thank_you", False)
+    from rosemary.core.themes import preload_themes
+
+    bot = await _pings_bot(tmp_path, "name: t\npings:\n  bump.thank_you: false\n")
+    await preload_themes(bot)
     allowed = await allowed_for_ids(bot, 1, "bump.thank_you", user_ids=[7])
     assert allowed.to_dict() == {"parse": []}
+    bot_on = await _pings_bot(tmp_path, "name: t\n")
+    allowed_on = await allowed_for_ids(bot_on, 1, "bump.thank_you", user_ids=[7])
+    assert allowed_on.to_dict().get("users") == [7]
 
 
 async def test_allowed_for_ids_silent_overrides_toggle(tmp_path):
@@ -205,13 +231,26 @@ async def test_allowed_for_text_parses_present_tokens_only(tmp_path):
 
 
 async def test_allowed_for_document_gated_by_toggle(tmp_path):
-    bot = _Bot(tmp_path)
+    from rosemary.core.themes import preload_themes
+
+    bot = await _pings_bot(
+        tmp_path,
+        "name: t\n"
+        "cards:\n"
+        "  bump.thank_you:\n"
+        "    - type: 10\n"
+        "      content: \"x\"\n",
+    )
+    await preload_themes(bot)
     doc = {"v": 1, "blocks": [{"type": "text", "body": "{@user}!"}]}
     mapping = {"user": "<@12>"}
     allowed = await allowed_for_document(bot, 1, "bump.thank_you", doc, mapping)
     assert allowed.to_dict().get("users") == [12]
-    await set_pings_for(bot, 1, "bump.thank_you", False)
-    allowed = await allowed_for_document(bot, 1, "bump.thank_you", doc, mapping)
+    bot_off = await _pings_bot(
+        tmp_path, "name: t\npings:\n  bump.thank_you: false\n"
+    )
+    await preload_themes(bot_off)
+    allowed = await allowed_for_document(bot_off, 1, "bump.thank_you", doc, mapping)
     assert allowed.to_dict() == {"parse": []}
 
 
@@ -226,11 +265,17 @@ async def test_render_card_message_none_without_document(tmp_path):
 
 
 async def test_render_card_message_returns_view_and_mentions(tmp_path):
-    bot = _Bot(tmp_path)
-    from rosemary.core.cards import card_store
+    from rosemary.core.themes import preload_themes
 
-    doc = {"v": 1, "blocks": [{"type": "text", "body": "{@user} ganhou!"}]}
-    await card_store(bot).save_document(1, "bump.thank_you", doc)
+    bot = await _pings_bot(
+        tmp_path,
+        "name: t\n"
+        "cards:\n"
+        "  bump.thank_you:\n"
+        "    - type: 10\n"
+        "      content: \"{@user} ganhou!\"\n",
+    )
+    await preload_themes(bot)
     view, allowed = await render_card_message(
         bot, 1, "bump.thank_you", {"user": "<@77>"}
     )
@@ -239,25 +284,26 @@ async def test_render_card_message_returns_view_and_mentions(tmp_path):
 
 
 async def test_render_card_message_silent_never_pings(tmp_path):
-    bot = _Bot(tmp_path)
-    from rosemary.core.cards import card_store
+    from rosemary.core.themes import preload_themes
 
-    doc = {"v": 1, "blocks": [{"type": "text", "body": "{@user} ganhou!"}]}
-    await card_store(bot).save_document(1, "bump.thank_you", doc)
+    bot = await _pings_bot(
+        tmp_path,
+        "name: t\n"
+        "cards:\n"
+        "  bump.thank_you:\n"
+        "    - type: 10\n"
+        "      content: \"{@user} ganhou!\"\n",
+    )
+    await preload_themes(bot)
     _view, allowed = await render_card_message(
         bot, 1, "bump.thank_you", {"user": "<@77>"}, silent=True
     )
     assert allowed.to_dict() == {"parse": []}
 
 
-async def test_render_card_message_invalid_document_is_none(tmp_path):
+async def test_render_card_message_no_document_is_none(tmp_path):
     bot = _Bot(tmp_path)
-    from rosemary.core.cards import card_store
-
-    await card_store(bot).save_document(
-        1, "bump.thank_you", {"v": 1, "blocks": [{"type": "bogus"}]}
-    )
-    view, allowed = await render_card_message(bot, 1, "bump.thank_you", {})
+    view, allowed = await render_card_message(bot, 1, "no.such.card", {})
     assert view is None
     assert allowed.to_dict() == {"parse": []}
 

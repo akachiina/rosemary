@@ -51,21 +51,28 @@ def parse_custom_id(custom_id: str) -> tuple[str, str, str] | None:
 
 
 async def iter_action_buttons(bot, guild_id: int):
-    """Yield ``(card_key, button)`` for every action button in stored docs."""
-    from rosemary.core.cards import CardStore
+    """Yield ``(card_key, button)`` for every action button in themed docs."""
+    from rosemary.core.themes import theme_store
 
-    store = CardStore(bot.storage.data_dir)
-    data = await store._storage.get(guild_id)
-    for key, doc in data.items():
-        if not isinstance(doc, dict):
+    store = theme_store(bot)
+    # Scan every theme visible to the guild (its own files first, then global).
+    seen: set[str] = set()
+    for name in store.list_all(guild_id):
+        try:
+            theme = store.load(name, guild_id=guild_id)
+        except Exception:
             continue
-        for block in _walk_blocks(doc.get("blocks")):
-            for button in block.get("buttons", []) or []:
-                if isinstance(button, dict) and button.get("action") in ACTIONS:
-                    yield key, button
-            accessory = block.get("accessory") or {}
-            if isinstance(accessory, dict) and accessory.get("action") in ACTIONS:
-                yield key, accessory
+        for key, doc in getattr(theme, "cards", {}).items():
+            if key in seen or not isinstance(doc, dict):
+                continue
+            seen.add(key)
+            for block in _walk_blocks(doc.get("blocks")):
+                for button in block.get("buttons", []) or []:
+                    if isinstance(button, dict) and button.get("action") in ACTIONS:
+                        yield key, button
+                accessory = block.get("accessory") or {}
+                if isinstance(accessory, dict) and accessory.get("action") in ACTIONS:
+                    yield key, accessory
 
 
 def _walk_blocks(blocks: Any):

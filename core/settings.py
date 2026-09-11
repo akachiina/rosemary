@@ -291,6 +291,12 @@ SETTINGS: dict[str, SettingSpec] = {
             None,
         ),
         _spec(
+            "debug.card_paths",
+            SettingCategory.LOGGING,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
             "events.enabled",
             SettingCategory.EVENTS,
             SettingType.BOOLEAN,

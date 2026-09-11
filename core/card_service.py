@@ -1,15 +1,21 @@
-"""Shared card document operations for the editor and utilities.
+"""Card resolution and rendering: theme override -> catalog default.
 
-This module resolves effective documents, renders documents, and parses or
-serializes imports/exports. Parsing an import never persists it; callers decide
-explicitly when a validated draft should be saved.
+This is the single pipeline every card send goes through:
+
+1. the guild's active theme file may override the card (raw Discord Components
+   V2 in the theme, converted at load — see :mod:`rosemary.core.v2_convert`);
+2. otherwise the feature's own default applies: a registered builder, the seed
+   map (:data:`SEED_PARTS_BY_KEY`) or plain ``card.<key>``/``<key>`` scalars.
+
+Rendering validates first and raises :class:`CardsError` on invalid content —
+send sites treat that as "use the default message", so a bad theme can never
+break a send.
 """
 
 from __future__ import annotations
 
 import copy
-import json
-import time
+import logging
 from typing import Any
 
 import discord
@@ -22,27 +28,19 @@ from rosemary.core.cards import (
     get_default_builder,
     safe_format,
 )
+from rosemary.core.themes import card_document, card_origin, theme_for
 
-
-async def get_effective_document(bot, guild_id: int, key: str) -> dict[str, Any] | None:
-    """Saved override, else the feature's default document (or ``None``)."""
-    from rosemary.core.cards import card_store
-
-    saved = await card_store(bot).get_document(guild_id, key)
-    if isinstance(saved, dict) and isinstance(saved.get("blocks"), list):
-        return copy.deepcopy(saved)
-    return await catalog_default_document(bot, guild_id, key)
-
+log = logging.getLogger(__name__)
 
 #: Where each card's default copy lives outside ``card.<key>``. Most features
 #: render catalog text from their own section (``about.title``,
 #: ``bump.messages.thank_you_description``, ...), while ``card.<key>`` only
-#: carries editor labels — so the map points at the keys the send site really
+#: carries labels — so the map points at the keys the send site really
 #: resolves. Entry: ``(container_color | None, heading_key | None, parts)``.
-#: A part is a catalog key, a literal template (used as-is when ``raw()``
-#: echoes it back) or a ``(label_key, value_key_or_literal)`` tuple rendered
-#: like theme ``entry`` markdown. Missing heading keys are skipped — raw keys
-#: never reach the UI. Colors mirror the default builders' theme styles.
+#: A part is a catalog key, a literal template, or a ``(label_key, value_key)``
+#: tuple. Used when a theme overrides a card but the feature has no builder:
+#: the themed document replaces the whole message, while this map only powers
+#: test-sends and previews of *default* content (see :func:`default_document`).
 SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     "about.card": ("brand", "about.title", ("about.text", "about.version")),
     "bump.reminder": (
@@ -114,41 +112,45 @@ async def _resolve_seed_part(raw, guild_id: int, part: Any) -> str:
     return part
 
 
-async def catalog_default_document(bot, guild_id: int, key: str) -> dict[str, Any] | None:
-    """What members receive today, as an editable document (no builder needed).
+def _seed_document(bot, blocks: list[dict[str, Any]]) -> dict[str, Any]:
+    """Validate-free seed doc: theme emojis resolve, placeholders stay literal."""
+    mapping = {**(getattr(bot.theme, "emojis", {}) or {}), **ECHO_VARIABLES}
+
+    def walk(items: list[dict[str, Any]]) -> None:
+        for block in items:
+            if block.get("type") == "text":
+                block["body"] = safe_format(str(block["body"]), mapping)
+            walk(block.get("children") or [])
+
+    walk(blocks)
+    return {"v": DOCUMENT_VERSION, "blocks": blocks}
+
+
+async def default_document(bot, guild_id: int, key: str) -> dict[str, Any] | None:
+    """The feature's default document for ``key`` (no theme override).
 
     Resolution order:
     1. a feature-registered default builder (rich cards with custom layouts);
-    2. the declared seed map (:data:`SEED_PARTS_BY_KEY`) — the catalog keys the
-       feature itself renders, wrapped in the same container color;
+    2. the declared seed map (:data:`SEED_PARTS_BY_KEY`);
     3. plain ``card.<key>`` / ``<key>`` scalars (DM and log cards);
     4. ``None`` when the feature resolves no catalog copy at all.
-
-    Placeholders stay literal (theme emojis resolve), matching what the send
-    sites render without an override. This is what the editor seeds from, so
-    /personalizar always starts from the real message instead of an empty
-    skeleton.
     """
     builder = get_default_builder(key)
     if builder is not None:
         try:
             doc = await builder(bot, guild_id)
         except Exception as exc:
-            log_default_failure(key, exc)
+            log.warning("default builder failed for card %s: %s", key, exc)
         else:
             if isinstance(doc, dict) and isinstance(doc.get("blocks"), list):
-                return doc
+                return copy.deepcopy(doc)
     raw = getattr(bot.translator, "raw", None)
     if not callable(raw):
         return None
     plan = SEED_PARTS_BY_KEY.get(key)
     if plan is not None:
         color, heading_key, parts = plan
-        bodies = [
-            body
-            async for body in _resolve_parts(raw, guild_id, parts)
-            if body.strip()
-        ]
+        bodies = [body async for body in _resolve_parts(raw, guild_id, parts) if body.strip()]
         heading = None
         if heading_key is not None:
             found = await raw(guild_id, heading_key)
@@ -174,18 +176,12 @@ async def catalog_default_document(bot, guild_id: int, key: str) -> dict[str, An
     return _seed_document(bot, blocks)
 
 
-def _seed_document(bot, blocks: list[dict[str, Any]]) -> dict[str, Any]:
-    """Validate-free seed doc: theme emojis resolve, placeholders stay literal."""
-    mapping = {**(getattr(bot.theme, "emojis", {}) or {}), **ECHO_VARIABLES}
-
-    def walk(items: list[dict[str, Any]]) -> None:
-        for block in items:
-            if block.get("type") == "text":
-                block["body"] = safe_format(str(block["body"]), mapping)
-            walk(block.get("children") or [])
-
-    walk(blocks)
-    return {"v": DOCUMENT_VERSION, "blocks": blocks}
+async def get_effective_document(bot, guild_id: int, key: str) -> dict[str, Any] | None:
+    """Themed override, else the feature's default document (or ``None``)."""
+    themed = await card_document(bot, guild_id, key)
+    if themed is not None:
+        return copy.deepcopy(themed)
+    return await default_document(bot, guild_id, key)
 
 
 async def render_document(
@@ -198,9 +194,8 @@ async def render_document(
 ) -> discord.ui.DesignerView:
     """Render one validated document into a Components V2 view.
 
-    ``CardsError`` is intentionally allowed to propagate so editors can show
-    the structured translated issue instead of silently substituting another
-    message.
+    ``CardsError`` is intentionally allowed to propagate so callers can show
+    the structured issue instead of silently substituting another message.
     """
     from rosemary.core.card_actions import bind_action_callbacks
 
@@ -218,78 +213,6 @@ async def render_document(
     return view
 
 
-def export_payload(key: str, doc: dict[str, Any]) -> tuple[str, bytes]:
-    """Serialize one document for download."""
-    payload = {
-        "v": 2,
-        "key": key,
-        "exported_at": int(time.time()),
-        "blocks": copy.deepcopy(doc.get("blocks", [])),
-    }
-    data = json.dumps(payload, indent=2, ensure_ascii=False).encode()
-    return f"{key.replace('.', '-')}.json", data
-
-
-def parse_import_payload(
-    payload: Any,
-    theme: Any | None = None,
-    *,
-    expected_key: str | None = None,
-) -> tuple[dict[str, Any] | None, str]:
-    """Validate an exported card without persisting it.
-
-    Returns ``(document, "")`` on success. A missing/mismatched key, bad shape
-    or invalid document returns ``(None, "invalid")`` (``"shape"`` for a missing
-    block list), letting the editor keep the current draft untouched.
-    """
-    from rosemary.core.cards import ensure_ids, validate_document
-
-    if not isinstance(payload, dict):
-        return None, "shape"
-    version = payload.get("v")
-    blocks = payload.get("blocks")
-    if (
-        not isinstance(version, int)
-        or isinstance(version, bool)
-        or version not in (1, 2)
-        or not isinstance(blocks, list)
-        or not blocks
-    ):
-        return None, "shape"
-    if expected_key is not None:
-        exported_key = payload.get("key")
-        if exported_key not in (None, expected_key):
-            return None, "invalid"
-    doc = ensure_ids({"v": DOCUMENT_VERSION, "blocks": copy.deepcopy(blocks)})
-    if validate_document(doc, theme=theme, draft=True):
-        return None, "invalid"
-    return doc, ""
-
-
-async def import_payload(bot, guild_id: int, key: str, payload: Any) -> tuple[bool, str]:
-    """Validate and persist an imported document. Returns ``(ok, reason)``."""
-    from rosemary.core.card_actions import sync_guild
-    from rosemary.core.card_history import history_store
-    from rosemary.core.cards import card_store
-
-    doc, reason = parse_import_payload(payload, bot.theme, expected_key=key)
-    if doc is None:
-        return False, reason
-    await card_store(bot).save_document(guild_id, key, doc)
-    await history_store(bot).append(guild_id, key, doc, None)
-    await sync_guild(bot, guild_id)
-    return True, ""
-
-
-def log_default_failure(key: str, exc: Exception) -> None:
-    """Warn that a card's default builder crashed (seed falls through)."""
-    import logging
-
-    logging.getLogger(__name__).warning(
-        "default builder failed for card %s: %s", key, exc
-    )
-
-
 async def render_card_message(
     bot,
     guild_id: int,
@@ -300,15 +223,15 @@ async def render_card_message(
 ) -> tuple[discord.ui.DesignerView | None, discord.AllowedMentions]:
     """Render a card for a real send: ``(view, allowed_mentions)``.
 
-    Resolution: saved override else the feature default (builder or seeded
-    catalog copy) — ``None`` only when the card resolves no document at all,
-    in which case the caller falls back to its own default view and computes
-    mentions for that text via ``mentions.allowed_for_text``. Otherwise the
-    returned ``allowed_mentions`` is derived from the document itself: only
-    ``<@id>``/``<@&id>`` tokens the resolved text actually contains may ping,
-    and only when the guild's pings toggle for the card is on (or the caller
-    forces ``silent``). An invalid stored document renders ``None`` so the
-    caller's default path takes over — sends never break on editor content.
+    Resolution: themed override else the feature default — ``None`` only when
+    the card resolves no document at all, in which case the caller falls back
+    to its own default view and computes mentions for that text via
+    ``mentions.allowed_for_text``. Otherwise the returned ``allowed_mentions``
+    is derived from the document itself: only ``<@id>``/``<@&id>`` tokens the
+    resolved text actually contains may ping, and only when the theme's pings
+    toggle for the card is on (or the caller forces ``silent``). An invalid
+    document renders ``None`` so the caller's default path takes over — sends
+    never break on themed content.
     """
     from rosemary.core.mentions import allowed_for_document
 
@@ -322,9 +245,56 @@ async def render_card_message(
     try:
         view = await render_document(bot, doc, mapping, card_key=key)
     except CardsError as exc:
-        log_default_failure(key, exc)
+        log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
         return None, discord.AllowedMentions.none()
-    allowed = await allowed_for_document(
-        bot, guild_id, key, doc, mapping, silent=silent
-    )
+    allowed = await allowed_for_document(bot, guild_id, key, doc, mapping, silent=silent)
+    await _trace_card_path(bot, guild_id, key)
     return view, allowed
+
+
+async def _trace_card_path(bot, guild_id: int, key: str) -> None:
+    """Post ``card.<key>`` + origin to the log channel when ``debug.card_paths``
+    is on. Never pings (``card_key=None``) and never traces itself."""
+    from rosemary.core.debug import send_channel_log
+    from rosemary.core.settings import get_setting
+    from rosemary.core.themes import card_origin
+
+    try:
+        enabled = await get_setting(bot.storage, guild_id, "debug.card_paths")
+    except (KeyError, AttributeError):
+        return
+    if not enabled:
+        return
+    theme_name, _ = card_origin(bot, guild_id, key)
+    origin = (
+        await bot.translator.t(guild_id, "debug.trace.theme", theme=theme_name)
+        if theme_name
+        else await bot.translator.t(guild_id, "debug.trace.default")
+    )
+    description = await bot.translator.t(
+        guild_id, "debug.trace.card_path", path=f"card.{key}", origin=origin
+    )
+    await send_channel_log(
+        bot,
+        guild_id,
+        await bot.translator.t(guild_id, "debug.trace.title"),
+        description,
+        color="info",
+    )
+
+
+def log_default_failure(key: str, exc: Exception) -> None:
+    """Warn that a card's default builder crashed (seed falls through)."""
+    log.warning("default builder failed for card %s: %s", key, exc)
+
+
+__all__ = [
+    "SEED_PARTS_BY_KEY",
+    "card_origin",
+    "default_document",
+    "get_effective_document",
+    "log_default_failure",
+    "render_card_message",
+    "render_document",
+    "theme_for",
+]

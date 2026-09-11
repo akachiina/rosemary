@@ -160,13 +160,22 @@ async def test_announce_honors_override_document(tmp_path):
     cog = BirthdayCog(bot)
     await seed_settings(bot)
 
-    from rosemary.core.cards import card_store
+    from rosemary.core.themes import ThemeStore, preload_themes
 
-    await card_store(bot).save_document(
-        1,
-        "birthdays.announce",
-        {"v": 1, "blocks": [{"type": "text", "body": "PARABÉNS {user}!"}]},
+    themes_dir = tmp_path / "themes"
+    themes_dir.mkdir(exist_ok=True)
+    (themes_dir / "t.yaml").write_text(
+        "name: t\n"
+        "cards:\n"
+        "  birthdays.announce:\n"
+        "    - type: 10\n"
+        "      content: \"PARABÉNS {user}!\"\n",
+        encoding="utf-8",
     )
+    bot._theme_store = ThemeStore(tmp_path, themes_dir=themes_dir)
+    await bot._theme_store.set_active(1, "t")
+    bot.guilds = [type("G", (), {"id": 1})()]
+    await preload_themes(bot)
     await cog.store.set(1, 10, day=23, month=8)
     await cog.announce_today(guild, channel, datetime(2026, 8, 23).date())
 

@@ -22,6 +22,38 @@ language:
 
     {available}'
   current: 'Current language: {language}.'
+debug:
+  trace:
+    title: Card traced
+    card_path: '`{path}` ← {origin}'
+    theme: 'theme "{theme}"'
+    default: catalog default
+themes:
+  command:
+    name: themes
+    description: Manage this server's themes
+  title: Themes
+  hint: 'Import a theme file, pick the active one, or export/download what is installed.'
+  active_none: Built-in default
+  active_label: 'Active theme: **{theme}**'
+  import_title: Import theme
+  import_label: Theme file (.yaml)
+  import_description: 'A theme YAML previously exported from Rosemary or written by hand.'
+  imported: '{success} Theme **{theme}** imported and validated.'
+  select_placeholder: Choose the active theme...
+  selected: '{success} Theme **{theme}** is now active.'
+  export_placeholder: Choose a theme to download...
+  export_failed: '{error} Could not send that theme file.'
+  reset: '{success} Back to the built-in default theme.'
+  remove_placeholder: Choose an imported theme to remove...
+  removed: '{success} Theme **{theme}** removed.'
+  removed_active: '{success} Theme **{theme}** removed — back to the built-in default.'
+  not_found: '{error} Theme not found.'
+  rejected: '{error} Theme rejected: {reason}'
+  none_yet: '*No themes imported yet — attach a ``.yaml`` file to /themes to add one.*'
+  built_in: '-# Built-in themes are read-only; imported ones can be removed.'
+  close: Close
+  rejection_codes: 'Problems found: {codes}'
 general:
   unknown_error: '{error} An unexpected error occurred.'
 menu:
@@ -294,7 +326,9 @@ settings:
     description: Whether bot events are posted to a log channel.
   logging.channel:
     label: Log channel
-    description: Channel where bot events are posted.
+  debug.card_paths:
+    label: Card path tracing
+    description: Post each card send's path and origin (theme or default) to the log channel.
   boost.enabled:
     label: Boost roles enabled
     description: Defines whether the boost roles system works in this server.
@@ -1800,213 +1834,6 @@ variables:
   server_name:
     label: Server name
     description: Name of the server
-cards:
-  editor:
-    title: Card Editor
-    hint: 'Editing `{card_key}`. Placeholders: {placeholders}'
-    placeholders_none: 'none specific + any theme emoji'
-    preview: Preview
-    invalid: '{warning} This composition cannot be sent yet: {error}'
-    saved: '{success} Saved.'
-    reset_done: '{refresh} Card restored to the default message.'
-    test_sent: '{success} Test card sent separately (visible only to you).'
-    add_title: 'Pick a block type to add:'
-    add_placeholder: Choose a block type...
-    empty_level: '*This level is empty. Use Add below.*'
-    buttons:
-      add: Add
-      edit: Edit
-      enter: Open
-      delete: Remove
-      up_level: Up one level
-      test: Test
-      reset: Reset
-      close: Close
-      back: Back
-      move_up: Up
-      move_down: Down
-      compare: Compare
-      cancel: Cancel
-      save: Save
-      discard: Discard
-      duplicate: Duplicate
-      undo: Undo
-      redo: Redo
-      move_out: Move out
-      accessory: Side content
-      action_add: Add action
-      more: More
-      templates: Templates
-      history: History
-      export: Export
-      import: Import
-      placeholders: View placeholders
-    types:
-      text: Text
-      container: Card (colored box)
-      section: Text with avatar
-      divider: Divider
-      gallery: Image gallery
-      row: Link buttons
-    colors:
-      placeholder: Card accent color...
-      none: No color
-      brand: Green (brand)
-      success: Success green
-      warning: Yellow
-      danger: Red
-      info: Blue
-      gold: Gold
-      orange: Orange
-    spacing:
-      small: Small spacing
-      large: Large spacing
-      hidden: Hidden (invisible spacer)
-    modals:
-      text_title: Edit text
-      text_label: Text (markdown + placeholders)
-      text_placeholder: Write the text here...
-      urls_title: Edit image gallery
-      urls_label: One image URL per line
-      urls_placeholder: https://example.com/image.png
-      row_title: Edit link buttons
-      row_label: 'One per line: Label | https://url (label may contain |)'
-      row_placeholder: Site | https://example.com
-    select_placeholder: Pick a block to work on...
-    breadcrumb: 'Path: {path}'
-    arm_delete: 'Press Remove again to confirm deletion.'
-    arm_reset: 'Press Reset again to confirm. This restores the default.'
-    arm_discard: 'Press Discard again to throw away unsaved changes.'
-    arm_mentions: 'Press again to allow mentioning everyone.'
-    discarded: '{success} Unsaved changes discarded.'
-    unsaved: '{warning} Unsaved changes — use Save.'
-    compare_summary: '{same} unchanged, {changed} changed of {total} blocks.'
-    lint_unknown: "'{unknown}' is not a placeholder of this card."
-    lint_suggestion: 'Did you mean {suggestion}?'
-    modal_stale: 'That block no longer exists. Your text was kept: {value}'
-    more_title: 'More actions:'
-    placeholders_title: 'Placeholders for this card:'
-    placeholders_empty: 'This card has no specific placeholders — write freely and use any theme emoji.'
-    placeholders_emoji_note: '-# Any theme emoji also works: {star} {{star}}, {user} {{user}}…'
-    templates_title: 'Start from a template (replaces the draft, undoable):'
-    templates_placeholder: Choose a template...
-    templates_empty: '*No templates available.*'
-    templates_applied: '{success} Template applied as draft.'
-    history_title: 'Saved versions (restoring loads them as draft):'
-    history_placeholder: Choose a version...
-    history_empty: '*No saved versions yet. Save the card first.*'
-    history_restored: '{success} Version restored as draft.'
-    exported: '{success} Card exported below (visible only to you).'
-    export_failed: '{error} Could not send the export file.'
-    imported: '{success} Card imported as draft — review and Save.'
-    import_invalid: '{error} Could not import: file is not a valid card.'
-    confirm_reset: 'Reset {key} to its default?'
-    import_title: Import card JSON
-    import_label: Card file (.json)
-    import_description: A file previously exported from the composer.
-    row_buttons_title: 'Link buttons of this row:'
-    row_buttons_empty: '*No buttons yet. Use Add below (max 5).*'
-    action_title: 'Choose an action for the button:'
-    action_placeholder: Choose an action...
-    action_type_title: 'Which ticket type does it open?'
-    action_type_placeholder: Choose a ticket type...
-    accessory_title: 'Section side content:'
-    accessory_type_placeholder: Choose thumbnail or button...
-    accessory_thumbnail: 'Thumbnail (image on the side)'
-    accessory_button: 'Button (link on the side)'
-    divider_title: 'Divider style:'
-    divider_placeholder: Choose a divider style...
-    button_title: Edit button
-    button_label_label: Label
-    button_label_placeholder: Button text...
-    button_url_label: URL
-    button_url_placeholder: https://example.com
-    paged_blocks: 'Showing {shown} of {total} blocks.'
-    blocks_page: 'Blocks page {page}/{pages}.'
-    child_count: '{count} block(s) inside'
-    child_summary: '{count} block(s): {preview}'
-    image_count: '{count} image(s)'
-    button_count: '{count} link button(s)'
-    button_summary: '{count} button(s): {preview}'
-    compare_title: Compare with the default
-    compare_default: What members receive now
-    compare_custom: Your version
-    compare_no_default: '*This card has no default preview.*'
-    using_default: '{warning} Using the default as a base ([NOT SAVED] yet).'
-    empty_block: (empty)
-    mentions:
-      placeholder: Change ping policy...
-      current: 'Pings: **{policy}** — {description}'
-      saved: '{success} Ping policy saved.'
-      status: 'Pings: **{state}** — decides whether the mentions ({{@user}}) in this card actually notify.'
-      "on": On
-      "off": Off
-      enable: Turn pings on
-      disable: Turn pings off
-      enabled_flash: '{success} Pings on — mentions in the text will notify.'
-      disabled_flash: '{warning} Pings off — nothing in this card will notify.'
-  templates:
-    banner:
-      label: Banner
-      description: Colored box with title, divider and text
-    profile:
-      label: Profile
-      description: Avatar with name lines
-    panel:
-      label: Panel
-      description: Box with title, text and link button
-  mentions:
-    modes:
-      none: No pings
-      single: One user
-      winner_auto: Winner (auto-post only)
-      role: Role
-      all: Everyone mentioned
-    desc:
-      none: Never pings anyone
-      single: Pings one user from the text
-      winner_auto: Pings the winner on automatic posts only
-      role: Pings the configured role
-      all: May ping everyone mentioned, use carefully
-  customize:
-    title: Customize Messages
-    choose: Pick a category, then the message you want to personalize.
-    empty: There are no customizable messages yet.
-    empty_category: '*No customizable messages in this category.*'
-    category_placeholder: Choose a category...
-    card_placeholder: Choose a message...
-    open: Customize messages
-    prev: Previous
-    next: Next
-    page: 'Page {page}/{pages}'
-  errors:
-    document_shape: Document must be an object with a 'blocks' list.
-    unknown_block: Unknown block type.
-    depth_exceeded: Blocks nested deeper than {max} levels are not allowed.
-    text_not_string: A text block body must be text.
-    text_empty: A text block is still empty.
-    divider_spacing: Divider spacing must be small or large.
-    gallery_count: Galleries need {min}-{max} image URLs.
-    bad_url: Enter a valid https:// URL.
-    row_count: Button rows need {min}-{max} buttons.
-    button_label: Every button needs a label (max {max} characters).
-    button_unknown_action: "Unknown button action '{action}'."
-    button_url_and_action: A button cannot have both a link and an action.
-    button_unknown_style: "Unknown button style '{style}'."
-    section_children_count: Sections need {min}-{max} text children.
-    section_children_text: Section children must be text blocks.
-    section_accessory_missing: Sections need a thumbnail or button accessory.
-    accessory_button_label: The accessory button needs a label.
-    container_empty: Cards need at least one child block.
-    container_nested: Cards cannot be nested inside other cards.
-    container_child_invalid: This block type is not allowed inside a card.
-    color_unknown: Unknown color '{color}'. Use the palette tokens.
-    too_many_components: Too many components ({count}); the limit is {max}.
-    text_too_long: Text exceeds the limit ({chars}/{max} characters).
-customize:
-  command:
-    name: customize
-    description: Customize the bot's messages for this server
 card:
   boost:
     dm:

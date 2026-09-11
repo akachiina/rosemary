@@ -22,6 +22,38 @@ language:
 
     {available}'
   current: 'Idioma atual: {language}.'
+debug:
+  trace:
+    title: Card rastreado
+    card_path: '`{path}` ← {origin}'
+    theme: 'tema "{theme}"'
+    default: padrão do catálogo
+themes:
+  command:
+    name: temas
+    description: Gerencia os temas deste servidor
+  title: Temas
+  hint: 'Importe um arquivo de tema, escolha o ativo ou exporte/baixe os instalados.'
+  active_none: Padrão embutido
+  active_label: 'Tema ativo: **{theme}**'
+  import_title: Importar tema
+  import_label: Arquivo de tema (.yaml)
+  import_description: 'Um tema YAML exportado antes do Rosemary ou escrito à mão.'
+  imported: '{success} Tema **{theme}** importado e validado.'
+  select_placeholder: Escolha o tema ativo...
+  selected: '{success} O tema **{theme}** agora está ativo.'
+  export_placeholder: Escolha um tema para baixar...
+  export_failed: '{error} Não foi possível enviar esse arquivo de tema.'
+  reset: '{success} De volta ao tema padrão embutido.'
+  remove_placeholder: Escolha um tema importado para remover...
+  removed: '{success} Tema **{theme}** removido.'
+  removed_active: '{success} Tema **{theme}** removido — de volta ao padrão embutido.'
+  not_found: '{error} Tema não encontrado.'
+  rejected: '{error} Tema rejeitado: {reason}'
+  none_yet: '*Nenhum tema importado ainda — anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
+  built_in: '-# Temas embutidos são somente leitura; importados podem ser removidos.'
+  close: Fechar
+  rejection_codes: 'Problemas encontrados: {codes}'
 general:
   unknown_error: '{error} Ocorreu um erro inesperado.'
 menu:
@@ -294,7 +326,9 @@ settings:
     description: Define se os eventos do bot são enviados a um canal de log.
   logging.channel:
     label: Canal de log
-    description: Canal onde os eventos do bot são publicados.
+  debug.card_paths:
+    label: Rastreio de caminho de cards
+    description: 'Publica no canal de log o caminho e a origem de cada card enviado.'
   boost.enabled:
     label: Cargos boost ativados
     description: Define se o sistema de cargos boost funciona neste servidor.
@@ -1801,213 +1835,6 @@ variables:
   server_name:
     label: Nome do servidor
     description: Nome do servidor
-cards:
-  editor:
-    title: Editor de Cartões
-    hint: 'Editando `{card_key}`. Placeholders: {placeholders}'
-    placeholders_none: 'nenhum específico + qualquer emoji do tema'
-    preview: Prévia
-    invalid: '{warning} Esta composição ainda não pode ser enviada: {error}'
-    saved: '{success} Salvo.'
-    reset_done: '{refresh} Cartão restaurado para a mensagem padrão.'
-    test_sent: '{success} Cartão de teste enviado em separado (visível só para você).'
-    add_title: 'Escolha o tipo de bloco para adicionar:'
-    add_placeholder: Escolha um tipo de bloco...
-    empty_level: '*Este nível está vazio. Use Adicionar abaixo.*'
-    buttons:
-      add: Adicionar
-      edit: Editar
-      enter: Abrir
-      delete: Remover
-      up_level: Subir nível
-      test: Testar
-      reset: Restaurar
-      close: Fechar
-      back: Voltar
-      move_up: Subir
-      move_down: Descer
-      compare: Comparar
-      cancel: Cancelar
-      save: Salvar
-      discard: Descartar
-      duplicate: Duplicar
-      undo: Desfazer
-      redo: Refazer
-      move_out: Mover p/ fora
-      accessory: Lateral
-      action_add: Adicionar ação
-      more: Mais
-      templates: Modelos
-      history: Histórico
-      export: Exportar
-      import: Importar
-      placeholders: Ver placeholders
-    types:
-      text: Texto
-      container: Card (caixa colorida)
-      section: Texto com avatar
-      divider: Divisor
-      gallery: Galeria de imagens
-      row: Botões de link
-    colors:
-      placeholder: Cor de destaque do card...
-      none: Sem cor
-      brand: Verde (marca)
-      success: Verde sucesso
-      warning: Amarelo
-      danger: Vermelho
-      info: Azul
-      gold: Dourado
-      orange: Laranja
-    spacing:
-      small: Espaçamento pequeno
-      large: Espaçamento grande
-      hidden: Oculto (espaçador invisível)
-    modals:
-      text_title: Editar texto
-      text_label: Texto (markdown + placeholders)
-      text_placeholder: Escreva o texto aqui...
-      urls_title: Editar galeria de imagens
-      urls_label: Uma URL de imagem por linha
-      urls_placeholder: https://exemplo.com/imagem.png
-      row_title: Editar botões de link
-      row_label: 'Um por linha: Rótulo | https://url (rótulo pode conter |)'
-      row_placeholder: Site | https://exemplo.com
-    select_placeholder: Escolha um bloco para editar...
-    breadcrumb: 'Caminho: {path}'
-    arm_delete: 'Clique Remover de novo para confirmar a exclusão.'
-    arm_reset: 'Clique Restaurar de novo para confirmar. Isso restaura o padrão.'
-    arm_discard: 'Clique Descartar de novo para jogar fora as mudanças não salvas.'
-    arm_mentions: 'Clique de novo para permitir mencionar todos.'
-    discarded: '{success} Mudanças não salvas descartadas.'
-    unsaved: '{warning} Mudanças não salvas — use Salvar.'
-    compare_summary: '{same} iguais, {changed} alterados de {total} blocos.'
-    lint_unknown: "'{unknown}' não é um placeholder deste cartão."
-    lint_suggestion: 'Quis dizer {suggestion}?'
-    modal_stale: 'Esse bloco não existe mais. Seu texto foi mantido: {value}'
-    more_title: 'Mais ações:'
-    placeholders_title: 'Placeholders deste cartão:'
-    placeholders_empty: 'Este cartão não tem placeholders específicos — escreva livremente e use qualquer emoji do tema.'
-    placeholders_emoji_note: '-# Qualquer emoji do tema também funciona: {star} {{star}}, {user} {{user}}…'
-    templates_title: 'Comece de um modelo (substitui o rascunho, desfazível):'
-    templates_placeholder: Escolha um modelo...
-    templates_empty: '*Sem modelos disponíveis.*'
-    templates_applied: '{success} Modelo aplicado como rascunho.'
-    history_title: 'Versões salvas (restaurar carrega como rascunho):'
-    history_placeholder: Escolha uma versão...
-    history_empty: '*Sem versões salvas ainda. Salve o cartão primeiro.*'
-    history_restored: '{success} Versão restaurada como rascunho.'
-    exported: '{success} Cartão exportado abaixo (visível só para você).'
-    export_failed: '{error} Não foi possível enviar o arquivo de exportação.'
-    imported: '{success} Cartão importado como rascunho — revise e Salve.'
-    import_invalid: '{error} Não foi possível importar: arquivo não é um cartão válido.'
-    confirm_reset: 'Restaurar {key} para o padrão?'
-    import_title: Importar JSON do cartão
-    import_label: Arquivo do cartão (.json)
-    import_description: Um arquivo exportado antes pelo editor.
-    row_buttons_title: 'Botões de link desta linha:'
-    row_buttons_empty: '*Sem botões ainda. Use Adicionar abaixo (máx. 5).*'
-    action_title: 'Escolha uma ação para o botão:'
-    action_placeholder: Escolha uma ação...
-    action_type_title: 'Qual tipo de ticket ele abre?'
-    action_type_placeholder: Escolha um tipo de ticket...
-    accessory_title: 'Conteúdo lateral da seção:'
-    accessory_type_placeholder: Escolha miniatura ou botão...
-    accessory_thumbnail: 'Miniatura (imagem ao lado)'
-    accessory_button: 'Botão (link ao lado)'
-    divider_title: 'Estilo do divisor:'
-    divider_placeholder: Escolha um estilo de divisor...
-    button_title: Editar botão
-    button_label_label: Rótulo
-    button_label_placeholder: Texto do botão...
-    button_url_label: URL
-    button_url_placeholder: https://exemplo.com
-    paged_blocks: 'Mostrando {shown} de {total} blocos.'
-    blocks_page: 'Blocos página {page}/{pages}.'
-    child_count: '{count} bloco(s) dentro'
-    child_summary: '{count} bloco(s): {preview}'
-    image_count: '{count} imagem(ns)'
-    button_count: '{count} botão(ões) de link'
-    button_summary: '{count} botão(ões): {preview}'
-    compare_title: Comparar com o padrão
-    compare_default: O que os membros recebem hoje
-    compare_custom: Sua versão
-    compare_no_default: '*Este cartão não tem prévia padrão.*'
-    using_default: '{warning} Usando o padrão como base ([NÃO SALVO] ainda).'
-    empty_block: (vazio)
-    mentions:
-      placeholder: Mudar política de menções...
-      current: 'Menções: **{policy}** — {description}'
-      saved: '{success} Política de menções salva.'
-      status: 'Pings: **{state}** — decide se as menções ({{@user}}) deste cartão notificam de verdade.'
-      "on": Ligados
-      "off": Desligados
-      enable: Ligar pings
-      disable: Desligar pings
-      enabled_flash: '{success} Pings ligados — as menções do texto vão notificar.'
-      disabled_flash: '{warning} Pings desligados — nada neste cartão vai notificar.'
-  templates:
-    banner:
-      label: Faixa
-      description: Caixa colorida com título, divisor e texto
-    profile:
-      label: Perfil
-      description: Avatar com linhas de nome
-    panel:
-      label: Painel
-      description: Caixa com título, texto e botão de link
-  mentions:
-    modes:
-      none: Sem pings
-      single: Um usuário
-      winner_auto: Vencedor (só no post automático)
-      role: Cargo
-      all: Todos mencionados
-    desc:
-      none: Nunca menciona ninguém
-      single: Menciona um usuário do texto
-      winner_auto: Menciona o vencedor só em posts automáticos
-      role: Menciona o cargo configurado
-      all: Pode mencionar todos citados, use com cuidado
-  customize:
-    title: Personalizar Mensagens
-    choose: Escolha uma categoria e depois a mensagem que quer personalizar.
-    empty: Ainda não há mensagens personalizáveis.
-    empty_category: '*Nenhuma mensagem personalizável nesta categoria.*'
-    category_placeholder: Escolha uma categoria...
-    card_placeholder: Escolha uma mensagem...
-    open: Personalizar mensagens
-    prev: Anterior
-    next: Próximo
-    page: 'Página {page}/{pages}'
-  errors:
-    document_shape: O documento deve ser um objeto com uma lista 'blocks'.
-    unknown_block: Tipo de bloco desconhecido.
-    depth_exceeded: Blocos aninhados além de {max} níveis não são permitidos.
-    text_not_string: O corpo de um bloco de texto deve ser texto.
-    text_empty: Um bloco de texto ainda está vazio.
-    divider_spacing: O espaçamento do divisor deve ser pequeno ou grande.
-    gallery_count: Galerias precisam de {min}-{max} URLs de imagem.
-    bad_url: Informe uma URL https:// válida.
-    row_count: Linhas de botões precisam de {min}-{max} botões.
-    button_label: Todo botão precisa de rótulo (máx. {max} caracteres).
-    button_unknown_action: "Ação de botão desconhecida '{action}'."
-    button_url_and_action: Um botão não pode ter link e ação ao mesmo tempo.
-    button_unknown_style: "Estilo de botão desconhecido '{style}'."
-    section_children_count: Seções precisam de {min}-{max} filhos de texto.
-    section_children_text: Filhos de seção devem ser blocos de texto.
-    section_accessory_missing: Seções exigem um acessório thumbnail ou botão.
-    accessory_button_label: O botão acessório precisa de rótulo.
-    container_empty: Cards precisam de pelo menos um bloco filho.
-    container_nested: Cards não podem ser aninhados dentro de outros cards.
-    container_child_invalid: Este tipo de bloco não é permitido dentro de um card.
-    color_unknown: Cor desconhecida '{color}'. Use os tokens da paleta.
-    too_many_components: Componentes demais ({count}); o limite é {max}.
-    text_too_long: Texto excede o limite ({chars}/{max} caracteres).
-customize:
-  command:
-    name: personalizar
-    description: Personalize as mensagens do bot neste servidor
 card:
   boost:
     dm:

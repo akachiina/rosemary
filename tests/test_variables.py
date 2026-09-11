@@ -84,22 +84,32 @@ def test_variables_have_labels_in_both_catalogs():
 
 async def test_schedule_override_resolves_ping_role(tmp_path):
     """The contracted {ping_role} actually resolves through text_or."""
-    from rosemary.core.cards import card_store, text_or
+    from rosemary.core.cards import text_or
+    from rosemary.core.storage import GuildStorage
+    from rosemary.core.themes import ThemeStore, preload_themes
+
+    themes_dir = tmp_path / "themes"
+    themes_dir.mkdir(exist_ok=True)
+    (themes_dir / "t.yaml").write_text(
+        "name: t\n"
+        "cards:\n"
+        "  bump.schedule.open:\n"
+        "    - type: 10\n"
+        "      content: \"OPEN {ping_role}\"\n",
+        encoding="utf-8",
+    )
 
     class FakeBot:
         theme = load_theme()
 
         def __init__(self):
-            from rosemary.core.storage import GuildStorage
-
             self.storage = GuildStorage(tmp_path)
+            self._theme_store = ThemeStore(tmp_path, themes_dir=themes_dir)
+            self.guilds = [type("G", (), {"id": 1})()]
 
     bot = FakeBot()
-    await card_store(bot).save_document(
-        1,
-        "bump.schedule.open",
-        {"v": 1, "blocks": [{"type": "text", "body": "OPEN {ping_role}"}]},
-    )
+    await bot._theme_store.set_active(1, "t")
+    await preload_themes(bot)
     assert await text_or(bot, 1, "bump.schedule.open", "fallback", ping_role="<@&9>") == (
         "OPEN <@&9>"
     )

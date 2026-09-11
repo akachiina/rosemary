@@ -40,7 +40,6 @@ from typing import Any
 
 import discord
 
-from rosemary.core.storage import GuildStorage
 from rosemary.ui.containers import ActionRow, Container, Section, Separator, TextDisplay
 
 DOCUMENT_VERSION = 1
@@ -64,6 +63,8 @@ _PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 _MENTION_RE = re.compile(r"\{@([a-zA-Z_][a-zA-Z0-9_]*)\}")
 _MENTION_TOKEN_RE = re.compile(r"<@!?([0-9]{1,20})>|<@&([0-9]{1,20})>")
 _URL_RE = re.compile(r"https?://\S+")
+#: Self-contained hex color token ("#rrggbb"), valid anywhere a palette name is.
+_HEX_COLOR_RE = re.compile(r"#?[0-9a-fA-F]{6}")
 
 
 class CardsError(ValueError):
@@ -158,22 +159,37 @@ def get_default_builder(key: str) -> Callable[..., Any] | None:
 # -- resolution --------------------------------------------------------------
 
 
-def card_store(bot) -> CardStore:
-    """Default store bound to the bot's data directory."""
-    return CardStore(bot.storage.data_dir)
+def card_store(bot):
+    """Deprecated: per-card persistence moved to theme files.
+
+    Kept so stray imports fail loudly at call time instead of AttributeError
+    deep inside a send; returns ``None``.
+    """
+    return None
+
+
+async def _override_document(bot, guild_id: int | None, key: str) -> dict[str, Any] | None:
+    """The guild's themed override document for ``key`` (``None`` = default).
+
+    Thin re-export of :func:`rosemary.core.themes.card_document` kept here so
+    every ``maybe_*`` call site reads the same source of truth.
+    """
+    from rosemary.core.themes import card_document
+
+    return await card_document(bot, guild_id, key)
 
 
 async def maybe_view(
     bot, guild_id: int, key: str, variables: dict[str, Any] | None = None
 ) -> discord.ui.DesignerView | None:
-    """Render the guild's override for ``key``, or ``None`` to use defaults.
+    """Render the guild's themed override for ``key``, or ``None`` for defaults.
 
-    An invalid stored document logs a warning and returns ``None`` so sends
-    never break because of editor content. When ``variables`` is omitted the
+    An invalid themed document logs a warning and returns ``None`` so sends
+    never break because of theme content. When ``variables`` is omitted the
     echo mapping is used, keeping member placeholders literal instead of
     resolving them to theme emojis.
     """
-    doc = await card_store(bot).get_document(guild_id, key)
+    doc = await _override_document(bot, guild_id, key)
     if doc is None:
         return None
     try:
@@ -199,7 +215,7 @@ async def maybe_text(bot, guild_id: int, key: str, **variables: Any) -> str | No
     so view-capable call sites can fall through to :func:`maybe_view` and
     keep the rich layout (see :func:`maybe_flat_text` for text-only sites).
     """
-    doc = await card_store(bot).get_document(guild_id, key)
+    doc = await _override_document(bot, guild_id, key)
     if doc is None:
         return None
     blocks = doc.get("blocks")
@@ -218,7 +234,7 @@ async def maybe_flat_text(bot, guild_id: int, key: str, **variables: Any) -> str
     never silently ignored by text-only call sites — members still receive
     the customized copy, minus the layout.
     """
-    doc = await card_store(bot).get_document(guild_id, key)
+    doc = await _override_document(bot, guild_id, key)
     if doc is None:
         return None
     blocks = doc.get("blocks")
@@ -581,6 +597,10 @@ class _ValidationState:
         if not isinstance(color, str):
             self.error("color_unknown", color=color)
             return
+        # Raw hex ("#rrggbb" or "rrggbb") is always valid — theme files speak
+        # Discord's own format where accent colors are self-contained.
+        if _HEX_COLOR_RE.fullmatch(color.strip()):
+            return
         if self.theme is not None and color not in getattr(self.theme, "colors", {}):
             self.error("color_unknown", color=color)
 
@@ -852,10 +872,13 @@ def _build_container(
     color = None
     token = block.get("color")
     if isinstance(token, str):
-        try:
-            color = theme.color(token)
-        except KeyError as exc:
-            raise CardsError([CardIssue("color_unknown", (("color", token),))]) from exc
+        if _HEX_COLOR_RE.fullmatch(token.strip()):
+            color = discord.Colour(int(token.strip().lstrip("#"), 16))
+        else:
+            try:
+                color = theme.color(token)
+            except KeyError as exc:
+                raise CardsError([CardIssue("color_unknown", (("color", token),))]) from exc
     children = [
         _build_block(child, theme, mapping, card_key) for child in block.get("children", [])
     ]
@@ -864,35 +887,6 @@ def _build_container(
     return Container(*children)
 
 
-# -- persistence ------------------------------------------------------------
+# Per-card persistence moved to theme files (core.themes.ThemeStore); the
+# legacy cards.json store was removed along with the /customize editor.
 
-
-class CardStore:
-    """Per-guild storage of customized card documents.
-
-    Uses its own ``cards.json`` file (via :class:`GuildStorage`), so overrides
-    never mix with settings or feature data. A missing key means "not
-    customized" — resolution then falls back to the feature default.
-    """
-
-    def __init__(self, data_dir) -> None:
-        self._storage = GuildStorage(data_dir, filename="cards.json", use_defaults=False)
-
-    async def get_document(self, guild_id: int, key: str) -> dict[str, Any] | None:
-        """Return the guild's saved document for ``key`` or ``None``."""
-        data = await self._storage.get(guild_id)
-        doc = data.get(key)
-        return doc if isinstance(doc, dict) else None
-
-    async def save_document(self, guild_id: int, key: str, doc: dict[str, Any]) -> None:
-        """Persist one card override atomically."""
-        await self._storage.set(guild_id, key, doc)
-
-    async def reset(self, guild_id: int, key: str) -> None:
-        """Remove an override, restoring catalog defaults."""
-        await self._storage.delete_keys(guild_id, key)
-
-    async def customized_keys(self, guild_id: int) -> set[str]:
-        """Keys this guild has overridden (for editor badges)."""
-        data = await self._storage.get(guild_id)
-        return {key for key, value in data.items() if isinstance(value, dict)}

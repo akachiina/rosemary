@@ -108,7 +108,6 @@ def _register_all(bot: commands.Bot) -> None:
     from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
     from rosemary.cogs.bump_reminder import BumpReminderCog
     from rosemary.cogs.cleaner import CleanerCog
-    from rosemary.cogs.customize import CustomizeCog
     from rosemary.cogs.debug import DebugCog
     from rosemary.cogs.invites import InvitesCog
     from rosemary.cogs.language import LanguageCog
@@ -130,7 +129,6 @@ def _register_all(bot: commands.Bot) -> None:
         BumpLeaderboardCog,
         BumpReminderCog,
         CleanerCog,
-        CustomizeCog,
         DebugCog,
         InvitesCog,
         LanguageCog,

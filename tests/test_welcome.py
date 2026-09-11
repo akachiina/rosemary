@@ -9,8 +9,8 @@ import pytest
 
 import rosemary.cogs.welcome as welcome_mod
 from rosemary.cogs.welcome import WelcomeCog
-from rosemary.core.cards import card_store
 from rosemary.core.storage import GuildStorage
+from rosemary.core.themes import ThemeStore
 from rosemary.ui.theme import load_theme
 
 
@@ -119,11 +119,22 @@ async def test_disabled_events_do_nothing(tmp_path):
 async def test_join_uses_plain_override(tmp_path):
     bot, guild, member, channel, *_ = make_world(tmp_path)
     await set_settings(bot, welcome_channel=111)
-    await card_store(bot).save_document(
-        1,
-        "events.welcome",
-        {"v": 1, "blocks": [{"type": "text", "body": "BEM-VINDA {user_name}!"}]},
+    themes_dir = tmp_path / "themes"
+    themes_dir.mkdir(exist_ok=True)
+    (themes_dir / "t.yaml").write_text(
+        "name: t\n"
+        "cards:\n"
+        "  events.welcome:\n"
+        "    - type: 10\n"
+        "      content: \"BEM-VINDA {user_name}!\"\n",
+        encoding="utf-8",
     )
+    bot._theme_store = ThemeStore(tmp_path, themes_dir=themes_dir)
+    await bot._theme_store.set_active(1, "t")
+    bot.guilds = [type("G", (), {"id": 1})()]
+    from rosemary.core.themes import preload_themes
+
+    await preload_themes(bot)
     cog = WelcomeCog(bot)
     await cog.on_member_join(member)
     _, kwargs = channel.send.call_args

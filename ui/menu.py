@@ -75,6 +75,27 @@ class MenuView(discord.ui.DesignerView):
 
     # -- item factories -----------------------------------------------------
 
+    async def _ack(
+        self,
+        interaction: discord.Interaction,
+        *,
+        suppress_errors: bool = False,
+    ) -> None:
+        """Defer once; safe to call even when the interaction is already ACKed.
+
+        Every handler starts with this — Discord shows "the application did
+        not respond" past 3s without an ACK. ``suppress_errors=True`` is for
+        modal submits, where a failed defer must not mask the follow-up
+        ``rerender`` (which handles HTTP failures itself).
+        """
+        if interaction.response.is_done():
+            return
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except discord.HTTPException:
+            if not suppress_errors:
+                raise
+
     def make_button(
         self,
         *,
@@ -252,7 +273,14 @@ class MenuView(discord.ui.DesignerView):
                 ):
                     await message.edit(view=self)
         except (discord.Forbidden, discord.HTTPException):
-            log.warning("rerender edit failed for view %s", type(self).__name__)
+            # A 400 (invalid emoji, bad label, ...) must not look like a dead
+            # click: log the full error so the payload problem is diagnosable
+            # from bot.log (AGENTS.md gotcha).
+            log.warning(
+                "rerender edit failed for view %s",
+                type(self).__name__,
+                exc_info=True,
+            )
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Only the view owner may interact with the menu."""

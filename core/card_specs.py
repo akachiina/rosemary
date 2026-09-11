@@ -1,9 +1,9 @@
 """Central inventory of every customizable message.
 
-Each entry becomes editable in /customize (and in the matching /settings
-category). Keys map to i18n labels under ``card.<key>.title`` and to storage
-entries in ``cards.json``. Adding a message here is all a feature needs to opt
-in — the composer, persistence and resolution are shared infrastructure.
+Each entry can be overridden per guild through a theme file's ``cards:``
+section (see :mod:`rosemary.core.themes`); keys map to i18n labels under
+``card.<key>.title``. Adding a message here is all a feature needs to opt in —
+resolution, mentions and rendering are shared infrastructure.
 """
 
 from __future__ import annotations
