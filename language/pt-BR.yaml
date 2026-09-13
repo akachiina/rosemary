@@ -44,14 +44,14 @@ themes:
   selected: '{success} O tema **{theme}** agora está ativo.'
   export_placeholder: Escolha um tema para baixar...
   export_failed: '{error} Não foi possível enviar esse arquivo de tema.'
-  reset: '{success} De volta ao tema padrão embutido.'
+  reset_done: '{success} De volta ao tema padrão embutido.'
+  reset_button: Tema padrão
   remove_placeholder: Escolha um tema importado para remover...
   removed: '{success} Tema **{theme}** removido.'
   removed_active: '{success} Tema **{theme}** removido — de volta ao padrão embutido.'
   not_found: '{error} Tema não encontrado.'
   rejected: '{error} Tema rejeitado: {reason}'
   none_yet: '*Nenhum tema importado ainda — anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
-  built_in: '-# Temas embutidos são somente leitura; importados podem ser removidos.'
   close: Fechar
   rejection_codes: 'Problemas encontrados: {codes}'
 general:

@@ -44,14 +44,14 @@ themes:
   selected: '{success} Theme **{theme}** is now active.'
   export_placeholder: Choose a theme to download...
   export_failed: '{error} Could not send that theme file.'
-  reset: '{success} Back to the built-in default theme.'
+  reset_done: '{success} Back to the built-in default theme.'
+  reset_button: Default theme
   remove_placeholder: Choose an imported theme to remove...
   removed: '{success} Theme **{theme}** removed.'
   removed_active: '{success} Theme **{theme}** removed — back to the built-in default.'
   not_found: '{error} Theme not found.'
   rejected: '{error} Theme rejected: {reason}'
   none_yet: '*No themes imported yet — attach a ``.yaml`` file to /themes to add one.*'
-  built_in: '-# Built-in themes are read-only; imported ones can be removed.'
   close: Close
   rejection_codes: 'Problems found: {codes}'
 general:

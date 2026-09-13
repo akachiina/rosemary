@@ -125,6 +125,23 @@ async def test_import_flash_shown_by_command(tmp_path):
     assert "ok-imported" in texts
 
 
+async def test_every_rendered_component_has_a_callback(tmp_path):
+    """Regression: raw Selects without callbacks made clicks die with
+    "the application did not respond" (live bug report)."""
+    yaml_body = (
+        "name: cute\ncolors:\n  brand: '#ff8fc7'\n"
+        "cards:\n  about.card:\n    - type: 10\n      content: 'hi'\n"
+    )
+    _bot, _store, view = await make(tmp_path, yaml_body)
+    unbound = [
+        comp.custom_id
+        for comp in set(_walk(view.children))
+        if isinstance(comp, (discord.ui.Select, discord.ui.Button))
+        and comp.callback is None
+    ]
+    assert unbound == []
+
+
 async def test_remove_only_lists_guild_imports(tmp_path):
     themes_dir = tmp_path / "themes"
     themes_dir.mkdir(exist_ok=True)
