@@ -153,6 +153,24 @@ def test_trace_keys_resolve_in_both_catalogs():
             assert value != f"debug.trace.{key}", f"{lang}: unresolved {key}"
 
 
+async def test_ephemeral_invites_card_traces(tmp_path, monkeypatch):
+    """Ephemeral cards are theme-customizable, so admins need their paths:
+    /invites (via _card_view) must trace despite being ephemeral."""
+    bot, _ = _make_bot(tmp_path)
+    await bot.storage.set(1, "debug.card_paths", True)
+    calls = _capture_logs(monkeypatch)
+
+    from rosemary.cogs.invites import InvitesCog
+
+    cog = InvitesCog(bot)
+    view = await cog._card_view(
+        1, "invites.personal", "My invites", "body text", {"user": "<@5>"}
+    )
+    assert view is not None
+    assert len(calls) == 1, f"expected exactly one trace, got {calls}"
+    assert "card.invites.personal" in calls[0]["description"]
+
+
 async def test_about_command_traces_card_path(tmp_path, monkeypatch):
     """``/sobre`` sends through render_card_message, so enabling
     debug.card_paths and running /sobre traces ``card.about.card``."""

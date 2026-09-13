@@ -258,13 +258,16 @@ async def render_card_message(
         log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
         return None, discord.AllowedMentions.none()
     allowed = await allowed_for_document(bot, guild_id, key, doc, mapping, silent=silent)
-    await _trace_card_path(bot, guild_id, key)
+    await trace_card_path(bot, guild_id, key)
     return view, allowed
 
 
-async def _trace_card_path(bot, guild_id: int, key: str) -> None:
+async def trace_card_path(bot, guild_id: int, key: str) -> None:
     """Post ``card.<key>`` + origin to the log channel when ``debug.card_paths``
-    is on. Never pings (``card_key=None``) and never traces itself."""
+    is on. Never pings (``card_key=None``) and never traces itself.
+
+    Public so call sites that build themed views outside this module
+    (ephemeral confirm cards) can trace their own sends."""
     from rosemary.core.debug import send_channel_log
     from rosemary.core.settings import get_setting
     from rosemary.core.themes import card_origin
@@ -307,4 +310,5 @@ __all__ = [
     "render_card_message",
     "render_document",
     "theme_for",
+    "trace_card_path",
 ]

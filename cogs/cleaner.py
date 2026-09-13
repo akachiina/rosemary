@@ -104,6 +104,15 @@ class CleanerCog(commands.Cog):
 
         view.register("cleaner_yes", confirm)
         view.register("cleaner_no", cancel)
+        from rosemary.core.card_service import trace_card_path
+
+        themed_text = await text_or(
+            self.bot,
+            guild_id,
+            "cleaner.confirm",
+            await t(guild_id, "cleaner.confirm_text"),
+        )
+        await trace_card_path(self.bot, guild_id, "cleaner.confirm")
         view.add_item(
             designer_container(
                 self.bot.theme.color("warning"),
@@ -113,14 +122,7 @@ class CleanerCog(commands.Cog):
                         title=await t(guild_id, "cleaner.confirm_title", word=palavra),
                     )
                 ),
-                TextDisplay(
-                    await text_or(
-                        self.bot,
-                        guild_id,
-                        "cleaner.confirm",
-                        await t(guild_id, "cleaner.confirm_text"),
-                    )
-                ),
+                TextDisplay(themed_text),
             )
         )
         view.add_item(

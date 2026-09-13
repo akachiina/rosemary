@@ -364,17 +364,17 @@ class UpdaterCog(commands.Cog):
 
         view.register("updater_yes", confirm)
         view.register("updater_no", cancel)
-        view.add_item(
-            TextDisplay(
-                await text_or(
-                    self.bot,
-                    guild_id,
-                    "updater.confirm",
-                    await t(guild_id, "updater.confirm", target=target_label),
-                    target=target_label,
-                )
-            )
+        from rosemary.core.card_service import trace_card_path
+
+        themed_text = await text_or(
+            self.bot,
+            guild_id,
+            "updater.confirm",
+            await t(guild_id, "updater.confirm", target=target_label),
+            target=target_label,
         )
+        await trace_card_path(self.bot, guild_id, "updater.confirm")
+        view.add_item(TextDisplay(themed_text))
         view.add_item(
             discord.ui.ActionRow(
                 view.make_button(

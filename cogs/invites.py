@@ -424,11 +424,13 @@ class InvitesCog(commands.Cog):
 
         Override authors receive ``title``/``body`` plus the card-specific
         ``variables`` (see ``card.<key>.placeholders`` in the catalogs).
-        """
-        from rosemary.core.cards import maybe_view
+        Routes through :func:`render_card_message` so ``debug.card_paths``
+        traces these ephemeral cards too — they are theme-customizable, so
+        admins need their paths."""
+        from rosemary.core.card_service import render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        view = await maybe_view(
+        view, _allowed = await render_card_message(
             self.bot, guild_id, key, {"title": title, "body": body, **variables}
         )
         if view is not None:
