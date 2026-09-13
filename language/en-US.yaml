@@ -22,12 +22,6 @@ language:
 
     {available}'
   current: 'Current language: {language}.'
-debug:
-  trace:
-    title: Card traced
-    card_path: '`{path}` ← {origin}'
-    theme: 'theme "{theme}"'
-    default: catalog default
 themes:
   command:
     name: themes
@@ -1445,6 +1439,11 @@ debug:
   command:
     name: debug
     description: Bot diagnostics panel
+  trace:
+    title: Tracked card
+    card_path: '`{path}` ← {origin}'
+    theme: 'theme "{theme}"'
+    default: catalog default
   title: Diagnostics
   guilds: 'Guilds: {count}'
   members: 'Members: {count}'

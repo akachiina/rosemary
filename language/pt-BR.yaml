@@ -22,12 +22,6 @@ language:
 
     {available}'
   current: 'Idioma atual: {language}.'
-debug:
-  trace:
-    title: Card rastreado
-    card_path: '`{path}` ← {origin}'
-    theme: 'tema "{theme}"'
-    default: padrão do catálogo
 themes:
   command:
     name: temas
@@ -1445,6 +1439,11 @@ debug:
   command:
     name: debug
     description: Painel de debug do bot
+  trace:
+    title: Card rastreado
+    card_path: '`{path}` ← {origin}'
+    theme: 'tema "{theme}"'
+    default: padrão do catálogo
   title: Diagnóstico
   guilds: 'Servidores: {count}'
   members: 'Membros: {count}'

@@ -122,3 +122,58 @@ async def test_trace_skipped_when_card_has_no_document(tmp_path, monkeypatch):
     view, _allowed = await render_card_message(bot, 1, "no.such.card", {})
     assert view is None
     assert calls == []  # nothing sent, nothing traced
+
+
+def test_no_duplicate_top_level_catalog_keys():
+    """PyYAML silently keeps only the LAST duplicate top-level key — a
+    second ``debug:`` block once made ``debug.trace.*`` vanish at runtime,
+    so traces rendered raw keys (``debug.trace.title``)."""
+    for lang in ("en-US", "pt-BR"):
+        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
+            lines = fh.readlines()
+        tops = [
+            line.strip()[:-1]
+            for line in lines
+            if line and line[0] not in (" #-") and line.rstrip().endswith(":")
+        ]
+        dupes = {name for name in tops if tops.count(name) > 1}
+        assert not dupes, f"{lang}: duplicate top-level keys {sorted(dupes)}"
+
+
+def test_trace_keys_resolve_in_both_catalogs():
+    """The trace strings must exist (not fall back to the raw key)."""
+    import yaml
+
+    for lang in ("en-US", "pt-BR"):
+        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+        trace = data["debug"]["trace"]
+        for key in ("title", "card_path", "theme", "default"):
+            value = trace[key]
+            assert value != f"debug.trace.{key}", f"{lang}: unresolved {key}"
+
+
+async def test_about_command_traces_card_path(tmp_path, monkeypatch):
+    """``/sobre`` sends through render_card_message, so enabling
+    debug.card_paths and running /sobre traces ``card.about.card``."""
+    bot, _ = _make_bot(tmp_path)
+    await bot.storage.set(1, "debug.card_paths", True)
+    calls = _capture_logs(monkeypatch)
+
+    from rosemary.cogs.about import AboutCog
+
+    cog = AboutCog(bot)
+
+    class Ctx:
+        guild_id = 1
+        respond = None
+
+    async def _respond(view=None, **kwargs):
+        Ctx.respond = view
+
+    Ctx.respond = _respond
+    # py-cord wraps the coroutine in a SlashCommand; call the raw function.
+    await AboutCog.about.callback(cog, Ctx)
+    assert Ctx.respond is not None, "about must respond with a view"
+    assert len(calls) == 1, f"expected exactly one trace, got {calls}"
+    assert "card.about.card" in calls[0]["description"]
