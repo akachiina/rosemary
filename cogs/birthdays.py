@@ -17,7 +17,7 @@ import discord.ext.tasks as tasks
 from discord.ext import commands
 
 from rosemary.core.birthdays import BirthdaysStore, validate_date
-from rosemary.core.cards import ECHO_VARIABLES, maybe_text, maybe_view, set_default_builder
+from rosemary.core.cards import ECHO_VARIABLES, maybe_text, set_default_builder
 from rosemary.core.settings import get_setting
 from rosemary.core.timezone import resolve_timezone
 
@@ -111,9 +111,10 @@ class BirthdayCog(commands.Cog):
                 "server": guild.name,
                 "count": len(celebrants),
             }
-            view = (
-                await maybe_view(self.bot, guild.id, "birthdays.announce", variables)
-                or None
+            from rosemary.core.card_service import render_card_message
+
+            view, _allowed = await render_card_message(
+                self.bot, guild.id, "birthdays.announce", variables
             )
             if view is None:
                 text = await maybe_text(self.bot, guild.id, "birthdays.announce", **variables)

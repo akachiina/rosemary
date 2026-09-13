@@ -113,12 +113,21 @@ class TicketsCog(commands.Cog):
         picker = TicketPanelView(self.bot, guild_id)
         return discord.ui.ActionRow(await picker.open_row())
 
-    async def _panel_view(self, guild_id: int):
+    async def _panel_view(self, guild_id: int, *, trace: bool = False):
         """The full panel view: themed card (or catalog default) + picker.
 
         A themed panel that already carries ``open_ticket`` buttons replaces
-        the stock type picker — no duplicated controls."""
-        view = await maybe_view(self.bot, guild_id, "tickets.panel")
+        the stock type picker — no duplicated controls. ``trace=True`` (real
+        channel sends) routes through :func:`render_card_message` so the
+        ``debug.card_paths`` hook fires; internal repaints stay silent."""
+        if trace:
+            from rosemary.core.card_service import render_card_message
+
+            view, _allowed = await render_card_message(
+                self.bot, guild_id, "tickets.panel"
+            )
+        else:
+            view = await maybe_view(self.bot, guild_id, "tickets.panel")
         if view is None:
             view = await self._build_panel_view(guild_id)
             view.add_item(await self._panel_select_row(guild_id))
@@ -130,7 +139,7 @@ class TicketsCog(commands.Cog):
         from rosemary.core.mentions import allowed_for_ids
 
         message = await channel.send(
-            view=await self._panel_view(guild.id),
+            view=await self._panel_view(guild.id, trace=True),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.panel"),
         )
         await self.store.set_panel(guild.id, message.id)
@@ -264,7 +273,11 @@ class TicketsCog(commands.Cog):
             "user": owner.mention,
             "type": await self._type_label(guild.id, ticket_type),
         }
-        view = await maybe_view(self.bot, guild.id, "tickets.created", variables)
+        from rosemary.core.card_service import render_card_message
+
+        view, _allowed = await render_card_message(
+            self.bot, guild.id, "tickets.created", variables
+        )
         if view is None:
             t = self.bot.translator.t
             view = await self._intro_view(

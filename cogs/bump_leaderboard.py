@@ -192,9 +192,12 @@ class BumpLeaderboardCog(commands.Cog):
     # -- Helpers -------------------------------------------------------------
 
     async def _post_no_bumps(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
+        from rosemary.core.card_service import render_card_message
         from rosemary.core.mentions import allowed_for_ids
 
-        override = await maybe_view(self.bot, guild.id, "bump.no_bumps")
+        override, _allowed = await render_card_message(
+            self.bot, guild.id, "bump.no_bumps"
+        )
         if override is not None:
             await channel.send(
                 view=override,

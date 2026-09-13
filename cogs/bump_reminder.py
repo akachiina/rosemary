@@ -15,7 +15,7 @@ import discord
 from discord.ext import commands, tasks
 
 from rosemary.core.bump import LOCK_CAMPING, LOCK_SCHEDULE, BumpStore, schedule_open
-from rosemary.core.cards import log_description, maybe_view, text_or
+from rosemary.core.cards import log_description, text_or
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import get_setting
 from rosemary.core.time_parser import TimeParser
@@ -460,12 +460,15 @@ class BumpReminderCog(commands.Cog):
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
 
-        view = await maybe_view(
+        from rosemary.core.card_service import render_card_message
+
+        view, _allowed = await render_card_message(
             self.bot,
             guild_id,
             "bump.reminder",
             {"cooldown": cooldown_display},
-        ) or (await self._build_reminder_view(guild, cooldown_display))
+        )
+        view = view or (await self._build_reminder_view(guild, cooldown_display))
 
         try:
             from rosemary.core.mentions import allowed_for_ids
@@ -516,7 +519,9 @@ class BumpReminderCog(commands.Cog):
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
         next_bump_time = datetime.now(UTC) + timedelta(seconds=cooldown)
 
-        view = await maybe_view(
+        from rosemary.core.card_service import render_card_message
+
+        view, _allowed = await render_card_message(
             self.bot,
             guild_id,
             "bump.thank_you",
@@ -525,7 +530,8 @@ class BumpReminderCog(commands.Cog):
                 "cooldown": cooldown_display,
                 "next_bump_timestamp": int(next_bump_time.timestamp()),
             },
-        ) or await self._build_thank_you_view(
+        )
+        view = view or await self._build_thank_you_view(
             guild,
             user_id,
             cooldown_display,
