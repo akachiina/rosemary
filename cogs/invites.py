@@ -470,15 +470,19 @@ class InvitesCog(commands.Cog):
             )
         inviter_id = record.get("inviter_id")
         joined = record.get("joined_at") or ""
+        unknown = await self.bot.translator.t(guild_id, "invites.unknown")
+        inviter_mention = f"<@{inviter_id}>" if inviter_id else unknown
+        when = (
+            f"<t:{int(datetime.fromisoformat(joined).timestamp())}:R>" if joined else unknown
+        )
+        code = record.get("code") or unknown
         body = await self.bot.translator.t(
             guild_id,
             "invites.inviter.body",
             user=member.mention,
-            inviter=f"<@{inviter_id}>" if inviter_id else "-",
-            code=record.get("code") or "-",
-            when=f"<t:{int(datetime.fromisoformat(joined).timestamp())}:R>"
-            if joined
-            else "-",
+            inviter=inviter_mention,
+            code=code,
+            when=when,
             status=await self.bot.translator.t(
                 guild_id, f"invites.status.{record.get('status') or 'unknown'}"
             ),
@@ -491,11 +495,9 @@ class InvitesCog(commands.Cog):
             body,
             {
                 "user": member.mention,
-                "inviter": f"<@{inviter_id}>" if inviter_id else "-",
-                "code": record.get("code") or "-",
-                "when": f"<t:{int(datetime.fromisoformat(joined).timestamp())}:R>"
-                if joined
-                else "-",
+                "inviter": inviter_mention,
+                "code": code,
+                "when": when,
                 "status": await self.bot.translator.t(
                     guild_id, f"invites.status.{record.get('status') or 'unknown'}"
                 ),

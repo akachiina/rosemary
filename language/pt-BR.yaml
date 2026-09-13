@@ -213,11 +213,7 @@ settings:
     language_description: "**De:** {old}\n**Para:** {new}\n**Por:** {author}"
   logs:
     language:
-      description: 'De: {old}
-
-        Para: {new}
-
-        Por: {author}'
+      description: "**De:** {old}\n**Para:** {new}\n**Por:** {author}"
   bool:
     'true': Ativado
     'false': Desativado
@@ -660,121 +656,55 @@ boost:
   logs:
     register:
       title: '{register} Cargo Boost Registrado'
-      description: '{role}
-
-        Dono: {owner}
-
-        Registrado por: {actor}'
+      description: "**Cargo:** {role}\n**Dono:** {owner}\n**Registrado por:** {actor}"
     remove:
       title: '{trash} Cargo Boost Removido'
-      description: '{role}
-
-        Dono: {owner}
-
-        Removido por: {actor}
-
-        Cargo excluído: {deleted}'
+      description: "**Cargo:** {role}\n**Dono:** {owner}\n**Removido por:** {actor}\n**Cargo excluído:** {deleted}"
     transfer:
       title: '{swap} Propriedade Transferida'
-      description: '{role}
-
-        Dono anterior: {old_owner}
-
-        Novo dono: {new_owner}
-
-        Transferido por: {actor}'
+      description: "**Cargo:** {role}\n**Dono anterior:** {old_owner}\n**Novo dono:** {new_owner}\n**Transferido por:** {actor}"
     rename:
       title: '{pencil} Cargo Renomeado'
-      description: '{role}
-
-        De: {old_name}
-
-        Para: {new_name}
-
-        Por: {actor}'
+      description: "**Cargo:** {role}\n**De:** {old_name}\n**Para:** {new_name}\n**Por:** {actor}"
     color_change:
       title: '{palette} Cor Alterada'
-      description: '{role}
-
-        Nova cor: {new_color}
-
-        Por: {actor}'
+      description: "**Cargo:** {role}\n**Nova cor:** {new_color}\n**Por:** {actor}"
     emoji_change:
       title: '{tag} Emoji Alterado'
-      description: '{role}
-
-        Novo emoji: {emoji}
-
-        Por: {actor}'
+      description: "**Cargo:** {role}\n**Novo emoji:** {emoji}\n**Por:** {actor}"
     icon:
       title: '{frame} Ícone Alterado'
-      description: '{role}
-
-        Ícone atualizado por {actor}.'
+      description: "**Cargo:** {role}\nÍcone atualizado por {actor}."
     member_add:
       title: '{plus} Membro Adicionado'
-      description: '{role}
-
-        {member} entrou no cargo.
-
-        Adicionado por: {actor}'
+      description: "**Cargo:** {role}\n{member} entrou no cargo.\n**Adicionado por:** {actor}"
     member_remove:
       title: '{minus} Membro Removido'
-      description: '{role}
-
-        {member} foi removido do cargo.
-
-        Removido por: {actor}'
+      description: "**Cargo:** {role}\n{member} foi removido do cargo.\n**Removido por:** {actor}"
     member_left:
       title: '{door} Membro Saiu do Cargo'
-      description: '{role}
-
-        {member} saiu do cargo.
-
-        Dono: {owner}'
+      description: "**Cargo:** {role}\n{member} saiu do cargo.\n**Dono:** {owner}"
     invite_sent:
       title: '{love_letter} Convite Enviado'
-      description: '{role}
-
-        Convidado: {invitee}
-
-        Por: {inviter}
-
-        Expira: {expires}'
+      description: "**Cargo:** {role}\n**Convidado:** {invitee}\n**Por:** {inviter}\n**Expira:** {expires}"
     invite_cancelled:
       title: '{error} Convite Cancelado'
-      description: '{role}
-
-        Convite para {invitee} cancelado.
-
-        Por: {actor}'
+      description: "**Cargo:** {role}\nConvite para {invitee} cancelado.\n**Por:** {actor}"
     invite_accepted:
       title: '{success} Convite Aceito'
-      description: '{role}
-
-        {member} aceitou o convite.
-
-        Convidado por: {inviter}'
+      description: "**Cargo:** {role}\n{member} aceitou o convite.\n**Convidado por:** {inviter}"
     invite_declined:
       title: '{error} Convite Recusado'
-      description: '{role}
-
-        {member} recusou o convite.
-
-        Convidado por: {inviter}'
+      description: "**Cargo:** {role}\n{member} recusou o convite.\n**Convidado por:** {inviter}"
     invite_expired:
       title: '{clock} Convite Expirado'
-      description: '{role}
-
-        Convite para {invitee} expirou.
-
-        Convidado por: {inviter}'
+      description: "**Cargo:** {role}\nConvite para {invitee} expirou.\n**Convidado por:** {inviter}"
     auto_transfer:
       title: '{warning} Transferência Automática de Propriedade'
-      description: '{role} foi transferido de {old_owner} para {new_owner}.'
+      description: "**Cargo:** {role} foi transferido de {old_owner} para {new_owner}."
     orphan_remove:
       title: '{ban} Cargo Órfão Removido'
-      description: '{role} de {owner} foi removido do sistema.'
+      description: "**Cargo:** {role} de {owner} foi removido do sistema."
   error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
 bump:
   messages:
@@ -1040,13 +970,13 @@ updater:
   cancelled: Update cancelado.
   logs:
     updating:
-      title: 'Bot Atualizando'
+      title: '{refresh} Bot Atualizando'
       description: '{moderator} iniciou update para **{target}** (de {previous}). Reiniciando.'
     auto_failed:
-      title: 'Auto-update Falhou'
+      title: '{error} Auto-update Falhou'
       description: 'Checagem automática falhou ({reason}). Tenta de novo no horário.'
     updated:
-      title: 'Bot Atualizado'
+      title: '{success} Bot Atualizado'
       description: 'Update aplicado: {previous} → {current}.'
 partnerships_add:
   command:
@@ -1103,25 +1033,25 @@ partnerships:
     cleaned: '{success} {count} parceria(s) órfã(s) removidas.'
   logs:
     added:
-      title: 'Parceria Adicionada'
+      title: '{plus} Parceria Adicionada'
       description: '{author} adicionou parceria para {user}.'
     removed:
-      title: 'Parceria Removida'
+      title: '{minus} Parceria Removida'
       description: '{author} removeu a parceria de {user}.'
     renewed:
-      title: 'Parceria Renovada'
+      title: '{refresh} Parceria Renovada'
       description: '{user} renovou a parceria.'
     warning_sent:
-      title: 'Aviso de Parceria'
+      title: '{warning} Aviso de Parceria'
       description: '{user} foi avisado ({days}d atrasado).'
     expired:
-      title: 'Parceria Expirada'
+      title: '{clock} Parceria Expirada'
       description: 'Parceria de {user} expirou. {ping}'
     invite_posted:
-      title: 'Convite Postado'
+      title: '{love_letter} Convite Postado'
       description: '{author} postou o convite de parceria.'
     orphans_cleaned:
-      title: 'Órfãs Removidas'
+      title: '{trash} Órfãs Removidas'
       description: '{author} removeu {count} parceria(s) órfã(s).'
 tickets_panel:
   command:
@@ -1173,19 +1103,19 @@ tickets:
   transcript_failed: '{error} Nenhum canal de log para transcrições.'
   logs:
     opened:
-      title: 'Ticket Aberto'
+      title: '{envelope} Ticket Aberto'
       description: '{user} abriu um ticket **{type}** em {channel}.'
     closed:
-      title: 'Ticket Fechado'
+      title: '{lock} Ticket Fechado'
       description: 'Ticket {channel} foi fechado.'
     reopened:
-      title: 'Ticket Reaberto'
+      title: '{unlock} Ticket Reaberto'
       description: 'Ticket {channel} foi reaberto.'
     deleted:
-      title: 'Ticket Excluído'
+      title: '{trash} Ticket Excluído'
       description: 'Ticket {channel} foi excluído.'
     transcript:
-      title: 'Transcrição de Ticket'
+      title: '{scroll} Transcrição de Ticket'
       description: 'Transcrição de {channel} (pedida por {moderator}).'
 cleaner:
   error_disabled: '{error} A limpeza de mensagens está desativada neste servidor.'
@@ -1199,13 +1129,13 @@ cleaner:
   cancelled: Limpeza cancelada.
   logs:
     purged:
-      title: 'Mensagens Apagadas'
+      title: '{trash} Mensagens Apagadas'
       description: '{moderator} apagou {count} mensagem(ns) com “{word}”.'
 anti_invite:
   warning: '{warning} {user}, links de convite externos não são permitidos aqui.'
   logs:
     blocked:
-      title: 'Convite Bloqueado'
+      title: '{ban} Convite Bloqueado'
       description: '{user} postou `{code}` em {channel} (apagado).'
 reminders_save:
   command:
@@ -1235,7 +1165,7 @@ reminders:
   done: '{success} Lembrete enviado para {sent} membro(s) ({failed} falharam).'
   logs:
     sent:
-      title: 'Lembrete Enviado'
+      title: '{envelope} Lembrete Enviado'
       description: '{moderator} enviou `{name}` ({sent} enviados, {failed} falharam).'
 broadcast_start:
   command:
@@ -1254,10 +1184,10 @@ broadcast:
   ended: '{success} Transmissão encerrada: {relayed} mensagem(ns) ({sent} DMs, {failed} falharam).'
   logs:
     started:
-      title: 'Transmissão Iniciada'
+      title: '{envelope} Transmissão Iniciada'
       description: '{moderator} iniciou “{title}” em {channel}.'
     ended:
-      title: 'Transmissão Encerrada'
+      title: '{check} Transmissão Encerrada'
       description: '{moderator} encerrou a transmissão ({relayed} replicadas, {sent} enviadas, {failed} falharam).'
 invites:
   command:
@@ -1350,13 +1280,13 @@ invites:
       title: '{door} Membro Saiu'
       description: "**Membro:** {user}\n**Convidador:** {inviter}"
     bonus:
-      title: 'Bônus Ajustado'
+      title: '{plus} Bônus Ajustado'
       description: '{moderator} ajustou {user} em {amount} (total: {total}).'
     sync:
-      title: 'Convites Sincronizados'
+      title: '{refresh} Convites Sincronizados'
       description: '{codes} código(s) recontados (pedido por {moderator}).'
     reset:
-      title: 'Convites Resetados'
+      title: '{warning} Convites Resetados'
       description: 'Stats de convites resetados por {moderator}.'
 invites_leaderboard:
   command:
@@ -2313,7 +2243,7 @@ birthdays:
   cleared: '{success} Seu aniversário foi removido.'
   not_found: '{info} Você não tem aniversário registrado.'
   months: Janeiro,Fevereiro,Março,Abril,Maio,Junho,Julho,Agosto,Setembro,Outubro,Novembro,Dezembro
-  card:
+  announce:
     title: Feliz aniversário! {gift}
     body: '{user} está comemorando hoje. Participe da festa!'
 birthday:

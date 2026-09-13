@@ -132,6 +132,51 @@ async def test_event_document_has_avatar_section_and_footer(tmp_path):
 # -- catalog templates: real newlines, never literal "\n" ----------------------
 
 
+def test_every_log_title_has_theme_emoji():
+    """Every log title starts with a theme emoji token ({ban}, {gear}...)."""
+    import re
+
+    pattern = re.compile(r"^\{[a-z_]+\}")
+    for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
+        with open(path, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+
+        def walk(node, prefix=""):
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    yield from walk(value, f"{prefix}.{key}" if prefix else str(key))
+            else:
+                yield prefix, node
+
+        for key, value in walk(data):
+            if (
+                key.endswith(".title")
+                and (".logs." in key or ".log." in key)
+                and not key.startswith("card.")
+            ):
+                assert pattern.match(str(value)), f"{path}:{key} lacks emoji token: {value!r}"
+
+
+def test_boost_log_fields_are_bold_labeled():
+    """Boost logs use the compact field format: bold labels on data lines."""
+    for lang, first_label in (("pt-BR", "**Cargo:**"), ("en-US", "**Role:**")):
+        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+        for name, entry in data["boost"]["logs"].items():
+            desc = entry["description"]
+            assert desc.startswith(first_label), f"{lang}:boost.logs.{name}: {desc!r}"
+
+
+def test_birthday_catalog_keys_match_spec():
+    """birthdays.announce is the customizable card key — catalogs follow."""
+    for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
+        with open(path, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+        b = data["birthdays"]
+        assert "announce" in b and "title" in b["announce"]
+        assert "card" not in b, f"{path}: legacy birthdays.card still present"
+
+
 def _flatten(node, out):
     if isinstance(node, dict):
         for value in node.values():
@@ -152,8 +197,10 @@ def test_log_templates_use_real_newlines():
         strings: list[str] = []
         _flatten(data["moderation"]["logs"], strings)
         _flatten(data["settings"]["log"], strings)
+        _flatten(data["settings"]["logs"], strings)
         _flatten(data["invites"]["logs"]["join"], strings)
         _flatten(data["invites"]["logs"]["leave"], strings)
+        _flatten(data["boost"]["logs"], strings)
         assert strings, f"{path}: templates missing"
         for text in strings:
             assert "\\n" not in text, f"{path}: literal backslash-n in {text!r}"

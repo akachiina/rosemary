@@ -141,10 +141,10 @@ class BirthdayCog(commands.Cog):
             override_text
             if override_text is not None
             else await self.bot.translator.t(
-                guild_id, "birthdays.card.body", **variables
+                guild_id, "birthdays.announce.body", **variables
             )
         )
-        title = await self.bot.translator.t(guild_id, "birthdays.card.title")
+        title = await self.bot.translator.t(guild_id, "birthdays.announce.title")
         view.add_item(
             designer_container(
                 theme.color("warning"),
@@ -284,10 +284,10 @@ async def default_announce_document(bot, guild_id: int) -> dict:
 
     mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
     title = safe_format(
-        await bot.translator.raw(guild_id, "birthdays.card.title"), mapping
+        await bot.translator.raw(guild_id, "birthdays.announce.title"), mapping
     )
     body = safe_format(
-        await bot.translator.raw(guild_id, "birthdays.card.body"), mapping
+        await bot.translator.raw(guild_id, "birthdays.announce.body"), mapping
     )
     return {
         "v": 1,

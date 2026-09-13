@@ -213,11 +213,7 @@ settings:
     language_description: "**From:** {old}\n**To:** {new}\n**By:** {author}"
   logs:
     language:
-      description: 'From: {old}
-
-        To: {new}
-
-        By: {author}'
+      description: "**From:** {old}\n**To:** {new}\n**By:** {author}"
   bool:
     'true': 'On'
     'false': 'Off'
@@ -660,121 +656,55 @@ boost:
   logs:
     register:
       title: '{register} Boost Role Registered'
-      description: '{role}
-
-        Owner: {owner}
-
-        Registered by: {actor}'
+      description: "**Role:** {role}\n**Owner:** {owner}\n**Registered by:** {actor}"
     remove:
       title: '{trash} Boost Role Removed'
-      description: '{role}
-
-        Owner: {owner}
-
-        Removed by: {actor}
-
-        Role deleted: {deleted}'
+      description: "**Role:** {role}\n**Owner:** {owner}\n**Removed by:** {actor}\n**Role deleted:** {deleted}"
     transfer:
       title: '{swap} Ownership Transferred'
-      description: '{role}
-
-        Previous owner: {old_owner}
-
-        New owner: {new_owner}
-
-        Transferred by: {actor}'
+      description: "**Role:** {role}\n**Previous owner:** {old_owner}\n**New owner:** {new_owner}\n**Transferred by:** {actor}"
     rename:
       title: '{pencil} Role Renamed'
-      description: '{role}
-
-        From: {old_name}
-
-        To: {new_name}
-
-        By: {actor}'
+      description: "**Role:** {role}\n**From:** {old_name}\n**To:** {new_name}\n**By:** {actor}"
     color_change:
       title: '{palette} Color Changed'
-      description: '{role}
-
-        New color: {new_color}
-
-        By: {actor}'
+      description: "**Role:** {role}\n**New color:** {new_color}\n**By:** {actor}"
     emoji_change:
       title: '{tag} Emoji Changed'
-      description: '{role}
-
-        New emoji: {emoji}
-
-        By: {actor}'
+      description: "**Role:** {role}\n**New emoji:** {emoji}\n**By:** {actor}"
     icon:
       title: '{frame} Icon Changed'
-      description: '{role}
-
-        Icon updated by {actor}.'
+      description: "**Role:** {role}\nIcon updated by {actor}."
     member_add:
       title: '{plus} Member Added'
-      description: '{role}
-
-        {member} joined the role.
-
-        Added by: {actor}'
+      description: "**Role:** {role}\n{member} joined the role.\n**Added by:** {actor}"
     member_remove:
       title: '{minus} Member Removed'
-      description: '{role}
-
-        {member} was removed from the role.
-
-        Removed by: {actor}'
+      description: "**Role:** {role}\n{member} was removed from the role.\n**Removed by:** {actor}"
     member_left:
       title: '{door} Member Left the Role'
-      description: '{role}
-
-        {member} left the role.
-
-        Owner: {owner}'
+      description: "**Role:** {role}\n{member} left the role.\n**Owner:** {owner}"
     invite_sent:
       title: '{love_letter} Invite Sent'
-      description: '{role}
-
-        Invitee: {invitee}
-
-        By: {inviter}
-
-        Expires: {expires}'
+      description: "**Role:** {role}\n**Invitee:** {invitee}\n**By:** {inviter}\n**Expires:** {expires}"
     invite_cancelled:
       title: '{error} Invite Cancelled'
-      description: '{role}
-
-        Invite for {invitee} cancelled.
-
-        By: {actor}'
+      description: "**Role:** {role}\nInvite for {invitee} cancelled.\n**By:** {actor}"
     invite_accepted:
       title: '{success} Invite Accepted'
-      description: '{role}
-
-        {member} accepted the invite.
-
-        Invited by: {inviter}'
+      description: "**Role:** {role}\n{member} accepted the invite.\n**Invited by:** {inviter}"
     invite_declined:
       title: '{error} Invite Declined'
-      description: '{role}
-
-        {member} declined the invite.
-
-        Invited by: {inviter}'
+      description: "**Role:** {role}\n{member} declined the invite.\n**Invited by:** {inviter}"
     invite_expired:
       title: '{clock} Invite Expired'
-      description: '{role}
-
-        Invite for {invitee} expired.
-
-        Invited by: {inviter}'
+      description: "**Role:** {role}\nInvite for {invitee} expired.\n**Invited by:** {inviter}"
     auto_transfer:
       title: '{warning} Automatic Ownership Transfer'
-      description: '{role} was transferred from {old_owner} to {new_owner}.'
+      description: "**Role:** {role} was transferred from {old_owner} to {new_owner}."
     orphan_remove:
       title: '{ban} Orphan Role Removed'
-      description: '{role} from {owner} was removed from the system.'
+      description: "**Role:** {role} from {owner} was removed from the system."
   error_disabled: '{error} The boost roles system is disabled in this server.'
 bump:
   messages:
@@ -1040,13 +970,13 @@ updater:
   cancelled: Update cancelled.
   logs:
     updating:
-      title: 'Bot Updating'
+      title: '{refresh} Bot Updating'
       description: '{moderator} started an update to **{target}** (from {previous}). Restarting.'
     auto_failed:
-      title: 'Auto-update Failed'
+      title: '{error} Auto-update Failed'
       description: 'Automatic check failed ({reason}). It will retry on schedule.'
     updated:
-      title: 'Bot Updated'
+      title: '{success} Bot Updated'
       description: 'Update applied: {previous} → {current}.'
 partnerships_add:
   command:
@@ -1103,25 +1033,25 @@ partnerships:
     cleaned: '{success} Removed {count} orphan partnership(s).'
   logs:
     added:
-      title: 'Partnership Added'
+      title: '{plus} Partnership Added'
       description: '{author} added a partnership for {user}.'
     removed:
-      title: 'Partnership Removed'
+      title: '{minus} Partnership Removed'
       description: '{author} removed the partnership of {user}.'
     renewed:
-      title: 'Partnership Renewed'
+      title: '{refresh} Partnership Renewed'
       description: '{user} renewed their partnership.'
     warning_sent:
-      title: 'Partnership Warning'
+      title: '{warning} Partnership Warning'
       description: '{user} was warned ({days}d overdue).'
     expired:
-      title: 'Partnership Expired'
+      title: '{clock} Partnership Expired'
       description: 'Partnership of {user} expired. {ping}'
     invite_posted:
-      title: 'Partnership Invite Posted'
+      title: '{love_letter} Partnership Invite Posted'
       description: '{author} posted the partnership invite.'
     orphans_cleaned:
-      title: 'Orphan Partnerships Cleaned'
+      title: '{trash} Orphan Partnerships Cleaned'
       description: '{author} removed {count} orphan partnership(s).'
 tickets_panel:
   command:
@@ -1173,19 +1103,19 @@ tickets:
   transcript_failed: '{error} No log channel configured for transcripts.'
   logs:
     opened:
-      title: 'Ticket Opened'
+      title: '{envelope} Ticket Opened'
       description: '{user} opened a **{type}** ticket in {channel}.'
     closed:
-      title: 'Ticket Closed'
+      title: '{lock} Ticket Closed'
       description: 'Ticket {channel} was closed.'
     reopened:
-      title: 'Ticket Reopened'
+      title: '{unlock} Ticket Reopened'
       description: 'Ticket {channel} was reopened.'
     deleted:
-      title: 'Ticket Deleted'
+      title: '{trash} Ticket Deleted'
       description: 'Ticket {channel} was deleted.'
     transcript:
-      title: 'Ticket Transcript'
+      title: '{scroll} Ticket Transcript'
       description: 'Transcript of {channel} (requested by {moderator}).'
 cleaner:
   error_disabled: '{error} The message cleaner is disabled on this server.'
@@ -1199,13 +1129,13 @@ cleaner:
   cancelled: Purge cancelled.
   logs:
     purged:
-      title: 'Messages Purged'
+      title: '{trash} Messages Purged'
       description: '{moderator} purged {count} message(s) with “{word}”.'
 anti_invite:
   warning: '{warning} {user}, external invite links are not allowed here.'
   logs:
     blocked:
-      title: 'Invite Blocked'
+      title: '{ban} Invite Blocked'
       description: '{user} posted `{code}` in {channel} (deleted).'
 reminders_save:
   command:
@@ -1235,7 +1165,7 @@ reminders:
   done: '{success} Reminder sent to {sent} member(s) ({failed} failed).'
   logs:
     sent:
-      title: 'Reminder Sent'
+      title: '{envelope} Reminder Sent'
       description: '{moderator} sent reminder `{name}` ({sent} sent, {failed} failed).'
 broadcast_start:
   command:
@@ -1254,10 +1184,10 @@ broadcast:
   ended: '{success} Broadcast ended: {relayed} message(s) relayed ({sent} DMs, {failed} failed).'
   logs:
     started:
-      title: 'Broadcast Started'
+      title: '{envelope} Broadcast Started'
       description: '{moderator} started “{title}” in {channel}.'
     ended:
-      title: 'Broadcast Ended'
+      title: '{check} Broadcast Ended'
       description: '{moderator} ended the broadcast ({relayed} relayed, {sent} sent, {failed} failed).'
 invites:
   command:
@@ -1350,13 +1280,13 @@ invites:
       title: '{door} Member Left'
       description: "**Member:** {user}\n**Inviter:** {inviter}"
     bonus:
-      title: 'Bonus Adjusted'
+      title: '{plus} Bonus Adjusted'
       description: '{moderator} adjusted {user} by {amount} (total: {total}).'
     sync:
-      title: 'Invites Synced'
+      title: '{refresh} Invites Synced'
       description: 'Recounted {codes} code(s) (requested by {moderator}).'
     reset:
-      title: 'Invites Reset'
+      title: '{warning} Invites Reset'
       description: 'Invite stats were reset by {moderator}.'
 invites_leaderboard:
   command:
@@ -2313,7 +2243,7 @@ birthdays:
   cleared: '{success} Your birthday was removed.'
   not_found: '{info} You don''t have a birthday registered.'
   months: January,February,March,April,May,June,July,August,September,October,November,December
-  card:
+  announce:
     title: Happy birthday! {gift}
     body: '{user} is celebrating today. Join the party!'
 birthday:
