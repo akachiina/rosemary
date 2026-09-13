@@ -329,7 +329,11 @@ class SettingsMenuView(MenuView):
         )
         category_word = await t(self.guild_id, "settings.category_label")
         total_pages = _category_pages(self.category)
-        container_parts = [
+        from rosemary.core.card_service import menu_heading_items
+
+        container_parts = await menu_heading_items(
+            self.bot, self.guild_id, "settings.title"
+        ) or [
             TextDisplay(theme.md("title", title=title)),
             TextDisplay(
                 theme.md(

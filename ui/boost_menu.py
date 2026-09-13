@@ -1162,10 +1162,20 @@ class BoostMenuView(_BaseMenu):
         return await self._build_home(t, theme)
 
     async def _build_home(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+        from rosemary.core.card_service import menu_heading_items
+
+        heading = await menu_heading_items(self.bot, self.guild_id, "boost.home")
         container = self._container(
             "brand",
-            TextDisplay(theme.md("title", title=await t(self.guild_id, "boost.titles.home"))),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.user_panel")),
+            *(
+                heading
+                or [
+                    TextDisplay(
+                        theme.md("title", title=await t(self.guild_id, "boost.titles.home"))
+                    ),
+                    TextDisplay(await t(self.guild_id, "boost.descriptions.user_panel")),
+                ]
+            ),
         )
         row = ActionRow(
             self.make_button(
@@ -1985,12 +1995,22 @@ class AdminBoostMenuView(_BaseMenu):
     async def _build_admin_home(self, t: Any, theme) -> list[discord.ui.ViewItem]:
         roles = await self.store.get_roles(self.guild_id)
         total_members = sum(len(data.get("members", [])) for data in roles.values())
+        from rosemary.core.card_service import menu_heading_items
+
+        heading = await menu_heading_items(self.bot, self.guild_id, "boost.home")
         container = self._container(
             "brand",
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.admin_panel"))
+            *(
+                heading
+                or [
+                    TextDisplay(
+                        theme.md(
+                            "title", title=await t(self.guild_id, "boost.titles.admin_panel")
+                        )
+                    ),
+                    TextDisplay(await t(self.guild_id, "boost.descriptions.guide_admin")),
+                ]
             ),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.guide_admin")),
             TextDisplay(
                 theme.md(
                     "entry",

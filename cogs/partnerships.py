@@ -368,16 +368,22 @@ class PartnershipsCog(commands.Cog):
                 )
             )
         title = await self.bot.translator.t(guild.id, "partnerships.list_title")
+        body = "\n".join(lines)
+        from rosemary.core.card_service import render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay("\n".join(lines)),
-            )
+        view, _allowed = await render_card_message(
+            self.bot, guild.id, "partnerships.list", {"title": title, "body": body}
         )
+        if view is None:
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color("info"),
+                    TextDisplay(self.bot.theme.md("title", title=title)),
+                    TextDisplay(body),
+                )
+            )
         await ctx.respond(view=view, ephemeral=True)
 
     @discord.slash_command(
@@ -403,23 +409,39 @@ class PartnershipsCog(commands.Cog):
                 expired.append(partner_id)
             if guild.get_member(int(entry.get("rep_id") or 0)) is None:
                 orphans.append(partner_id)
+        expired_ids = ", ".join(f"<@{uid}>" for uid in expired)
+        orphan_ids = ", ".join(f"<@{uid}>" for uid in orphans)
+        unknown = await self.bot.translator.t(guild.id, "invites.unknown")
         body = await self.bot.translator.t(
             guild.id,
             "partnerships.audit_body",
-            expired=", ".join(f"<@{uid}>" for uid in expired) or "-",
-            orphans=", ".join(f"<@{uid}>" for uid in orphans) or "-",
+            expired=expired_ids or unknown,
+            orphans=orphan_ids or unknown,
         )
         title = await self.bot.translator.t(guild.id, "partnerships.audit_title")
+        from rosemary.core.card_service import render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("warning"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay(body),
-            )
+        view, _allowed = await render_card_message(
+            self.bot,
+            guild.id,
+            "partnerships.audit",
+            {
+                "expired": len(expired),
+                "orphans": len(orphans),
+                "title": title,
+                "body": body,
+            },
         )
+        if view is None:
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color("warning"),
+                    TextDisplay(self.bot.theme.md("title", title=title)),
+                    TextDisplay(body),
+                )
+            )
         await ctx.respond(view=view, ephemeral=True)
 
     @discord.slash_command(

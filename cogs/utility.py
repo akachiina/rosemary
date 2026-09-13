@@ -1,15 +1,18 @@
-"""Utility commands: ``/ping`` and ``/serverinfo`` (Components V2 cards)."""
+"""Utility commands: ``/ping`` and ``/serverinfo`` (Components V2 cards).
+
+Both are first-class CardSpecs (``utility.ping`` / ``utility.serverinfo``):
+a theme may restyle them, and ``debug.card_paths`` traces the path like any
+other send. The code below is the *default* layout used when the theme has
+no override.
+"""
 
 from __future__ import annotations
 
 import discord
 from discord.ext import commands
 
-from rosemary.ui.containers import (
-    DesignerView,
-    TextDisplay,
-    designer_container,
-)
+from rosemary.core.card_service import render_card_message
+from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
 
 class UtilityCog(commands.Cog):
@@ -27,21 +30,25 @@ class UtilityCog(commands.Cog):
         """Show the gateway latency."""
         latency = getattr(self.bot, "latency", None)
         ms = f"{latency * 1000:.0f}" if latency is not None else "-"
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(
-                    self.bot.theme.md(
-                        "title",
-                        title=await self.bot.translator.t(ctx.guild_id, "ping.title"),
-                    )
-                ),
-                TextDisplay(
-                    await self.bot.translator.t(ctx.guild_id, "ping.latency", ms=ms)
-                ),
-            )
+        view, _allowed = await render_card_message(
+            self.bot, ctx.guild_id, "utility.ping", {"ms": ms}
         )
+        if view is None:
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color("info"),
+                    TextDisplay(
+                        self.bot.theme.md(
+                            "title",
+                            title=await self.bot.translator.t(ctx.guild_id, "ping.title"),
+                        )
+                    ),
+                    TextDisplay(
+                        await self.bot.translator.t(ctx.guild_id, "ping.latency", ms=ms)
+                    ),
+                )
+            )
         await ctx.respond(view=view, ephemeral=True)
 
     @discord.slash_command(
@@ -70,18 +77,28 @@ class UtilityCog(commands.Cog):
                 await t(ctx.guild_id, "serverinfo.created", value=created),
             ]
         )
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("brand"),
-                TextDisplay(
-                    self.bot.theme.md(
-                        "title",
-                        title=await t(ctx.guild_id, "serverinfo.title"),
-                    )
-                ),
-                TextDisplay(rows),
-            )
+        title = await t(ctx.guild_id, "serverinfo.title")
+        body = rows
+        variables = {
+            "server": guild.name,
+            "owner": str(guild.owner),
+            "members": guild.member_count or 0,
+            "roles": len(guild.roles),
+            "channels": len(guild.text_channels) + len(guild.voice_channels),
+            "created_at": created,
+            "title": title,
+            "body": body,
+        }
+        view, _allowed = await render_card_message(
+            self.bot, ctx.guild_id, "utility.serverinfo", variables
         )
+        if view is None:
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color("brand"),
+                    TextDisplay(self.bot.theme.md("title", title=title)),
+                    TextDisplay(body),
+                )
+            )
         await ctx.respond(view=view, ephemeral=True)
-

@@ -94,12 +94,6 @@ class StarboardCog(commands.Cog):
         channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
         title = f"{star} {stars} • {channel_mention}"
         body = message.content or no_content_label
-
-        view = DesignerView(store=False)
-        items: list[discord.ui.ViewItem] = [
-            TextDisplay(theme.md("title", title=title)),
-            TextDisplay(body),
-        ]
         image_url = next(
             (
                 attachment.url
@@ -110,7 +104,8 @@ class StarboardCog(commands.Cog):
         )
         container_items: list[discord.ui.ViewItem] = [
             discord.ui.Section(
-                *items[:2],
+                TextDisplay(theme.md("title", title=title)),
+                TextDisplay(body),
                 accessory=discord.ui.Thumbnail(message.author.display_avatar.url),
             )
         ]
@@ -126,8 +121,54 @@ class StarboardCog(commands.Cog):
             )
         )
         color_token = theme.style(self._tier_style(stars)).color
+        view = DesignerView(store=False)
         view.add_item(designer_container(theme.color(color_token), *container_items))
         return view
+
+    async def _card_view(
+        self,
+        guild_id: int,
+        message: discord.Message,
+        stars: int,
+        jump_label: str,
+        no_content_label: str,
+    ) -> discord.ui.DesignerView:
+        """Themed ``starboard.card`` when defined, else the code-built default.
+
+        Routed like every other card so a theme can restyle the mural post;
+        the default builder stays in code because the layout reacts to the
+        star tier (accent color) and the original attachments."""
+        from rosemary.core.card_service import render_card_message
+
+        star = self.bot.theme.emoji("star")
+        channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
+        title = f"{star} {stars} • {channel_mention}"
+        body = message.content or no_content_label
+        image_url = next(
+            (
+                attachment.url
+                for attachment in message.attachments
+                if (attachment.content_type or "").startswith("image/")
+            ),
+            None,
+        )
+        view, _allowed = await render_card_message(
+            self.bot,
+            guild_id,
+            "starboard.card",
+            {
+                "user": message.author.mention,
+                "user_name": message.author.display_name,
+                "user_avatar": message.author.display_avatar.url,
+                "stars": stars,
+                "title": title,
+                "body": body,
+                "image_url": image_url or "",
+            },
+        )
+        return view if view is not None else self._build_card(
+            message, stars, jump_label, no_content_label
+        )
 
     # -- core update ---------------------------------------------------------
 
@@ -159,15 +200,20 @@ class StarboardCog(commands.Cog):
                 except discord.NotFound:
                     entry = None
                 else:
-                    card = self._build_card(message, stars, jump_label, no_content_label)
+                    card = await self._card_view(
+                        channel.guild.id, message, stars, jump_label, no_content_label
+                    )
                     await post.edit(view=card, allowed_mentions=discord.AllowedMentions.none())
                     self._last_edit[message.id] = time.monotonic()
                     await self.store.update_stars(channel.guild.id, message.id, stars)
                     return
 
             if stars >= config["threshold"]:
+                card = await self._card_view(
+                    channel.guild.id, message, stars, jump_label, no_content_label
+                )
                 post = await board.send(
-                    view=self._build_card(message, stars, jump_label, no_content_label),
+                    view=card,
                     allowed_mentions=discord.AllowedMentions.none(),
                 )
                 await self.store.upsert(

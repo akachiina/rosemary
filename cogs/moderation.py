@@ -621,37 +621,40 @@ class ModerationCog(commands.Cog):
                 return "-"
 
         entries = await self.warnings.get_warnings(guild_id, member.id)
-        parts = [
-            TextDisplay(
-                theme.md(
-                    "title",
-                    title=await t(guild_id, "warnings.title", member=member.mention),
+        lines = [
+            f"**#{index}:** "
+            + await t(
+                guild_id,
+                "warnings.entry",
+                reason=entry.get("reason") or await t(guild_id, "invites.unknown"),
+                moderator=f"<@{entry.get('moderator_id', 0) or 0}>",
+                date=_local_date(entry.get("timestamp", "")),
+            )
+            for index, entry in enumerate(entries, start=1)
+        ]
+        title = await t(guild_id, "warnings.title", member=member.mention)
+        body = (
+            "\n".join(lines)
+            if entries
+            else await t(guild_id, "warnings.none")
+        )
+        from rosemary.core.card_service import render_card_message
+        from rosemary.ui.containers import TextDisplay, designer_container
+
+        view, _allowed = await render_card_message(
+            self.bot,
+            guild_id,
+            "moderation.warnings",
+            {"user": member.mention, "title": title, "body": body},
+        )
+        if view is None:
+            parts = [TextDisplay(theme.md("title", title=title)), TextDisplay(body)]
+            view = discord.ui.DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    theme.color("success" if not entries else "brand"), *parts
                 )
             )
-        ]
-        if not entries:
-            parts.append(TextDisplay(await t(guild_id, "warnings.none")))
-        else:
-            for index, entry in enumerate(entries, start=1):
-                parts.append(
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=f"#{index}",
-                            value=await t(
-                                guild_id,
-                                "warnings.entry",
-                                reason=entry.get("reason", "-"),
-                                moderator=f"<@{entry.get('moderator_id', 0)}>",
-                                date=_local_date(entry.get("timestamp", "")),
-                            ),
-                        )
-                    )
-                )
-        view = discord.ui.DesignerView(store=False)
-        view.add_item(
-            designer_container(theme.color("success" if not entries else "brand"), *parts)
-        )
         await ctx.respond(view=view, ephemeral=True)
 
     @discord.slash_command(

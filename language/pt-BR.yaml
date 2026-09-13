@@ -1617,6 +1617,24 @@ variables:
   rank:
     label: Posição
     description: Posição no placar
+  stars:
+    label: Estrelas
+    description: Número de estrelas no post do mural
+  ms:
+    label: Milissegundos
+    description: Latência em milissegundos
+  image_url:
+    label: URL da imagem
+    description: URL de uma imagem anexada
+  roles:
+    label: Cargos
+    description: Número de cargos
+  channels:
+    label: Canais
+    description: Número de canais
+  created_at:
+    label: Criado em
+    description: Data de criação do servidor
   joins:
     label: Entradas
     description: Qtd. de entradas no servidor
@@ -1756,7 +1774,26 @@ variables:
     label: Nome do servidor
     description: Nome do servidor
 card:
+  # Cards construídos em código promovidos a CardSpecs (customizáveis por tema).
+  starboard:
+    card:
+      title: Post do mural de estrelas
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}"
+  utility:
+    ping:
+      title: Cartão de latência
+      placeholders: '{{ms}}'
+    serverinfo:
+      title: Cartão de info do servidor
+      placeholders: "{{server}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{created_at}}, {{title}}, {{body}}"
+  themes:
+    title:
+      title: Cabeçalho do menu de temas
+      placeholders: ""
   boost:
+    home:
+      title: Cabeçalho do painel de boost
+      placeholders: ""
     dm:
       registered:
         title: 'DM: cargo de boost registrado'
@@ -1860,6 +1897,9 @@ card:
           title: 'Log: transferência automática'
           placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
   bump:
+    stats:
+      title: Estatísticas de bump
+      placeholders: '{{title}}, {{body}}'
     dm:
       winner_new:
         title: 'DM: novo vencedor MVP'
@@ -1958,6 +1998,9 @@ card:
       title: DM de banimento
       placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   moderation:
+    warnings:
+      title: Lista de advertências
+      placeholders: '{{user}}, {{title}}, {{body}}'
     logs:
       ban:
         description:
@@ -2040,6 +2083,9 @@ card:
       title: Mensagem de banimento
       placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   birthdays:
+    list:
+      title: Lista de aniversários
+      placeholders: '{{body}}'
     announce:
       title: Anúncio de aniversário
       placeholders: '{{user}}, {{server}}, {{count}}'
@@ -2072,6 +2118,12 @@ card:
           title: 'Log: transcrição de ticket'
           placeholders: '{{channel}}, {{moderator}}'
   partnerships:
+    list:
+      title: Lista de parcerias
+      placeholders: '{{title}}, {{body}}'
+    audit:
+      title: Auditoria de parcerias
+      placeholders: '{{title}}, {{body}}'
     invite:
       title: Texto de convite de parceria
       placeholders: '{server}'
@@ -2162,12 +2214,18 @@ card:
       title: Cartão sobre
       placeholders: ''
   settings:
+    title:
+      title: Cabeçalho do menu de configurações
+      placeholders: ''
     logs:
       language:
         description:
           title: 'Log: idioma alterado'
           placeholders: '{{author}}, {{new}}, {{old}}'
   debug:
+    title:
+      title: Cabeçalho do painel de debug
+      placeholders: ''
     logs:
       test:
         description:

@@ -86,6 +86,23 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
             ("boost.emoji.members", "boost.descriptions.members_count"),
         ),
     ),
+    # Code-built cards promoted to CardSpecs: the send site passes the rendered
+    # title/body plus card-specific variables; {title}/{body} keep the seed
+    # identical to what the code fallback shows.
+    "starboard.card": (None, None, ("{title}", "{body}")),
+    "utility.ping": ("info", "ping.title", ("ping.latency",)),
+    "utility.serverinfo": ("brand", "serverinfo.title", ("{body}",)),
+    "birthdays.list": ("info", "birthdays.list_title", ("{body}",)),
+    "partnerships.list": ("info", "partnerships.list_title", ("{body}",)),
+    "partnerships.audit": ("warning", "partnerships.audit_title", ("{body}",)),
+    "moderation.warnings": ("brand", None, ("{title}", "{body}")),
+    "bump.stats": (None, None, ("{title}", "{body}")),
+    # Interactive menus: only the heading block is theme-customizable —
+    # selects/buttons are code (Discord needs registered callbacks).
+    "settings.title": ("brand", "settings.title", ("{body}",)),
+    "themes.title": ("brand", "themes.title", ("{body}",)),
+    "debug.title": ("info", "debug.title", ("{body}",)),
+    "boost.home": ("brand", "boost.titles.home", ("boost.descriptions.user_panel",)),
 }
 
 
@@ -301,12 +318,42 @@ def log_default_failure(key: str, exc: Exception) -> None:
     log.warning("default builder failed for card %s: %s", key, exc)
 
 
+async def menu_heading_items(
+    bot, guild_id: int, key: str
+) -> list[discord.ui.ViewItem]:
+    """Themed heading items for an interactive menu (empty = code default).
+
+    Menus are interactive: their selects and buttons live in code — Discord
+    needs registered callbacks, so a theme file cannot generate them. What a
+    theme *can* restyle is the heading card (``settings.title``,
+    ``themes.title``, ``debug.title``, ``boost.home``/``boost.admin``). The
+    themed document is rendered and spliced in place of the code heading; a
+    container in the theme document is rejected (the menu already provides
+    one, and nesting containers 400s the payload) so the menu falls back to
+    its built-in heading instead of failing the send.
+    """
+    from rosemary.core.cards import maybe_view
+    from rosemary.ui.containers import Container
+
+    view = await maybe_view(bot, guild_id, key)
+    if view is None:
+        return []
+    items = list(view.children)
+    if any(isinstance(item, Container) for item in items):
+        log.warning(
+            "theme heading %s must not contain a container; using default", key
+        )
+        return []
+    return items
+
+
 __all__ = [
     "SEED_PARTS_BY_KEY",
     "card_origin",
     "default_document",
     "get_effective_document",
     "log_default_failure",
+    "menu_heading_items",
     "render_card_message",
     "render_document",
     "theme_for",

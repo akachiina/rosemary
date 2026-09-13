@@ -57,7 +57,11 @@ class DebugMenuView(MenuView):
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
-        container_parts = [
+        from rosemary.core.card_service import menu_heading_items
+
+        container_parts = await menu_heading_items(
+            self.bot, self.guild_id, "debug.title"
+        ) or [
             TextDisplay(
                 self.bot.theme.md(
                     "title", title=await t(self.guild_id, "debug.title")
@@ -103,4 +107,8 @@ class DebugCog(commands.Cog):
         """Open an ephemeral diagnostics panel."""
         view = DebugMenuView(self.bot, ctx.guild_id, owner_id=ctx.author.id)
         await view.prepare()
+        from rosemary.core.card_service import trace_card_path
+
+        # Heading is theme-customizable (card.debug.title) — trace the path.
+        await trace_card_path(self.bot, ctx.guild_id, "debug.title")
         await ctx.respond(view=view, ephemeral=True)

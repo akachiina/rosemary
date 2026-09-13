@@ -129,6 +129,12 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("emoji", "😀"),
         _v("orphans", 1, "number"),
         _v("expired", 1, "number"),
+        _v("stars", 1, "number"),
+        _v("ms", 42, "number"),
+        _v("image_url", "https://cdn.discordapp.com/embed/avatars/0.png", "image"),
+        _v("roles", 1, "number"),
+        _v("channels", 1, "number"),
+        _v("created_at", "<t:1111111111:D>"),
     ]
 }
 

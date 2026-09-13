@@ -138,6 +138,28 @@ SHARED_EXTRA_LOGS = [
     "broadcast.logs.ended",
 ]
 
+#: Cards assembled in feature code that are now first-class CardSpecs —
+#: "everything the bot sends is theme-customizable" (user mandate).
+CONTENT_CARDS = {
+    "starboard.card": ("user", "user_name", "user_avatar", "stars", "title", "body", "image_url"),
+    "utility.ping": ("ms",),
+    "utility.serverinfo": (
+        "server", "owner", "members", "roles", "channels", "created_at", "title", "body",
+    ),
+    "birthdays.list": ("body",),
+    "partnerships.list": ("title", "body"),
+    "partnerships.audit": ("title", "body"),
+    "moderation.warnings": ("user", "title", "body"),
+    "bump.stats": ("title", "body"),
+    # Interactive menus expose only their heading block: selects and buttons
+    # are code (Discord needs registered callbacks), so a theme can restyle
+    # the heading — color, title text, footer — but not generate components.
+    "settings.title": (),
+    "themes.title": (),
+    "debug.title": (),
+    "boost.home": (),
+}
+
 
 #: Placeholder contract per card: the variable names the send site provides.
 #: The editor preview, lint and hint derive from this map; send sites must
@@ -372,6 +394,10 @@ def _build() -> list[CardSpec]:
     specs += [_spec("about.card", "general", rich=True)]
     specs += [_spec("settings.logs.language.description", "general")]
     specs += [_spec("debug.logs.test.description", "general")]
+    specs += [
+        CardSpec(key=key, category="general", rich=True, variables=variables)
+        for key, variables in CONTENT_CARDS.items()
+    ]
     return specs
 
 

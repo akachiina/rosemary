@@ -247,18 +247,25 @@ class BirthdayCog(commands.Cog):
         if lines:
             blocks.append("\n".join(lines))
 
+        body = "\n\n".join(blocks) or await t(ctx.guild_id, "birthdays.list_empty")
+        from rosemary.core.card_service import render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        theme = self.bot.theme
-        view = DesignerView(store=False)
-        container_items: list[discord.ui.ViewItem] = [
-            TextDisplay(theme.md("title", title=await t(ctx.guild_id, "birthdays.list_title")))
-        ]
-        if blocks:
-            container_items.extend(TextDisplay(block) for block in blocks)
-        else:
-            container_items.append(TextDisplay(await t(ctx.guild_id, "birthdays.list_empty")))
-        view.add_item(designer_container(theme.color("info"), *container_items))
+        view, _allowed = await render_card_message(
+            self.bot, ctx.guild_id, "birthdays.list", {"body": body}
+        )
+        if view is None:
+            theme = self.bot.theme
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    theme.color("info"),
+                    TextDisplay(
+                        theme.md("title", title=await t(ctx.guild_id, "birthdays.list_title"))
+                    ),
+                    TextDisplay(body),
+                )
+            )
         await ctx.respond(view=view, ephemeral=True)
 
     @birthday_group.command(name="clear")

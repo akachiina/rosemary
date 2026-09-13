@@ -1616,6 +1616,24 @@ variables:
   rank:
     label: Rank
     description: Leaderboard position
+  stars:
+    label: Stars
+    description: Star count on the starboard post
+  ms:
+    label: Milliseconds
+    description: Latency in milliseconds
+  image_url:
+    label: Image URL
+    description: URL of an attached image
+  roles:
+    label: Roles
+    description: Number of roles
+  channels:
+    label: Channels
+    description: Number of channels
+  created_at:
+    label: Created at
+    description: Server creation date
   joins:
     label: Joins
     description: Server join count
@@ -1755,7 +1773,26 @@ variables:
     label: Server name
     description: Name of the server
 card:
+  # Code-built cards promoted to CardSpecs (theme-customizable like any card).
+  starboard:
+    card:
+      title: Starboard post
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}"
+  utility:
+    ping:
+      title: Latency card
+      placeholders: '{{ms}}'
+    serverinfo:
+      title: Server info card
+      placeholders: "{{server}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{created_at}}, {{title}}, {{body}}"
+  themes:
+    title:
+      title: Themes menu heading
+      placeholders: ""
   boost:
+    home:
+      title: Boost panel heading
+      placeholders: ""
     dm:
       registered:
         title: 'DM: boost role registered'
@@ -1859,6 +1896,9 @@ card:
           title: 'Log: automatic transfer'
           placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
   bump:
+    stats:
+      title: Bump statistics
+      placeholders: '{{title}}, {{body}}'
     dm:
       winner_new:
         title: 'DM: new MVP winner'
@@ -2011,6 +2051,9 @@ card:
       title: Ban DM
       placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   moderation:
+    warnings:
+      title: Warning list
+      placeholders: '{{user}}, {{title}}, {{body}}'
     logs:
       ban:
         description:
@@ -2039,6 +2082,9 @@ card:
       title: Ban message
       placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   birthdays:
+    list:
+      title: Birthday list
+      placeholders: '{{body}}'
     announce:
       title: Birthday announcement
       placeholders: '{{user}}, {{server}}, {{count}}'
@@ -2072,6 +2118,12 @@ card:
           title: 'Log: ticket transcript'
           placeholders: '{{channel}}, {{moderator}}'
   partnerships:
+    list:
+      title: Partnership list
+      placeholders: '{{title}}, {{body}}'
+    audit:
+      title: Partnership audit
+      placeholders: '{{title}}, {{body}}'
     invite:
       title: Partnership invite text
       placeholders: '{server}'
@@ -2162,12 +2214,18 @@ card:
       title: About card
       placeholders: ''
   settings:
+    title:
+      title: Settings menu heading
+      placeholders: ''
     logs:
       language:
         description:
           title: 'Log: language changed'
           placeholders: '{{author}}, {{new}}, {{old}}'
   debug:
+    title:
+      title: Debug panel heading
+      placeholders: ''
     logs:
       test:
         description:

@@ -3,6 +3,7 @@
 import discord
 from discord.ext import commands
 
+from rosemary.core.card_service import trace_card_path
 from rosemary.ui.settings_menu import SettingsMenuView
 
 
@@ -22,4 +23,7 @@ class SettingsCog(commands.Cog):
         """Open the interactive settings menu (ephemeral)."""
         view = SettingsMenuView(self.bot, ctx.guild_id, owner_id=ctx.author.id)
         await view.prepare()
+        # The menu heading is theme-customizable (card.settings.title); trace
+        # it so admins can discover the path.
+        await trace_card_path(self.bot, ctx.guild_id, "settings.title")
         await ctx.respond(view=view, ephemeral=True)

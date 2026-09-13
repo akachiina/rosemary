@@ -580,14 +580,23 @@ class BumpLeaderboardCog(commands.Cog):
             )
         )
 
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color(self.bot.theme.style("bump_leaderboard").color),
-                TextDisplay(self.bot.theme.md("title", title=stats_title)),
-                TextDisplay("\n\n".join(lines)),
-            )
+        body = "\n\n".join(lines)
+        from rosemary.core.card_service import render_card_message
+
+        view, _allowed = await render_card_message(
+            self.bot, guild.id, "bump.stats", {"title": stats_title, "body": body}
         )
+        if view is None:
+            from rosemary.ui.containers import TextDisplay, designer_container
+
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color(self.bot.theme.style("bump_leaderboard").color),
+                    TextDisplay(self.bot.theme.md("title", title=stats_title)),
+                    TextDisplay(body),
+                )
+            )
         await ctx.respond(view=view, ephemeral=True)
 
     @discord.slash_command(

@@ -154,7 +154,11 @@ class ThemesMenuView(MenuView):
             if self._active
             else await t(t_, "themes.active_none")
         )
-        parts: list[discord.ui.ViewItem] = [
+        from rosemary.core.card_service import menu_heading_items
+
+        parts: list[discord.ui.ViewItem] = await menu_heading_items(
+            self.bot, self.guild_id, "themes.title"
+        ) or [
             discord.ui.TextDisplay(theme.md("title", title=await t(t_, "themes.title"))),
             discord.ui.TextDisplay(active_label),
         ]
@@ -285,6 +289,10 @@ class ThemesCog(commands.Cog):
             view.flash = import_flash
             view.flash_color = "success"
         await view.prepare()
+        from rosemary.core.card_service import trace_card_path
+
+        # Heading is theme-customizable (card.themes.title) — trace the path.
+        await trace_card_path(self.bot, ctx.guild_id, "themes.title")
         await ctx.respond(view=view, ephemeral=True)
 
     async def _rejection_reason(self, guild_id: int, exc: Exception) -> str:
