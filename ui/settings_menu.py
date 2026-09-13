@@ -191,6 +191,9 @@ class SettingsMenuView(MenuView):
                 author=interaction.user.mention,
             ),
         )
+        from rosemary.core.panels import on_setting_changed
+
+        await on_setting_changed(self.bot, self.guild_id, spec.key)
         self.editing_key = None
         await self.rerender(interaction)
 

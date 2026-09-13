@@ -112,9 +112,14 @@ async def _resolve_seed_part(raw, guild_id: int, part: Any) -> str:
     return part
 
 
-def _seed_document(bot, blocks: list[dict[str, Any]]) -> dict[str, Any]:
+def _seed_document(bot, guild_id: int | None, blocks: list[dict[str, Any]]) -> dict[str, Any]:
     """Validate-free seed doc: theme emojis resolve, placeholders stay literal."""
-    mapping = {**(getattr(bot.theme, "emojis", {}) or {}), **ECHO_VARIABLES}
+    from rosemary.core.themes import theme_for
+
+    mapping = {
+        **(getattr(theme_for(bot, guild_id), "emojis", {}) or {}),
+        **ECHO_VARIABLES,
+    }
 
     def walk(items: list[dict[str, Any]]) -> None:
         for block in items:
@@ -164,7 +169,7 @@ async def default_document(bot, guild_id: int, key: str) -> dict[str, Any] | Non
         blocks.extend({"type": "text", "body": body} for body in bodies)
         if color is not None:
             blocks = [{"type": "container", "color": color, "children": blocks}]
-        return _seed_document(bot, blocks)
+        return _seed_document(bot, guild_id, blocks)
     lines: list[str] = []
     for candidate_key in (f"card.{key}", key):
         candidate = await raw(guild_id, candidate_key)
@@ -173,7 +178,7 @@ async def default_document(bot, guild_id: int, key: str) -> dict[str, Any] | Non
     if not lines:
         return None
     blocks = [{"type": "text", "body": line} for line in lines]
-    return _seed_document(bot, blocks)
+    return _seed_document(bot, guild_id, blocks)
 
 
 async def get_effective_document(bot, guild_id: int, key: str) -> dict[str, Any] | None:
@@ -189,18 +194,22 @@ async def render_document(
     doc: dict[str, Any],
     variables: dict[str, Any] | None = None,
     *,
+    guild_id: int | None = None,
     card_key: str | None = None,
     draft: bool = False,
 ) -> discord.ui.DesignerView:
     """Render one validated document into a Components V2 view.
 
+    ``guild_id`` selects the theme used for emoji tokens and color names —
+    the guild's active theme when known, the built-in one otherwise.
     ``CardsError`` is intentionally allowed to propagate so callers can show
     the structured issue instead of silently substituting another message.
     """
     from rosemary.core.card_actions import bind_action_callbacks
+    from rosemary.core.themes import theme_for
 
     items = build_items(
-        bot.theme,
+        theme_for(bot, guild_id),
         doc,
         variables or {},
         draft=draft,
@@ -234,16 +243,17 @@ async def render_card_message(
     never break on themed content.
     """
     from rosemary.core.mentions import allowed_for_document
+    from rosemary.core.themes import theme_for
 
     doc = await get_effective_document(bot, guild_id, key)
     if doc is None:
         return None, discord.AllowedMentions.none()
     mapping = {
-        **(getattr(bot.theme, "emojis", {}) or {}),
+        **(getattr(theme_for(bot, guild_id), "emojis", {}) or {}),
         **(dict(ECHO_VARIABLES) if variables is None else variables),
     }
     try:
-        view = await render_document(bot, doc, mapping, card_key=key)
+        view = await render_document(bot, doc, mapping, guild_id=guild_id, card_key=key)
     except CardsError as exc:
         log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
         return None, discord.AllowedMentions.none()

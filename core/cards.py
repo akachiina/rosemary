@@ -192,9 +192,11 @@ async def maybe_view(
     doc = await _override_document(bot, guild_id, key)
     if doc is None:
         return None
+    from rosemary.core.themes import theme_for
+
     try:
         items = build_items(
-            bot.theme,
+            theme_for(bot, guild_id),
             doc,
             dict(ECHO_VARIABLES) if variables is None else variables,
             card_key=key,
@@ -240,8 +242,10 @@ async def maybe_flat_text(bot, guild_id: int, key: str, **variables: Any) -> str
     blocks = doc.get("blocks")
     if not isinstance(blocks, list) or not blocks:
         return None
+    from rosemary.core.themes import theme_for
+
     try:
-        items = build_items(bot.theme, doc, dict(variables))
+        items = build_items(theme_for(bot, guild_id), doc, dict(variables))
     except CardsError as exc:
         log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
         return None

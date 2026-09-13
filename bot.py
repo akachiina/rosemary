@@ -142,10 +142,16 @@ class RosemaryBot(commands.Bot):
                         else None
                     )
                 )
-        # Rebuild card action-button views (persistent dispatch by custom_id).
+        # Rebuild card action-button views (persistent dispatch by custom_id),
+        # then freshen persistent panels (theme edits made while offline).
         from rosemary.core.card_actions import sync_all_guilds  # noqa: E402
+        from rosemary.core.panels import repaint_all  # noqa: E402
 
-        task = asyncio.create_task(sync_all_guilds(self))
+        async def _boot_repaint() -> None:
+            await sync_all_guilds(self)
+            await repaint_all(self)
+
+        task = asyncio.create_task(_boot_repaint())
         task.add_done_callback(
             lambda t: (
                 log.error("Card action sync failed: %s", t.exception())

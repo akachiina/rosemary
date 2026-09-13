@@ -86,6 +86,33 @@ class ThemeError(ValueError):
         super().__init__("; ".join(parts) or "invalid theme")
 
 
+def _stable_button_ids(card_key: str, blocks: list[dict[str, Any]]) -> None:
+    """Give action buttons ids derived from content, not randomness.
+
+    The posted message's buttons and the boot-registered persistent dispatch
+    views come from *separate* theme loads — a random id would never match,
+    silently killing every themed action button. Hashing
+    ``(card_key, path, label, url)`` keeps ids stable across loads and
+    restarts while still changing when the author edits the button.
+    """
+    import hashlib
+
+    def visit(blocks: list[dict[str, Any]], path: str) -> None:
+        for index, block in enumerate(blocks):
+            here = f"{path}/{index}"
+            for btn_index, button in enumerate(block.get("buttons", []) or []):
+                if not isinstance(button, dict):
+                    continue
+                raw = (
+                    f"{card_key}|{here}|{btn_index}|{button.get('label', '')}"
+                    f"|{button.get('url', '')}|{button.get('action', '')}"
+                )
+                button["id"] = "b_" + hashlib.sha1(raw.encode()).hexdigest()[:8]
+            visit(block.get("children", []) or [], here)
+
+    visit(blocks, "")
+
+
 def _component_type(node: dict[str, Any]) -> int | None:
     """Discord type number from ``type`` (int) or its string name."""
     raw = node.get("type")
@@ -342,6 +369,7 @@ def convert_card_entry(key: str, entry: Any) -> dict[str, Any]:
         if isinstance(entry, str)
         else convert_raw_document(entry)
     )
+    _stable_button_ids(key, blocks)
     doc = ensure_ids({"v": 1, "blocks": blocks})
     errors = validate_document(doc, draft=True)
     if errors:

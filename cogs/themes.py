@@ -52,11 +52,15 @@ class ThemesMenuView(MenuView):
 
     async def _rerender_with_snapshot(self, interaction: discord.Interaction) -> None:
         """Apply + snapshot + redraw: selection changes never need a restart."""
+        from rosemary.core.panels import on_theme_changed
         from rosemary.core.themes import preload_themes
 
         await preload_themes(self.bot)
         await self.prepare()
         await self.rerender(interaction)
+        # Stale panels and action-button dispatch views must follow the new
+        # theme immediately — no restart.
+        await on_theme_changed(self.bot, self.guild_id)
 
     # -- handlers ------------------------------------------------------------
 
@@ -258,6 +262,9 @@ class ThemesCog(commands.Cog):
             import_flash = await self.bot.translator.t(
                 ctx.guild_id, "themes.imported", theme=name
             )
+            from rosemary.core.panels import on_theme_changed
+
+            await on_theme_changed(self.bot, ctx.guild_id)
         view = ThemesMenuView(self.bot, ctx.guild_id, owner_id=ctx.author.id)
         if import_flash:
             view.flash = import_flash

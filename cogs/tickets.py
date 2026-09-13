@@ -57,6 +57,13 @@ class TicketsCog(commands.Cog):
         if self._started:
             return
         self._started = True
+        from rosemary.core.panels import register as register_panel
+
+        register_panel(
+            "tickets",
+            self.repaint_panel,
+            setting_keys=("tickets.enabled", "tickets.panel_channel", "tickets.category"),
+        )
         for guild in self.bot.guilds:
             try:
                 await self._restore_guild(guild)
@@ -76,15 +83,9 @@ class TicketsCog(commands.Cog):
             actions_view = TicketActionsView(self.bot, guild.id, channel_id)
             actions_view.add_item(actions_view.action_row())
             self.bot.add_view(actions_view)
-        panel_id = await self.store.get_panel(guild.id)
-        channel = await self._panel_channel(guild)
-        if channel is None:
-            return
-        if panel_id is not None:
-            with contextlib.suppress(discord.NotFound, discord.HTTPException):
-                await channel.fetch_message(panel_id)
-                return
-        await self._post_panel(guild, channel)
+        # Freshen the panel in place (theme edits, missed repaints); the
+        # callback re-posts it when the stored message no longer exists.
+        await self.repaint_panel(self.bot, guild.id)
 
     # -- helpers ---------------------------------------------------------------
 
@@ -112,17 +113,44 @@ class TicketsCog(commands.Cog):
         picker = TicketPanelView(self.bot, guild_id)
         return discord.ui.ActionRow(await picker.open_row())
 
+    async def _panel_view(self, guild_id: int):
+        """The full panel view: themed card (or catalog default) + picker."""
+        view = await maybe_view(self.bot, guild_id, "tickets.panel")
+        if view is None:
+            view = await self._build_panel_view(guild_id)
+        view.add_item(await self._panel_select_row(guild_id))
+        return view
+
     async def _post_panel(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
         from rosemary.core.mentions import allowed_for_ids
 
-        view = await maybe_view(self.bot, guild.id, "tickets.panel")
-        if view is None:
-            view = await self._build_panel_view(guild.id)
-        view.add_item(await self._panel_select_row(guild.id))
         message = await channel.send(
-            view=view, allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.panel")
+            view=await self._panel_view(guild.id),
+            allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.panel"),
         )
         await self.store.set_panel(guild.id, message.id)
+
+    async def repaint_panel(self, bot, guild_id: int) -> None:
+        """Edit the posted panel in place (theme/setting changed).
+
+        Deleted or unreachable message falls back to a fresh post so the
+        panel never disappears. Registered in :mod:`rosemary.core.panels`.
+        """
+        if not await get_setting(bot.storage, guild_id, "tickets.enabled"):
+            return
+        guild = bot.get_guild(guild_id)
+        channel = await self._panel_channel(guild) if guild else None
+        if guild is None or channel is None:
+            return
+        view = await self._panel_view(guild_id)
+        panel_id = await self.store.get_panel(guild_id)
+        if panel_id is not None:
+            try:
+                await channel.get_partial_message(panel_id).edit(view=view)
+                return
+            except (discord.NotFound, discord.HTTPException):
+                pass  # message gone — re-post below
+        await self._post_panel(guild, channel)
 
     async def _build_panel_view(self, guild_id: int):
         from rosemary.ui.containers import DesignerView

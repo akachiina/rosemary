@@ -64,6 +64,10 @@ def _bot(tmp_path):
         def __init__(self):
             self.storage = GuildStorage(tmp_path)
             self.views = []
+            self.guild = None
+
+        def get_guild(self, guild_id):
+            return self.guild
 
         def add_view(self, view):
             self.views.append(view)
@@ -77,6 +81,10 @@ def _channel():
     message.id = 777
     channel.send = AsyncMock(return_value=message)
     channel.fetch_message = AsyncMock(return_value=message)
+    partial = MagicMock()
+    partial.edit = AsyncMock()
+    channel.get_partial_message = MagicMock(return_value=partial)
+    channel.partial = partial
     return channel
 
 
@@ -136,9 +144,12 @@ async def test_restore_registers_views_with_children(tmp_path):
     await cog.store.set_panel(1, 555)
     channel = _channel()
     guild = _guild(channel)
+    bot.guild = guild
     await cog._restore_guild(guild)
-    # Panel already exists: no repost, but both views registered with items.
+    # Panel already exists: edited in place (freshened), no repost, and both
+    # views registered with items.
     assert channel.send.await_count == 0
+    channel.partial.edit.assert_awaited()
     assert len(bot.views) == 2
     ids = [cid for view in bot.views for cid in _view_custom_ids(view)]
     assert "tickets_open" in ids
@@ -153,8 +164,13 @@ async def test_restore_posts_missing_panel(tmp_path):
     await bot.storage.set(1, "tickets.panel_channel", 111)
     cog = TicketsCog(bot)
     channel = _channel()
-    channel.fetch_message = AsyncMock(side_effect=discord.NotFound(MagicMock(), MagicMock()))
+    # The stored panel message is gone: the in-place edit 404s, so the
+    # repaint falls back to a fresh post.
+    channel.partial.edit = AsyncMock(
+        side_effect=discord.NotFound(MagicMock(), MagicMock())
+    )
     guild = _guild(channel)
+    bot.guild = guild
     await cog._restore_guild(guild)
     assert channel.send.await_count == 1
     assert await cog.store.get_panel(1) == 777

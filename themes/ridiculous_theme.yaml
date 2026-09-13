@@ -1,0 +1,124 @@
+# ridiculous_theme.yaml — tema de teste, deliberadamente ridículo. 🤡
+#
+# Importe com: /temas anexando este arquivo (ou solte-o em themes/ e reinicie).
+# Depois rode /sobre e republique o painel de tickets para ver as cards novas.
+#
+# Formato: Discord Components V2 cru (números de tipo oficiais), convertido e
+# validado no load/import — tema inválido é rejeitado, nunca quebra um envio.
+
+name: ridiculous_theme
+
+# ── Paleta "olhos que doem" ──────────────────────────────────────────────
+colors:
+  brand: "#ff00ff"     # magenta berrante
+  success: "#00ff00"   # verde neon
+  warning: "#ffff00"   # amarelo grito
+  danger: "#ff0000"    # vermelho puro
+  info: "#00ffff"      # ciano elétrico
+
+# Emojis viram {placeholders} em qualquer card do tema (RGI-valid, Discord aceita)
+emojis:
+  clown: "🤡"
+  party: "🥳"
+  tada: "🎉"
+  fire: "🔥"
+  popcorn: "🍿"
+  alien: "👽"
+
+markdown:
+  title: "## 🎪 {title} 🎪"
+  footer: "-# {text} 🤡"
+
+styles:
+  base:
+    color: brand
+
+# ── Cards customizados (raw Discord Components V2) ───────────────────────
+cards:
+  # /sobre inteiro reescrito: container magenta, seção com thumbnail,
+  # galeria de imagens e botões-link para o YouTube.
+  about.card:
+    - type: 17                    # Container com borda magenta
+      accent_color: "#ff00ff"
+      components:
+        - type: 10                # TextDisplay
+          content: "## 🤡 BEM-VINDO AO CIRCO 🎪"
+        - type: 10
+          content: "### O bot mais sério do Discord™*"
+        - type: 9                 # Section com thumbnail ao lado
+          components:
+            - type: 10
+              content: "{popcorn} Versão **{version}** — monitorando {channel}. *(*mentira)*"
+          accessory:
+            type: 11              # Thumbnail
+            media:
+              url: "https://http.cat/404"
+        - type: 14                # Separator espaçamento grande
+          spacing: 2
+          divider: true
+        - type: 10
+          content: "{alien} {clown} {party} {tada} {fire} — escolha o seu humor."
+
+    - type: 12                    # MediaGallery = "imagem pura" (2 de uma vez)
+      items:
+        - media:
+            url: "https://http.cat/100"
+        - media:
+            url: "https://http.cat/200"
+
+    - type: 1                     # ActionRow com links pro YouTube (style 5)
+      components:
+        - type: 2
+          style: 5
+          label: "▶️ Nunca vou te abandonar"
+          url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        - type: 2
+          style: 5
+          label: "🎪 HEYYEYAAEYAA"
+          url: "https://www.youtube.com/watch?v=ZZ5LpwO-An4"
+        - type: 2
+          style: 5
+          label: "🐱 Nyan Cat"
+          url: "https://www.youtube.com/watch?v=QH2-TGUlwu4"
+
+  # Painel de tickets reescrito com BOTÕES que abrem ticket de verdade
+  # (convenção cardact:open_ticket:<tipo> — os tipos são os do código).
+  tickets.panel:
+    - type: 17
+      accent_color: "#ff00ff"
+      components:
+        - type: 10
+          content: "## 🎟️ {clown} Central de Tickets do Circo"
+        - type: 10
+          content: "Escolha um assunto e um palhaço treinado atenderá em instantes."
+        - type: 1
+          components:
+            - type: 2
+              style: 1            # primary
+              label: "🎫 Reportar palhaço"
+              custom_id: "cardact:open_ticket:report"
+            - type: 2
+              style: 4            # danger
+              label: "🤫 Segredo revelador"
+              custom_id: "cardact:open_ticket:confidential"
+        - type: 1
+          components:
+            - type: 2
+              style: 3            # success
+              label: "🤝 Parceria circense"
+              custom_id: "cardact:open_ticket:partnership"
+            - type: 2
+              style: 1
+              label: "🚀 Boost do telhado"
+              custom_id: "cardact:open_ticket:boost"
+        # ⚠️ Exemplo do que AINDA NÃO funciona (modularidade — veja conversa):
+        # um tipo NOVO precisa existir em TICKET_TYPES no código; senão o
+        # clique responde "tipo desconhecido". Descomente para testar o erro:
+        # - type: 2
+        #   style: 2
+        #   label: "❓ Duvidas existenciais"
+        #   custom_id: "cardact:open_ticket:duvidas"
+
+# ── Pings por card ────────────────────────────────────────────────────────
+pings:
+  about.card: false
