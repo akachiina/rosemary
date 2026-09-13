@@ -208,21 +208,9 @@ settings:
   page_indicator: Page {page} of {pages}
   log:
     title: '{gear} Setting Changed'
-    description: '{setting}
-
-      Category: {category}
-
-      From: {old}
-
-      To: {new}
-
-      By: {author}'
+    description: "**{setting}\nCategory:** {category}\n**From:** {old}\n**To:** {new}\n**By:** {author}"
     language_title: '{gear} Language Changed'
-    language_description: 'From: {old}
-
-      To: {new}
-
-      By: {author}'
+    language_description: "**From:** {old}\n**To:** {new}\n**By:** {author}"
   logs:
     language:
       description: 'From: {old}
@@ -1314,6 +1302,7 @@ invites:
     title: '{bar_chart} Server Invite Stats'
     joins: 'Tracked joins: **{count}**'
     top: 'Top inviter: {user} (**{total}**)'
+  unknown: Unknown
   status:
     ok: valid
     fake: fake
@@ -1356,10 +1345,10 @@ invites:
   logs:
     join:
       title: '{rocket} Member Joined With Invite'
-      description: '{user} joined via `{code}` from {inviter}{label}{flags}.'
+      description: "**Invitee:** {user}\n**Code:** `{code}`\n**Inviter:** {inviter}{label}{flags}"
     leave:
-      title: 'Member Left'
-      description: '{user} (invited by {inviter}) left the server.'
+      title: '{door} Member Left'
+      description: "**Member:** {user}\n**Inviter:** {inviter}"
     bonus:
       title: 'Bonus Adjusted'
       description: '{moderator} adjusted {user} by {amount} (total: {total}).'
@@ -1502,26 +1491,26 @@ moderation:
   error_bot_hierarchy: '{error} This member''s role is equal to or higher than the bot''s.'
   log:
     ban:
-      title: Ban
+      title: '{ban} Ban'
     kick:
-      title: Kick
+      title: '{kick} Kick'
     mute:
-      title: Mute
+      title: '{mute} Mute'
     warn:
-      title: Warn
+      title: '{pencil} Warn'
     member: Target
     moderator: Moderator
     reason: Reason
     duration: Duration
   logs:
     ban:
-      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
     kick:
-      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
     mute:
-      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}\n**{duration_label}:**\n{duration}'
+      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{duration_label}:** {duration}\n**{reason_label}:** {reason}"
     warn:
-      description: '**{member_label}:**\n{member}\n**{moderator_label}:**\n{moderator}\n**{reason_label}:**\n{reason}'
+      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
 debug:
   command:
     name: debug
@@ -2116,10 +2105,10 @@ card:
       placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
     leave:
       title: Leave message
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}'
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
     ban:
       title: Ban message
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}'
+      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   birthdays:
     announce:
       title: Birthday announcement
@@ -2272,13 +2261,13 @@ events:
     label: Raid protection
     description: Delay welcomes when many members join at once.
   welcome:
-    title: Welcome to {server}!
-    body: '{user} just joined. Say hi! Member #{count}.'
+    title: '{tada} Welcome!'
+    body: '{user} just joined. Say hi! Member #{count} of {server}.'
   leave:
-    title: Until next time
+    title: '{door} Until next time'
     body: '{user_name} left the server. We are now {count} members.'
   ban:
-    title: Member banned
+    title: '{ban} Member banned'
     body: '{user_name} has been banned from {server}.'
 starboard:
   enabled:

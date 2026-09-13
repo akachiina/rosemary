@@ -166,12 +166,19 @@ class InvitesCog(commands.Cog):
         guild = member.guild
         try:
             snapshots = await self._fetch_snapshots(guild)
+            if not await get_setting(self.bot.storage, guild.id, "invites.enabled"):
+                if snapshots is not None:
+                    self._cache[guild.id] = {s.code: s.uses for s in snapshots}
+                    self._cache_ts[guild.id] = time.monotonic()
+                return
+            inviter_id, code, status = await self._attribute(member, snapshots)
+            # ``_attribute`` diffs the pre-join cache against ``snapshots``
+            # (which already include this join) — only NOW may the cache be
+            # refreshed, or every future diff would be zero and every join
+            # would attribute to ``unknown``.
             if snapshots is not None:
                 self._cache[guild.id] = {s.code: s.uses for s in snapshots}
                 self._cache_ts[guild.id] = time.monotonic()
-            if not await get_setting(self.bot.storage, guild.id, "invites.enabled"):
-                return
-            inviter_id, code, status = await self._attribute(member, snapshots)
             await self.store.record_join(guild.id, member.id, inviter_id, code, status)
             await self._log_join(guild, member, inviter_id, code, status)
         except Exception as exc:
@@ -199,7 +206,11 @@ class InvitesCog(commands.Cog):
                     guild.id,
                     "invites.logs.leave.description",
                     user=member.mention,
-                    inviter=f"<@{inviter_id}>" if inviter_id else "-",
+                    inviter=(
+                        f"<@{inviter_id}>"
+                        if inviter_id
+                        else await self.bot.translator.t(guild.id, "invites.unknown")
+                    ),
                 ),
                 color="info",
                 card_key="invites.logs.leave.description",
@@ -227,15 +238,19 @@ class InvitesCog(commands.Cog):
             guild.id,
             await self.bot.translator.t(guild.id, "invites.logs.join.title"),
             await log_description(
-                self.bot,
-                guild.id,
-                "invites.logs.join.description",
-                user=member.mention,
-                code=code or "-",
-                inviter=f"<@{inviter_id}>" if inviter_id else "-",
-                label=f" ({label})" if label else "",
-                flags=flags,
-            ),
+                    self.bot,
+                    guild.id,
+                    "invites.logs.join.description",
+                    user=member.mention,
+                    code=code or "—",
+                    inviter=(
+                        f"<@{inviter_id}>"
+                        if inviter_id
+                        else await self.bot.translator.t(guild.id, "invites.unknown")
+                    ),
+                    label=f" ({label})" if label else "",
+                    flags=flags,
+                ),
             color="info",
             card_key="invites.logs.join.description",
             mention_user_ids=[member.id, *( [inviter_id] if inviter_id else [])],

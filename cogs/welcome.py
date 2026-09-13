@@ -17,7 +17,7 @@ from collections import deque
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import ECHO_VARIABLES, maybe_text, maybe_view, set_default_builder
+from rosemary.core.cards import ECHO_VARIABLES, maybe_text, set_default_builder
 from rosemary.core.settings import get_setting
 
 log = logging.getLogger(__name__)
@@ -34,24 +34,42 @@ async def default_event_document(
     title_key: str,
     body_key: str,
     color: str,
+    emoji_token: str,
 ) -> dict:
     """Catalog-default event message as an editable block document.
 
-    Placeholders ({user}, {server}...) stay literal — this is a template.
-    Theme emoji tokens resolve; unknown placeholders are preserved by
-    :func:`rosemary.core.cards.safe_format`.
+    Layout: a section whose accessory is the member's avatar thumbnail, the
+    emoji-decorated ``#`` title and body beside it, a divider and a footer
+    (``-#`` markdown). Placeholders (``{user}``, ``{server}``...) stay
+    literal — this is a template. Theme emoji tokens resolve; unknown
+    placeholders are preserved by :func:`rosemary.core.cards.safe_format`.
     """
     from rosemary.core.cards import safe_format
 
     mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
-    title = safe_format(await bot.translator.raw(guild_id, title_key), mapping)
-    body = safe_format(await bot.translator.raw(guild_id, body_key), mapping)
+
+    async def raw(key: str) -> str:
+        return safe_format(await bot.translator.raw(guild_id, key), mapping)
+
+    title = await raw(title_key)
+    if not title.startswith("#"):
+        emoji = bot.theme.emojis.get(emoji_token, "")
+        title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
+    body = await raw(body_key)
+    server = safe_format("{server}", mapping)
+    count = safe_format("{count}", mapping)
     return {
         "v": 1,
         "blocks": [
             {"type": "container", "color": color, "children": [
-                {"type": "text", "body": f"# {title}"},
-                {"type": "text", "body": body},
+                {"type": "section",
+                 "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
+                 "children": [
+                     {"type": "text", "body": title},
+                     {"type": "text", "body": body},
+                 ]},
+                {"type": "divider"},
+                {"type": "text", "body": f"-# {server} · #{count}"},
             ]}
         ],
     }
@@ -63,9 +81,9 @@ def _register_default_builders() -> None:
         ("leave", "events.leave.title", "events.leave.body", "warning"),
         ("ban", "events.ban.title", "events.ban.body", "danger"),
     ):
-        async def _builder(bot, guild_id, *, t=title, b=body, c=color):
+        async def _builder(bot, guild_id, *, t=title, b=body, c=color, n=name):
             return await default_event_document(
-                bot, guild_id, title_key=t, body_key=b, color=c
+                bot, guild_id, title_key=t, body_key=b, color=c, emoji_token=n
             )
 
         set_default_builder(f"events.{name}", _builder)
@@ -116,10 +134,16 @@ class WelcomeCog(commands.Cog):
         variables: dict,
         user_id: int | None = None,
     ) -> None:
-        """Send a customizable card: override > plain text > default layout."""
+        """Send the event card: themed/default document via the shared
+        renderer, plain-text theme override as fallback. Pings follow the
+        document content (``{user}`` in the text decides), per-card toggle
+        permitting; ``user_id`` only matters for that text-only path."""
+        from rosemary.core.card_service import render_card_message
         from rosemary.core.mentions import allowed_for_ids
 
-        view = await maybe_view(self.bot, guild_id, key, variables)
+        view, allowed = await render_card_message(
+            self.bot, guild_id, key, variables
+        )
         if view is None:
             text = await maybe_text(self.bot, guild_id, key, **variables)
             if text is None:
@@ -143,26 +167,20 @@ class WelcomeCog(commands.Cog):
                         TextDisplay(await self._t(guild_id, body_key, **variables)),
                     )
                 )
+                allowed = await allowed_for_ids(
+                    self.bot, guild_id, key,
+                    user_ids=[user_id] if user_id else [],
+                )
             else:
                 from rosemary.ui.containers import DesignerView
 
                 view = DesignerView(store=False)
                 view.add_item(TextDisplay(text))
-            await channel.send(
-                view=view,
-                allowed_mentions=await allowed_for_ids(
+                allowed = await allowed_for_ids(
                     self.bot, guild_id, key,
                     user_ids=[user_id] if user_id else [],
-                ),
-            )
-            return
-        await channel.send(
-            view=view,
-            allowed_mentions=await allowed_for_ids(
-                self.bot, guild_id, key,
-                user_ids=[user_id] if user_id else [],
-            ),
-        )
+                )
+        await channel.send(view=view, allowed_mentions=allowed)
 
     async def _inviter_mention(self, member: discord.Member) -> str:
         """Inviter mention for the ``{inviter}`` card placeholder.
@@ -250,6 +268,7 @@ class WelcomeCog(commands.Cog):
                 "server": member.guild.name,
                 "count": member.guild.member_count or 0,
                 "inviter": "",
+                "user_avatar": member.display_avatar.url,
             }
             await self._send_event_card(
                 channel,
@@ -277,6 +296,7 @@ class WelcomeCog(commands.Cog):
                 "server": guild.name,
                 "count": guild.member_count or 0,
                 "inviter": "",
+                "user_avatar": user.display_avatar.url,
             }
             await self._send_event_card(
                 channel,

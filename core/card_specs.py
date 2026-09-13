@@ -144,8 +144,8 @@ SHARED_EXTRA_LOGS = [
 #: pass exactly these (enforced by tests).
 VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "events.welcome": ("user", "user_name", "server", "count", "user_avatar", "inviter"),
-    "events.leave": ("user", "user_name", "server", "count", "inviter"),
-    "events.ban": ("user", "user_name", "server", "count", "inviter"),
+    "events.leave": ("user", "user_name", "server", "count", "inviter", "user_avatar"),
+    "events.ban": ("user", "user_name", "server", "count", "inviter", "user_avatar"),
     "birthdays.announce": ("user", "server", "count"),
     "boost.dm.registered": ("mention", "role_name", "server_name", "members", "max_members"),
     "boost.dm.transferred": ("mention", "role_name", "server_name", "members", "max_members"),
