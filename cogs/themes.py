@@ -39,6 +39,7 @@ class ThemesMenuView(MenuView):
         self.register("themes_export", self._export)
         self.register("themes_remove", self._remove)
         self.register("themes_reset", self._reset)
+        self.register("themes_reload", self._reload)
         self.register("themes_close", self._close)
 
     async def prepare(self) -> None:
@@ -125,6 +126,14 @@ class ThemesMenuView(MenuView):
         self.flash_color = "success"
         await self._rerender_with_snapshot(interaction)
 
+    async def _reload(self, interaction: discord.Interaction) -> None:
+        """Drop cached theme files, re-read from disk and repaint panels."""
+        await self._ack(interaction)
+        self.bot._theme_store.invalidate_guild(self.guild_id)
+        self.flash = await self.bot.translator.t(self.guild_id, "themes.reloaded")
+        self.flash_color = "success"
+        await self._rerender_with_snapshot(interaction)
+
     async def _close(self, interaction: discord.Interaction) -> None:
         await self._ack(interaction)
         self.disable_all_items()
@@ -208,6 +217,12 @@ class ThemesMenuView(MenuView):
                     label=await t(t_, "themes.reset_button"),
                     style=discord.ButtonStyle.secondary,
                     emoji=emojis.get("refresh") or None,
+                ),
+                self.make_button(
+                    custom_id="themes_reload",
+                    label=await t(t_, "themes.reload_button"),
+                    style=discord.ButtonStyle.secondary,
+                    emoji=emojis.get("clock") or None,
                 ),
                 self.make_button(
                     custom_id="themes_close",

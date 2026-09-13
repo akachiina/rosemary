@@ -114,11 +114,16 @@ class TicketsCog(commands.Cog):
         return discord.ui.ActionRow(await picker.open_row())
 
     async def _panel_view(self, guild_id: int):
-        """The full panel view: themed card (or catalog default) + picker."""
+        """The full panel view: themed card (or catalog default) + picker.
+
+        A themed panel that already carries ``open_ticket`` buttons replaces
+        the stock type picker — no duplicated controls."""
         view = await maybe_view(self.bot, guild_id, "tickets.panel")
         if view is None:
             view = await self._build_panel_view(guild_id)
-        view.add_item(await self._panel_select_row(guild_id))
+            view.add_item(await self._panel_select_row(guild_id))
+        elif not await _themed_panel_has_open_buttons(self.bot, guild_id):
+            view.add_item(await self._panel_select_row(guild_id))
         return view
 
     async def _post_panel(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
@@ -429,6 +434,29 @@ class TicketsCog(commands.Cog):
             await self.store.delete_ticket(guild.id, channel.id)
         except Exception as exc:
             log.error("Ticket cleanup failed for %s: %s", channel.id, exc)
+
+
+async def _themed_panel_has_open_buttons(bot, guild_id: int) -> bool:
+    """Whether the active theme's ``tickets.panel`` card defines its own
+    ``open_ticket`` action buttons (select picker becomes redundant)."""
+    from rosemary.core.themes import card_document
+
+    doc = await card_document(bot, guild_id, "tickets.panel")
+    if not isinstance(doc, dict):
+        return False
+
+    def visit(blocks):
+        for block in blocks:
+            if not isinstance(block, dict):
+                continue
+            for button in block.get("buttons", []) or []:
+                if isinstance(button, dict) and button.get("action") == "open_ticket":
+                    return True
+            if visit(block.get("children", []) or []):
+                return True
+        return False
+
+    return visit(doc.get("blocks", []))
 
 
 class TicketPanelView(MenuView):

@@ -750,8 +750,10 @@ def _build_block(
         "section": _build_section,
         "container": _build_container,
     }[block["type"]]
-    if block["type"] == "row":
-        return _build_row(block, theme, mapping, card_key)
+    # Only row/container builders take card_key (needed to scope action
+    # button custom_ids); nested rows inherit it through the container.
+    if block["type"] in ("row", "container"):
+        return builder(block, theme, mapping, card_key)
     return builder(block, theme, mapping)
 
 

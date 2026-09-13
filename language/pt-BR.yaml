@@ -46,6 +46,8 @@ themes:
   export_failed: '{error} Não foi possível enviar esse arquivo de tema.'
   reset_done: '{success} De volta ao tema padrão embutido.'
   reset_button: Tema padrão
+  reload_button: Recarregar arquivos
+  reloaded: '{success} Arquivos de tema relidos do disco; painéis atualizados.'
   remove_placeholder: Escolha um tema importado para remover...
   removed: '{success} Tema **{theme}** removido.'
   removed_active: '{success} Tema **{theme}** removido — de volta ao padrão embutido.'

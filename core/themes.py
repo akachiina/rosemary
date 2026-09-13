@@ -262,6 +262,14 @@ class ThemeStore:
         """Back to the built-in default theme."""
         await self._selection.delete_keys(guild_id, "active")
 
+    def invalidate_guild(self, guild_id: int) -> None:
+        """Drop every cached theme for this guild (files edited on disk).
+
+        The next ``effective_theme`` re-reads the active file instead of
+        returning the stale cached object."""
+        for key in [k for k in self._cache if k[0] == guild_id]:
+            self._cache.pop(key, None)
+
     async def effective_theme(self, bot, guild_id: int | None) -> Theme:
         """The guild's active theme, falling back to the built-in one.
 

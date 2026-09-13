@@ -46,6 +46,8 @@ themes:
   export_failed: '{error} Could not send that theme file.'
   reset_done: '{success} Back to the built-in default theme.'
   reset_button: Default theme
+  reload_button: Reload files
+  reloaded: '{success} Theme files re-read from disk; panels refreshed.'
   remove_placeholder: Choose an imported theme to remove...
   removed: '{success} Theme **{theme}** removed.'
   removed_active: '{success} Theme **{theme}** removed — back to the built-in default.'
