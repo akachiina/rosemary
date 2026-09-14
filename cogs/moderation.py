@@ -638,16 +638,16 @@ class ModerationCog(commands.Cog):
             if entries
             else await t(guild_id, "warnings.none")
         )
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.ui.containers import TextDisplay, designer_container
 
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot,
             guild_id,
             "moderation.warnings",
             {"user": member.mention, "title": title, "body": body},
         )
-        if view is None:
+        if payload is None:
             parts = [TextDisplay(theme.md("title", title=title)), TextDisplay(body)]
             view = discord.ui.DesignerView(store=False)
             view.add_item(
@@ -655,7 +655,8 @@ class ModerationCog(commands.Cog):
                     theme.color("success" if not entries else "brand"), *parts
                 )
             )
-        await ctx.respond(view=view, ephemeral=True)
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="unwarn",

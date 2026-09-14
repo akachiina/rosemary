@@ -138,13 +138,13 @@ class WelcomeCog(commands.Cog):
         renderer, plain-text theme override as fallback. Pings follow the
         document content (``{user}`` in the text decides), per-card toggle
         permitting; ``user_id`` only matters for that text-only path."""
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.core.mentions import allowed_for_ids
 
-        view, allowed = await render_card_message(
+        payload, allowed = await render_card_message(
             self.bot, guild_id, key, variables
         )
-        if view is None:
+        if payload is None:
             text = await maybe_text(self.bot, guild_id, key, **variables)
             if text is None:
                 from rosemary.ui.containers import (
@@ -167,6 +167,7 @@ class WelcomeCog(commands.Cog):
                         TextDisplay(await self._t(guild_id, body_key, **variables)),
                     )
                 )
+                payload = CardPayload(view=view)
                 allowed = await allowed_for_ids(
                     self.bot, guild_id, key,
                     user_ids=[user_id] if user_id else [],
@@ -176,11 +177,12 @@ class WelcomeCog(commands.Cog):
 
                 view = DesignerView(store=False)
                 view.add_item(TextDisplay(text))
+                payload = CardPayload(view=view)
                 allowed = await allowed_for_ids(
                     self.bot, guild_id, key,
                     user_ids=[user_id] if user_id else [],
                 )
-        await channel.send(view=view, allowed_mentions=allowed)
+        await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
 
     async def _inviter_mention(self, member: discord.Member) -> str:
         """Inviter mention for the ``{inviter}`` card placeholder.

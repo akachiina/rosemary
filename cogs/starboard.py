@@ -152,7 +152,7 @@ class StarboardCog(commands.Cog):
             ),
             None,
         )
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot,
             guild_id,
             "starboard.card",
@@ -166,8 +166,12 @@ class StarboardCog(commands.Cog):
                 "image_url": image_url or "",
             },
         )
-        return view if view is not None else self._build_card(
-            message, stars, jump_label, no_content_label
+        if payload is not None:
+            return payload
+        from rosemary.core.card_service import CardPayload
+
+        return CardPayload(
+            view=self._build_card(message, stars, jump_label, no_content_label)
         )
 
     # -- core update ---------------------------------------------------------
@@ -203,7 +207,8 @@ class StarboardCog(commands.Cog):
                     card = await self._card_view(
                         channel.guild.id, message, stars, jump_label, no_content_label
                     )
-                    await post.edit(view=card, allowed_mentions=discord.AllowedMentions.none())
+                    await post.edit(**card.message_kwargs(),
+                                    allowed_mentions=discord.AllowedMentions.none())
                     self._last_edit[message.id] = time.monotonic()
                     await self.store.update_stars(channel.guild.id, message.id, stars)
                     return
@@ -213,7 +218,7 @@ class StarboardCog(commands.Cog):
                     channel.guild.id, message, stars, jump_label, no_content_label
                 )
                 post = await board.send(
-                    view=card,
+                    **card.message_kwargs(),
                     allowed_mentions=discord.AllowedMentions.none(),
                 )
                 await self.store.upsert(

@@ -343,7 +343,7 @@ class InvitesCog(commands.Cog):
             guild_id, "invites.stats.title", user=target.mention
         )
         body = "\n\n".join(lines)
-        view = await self._card_view(
+        payload = await self._card_view(
             guild_id,
             "invites.stats",
             title,
@@ -360,7 +360,7 @@ class InvitesCog(commands.Cog):
                 "body": body,
             },
         )
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="invites_leaderboard",
@@ -407,13 +407,13 @@ class InvitesCog(commands.Cog):
             )
         title = await self.bot.translator.t(guild_id, "invites.leaderboard.title")
         body = "\n".join(lines)
-        view = await self._card_view(
+        payload = await self._card_view(
             guild_id, "invites.leaderboard", title, body, {"title": title, "body": body}
         )
         from rosemary.core.mentions import allowed_for_ids
 
         await ctx.respond(
-            view=view,
+            **payload.message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild_id, "invites.leaderboard"),
         )
 
@@ -427,14 +427,14 @@ class InvitesCog(commands.Cog):
         Routes through :func:`render_card_message` so ``debug.card_paths``
         traces these ephemeral cards too — they are theme-customizable, so
         admins need their paths."""
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot, guild_id, key, {"title": title, "body": body, **variables}
         )
-        if view is not None:
-            return view
+        if payload is not None:
+            return payload
         view = DesignerView(store=False)
         view.add_item(
             designer_container(
@@ -443,7 +443,7 @@ class InvitesCog(commands.Cog):
                 TextDisplay(body),
             )
         )
-        return view
+        return CardPayload(view=view)
 
     @discord.slash_command(
         name="who_invited",
@@ -490,7 +490,7 @@ class InvitesCog(commands.Cog):
             ),
         )
         title = await self.bot.translator.t(guild_id, "invites.inviter.title")
-        view = await self._card_view(
+        payload = await self._card_view(
             guild_id,
             "invites.invited_by",
             title,
@@ -507,7 +507,7 @@ class InvitesCog(commands.Cog):
                 "body": body,
             },
         )
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="invited",
@@ -555,14 +555,14 @@ class InvitesCog(commands.Cog):
             guild_id, "invites.invited.title", user=target.mention
         )
         body = "\n".join(lines)
-        view = await self._card_view(
+        payload = await self._card_view(
             guild_id,
             "invites.invited_list",
             title,
             body,
             {"user": target.mention, "title": title, "body": body},
         )
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="my_invite",
@@ -620,7 +620,7 @@ class InvitesCog(commands.Cog):
             bonus=stats["bonus"],
         )
         title = await self.bot.translator.t(guild_id, "invites.personal.title")
-        view = await self._card_view(
+        payload = await self._card_view(
             guild_id,
             "invites.personal",
             title,
@@ -635,7 +635,7 @@ class InvitesCog(commands.Cog):
                 "body": body,
             },
         )
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="server_invites",
@@ -677,7 +677,7 @@ class InvitesCog(commands.Cog):
             )
         title = await self.bot.translator.t(guild_id, "invites.server.title")
         body = "\n\n".join(lines)
-        view = await self._card_view(
+        payload = await self._card_view(
             guild_id,
             "invites.server_stats",
             title,
@@ -692,7 +692,7 @@ class InvitesCog(commands.Cog):
                 "body": body,
             },
         )
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     # -- admin commands ----------------------------------------------------------
 

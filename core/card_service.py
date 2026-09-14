@@ -15,6 +15,7 @@ break a send.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import logging
 from typing import Any
 
@@ -24,8 +25,11 @@ from rosemary.core.cards import (
     DOCUMENT_VERSION,
     ECHO_VARIABLES,
     CardsError,
+    build_embed_view,
     build_items,
     get_default_builder,
+    is_embed_document,
+    resolve_embed,
     safe_format,
 )
 from rosemary.core.themes import card_document, card_origin, theme_for
@@ -104,6 +108,50 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     "debug.title": ("info", "debug.title", ("{body}",)),
     "boost.home": ("brand", "boost.titles.home", ("boost.descriptions.user_panel",)),
 }
+
+
+@dataclasses.dataclass(frozen=True)
+class CardPayload:
+    """One rendered card, ready to send: V2 view **or** classic embed.
+
+    A theme may write any card as Components V2 (default) or as an embed
+    (``cards.<key>.embed``). This bundle makes the two shapes interchangeable
+    at every send site: ``embed`` is set only for embed cards, and ``view``
+    carries the V2 items — or the classic ActionRow holding an embed card's
+    buttons. Send through :func:`send_card` instead of touching the fields.
+    """
+
+    view: discord.ui.DesignerView | discord.ui.View | None = None
+    embed: discord.Embed | None = None
+
+    def message_kwargs(self) -> dict[str, Any]:
+        """Keyword arguments for ``send``/``respond``/``edit`` with this card."""
+        if self.embed is not None:
+            kwargs: dict[str, Any] = {"embed": self.embed}
+            if self.view is not None:
+                kwargs["view"] = self.view
+            return kwargs
+        return {"view": self.view}
+
+
+async def send_card(
+    target,
+    payload: CardPayload | None,
+    allowed: discord.AllowedMentions | None = None,
+    **kwargs: Any,
+):
+    """Send a rendered card payload through ``target.send``.
+
+    Dispatches the right keyword for the payload shape — ``view=`` for V2,
+    ``embed=`` (+ classic button view) for embed cards — so call sites never
+    branch on the card form. Interaction responses use
+    ``ctx.respond(**payload.message_kwargs(), ...)`` instead.
+    """
+    if payload is None:
+        return None
+    if allowed is None:
+        allowed = discord.AllowedMentions.none()
+    return await target.send(**payload.message_kwargs(), allowed_mentions=allowed, **kwargs)
 
 
 async def _resolve_parts(raw, guild_id: int, parts: tuple[Any, ...]):
@@ -246,18 +294,18 @@ async def render_card_message(
     variables: dict[str, Any] | None = None,
     *,
     silent: bool = False,
-) -> tuple[discord.ui.DesignerView | None, discord.AllowedMentions]:
-    """Render a card for a real send: ``(view, allowed_mentions)``.
+) -> tuple[CardPayload | None, discord.AllowedMentions]:
+    """Render a card for a real send: ``(payload, allowed_mentions)``.
 
-    Resolution: themed override else the feature default — ``None`` only when
-    the card resolves no document at all, in which case the caller falls back
-    to its own default view and computes mentions for that text via
-    ``mentions.allowed_for_text``. Otherwise the returned ``allowed_mentions``
-    is derived from the document itself: only ``<@id>``/``<@&id>`` tokens the
-    resolved text actually contains may ping, and only when the theme's pings
-    toggle for the card is on (or the caller forces ``silent``). An invalid
-    document renders ``None`` so the caller's default path takes over — sends
-    never break on themed content.
+    ``payload`` is a :class:`CardPayload` — a Components V2 ``DesignerView``
+    **or** an ``embed=``-ready bundle when the active theme writes the card
+    in embed form. ``None`` only when the card resolves no document at all,
+    in which case the caller falls back to its own default view. Otherwise
+    ``allowed_mentions`` derives from the document itself: only mention
+    tokens the resolved text actually contains may ping, and only when the
+    theme's pings toggle for the card is on (or the caller forces
+    ``silent``). An invalid document renders ``None`` so the caller's default
+    path takes over — sends never break on themed content.
     """
     from rosemary.core.mentions import allowed_for_document
     from rosemary.core.themes import theme_for
@@ -269,6 +317,18 @@ async def render_card_message(
         **(getattr(theme_for(bot, guild_id), "emojis", {}) or {}),
         **(dict(ECHO_VARIABLES) if variables is None else variables),
     }
+    if is_embed_document(doc):
+        try:
+            embed, buttons = resolve_embed(doc, theme_for(bot, guild_id), mapping)
+            view = build_embed_view(buttons, mapping, key)
+        except CardsError as exc:
+            log.warning(
+                "embed card %s for guild %s is invalid, using default: %s", key, guild_id, exc
+            )
+            return None, discord.AllowedMentions.none()
+        allowed = await allowed_for_document(bot, guild_id, key, doc, mapping, silent=silent)
+        await trace_card_path(bot, guild_id, key)
+        return CardPayload(embed=embed, view=view), allowed
     try:
         view = await render_document(bot, doc, mapping, guild_id=guild_id, card_key=key)
     except CardsError as exc:
@@ -276,7 +336,7 @@ async def render_card_message(
         return None, discord.AllowedMentions.none()
     allowed = await allowed_for_document(bot, guild_id, key, doc, mapping, silent=silent)
     await trace_card_path(bot, guild_id, key)
-    return view, allowed
+    return CardPayload(view=view), allowed
 
 
 async def trace_card_path(bot, guild_id: int, key: str) -> None:
@@ -332,9 +392,16 @@ async def menu_heading_items(
     one, and nesting containers 400s the payload) so the menu falls back to
     its built-in heading instead of failing the send.
     """
-    from rosemary.core.cards import maybe_view
+    from rosemary.core.cards import is_embed_document, maybe_view
+    from rosemary.core.themes import card_document
     from rosemary.ui.containers import Container
 
+    doc = await card_document(bot, guild_id, key)
+    if doc is not None and is_embed_document(doc):
+        log.warning(
+            "theme heading %s is an embed; menu headings must be V2 text", key
+        )
+        return []
     view = await maybe_view(bot, guild_id, key)
     if view is None:
         return []
@@ -349,6 +416,7 @@ async def menu_heading_items(
 
 __all__ = [
     "SEED_PARTS_BY_KEY",
+    "CardPayload",
     "card_origin",
     "default_document",
     "get_effective_document",
@@ -356,6 +424,7 @@ __all__ = [
     "menu_heading_items",
     "render_card_message",
     "render_document",
+    "send_card",
     "theme_for",
     "trace_card_path",
 ]

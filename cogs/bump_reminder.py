@@ -460,15 +460,18 @@ class BumpReminderCog(commands.Cog):
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
 
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
 
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot,
             guild_id,
             "bump.reminder",
             {"cooldown": cooldown_display},
         )
-        view = view or (await self._build_reminder_view(guild, cooldown_display))
+        if payload is None:
+            payload = CardPayload(
+                view=await self._build_reminder_view(guild, cooldown_display)
+            )
 
         try:
             from rosemary.core.mentions import allowed_for_ids
@@ -482,7 +485,7 @@ class BumpReminderCog(commands.Cog):
                     ),
                 )
             await channel.send(
-                view=view,
+                **payload.message_kwargs(),
                 allowed_mentions=await allowed_for_ids(self.bot, guild_id, "bump.reminder"),
             )
             await self.store.mark_reminder_sent(guild_id)
@@ -519,9 +522,9 @@ class BumpReminderCog(commands.Cog):
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
         next_bump_time = datetime.now(UTC) + timedelta(seconds=cooldown)
 
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
 
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot,
             guild_id,
             "bump.thank_you",
@@ -531,18 +534,21 @@ class BumpReminderCog(commands.Cog):
                 "next_bump_timestamp": int(next_bump_time.timestamp()),
             },
         )
-        view = view or await self._build_thank_you_view(
-            guild,
-            user_id,
-            cooldown_display,
-            int(next_bump_time.timestamp()),
-        )
+        if payload is None:
+            payload = CardPayload(
+                view=await self._build_thank_you_view(
+                    guild,
+                    user_id,
+                    cooldown_display,
+                    int(next_bump_time.timestamp()),
+                )
+            )
 
         try:
             from rosemary.core.mentions import allowed_for_ids
 
             await channel.send(
-                view=view,
+                **payload.message_kwargs(),
                 allowed_mentions=await allowed_for_ids(
                     self.bot, guild_id, "bump.thank_you", user_ids=[user_id],
                 ),

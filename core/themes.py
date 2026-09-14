@@ -32,7 +32,7 @@ from typing import Any
 
 import yaml
 
-from rosemary.core.cards import CardIssue, validate_document
+from rosemary.core.cards import CardIssue, is_embed_document, validate_document
 from rosemary.core.storage import GuildStorage
 from rosemary.core.v2_convert import _HEX_RE, ThemeError, convert_card_entry
 from rosemary.ui.theme import Theme
@@ -113,7 +113,13 @@ def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
     for key, entry in cards_section.items():
         if not isinstance(key, str) or not key:
             raise ThemeError([CardIssue("theme_cards_shape")])
-        cards[key] = convert_card_entry(key, entry)
+        from rosemary.core.embed_convert import convert_embed_entry, is_embed_entry
+
+        if is_embed_entry(entry):
+            cards[key] = convert_embed_entry(key, entry)
+        else:
+            cards[key] = convert_card_entry(key, entry)
+            cards[key]["kind"] = "v2"
         _validate_card_colors(key, cards[key], theme)
     theme.cards = cards
 
@@ -158,6 +164,23 @@ def _validate_card_colors(key: str, doc: dict[str, Any], theme: RosemaryTheme) -
                 if found is not None:
                     return found
         return None
+
+    if doc.get("kind") == "embed":
+        # Embed docs: only the embed color token needs palette validation;
+        # layout/limits were already checked by convert_embed_entry.
+        color = (doc.get("embed") or {}).get("color")
+        if (
+            isinstance(color, str)
+            and not _HEX_RE.match(color)
+            and color not in theme.colors
+        ):
+            raise ThemeError(
+                [
+                    CardIssue("theme_card_invalid", (("key", key),)),
+                    CardIssue("color_unknown", (("color", color),)),
+                ]
+            )
+        return
 
     unknown = visit(doc.get("blocks", []))
     if unknown is not None:
@@ -407,6 +430,10 @@ async def card_document(bot, guild_id: int | None, key: str) -> dict[str, Any] |
     doc = cards.get(key) if isinstance(cards, dict) else None
     if doc is None:
         return None
+    if is_embed_document(doc):
+        # Embed docs carry no V2 blocks; shape and limits were fully
+        # validated at load (convert_embed_entry) — pass them through.
+        return doc
     if validate_document(doc, draft=True):
         log.warning(
             "Themed card %s in %r is invalid; using default",

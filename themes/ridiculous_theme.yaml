@@ -119,6 +119,37 @@ cards:
         #   label: "❓ Duvidas existenciais"
         #   custom_id: "cardact:open_ticket:duvidas"
 
+  # O MESMO /sobre, mas no formato EMBED clássico — os dois formatos
+  # coexistem por card; o tema escolhe. Troque as chaves abaixo para ver:
+  # (este exemplo fica desativado porque uma key só pode ter um documento.)
+  # about.card:
+  #   embed:
+  #     title: "🎪 {clown} O CIRCO CHEGOU"
+  #     description: "Bem-vindo ao servidor mais **ridículo** do Discord™.\nVersão {version}, ping {ms} ou menos (mentira)."
+  #     color: "#ff00ff"
+  #     thumbnail: "https://http.cat/404"
+  #     image: "https://http.cat/100"
+  #     footer: "cirque du rosemary · {server}"
+  #     author: "Mestre de Cerimônias"
+  #     fields:
+  #       - { name: "Humor", value: "{fire} em chamas", inline: true }
+  #       - { name: "Convidador", value: "{@inviter}", inline: true }
+  #   buttons:
+  #     - label: "▶️ YouTube: never gonna give you up"
+  #       url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  #     - label: "🎪 ABRIR TICKET"
+  #       action: open_ticket        # ← ação real do bot, no embed!
+  #       id: "circus_ticket"
+
+  # Exemplo ativo de embed num card menos visível: o banner de Convite
+  # (welcome.card) — descomente para testar no vivo.
+  # welcome.card:
+  #   embed:
+  #     title: "{party} CIRCO: novo palhaço!"
+  #     description: "{user} entrou. Diga oi ou seja devorado pelo {alien}."
+  #     color: "#00ff00"
+  #     thumbnail: "{user_avatar}"
+
 # ── Pings por card ────────────────────────────────────────────────────────
 pings:
   about.card: false

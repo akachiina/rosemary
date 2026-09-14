@@ -148,7 +148,7 @@ def _require(
         issues.append(CardIssue(code, tuple(params.items())))
 
 
-def _convert_button(
+def convert_button(
     node: dict[str, Any], issues: list[CardIssue], where: str
 ) -> dict[str, Any] | None:
     """One raw button -> internal button dict (label/url/action/style)."""
@@ -193,7 +193,7 @@ def _convert_row(
         if not isinstance(child, dict) or _component_type(child) != TYPE_BUTTON:
             issues.append(CardIssue("theme_row_button", (("where", where),)))
             continue
-        converted = _convert_button(child, issues, where)
+        converted = convert_button(child, issues, where)
         if converted is not None:
             buttons.append(converted)
     return {"type": "row", "buttons": buttons}
@@ -221,7 +221,7 @@ def _convert_accessory(
         url = media.get("url") if isinstance(media, dict) else None
         return {"type": "thumbnail", "url": url if isinstance(url, str) else ""}
     if kind == TYPE_BUTTON:
-        converted = _convert_button(node, issues, where)
+        converted = convert_button(node, issues, where)
         if converted is None:
             return None
         url = converted.get("url")

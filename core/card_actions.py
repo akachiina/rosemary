@@ -51,7 +51,10 @@ def parse_custom_id(custom_id: str) -> tuple[str, str, str] | None:
 
 
 async def iter_action_buttons(bot, guild_id: int):
-    """Yield ``(card_key, button)`` for every action button in themed docs."""
+    """Yield ``(card_key, button)`` for every action button in themed docs.
+
+    Covers both card forms: V2 docs (rows + section accessories) and embed
+    docs (classic ``buttons:`` list beside the embed)."""
     from rosemary.core.themes import theme_store
 
     store = theme_store(bot)
@@ -66,6 +69,11 @@ async def iter_action_buttons(bot, guild_id: int):
             if key in seen or not isinstance(doc, dict):
                 continue
             seen.add(key)
+            if doc.get("kind") == "embed":
+                for button in doc.get("buttons", []) or []:
+                    if isinstance(button, dict) and button.get("action") in ACTIONS:
+                        yield key, button
+                continue
             for block in _walk_blocks(doc.get("blocks")):
                 for button in block.get("buttons", []) or []:
                     if isinstance(button, dict) and button.get("action") in ACTIONS:

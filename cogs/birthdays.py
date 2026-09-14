@@ -111,18 +111,20 @@ class BirthdayCog(commands.Cog):
                 "server": guild.name,
                 "count": len(celebrants),
             }
-            from rosemary.core.card_service import render_card_message
+            from rosemary.core.card_service import CardPayload, render_card_message
 
-            view, _allowed = await render_card_message(
+            payload, _allowed = await render_card_message(
                 self.bot, guild.id, "birthdays.announce", variables
             )
-            if view is None:
+            if payload is None:
                 text = await maybe_text(self.bot, guild.id, "birthdays.announce", **variables)
-                view = await self._default_card(guild.id, text, variables)
+                payload = CardPayload(
+                    view=await self._default_card(guild.id, text, variables)
+                )
             from rosemary.core.mentions import allowed_for_ids
 
             await channel.send(
-                view=view,
+                **payload.message_kwargs(),
                 allowed_mentions=await allowed_for_ids(
                     self.bot, guild.id, "birthdays.announce", user_ids=[user_id],
                 ),
@@ -248,13 +250,13 @@ class BirthdayCog(commands.Cog):
             blocks.append("\n".join(lines))
 
         body = "\n\n".join(blocks) or await t(ctx.guild_id, "birthdays.list_empty")
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot, ctx.guild_id, "birthdays.list", {"body": body}
         )
-        if view is None:
+        if payload is None:
             theme = self.bot.theme
             view = DesignerView(store=False)
             view.add_item(
@@ -266,7 +268,8 @@ class BirthdayCog(commands.Cog):
                     TextDisplay(body),
                 )
             )
-        await ctx.respond(view=view, ephemeral=True)
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @birthday_group.command(name="clear")
     async def clear_birthday(self, ctx: discord.ApplicationContext) -> None:

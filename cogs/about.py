@@ -33,13 +33,13 @@ class AboutCog(commands.Cog):
             channel = await get_setting(self.bot.storage, ctx.guild_id, "updater.channel")
         else:
             channel = "stable"
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
 
         variables = {"version": __version__, "channel": channel}
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot, ctx.guild_id, "about.card", variables
         )
-        if view is None:
+        if payload is None:
             # Sections require an accessory (Thumbnail/Button); plain text
             # must use TextDisplay directly to keep the message valid.
             container = designer_container(
@@ -57,4 +57,5 @@ class AboutCog(commands.Cog):
             )
             view = DesignerView(store=False)
             view.add_item(container)
-        await ctx.respond(view=view)
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs())

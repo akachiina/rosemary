@@ -123,23 +123,39 @@ class TicketsCog(commands.Cog):
         if trace:
             from rosemary.core.card_service import render_card_message
 
-            view, _allowed = await render_card_message(
+            payload, _allowed = await render_card_message(
                 self.bot, guild_id, "tickets.panel"
             )
         else:
+            from rosemary.core.card_service import CardPayload
+
+            payload = None
             view = await maybe_view(self.bot, guild_id, "tickets.panel")
-        if view is None:
+            if view is not None:
+                payload = CardPayload(view=view)
+        if payload is None:
             view = await self._build_panel_view(guild_id)
             view.add_item(await self._panel_select_row(guild_id))
-        elif not await _themed_panel_has_open_buttons(self.bot, guild_id):
-            view.add_item(await self._panel_select_row(guild_id))
-        return view
+            from rosemary.core.card_service import CardPayload as _Payload
+
+            return _Payload(view=view)
+        if payload.embed is not None:
+            # Embed form: no V2 layout — the type picker rides as classic rows.
+            picker = TicketPanelView(self.bot, guild_id)
+            extra = await picker.open_row()
+            panel_view = payload.view or discord.ui.View(timeout=None)
+            for item in extra.children:
+                panel_view.add_item(item)
+            return CardPayload(embed=payload.embed, view=panel_view)
+        if not await _themed_panel_has_open_buttons(self.bot, guild_id):
+            payload.view.add_item(await self._panel_select_row(guild_id))
+        return payload
 
     async def _post_panel(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
         from rosemary.core.mentions import allowed_for_ids
 
         message = await channel.send(
-            view=await self._panel_view(guild.id, trace=True),
+            **(await self._panel_view(guild.id, trace=True)).message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.panel"),
         )
         await self.store.set_panel(guild.id, message.id)
@@ -156,11 +172,11 @@ class TicketsCog(commands.Cog):
         channel = await self._panel_channel(guild) if guild else None
         if guild is None or channel is None:
             return
-        view = await self._panel_view(guild_id)
+        payload = await self._panel_view(guild_id)
         panel_id = await self.store.get_panel(guild_id)
         if panel_id is not None:
             try:
-                await channel.get_partial_message(panel_id).edit(view=view)
+                await channel.get_partial_message(panel_id).edit(**payload.message_kwargs())
                 return
             except (discord.NotFound, discord.HTTPException):
                 pass  # message gone — re-post below
@@ -273,20 +289,30 @@ class TicketsCog(commands.Cog):
             "user": owner.mention,
             "type": await self._type_label(guild.id, ticket_type),
         }
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
 
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot, guild.id, "tickets.created", variables
         )
-        if view is None:
+        actions = TicketActionsView(self.bot, guild.id, channel.id).action_row()
+        if payload is None:
             t = self.bot.translator.t
-            view = await self._intro_view(
-                guild.id,
-                await t(guild.id, "tickets.created.text", **variables),
+            payload = CardPayload(
+                view=await self._intro_view(
+                    guild.id,
+                    await t(guild.id, "tickets.created.text", **variables),
+                )
             )
-        view.add_item(TicketActionsView(self.bot, guild.id, channel.id).action_row())
+        if payload.embed is not None:
+            # Embed form has no V2 layout; the action row rides as classic view.
+            actions_view = payload.view or discord.ui.View(timeout=None)
+            for item in actions.children:
+                actions_view.add_item(item)
+            payload = CardPayload(embed=payload.embed, view=actions_view)
+        else:
+            payload.view.add_item(actions)
         await channel.send(
-            view=view,
+            **payload.message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.created"),
         )
 
@@ -452,11 +478,17 @@ class TicketsCog(commands.Cog):
 async def _themed_panel_has_open_buttons(bot, guild_id: int) -> bool:
     """Whether the active theme's ``tickets.panel`` card defines its own
     ``open_ticket`` action buttons (select picker becomes redundant)."""
+    from rosemary.core.cards import is_embed_document
     from rosemary.core.themes import card_document
 
     doc = await card_document(bot, guild_id, "tickets.panel")
     if not isinstance(doc, dict):
         return False
+    if is_embed_document(doc):
+        return any(
+            isinstance(button, dict) and button.get("action") == "open_ticket"
+            for button in doc.get("buttons", []) or []
+        )
 
     def visit(blocks):
         for block in blocks:

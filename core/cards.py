@@ -399,6 +399,25 @@ def document_mention_ids(
                 visit(item)
 
     visit(doc.get("blocks", []))
+    if is_embed_document(doc):
+        # Embed form: the same fields the renderer fills as text.
+        raw = doc.get("embed") or {}
+        for path in _EMBED_TEXT_PATHS:
+            node = raw
+            for part in path:
+                node = node.get(part) if isinstance(node, dict) else None
+            if isinstance(node, str) and "{@" in node:
+                _text, collected = safe_format_mentions(node, mapping)
+                for kind, found_id in collected.values():
+                    (roles if kind == "role" else users).append(found_id)
+        for field in raw.get("fields") or []:
+            if isinstance(field, dict):
+                for key in ("name", "value"):
+                    value = field.get(key)
+                    if isinstance(value, str) and "{@" in value:
+                        _text, collected = safe_format_mentions(value, mapping)
+                        for kind, found_id in collected.values():
+                            (roles if kind == "role" else users).append(found_id)
     return list(dict.fromkeys(users)), list(dict.fromkeys(roles))
 
 
@@ -870,6 +889,150 @@ def _build_section(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -
     else:
         item = discord.ui.Thumbnail(_fill(accessory.get("url", ""), mapping))
     return Section(*children, accessory=item)
+
+
+# -- embed documents ---------------------------------------------------------
+
+#: Placeholder-bearing string fields of an embed doc, for mention walking and
+#: length checks: (path into doc["embed"], kind).
+_EMBED_TEXT_PATHS = (
+    ("title",),
+    ("description",),
+    ("footer", "text"),
+    ("author", "name"),
+)
+
+
+def is_embed_document(doc: dict[str, Any]) -> bool:
+    """Whether ``doc`` is an embed-form card (``kind: embed``)."""
+    return isinstance(doc, dict) and doc.get("kind") == "embed"
+
+
+def resolve_embed(
+    doc: dict[str, Any], theme: Any, mapping: dict[str, Any]
+) -> tuple[discord.Embed, list[dict[str, Any]]]:
+    """Resolve one embed document: ``(discord.Embed, buttons)``.
+
+    Placeholder resolution uses the same ``safe_format`` as V2 — theme emojis
+    as defaults, caller variables win, unknown names stay visible. ``{@name}``
+    mention fields resolve like V2 too (see :func:`resolve_mention_fields`)
+    so pings-as-content keep working inside embeds.
+    """
+    from rosemary.core.embed_convert import (
+        DESCRIPTION_MAX,
+        FIELD_VALUE_MAX,
+        TITLE_MAX,
+        TOTAL_MAX,
+    )
+
+    raw = doc.get("embed") or {}
+    resolved = resolve_mention_fields({"blocks": [raw]}, mapping)["blocks"][0]
+
+    def fill(value: Any) -> str:
+        return safe_format(str(value), mapping) if isinstance(value, str) else ""
+
+    embed = discord.Embed()
+    if resolved.get("title"):
+        embed.title = fill(resolved["title"])[:TITLE_MAX]
+    if resolved.get("description"):
+        embed.description = fill(resolved["description"])[:DESCRIPTION_MAX]
+    if resolved.get("url"):
+        embed.url = fill(resolved["url"])
+    color_token = resolved.get("color")
+    if isinstance(color_token, str) and color_token.strip():
+        token = color_token.strip()
+        if _HEX_COLOR_RE.fullmatch(token):
+            embed.colour = discord.Colour(int(token.lstrip("#"), 16))
+        else:
+            try:
+                embed.colour = theme.color(token)
+            except KeyError as exc:
+                raise CardsError(
+                    [CardIssue("color_unknown", (("color", token),))]
+                ) from exc
+    footer = resolved.get("footer") or {}
+    if isinstance(footer, dict) and (footer.get("text") or footer.get("icon_url")):
+        embed.set_footer(
+            text=fill(footer.get("text"))[:2048] or None,
+            icon_url=fill(footer.get("icon_url")) or None,
+        )
+    author = resolved.get("author") or {}
+    if isinstance(author, dict) and (author.get("name") or author.get("icon_url")):
+        embed.set_author(
+            name=fill(author.get("name"))[:256] or "\u200b",
+            icon_url=fill(author.get("icon_url")) or None,
+        )
+    if resolved.get("timestamp"):
+        from datetime import UTC, datetime
+
+        embed.timestamp = datetime.fromtimestamp(int(resolved["timestamp"]), tz=UTC)
+    image = (resolved.get("image") or {}).get("url")
+    if image:
+        embed.set_image(url=fill(image))
+    thumbnail = (resolved.get("thumbnail") or {}).get("url")
+    if thumbnail:
+        embed.set_thumbnail(url=fill(thumbnail))
+    for field in resolved.get("fields") or []:
+        if not isinstance(field, dict):
+            continue
+        embed.add_field(
+            name=fill(field.get("name"))[:256] or "\u200b",
+            value=fill(field.get("value"))[:FIELD_VALUE_MAX] or "\u200b",
+            inline=bool(field.get("inline")),
+        )
+    total = len(embed.title or "") + len(embed.description or "")
+    total += sum(len(f.name) + len(f.value) for f in embed.fields)
+    total += len(embed.footer.text or "") if embed.footer else 0
+    total += len(embed.author.name or "") if embed.author else 0
+    if total > TOTAL_MAX:
+        raise CardsError(
+            [
+                CardIssue(
+                    "embed_too_long", (("field", "total"), ("chars", total), ("max", TOTAL_MAX))
+                )
+            ]
+        )
+    return embed, list(doc.get("buttons") or [])
+
+
+def _build_embed_button(
+    button: dict[str, Any], mapping: dict[str, Any], card_key: str | None
+) -> discord.ui.Button:
+    """One classic-row button for an embed card (link or action)."""
+    from rosemary.core.card_actions import custom_id_for
+
+    if button.get("action") is not None:
+        return discord.ui.Button(
+            style=discord.ButtonStyle.primary,
+            label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "\u2022",
+            custom_id=custom_id_for(card_key or "", str(button.get("id", ""))),
+            emoji=_fill(button.get("emoji", ""), mapping) or None,
+        )
+    return discord.ui.Button(
+        style=discord.ButtonStyle.link,
+        label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "\u2022",
+        url=_fill(button.get("url", ""), mapping),
+    )
+
+
+def build_embed_view(
+    buttons: list[dict[str, Any]],
+    mapping: dict[str, Any],
+    card_key: str | None,
+    *,
+    owner_id: int | None = None,
+) -> discord.ui.View | None:
+    """Classic ActionRow view carrying an embed card's buttons (or ``None``)."""
+    if not buttons:
+        return None
+    view = discord.ui.View(timeout=None)
+    for button in buttons:
+        if isinstance(button, dict):
+            view.add_item(_build_embed_button(button, mapping, card_key))
+    from rosemary.core.card_actions import bind_action_callbacks
+
+    bind_action_callbacks(view.children)
+    return view
 
 
 def _build_container(

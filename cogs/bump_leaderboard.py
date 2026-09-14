@@ -200,7 +200,7 @@ class BumpLeaderboardCog(commands.Cog):
         )
         if override is not None:
             await channel.send(
-                view=override,
+                **override.message_kwargs(),
                 allowed_mentions=await allowed_for_ids(self.bot, guild.id, "bump.no_bumps"),
             )
             return
@@ -581,12 +581,12 @@ class BumpLeaderboardCog(commands.Cog):
         )
 
         body = "\n\n".join(lines)
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import CardPayload, render_card_message
 
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot, guild.id, "bump.stats", {"title": stats_title, "body": body}
         )
-        if view is None:
+        if payload is None:
             from rosemary.ui.containers import TextDisplay, designer_container
 
             view = DesignerView(store=False)
@@ -597,7 +597,8 @@ class BumpLeaderboardCog(commands.Cog):
                     TextDisplay(body),
                 )
             )
-        await ctx.respond(view=view, ephemeral=True)
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="test_bump_leaderboard",

@@ -11,7 +11,7 @@ from __future__ import annotations
 import discord
 from discord.ext import commands
 
-from rosemary.core.card_service import render_card_message
+from rosemary.core.card_service import CardPayload, render_card_message
 from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
 
@@ -30,10 +30,10 @@ class UtilityCog(commands.Cog):
         """Show the gateway latency."""
         latency = getattr(self.bot, "latency", None)
         ms = f"{latency * 1000:.0f}" if latency is not None else "-"
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot, ctx.guild_id, "utility.ping", {"ms": ms}
         )
-        if view is None:
+        if payload is None:
             view = DesignerView(store=False)
             view.add_item(
                 designer_container(
@@ -49,7 +49,8 @@ class UtilityCog(commands.Cog):
                     ),
                 )
             )
-        await ctx.respond(view=view, ephemeral=True)
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="serverinfo",
@@ -89,10 +90,10 @@ class UtilityCog(commands.Cog):
             "title": title,
             "body": body,
         }
-        view, _allowed = await render_card_message(
+        payload, _allowed = await render_card_message(
             self.bot, ctx.guild_id, "utility.serverinfo", variables
         )
-        if view is None:
+        if payload is None:
             view = DesignerView(store=False)
             view.add_item(
                 designer_container(
@@ -101,4 +102,5 @@ class UtilityCog(commands.Cog):
                     TextDisplay(body),
                 )
             )
-        await ctx.respond(view=view, ephemeral=True)
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)

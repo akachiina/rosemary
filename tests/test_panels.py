@@ -99,12 +99,11 @@ async def test_render_card_message_uses_active_theme_emojis(tmp_path):
     bot.guilds = [bot.guild]
     await bot._theme_store.set_active(1, "cute")
     await preload_themes(bot)
-
-    view, _allowed = await render_card_message(bot, 1, "about.card", {})
-    assert view is not None
+    payload, _allowed = await render_card_message(bot, 1, "about.card", {})
+    assert payload is not None
     texts = [
         item.content
-        for item in _walk(view.children)
+        for item in _walk(payload.view.children)
         if isinstance(item, discord.ui.TextDisplay)
     ]
     assert any("\U0001f921" in t for t in texts), texts
