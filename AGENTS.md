@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Rosemary — a modular, multilingual Discord bot for multiple servers, built on **py-cord 2.8.1**. All user-facing strings are Portuguese (pt-BR) or English (en-US), resolved via i18n keys. No embeds anywhere — everything visual is Components V2.
+Rosemary — a modular, multilingual Discord bot for multiple servers, built on **py-cord 2.8.1**. All user-facing strings are Portuguese (pt-BR) or English (en-US), resolved via i18n keys. The built-in visual is Components V2 everywhere; classic embeds exist only as a **per-card theme alternative** (see Themes — the default look stays V2).
 
 ## Setup / run
 
@@ -9,6 +9,7 @@ Rosemary — a modular, multilingual Discord bot for multiple servers, built on 
 - `pyproject.toml` (ruff + pytest config) lives in the **parent** repo and is NOT inside this repo.
 - Token comes from `.env` (copy `.env.example`); `.env`, `data/`, `venv/`, `*.log` are git-ignored.
 - Run: `python bot.py` from inside this directory, or `python -m rosemary` from the parent. `bot.py`/`__main__.py` bootstrap `sys.path` with the repo root (`# noqa: E402` on the imports after — keep that pattern). Paths to `data/`, `language/`, `.env`, `theme.yaml` are resolved from `__file__`, never CWD.
+- **Commit messages carry no AI attribution footer** — the `Generated with Codebuff` / `Co-Authored-By: Codebuff` trailer was stripped from existing commits at the user's request; do not re-add it to new commits.
 
 ## Verify
 
@@ -89,5 +90,5 @@ Rosemary — a modular, multilingual Discord bot for multiple servers, built on 
 - `cogs/moderation.py` **intentionally omits `from __future__ import annotations`** — py-cord inspects slash-command annotations with `inspect.signature` and stringified annotations break option parsing. Do not add it back. (Other modules do use it.) `tests/test_commands.py` guards this.
 - **Moderation durations are `timedelta | None`**: ban/kick/warn always pass `None`. Never call `TimeParser.format_duration(duration)` unguarded outside mute-only branches, and `mute.success` requires `{duration}` — use the dedicated branch in `_execute_action`. `tests/test_moderation.py` runs all 4 actions × notify/silent against the real catalogs with `caplog` asserting zero format warnings.
 - `/settings` menu (`ui/settings_menu.py`) renders ROLE via role-select, CHANNEL via channel-select (all types), CATEGORY via channel-select filtered to `ChannelType.category`, BOOLEAN via buttons, INTEGER/STRING via modal, CHOICE via select. Keep that mapping when adding types.
-- Boost invite DMs are three messages: plain text, then a buttons-only `DesignerView` (persistent, `custom_id` unique per invite — never send that view with `content=`, V2 forbids it; `_edit` swaps in a TextDisplay instead), then the role-preview card. Other UI uses `DesignerView`/`designer_container` (Components V2). No embeds.
+- Boost invite DMs are three messages: plain text, then a buttons-only `DesignerView` (persistent, `custom_id` unique per invite — never send that view with `content=`, V2 forbids it; `_edit` swaps in a TextDisplay instead), then the role-preview card. Other UI uses `DesignerView`/`designer_container` (Components V2) — bot-authored code never builds an embed; embeds come only from a theme file's `cards:` entry (see Themes).
 - Never echo or commit the token (`.env`), and keep `data/` and `venv/` out of git.
