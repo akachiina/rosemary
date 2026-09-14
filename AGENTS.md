@@ -62,6 +62,7 @@ Rosemary -- a modular, multilingual Discord bot for multiple servers, built on *
 
 - `cogs/boost_roles.py` + `core/boost_roles.py` (`BoostRoleStore`): boost roles, invites, member panels. `cogs/bump_reminder.py` + `cogs/bump_leaderboard.py` + `core/bump.py` (`BumpStore`): weekly Disboard bump tracking. **Only Disboard is supported** (hardcoded bot ID in `bump_reminder.py`; mention it in copy).
 - `bump.schedule.*`: fixed daily open/close (defaults 06:00/23:00, overnight ranges OK) with open/close messages. Lock ownership (`schedule` vs `camping`) lives in the bump store -- the schedule always wins over anti-camping unlocks; enforcement is transition-only via a minute loop.
+- Bump reminder outage resilience is layered (`tests/test_bump_outage.py`): transient send failures (OSError/TimeoutError, e.g. DNS down) retry `SEND_RETRY_ATTEMPTS` times in `send_reminder`; `on_connect` runs a debounced recovery pass; the minute loop sweeps every guild as a guaranteed floor (`_sweep_guild`: pending reminder without a live task, lost camping lock). HTTP errors are never retried, and a live reminder/unlock task always wins over recovery (no double sends/unlocks).
 - These stores use `GuildStorage(use_defaults=False)` with their own filename to avoid leaking the `language` default.
 
 ## Ported features (from the legacy single-guild bot)

@@ -25,6 +25,17 @@ log = logging.getLogger(__name__)
 
 DISBOARD_BOT_ID = 302050872383242240
 
+#: Delay before a transient-send failure is retried, and how many attempts a
+#: single reminder gets. After the retries run out, the pending state stays in
+#: the store and reconnect recovery (or a restart) is the last resort.
+SEND_RETRY_DELAY = 30.0
+SEND_RETRY_ATTEMPTS = 3
+
+#: After a reconnect, wait briefly for channels to be cached again before
+#: running recovery. Multiple reconnect events that land inside the window
+#: coalesce into a single pass.
+RECONNECT_RECOVERY_DELAY = 5.0
+
 #: Language-neutral brand text present in every Disboard embed/card (its
 #: markdown footer linking to disboard.org), regardless of the locale.
 DISBOARD_MARKER = "disboard"
@@ -39,6 +50,7 @@ class BumpReminderCog(commands.Cog):
         self._reminder_tasks: dict[int, asyncio.Task] = {}
         self._unlock_tasks: dict[int, asyncio.Task] = {}
         self._started = False
+        self._recovery_task: asyncio.Task | None = None
 
     async def start(self) -> None:
         """Start per-guild recovery once per process.
@@ -59,7 +71,89 @@ class BumpReminderCog(commands.Cog):
             task.cancel()
         for task in self._unlock_tasks.values():
             task.cancel()
+        if self._recovery_task:
+            self._recovery_task.cancel()
         self._schedule_loop.cancel()
+
+    @commands.Cog.listener()
+    async def on_connect(self) -> None:
+        """Gateway (re)connected: recover pending reminders lost to an outage.
+
+        The boot path only runs once per process; an outage like "reminder task
+        fired while the network was down" leaves the pending state in the store
+        with nothing left to re-check it. ``on_resumed`` is intentionally not
+        bound too: a resumed session never disconnected at the HTTP layer, so it
+        carries no recovery signal the initial ``on_connect`` already covered.
+        """
+        await self._schedule_reconnect_recovery()
+
+    async def _schedule_reconnect_recovery(self) -> None:
+        """Coalesce reconnect events and run one delayed recovery pass."""
+        if self._recovery_task and not self._recovery_task.done():
+            return
+        self._recovery_task = asyncio.create_task(self._reconnect_recovery())
+
+    async def _reconnect_recovery(self) -> None:
+        try:
+            await self.bot.wait_until_ready()
+            await asyncio.sleep(RECONNECT_RECOVERY_DELAY)
+        except asyncio.CancelledError:
+            raise
+        for guild in list(self.bot.guilds):
+            try:
+                await self._check_pending_reminders(guild.id)
+            except Exception as exc:
+                log.error("Reconnect reminder recovery failed in %s: %s", guild.id, exc)
+            try:
+                await self._recover_lost_lock(guild.id)
+            except Exception as exc:
+                log.error("Reconnect lock recovery failed in %s: %s", guild.id, exc)
+
+    async def _sweep_guild(self, guild_id: int) -> None:
+        """Minute-cadence floor for outage recovery.
+
+        ``on_connect`` recovery is the fast path, but a reconnect can slip past
+        listener registration (during ``_setup``) or never fire when only the
+        HTTP layer was down. The sweep re-checks pending reminders (skipping
+        guilds whose reminder task is still alive, so it never races it) and
+        repairs lost camping locks, matching the loop's re-check-after-downtime
+        philosophy.
+        """
+        state = await self.store.get_reminder(guild_id)
+        if not state.get("reminder_sent", True) and not (
+            guild_id in self._reminder_tasks and not self._reminder_tasks[guild_id].done()
+        ):
+            await self._check_pending_reminders(guild_id)
+        await self._recover_lost_lock(guild_id)
+
+    async def _recover_lost_lock(self, guild_id: int) -> None:
+        """Re-apply an anti-camping lock whose unlock was lost to an outage.
+
+        The minute loop only acts on schedule locks (transition-only by design),
+        so a camping lock with no live unlock task needs this one-shot repair.
+        """
+        if not await self.store.is_channel_locked(guild_id):
+            return
+        if await self.store.get_lock_source(guild_id) != LOCK_CAMPING:
+            return
+        if guild_id in self._unlock_tasks and not self._unlock_tasks[guild_id].done():
+            return
+        state = await self.store.get_reminder(guild_id)
+        if state.get("reminder_sent", True):
+            # Nothing left to wait for: the schedule loop will re-lock at close
+            # time, and an open channel during open hours matches the schedule.
+            await self.unlock_channel(guild_id)
+            return
+        cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
+        last_bump = await self.store.get_last_bump_time(guild_id)
+        if not last_bump:
+            await self.unlock_channel(guild_id)
+            return
+        remaining = (last_bump + timedelta(seconds=cooldown) - datetime.now(UTC)).total_seconds()
+        if remaining <= 0:
+            await self.unlock_channel(guild_id)
+        else:
+            self._schedule_unlock(guild_id, remaining)
 
     @tasks.loop(minutes=1)
     async def _schedule_loop(self) -> None:
@@ -69,6 +163,10 @@ class BumpReminderCog(commands.Cog):
                 await self.check_schedule(guild)
             except Exception as exc:
                 log.error("Bump schedule check failed in %s: %s", guild.id, exc)
+            try:
+                await self._sweep_guild(guild.id)
+            except Exception as exc:
+                log.error("Bump sweep failed in %s: %s", guild.id, exc)
 
     @_schedule_loop.before_loop
     async def _schedule_before_loop(self) -> None:
@@ -291,7 +389,11 @@ class BumpReminderCog(commands.Cog):
             if not state.get("reminder_sent", True):
                 await self.send_reminder(guild_id)
 
-            if anti_camping:
+            # Only schedule the camping unlock once the reminder actually went
+            # out (or was already sent). On a send failure the retry inside
+            # send_reminder re-schedules it on success; scheduling here too
+            # would double-book the unlock.
+            if anti_camping and await self._reminder_delivered(guild_id):
                 unlock_delay = await get_setting(
                     self.bot.storage, guild_id, "bump.anti_camping.unlock_delay",
                 )
@@ -308,6 +410,10 @@ class BumpReminderCog(commands.Cog):
             log.error("Error in reminder task for %s: %s", guild_id, exc)
             if await self.store.is_channel_locked(guild_id):
                 await self.unlock_channel(guild_id)
+
+    async def _reminder_delivered(self, guild_id: int) -> bool:
+        state = await self.store.get_reminder(guild_id)
+        return bool(state.get("reminder_sent", True))
 
     async def _wait_and_unlock(self, guild_id: int, delay_seconds: float) -> None:
         try:
@@ -476,34 +582,84 @@ class BumpReminderCog(commands.Cog):
         try:
             from rosemary.core.mentions import allowed_for_ids
 
-            if content:
-                await channel.send(
-                    content,
-                    allowed_mentions=await allowed_for_ids(
-                        self.bot, guild_id, "bump.reminder",
-                        role_ids=[ping_role_id] if ping_role_id else [],
-                    ),
-                )
-            await channel.send(
-                **payload.message_kwargs(),
-                allowed_mentions=await allowed_for_ids(self.bot, guild_id, "bump.reminder"),
+            ping_allowed = await allowed_for_ids(
+                self.bot, guild_id, "bump.reminder",
+                role_ids=[ping_role_id] if ping_role_id else [],
             )
-            await self.store.mark_reminder_sent(guild_id)
-            await send_channel_log(
+            card_allowed = await allowed_for_ids(self.bot, guild_id, "bump.reminder")
+        except Exception as exc:
+            log.error("Failed to prepare bump reminder in %s: %s", guild_id, exc)
+            return
+
+        # A dropped connection surfaces here as an OSError (aiohttp's DNS/socket
+        # failures; asyncio.TimeoutError on stalls). Retry those briefly: the
+        # outage usually lasts seconds, and without a retry the reminder would
+        # be lost until a reconnect or restart re-runs recovery. Discord API
+        # errors (400s, 403s, rate limits) are real failures: do not retry.
+        content_sent = False
+        for attempt in range(1, SEND_RETRY_ATTEMPTS + 1):
+            try:
+                if content and not content_sent:
+                    await channel.send(content, allowed_mentions=ping_allowed)
+                    content_sent = True
+                await channel.send(
+                    **payload.message_kwargs(),
+                    allowed_mentions=card_allowed,
+                )
+                break
+            except discord.HTTPException as exc:
+                log.error("Failed to send bump reminder in %s: %s", guild_id, exc)
+                return
+            except (OSError, TimeoutError) as exc:
+                if attempt >= SEND_RETRY_ATTEMPTS:
+                    log.error(
+                        "Bump reminder in %s not delivered after %d attempts "
+                        "(%s); pending until reconnect/restart",
+                        guild_id,
+                        attempt,
+                        exc,
+                    )
+                    return
+                log.warning(
+                    "Bump reminder send failed in %s (attempt %d/%d): %s; retrying",
+                    guild_id,
+                    attempt,
+                    SEND_RETRY_ATTEMPTS,
+                    exc,
+                )
+                await asyncio.sleep(SEND_RETRY_DELAY)
+            except Exception as exc:
+                log.error("Failed to send bump reminder in %s: %s", guild_id, exc)
+                return
+
+        await self.store.mark_reminder_sent(guild_id)
+        unlock_tasks = getattr(self, "_unlock_tasks", {})
+        if (
+            await self.store.is_channel_locked(guild_id)
+            and await self.store.get_lock_source(guild_id) == LOCK_CAMPING
+            and (guild_id not in unlock_tasks or unlock_tasks[guild_id].done())
+        ):
+            # The reminder task died (e.g. it errored mid-outage) without
+            # booking the unlock. Recover it here so the channel does not stay
+            # locked for good.
+            unlock_delay = await get_setting(
+                self.bot.storage, guild_id, "bump.anti_camping.unlock_delay",
+            )
+            self._schedule_unlock(guild_id, unlock_delay)
+
+        await send_channel_log(
+            self.bot,
+            guild_id,
+            await self.bot.translator.t(guild_id, "bump.logs.reminder_sent.title"),
+            await log_description(
                 self.bot,
                 guild_id,
-                await self.bot.translator.t(guild_id, "bump.logs.reminder_sent.title"),
-                await log_description(
-                    self.bot,
-                    guild_id,
-                    "bump.logs.reminder_sent.description",
-                    channel=channel.mention,
-                ),
-                color="info",
-                card_key="bump.logs.reminder_sent.description",
-            )
-        except Exception as exc:
-            log.error("Failed to send bump reminder in %s: %s", guild_id, exc)
+                "bump.logs.reminder_sent.description",
+                channel=channel.mention,
+            ),
+            color="info",
+            card_key="bump.logs.reminder_sent.description",
+        )
 
     async def send_thank_you(self, guild_id: int, user_id: int) -> None:
         channel_id = await get_setting(self.bot.storage, guild_id, "bump.channel")
