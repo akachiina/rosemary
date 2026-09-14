@@ -1,7 +1,7 @@
 """debug.card_paths: every card send can trace its path + origin to the log.
 
 The trace hook lives in :func:`rosemary.core.card_service.render_card_message`
-— the single choke point every rich card send passes through. These tests pin:
+-- the single choke point every rich card send passes through. These tests pin:
 off by default, emits ``card.<key>`` + origin (theme name or default) when on,
 and delivery is delegated to :func:`core.debug.send_channel_log` (whose Discord
 side has its own tests in :mod:`tests.test_debug`).
@@ -125,7 +125,7 @@ async def test_trace_skipped_when_card_has_no_document(tmp_path, monkeypatch):
 
 
 def test_no_duplicate_top_level_catalog_keys():
-    """PyYAML silently keeps only the LAST duplicate top-level key — a
+    """PyYAML silently keeps only the LAST duplicate top-level key -- a
     second ``debug:`` block once made ``debug.trace.*`` vanish at runtime,
     so traces rendered raw keys (``debug.trace.title``)."""
     for lang in ("en-US", "pt-BR"):

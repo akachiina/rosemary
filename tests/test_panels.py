@@ -113,7 +113,7 @@ async def test_render_card_message_uses_active_theme_emojis(tmp_path):
 async def test_container_nested_action_buttons_match_dispatch(tmp_path):
     """Regression: _build_block only passed card_key to TOP-LEVEL rows, so
     buttons inside a container (type 17) got cardact::<id> while the boot
-    dispatch views expected cardact:tickets.panel::<id> — clicks died with
+    dispatch views expected cardact:tickets.panel::<id> -- clicks died with
     "the application did not respond" (live bug report)."""
     from rosemary.core.card_actions import sync_guild
     from rosemary.core.cards import maybe_view

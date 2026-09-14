@@ -3,7 +3,7 @@
 Attributes each join to the invite code that brought the member in (by
 diffing invite ``uses``), keeps per-inviter counters (regular/bonus/fake/left)
 and serves stats, ranking, personal links and admin tooling. Joins that happen
-while the bot is away cannot be attributed — members who joined before
+while the bot is away cannot be attributed -- members who joined before
 tracking started stay ``unknown``.
 
 Note: this file intentionally does NOT import ``from __future__ import
@@ -173,7 +173,7 @@ class InvitesCog(commands.Cog):
                 return
             inviter_id, code, status = await self._attribute(member, snapshots)
             # ``_attribute`` diffs the pre-join cache against ``snapshots``
-            # (which already include this join) — only NOW may the cache be
+            # (which already include this join) -- only NOW may the cache be
             # refreshed, or every future diff would be zero and every join
             # would attribute to ``unknown``.
             if snapshots is not None:
@@ -242,7 +242,8 @@ class InvitesCog(commands.Cog):
                     guild.id,
                     "invites.logs.join.description",
                     user=member.mention,
-                    code=code or "—",
+                    code=code
+                    or await self.bot.translator.t(guild.id, "invites.unknown"),
                     inviter=(
                         f"<@{inviter_id}>"
                         if inviter_id
@@ -425,7 +426,7 @@ class InvitesCog(commands.Cog):
         Override authors receive ``title``/``body`` plus the card-specific
         ``variables`` (see ``card.<key>.placeholders`` in the catalogs).
         Routes through :func:`render_card_message` so ``debug.card_paths``
-        traces these ephemeral cards too — they are theme-customizable, so
+        traces these ephemeral cards too -- they are theme-customizable, so
         admins need their paths."""
         from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container

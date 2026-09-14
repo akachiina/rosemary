@@ -383,7 +383,7 @@ class _BaseMenu(MenuView):
         """Return a small icon thumbnail for the role, if it has a custom icon.
 
         Thumbnails may only be used as a ``Section`` accessory, so callers must
-        pass the result to ``Section(..., accessory=thumbnail)`` — never add it
+        pass the result to ``Section(..., accessory=thumbnail)`` -- never add it
         as a bare container/section item.
         """
         if role.icon is not None:

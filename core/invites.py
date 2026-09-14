@@ -1,8 +1,8 @@
 """Invite tracking persistence and attribution helpers.
 
 Data lives per guild in its own JSON file (``data/<guild_id>/invites.json``).
-Per inviter four counters are kept — ``regular``, ``bonus``, ``fake`` and
-``left`` — and the public total follows the market-standard formula::
+Per inviter four counters are kept -- ``regular``, ``bonus``, ``fake`` and
+``left`` -- and the public total follows the market-standard formula::
 
     total = regular - left - fake + bonus
 

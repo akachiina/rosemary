@@ -1,5 +1,5 @@
 # Rosemary's built-in theme: the tokens ui/theme.yaml ships, now editable.
-# Copy this file, rename it, tweak values — or import modified copies per guild.
+# Copy this file, rename it, tweak values -- or import modified copies per guild.
 name: default
 
 colors:

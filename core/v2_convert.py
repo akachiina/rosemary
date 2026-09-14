@@ -2,7 +2,7 @@
 
 Theme files speak *exactly* the JSON shape Discord documents (type numbers and
 names both accepted), so admins can copy payloads straight from discord.dev.
-This module converts them once — at theme load/import — into the internal block
+This module converts them once -- at theme load/import -- into the internal block
 schema (:mod:`rosemary.core.cards`); everything downstream (validation,
 ``build_items``, placeholders, mentions) stays untouched.
 
@@ -90,7 +90,7 @@ def _stable_button_ids(card_key: str, blocks: list[dict[str, Any]]) -> None:
     """Give action buttons ids derived from content, not randomness.
 
     The posted message's buttons and the boot-registered persistent dispatch
-    views come from *separate* theme loads — a random id would never match,
+    views come from *separate* theme loads -- a random id would never match,
     silently killing every themed action button. Hashing
     ``(card_key, path, label, url)`` keeps ids stable across loads and
     restarts while still changing when the author edits the button.

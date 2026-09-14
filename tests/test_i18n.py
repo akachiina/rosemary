@@ -37,7 +37,7 @@ def test_no_boolean_keys():
     """YAML 1.1 parses unquoted on/off/yes/no/true/false as booleans.
 
     A boolean key flattens to e.g. ``cards.editor.mentions.true``, which no
-    code requests by name — ``t()`` then falls back to the raw key and the UI
+    code requests by name -- ``t()`` then falls back to the raw key and the UI
     renders it literally (the cards.editor.mentions.on/off bug).
     """
 

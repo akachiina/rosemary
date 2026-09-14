@@ -199,7 +199,7 @@ class BoostRolesCog(commands.Cog):
         await view.prepare()
         from rosemary.core.card_service import trace_card_path
 
-        # The menu heading is theme-customizable (card.boost.home) — trace it.
+        # The menu heading is theme-customizable (card.boost.home) -- trace it.
         await trace_card_path(self.bot, self._guild_id(ctx), "boost.home")
         await ctx.respond(view=view, ephemeral=True)
 

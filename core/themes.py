@@ -4,10 +4,10 @@ A theme is one YAML file (``cute_theme.yaml``) carrying the look & feel that
 :mod:`rosemary.ui.theme` already consumed (``colors``/``emojis``/``markdown``/
 ``styles``) plus two new optional sections:
 
-* ``cards:`` — per-card overrides keyed by card key (``about.card``), written
+* ``cards:`` -- per-card overrides keyed by card key (``about.card``), written
   in raw Discord Components V2 (see :mod:`rosemary.core.v2_convert`) or as a
   plain string shortcut for single-text cards;
-* ``pings:`` — per-card mention toggles (``true``/``false``), replacing the
+* ``pings:`` -- per-card mention toggles (``true``/``false``), replacing the
   old per-card editor toggle.
 
 Layout::
@@ -18,7 +18,7 @@ Layout::
 
 Resolution per guild: the active theme's ``cards``/``pings`` override the
 catalog defaults; look & feel falls back to the built-in theme for anything
-the file omits. Files are validated fully at load/import — an invalid theme is
+the file omits. Files are validated fully at load/import -- an invalid theme is
 rejected with :class:`ThemeError`, never breaks a send later.
 """
 
@@ -40,7 +40,7 @@ from rosemary.ui.theme import Theme
 log = logging.getLogger(__name__)
 
 #: Global themes shipped with the bot (resolved from the package root, like
-#: ``language/`` and ``data/`` — never from the CWD).
+#: ``language/`` and ``data/`` -- never from the CWD).
 THEMES_DIR = Path(__file__).resolve().parent / "themes"
 
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
@@ -73,7 +73,7 @@ def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
     """Parse and fully validate one theme YAML file.
 
     Raises :class:`ThemeError` on YAML errors, bad tokens or invalid card
-    documents — callers reject the theme instead of failing at send time.
+    documents -- callers reject the theme instead of failing at send time.
     """
     theme_name = name if name is not None else path.stem
     if not _NAME_RE.match(theme_name):
@@ -193,7 +193,7 @@ def _validate_card_colors(key: str, doc: dict[str, Any], theme: RosemaryTheme) -
                 CardIssue("color_unknown", (("color", unknown),)),
             ]
         )
-    # Full Discord layout validation (counts, nesting, urls...) — hex colors
+    # Full Discord layout validation (counts, nesting, urls...) -- hex colors
     # are self-contained, so the theme palette is not passed here.
     errors = validate_document(doc, draft=True)
     if errors:
@@ -244,7 +244,7 @@ class ThemeStore:
         )
 
     def _path_for(self, guild_id: int | None, name: str) -> Path | None:
-        """File for ``name`` — the guild's own file first, then global."""
+        """File for ``name`` -- the guild's own file first, then global."""
         if not _NAME_RE.match(name):
             return None
         if guild_id is not None:
@@ -402,7 +402,7 @@ def theme_for(bot, guild_id: int | None) -> Theme:
     """The guild's effective theme, synchronously (see :func:`preload_themes`).
 
     Falls back to the built-in theme when the guild has no active theme or its
-    snapshot is cold — a cold snapshot means the built-in look until the next
+    snapshot is cold -- a cold snapshot means the built-in look until the next
     preload, never a broken send.
     """
     if guild_id is None:
@@ -419,7 +419,7 @@ async def card_document(bot, guild_id: int | None, key: str) -> dict[str, Any] |
     """The guild's themed override document for ``key`` (``None`` = default).
 
     Resolution: active theme file's ``cards.<key>`` -> ``None`` (the caller
-    keeps its own catalog/builder default). Validates lazily too — files were
+    keeps its own catalog/builder default). Validates lazily too -- files were
     already validated at load, this is belt-and-braces against hand edits.
     """
     if guild_id is None:
@@ -432,7 +432,7 @@ async def card_document(bot, guild_id: int | None, key: str) -> dict[str, Any] |
         return None
     if is_embed_document(doc):
         # Embed docs carry no V2 blocks; shape and limits were fully
-        # validated at load (convert_embed_entry) — pass them through.
+        # validated at load (convert_embed_entry) -- pass them through.
         return doc
     if validate_document(doc, draft=True):
         log.warning(

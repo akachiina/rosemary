@@ -41,7 +41,7 @@ async def default_event_document(
     Layout: a section whose accessory is the member's avatar thumbnail, the
     emoji-decorated ``#`` title and body beside it, a divider and a footer
     (``-#`` markdown). Placeholders (``{user}``, ``{server}``...) stay
-    literal — this is a template. Theme emoji tokens resolve; unknown
+    literal -- this is a template. Theme emoji tokens resolve; unknown
     placeholders are preserved by :func:`rosemary.core.cards.safe_format`.
     """
     from rosemary.core.cards import safe_format

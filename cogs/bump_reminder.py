@@ -681,7 +681,7 @@ class BumpReminderCog(commands.Cog):
             return
 
         # Cooldown guard: a /bump response inside the cooldown window is always
-        # an error ("wait X hours") — a successful bump cannot happen earlier
+        # an error ("wait X hours") -- a successful bump cannot happen earlier
         # than Disboard's enforced cooldown. This filters error responses while
         # letting any-language success messages through.
         cooldown = await get_setting(self.bot.storage, guild.id, "bump.cooldown")

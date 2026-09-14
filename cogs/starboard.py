@@ -4,8 +4,8 @@ Reactions with the theme star emoji are counted (with an optional self-star
 rule and bot filter); once the configured threshold is reached the message is
 published as a V2 card whose accent color climbs through ``star_tier_*``
 theme styles. Edits are debounced per message; deleting an original removes
-its post. Nothing here is customizable through /customize — the card mirrors
-someone else's message — but every knob lives in /settings.
+its post. Nothing here is customizable through /customize -- the card mirrors
+someone else's message -- but every knob lives in /settings.
 """
 
 from __future__ import annotations

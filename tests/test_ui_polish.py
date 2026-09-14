@@ -168,7 +168,7 @@ def test_boost_log_fields_are_bold_labeled():
 
 
 def test_birthday_catalog_keys_match_spec():
-    """birthdays.announce is the customizable card key — catalogs follow."""
+    """birthdays.announce is the customizable card key -- catalogs follow."""
     for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
         with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)

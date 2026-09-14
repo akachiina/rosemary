@@ -8,12 +8,12 @@ mention behavior stays in one place instead of scattered ``channel.send`` calls.
 
 Modes:
 
-* ``none`` — never ping (default; logs, lists, starboard).
-* ``single`` — ping at most one user (thank-you, birthday, welcome).
-* ``winner_auto`` — ping the winner only on automatic posts; manual
+* ``none`` -- never ping (default; logs, lists, starboard).
+* ``single`` -- ping at most one user (thank-you, birthday, welcome).
+* ``winner_auto`` -- ping the winner only on automatic posts; manual
   ``/bump_leaderboard`` commands never ping (``source="command"``).
-* ``role`` — ping a role (bump reminder ``bump.ping_role``).
-* ``all`` — legacy opt-in: parse everything (explicit spam choice).
+* ``role`` -- ping a role (bump reminder ``bump.ping_role``).
+* ``all`` -- legacy opt-in: parse everything (explicit spam choice).
 
 The pings toggle is content-driven: only the ``<@id>``/``<@&id>`` tokens the
 resolved text actually contains may ping.
@@ -150,7 +150,7 @@ async def allowed_for_document(
     """``AllowedMentions`` for a card document rendered with ``mapping``.
 
     Parses the mention tokens the document resolves to (bodies and button
-    labels), so themed text decides who can ping — the position of
+    labels), so themed text decides who can ping -- the position of
     ``{@user}``/``{user}`` in the content is the admin's choice, not code's.
     """
     if silent or not theme_pings(bot, guild_id, key):

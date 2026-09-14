@@ -44,10 +44,10 @@ themes:
   reloaded: '{success} Theme files re-read from disk; panels refreshed.'
   remove_placeholder: Choose an imported theme to remove...
   removed: '{success} Theme **{theme}** removed.'
-  removed_active: '{success} Theme **{theme}** removed — back to the built-in default.'
+  removed_active: '{success} Theme **{theme}** removed -- back to the built-in default.'
   not_found: '{error} Theme not found.'
   rejected: '{error} Theme rejected: {reason}'
-  none_yet: '*No themes imported yet — attach a ``.yaml`` file to /themes to add one.*'
+  none_yet: '*No themes imported yet -- attach a ``.yaml`` file to /themes to add one.*'
   close: Close
   rejection_codes: 'Problems found: {codes}'
 general:
@@ -954,9 +954,9 @@ update:
     description: '[ADMIN] Update the bot'
 updater:
   error_fetch: '{error} Could not fetch updates from git.'
-  error_dirty: '{error} Working tree is dirty ({ahead} local commit(s)) — update refused.'
-  error_backup: '{error} Data backup failed — update aborted.'
-  error_reset: '{error} Git reset failed — check the bot logs.'
+  error_dirty: '{error} Working tree is dirty ({ahead} local commit(s)) -- update refused.'
+  error_backup: '{error} Data backup failed -- update aborted.'
+  error_reset: '{error} Git reset failed -- check the bot logs.'
   up_to_date: '{success} Already up to date.'
   confirm: '{warning} Update to **{target}**? Back up data, reset and restart?'
   confirm_button: Update and restart
@@ -1245,7 +1245,7 @@ invites:
     success: '{success} Recounted {codes} invite code(s).'
   codes:
     title: 'Invite codes'
-    line: '`{code}` — {uses} use(s) by {inviter}{label}'
+    line: '`{code}` -- {uses} use(s) by {inviter}{label}'
     empty: 'No invite codes found.'
   blacklist:
     added: '{success} Added {target} to the {kind} list.'

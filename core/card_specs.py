@@ -2,7 +2,7 @@
 
 Each entry can be overridden per guild through a theme file's ``cards:``
 section (see :mod:`rosemary.core.themes`); keys map to i18n labels under
-``card.<key>.title``. Adding a message here is all a feature needs to opt in —
+``card.<key>.title``. Adding a message here is all a feature needs to opt in --
 resolution, mentions and rendering are shared infrastructure.
 """
 
@@ -138,7 +138,7 @@ SHARED_EXTRA_LOGS = [
     "broadcast.logs.ended",
 ]
 
-#: Cards assembled in feature code that are now first-class CardSpecs —
+#: Cards assembled in feature code that are now first-class CardSpecs --
 #: "everything the bot sends is theme-customizable" (user mandate).
 CONTENT_CARDS = {
     "starboard.card": ("user", "user_name", "user_avatar", "stars", "title", "body", "image_url"),
@@ -153,7 +153,7 @@ CONTENT_CARDS = {
     "bump.stats": ("title", "body"),
     # Interactive menus expose only their heading block: selects and buttons
     # are code (Discord needs registered callbacks), so a theme can restyle
-    # the heading — color, title text, footer — but not generate components.
+    # the heading -- color, title text, footer -- but not generate components.
     "settings.title": (),
     "themes.title": (),
     "debug.title": (),

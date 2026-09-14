@@ -23,7 +23,7 @@ composites ``container``/``section``. Every text field supports placeholders:
 known names resolve from the caller-supplied variables plus theme emojis,
 unknown ones stay visible so admins can spot typos.
 
-Colors are *theme token names* (see ``ui/theme.yaml``), never raw hex — the
+Colors are *theme token names* (see ``ui/theme.yaml``), never raw hex -- the
 visual identity stays in one place. Rendering validates against Discord's V2
 limits first; an invalid stored document falls back to the feature default at
 the call site instead of breaking sends.
@@ -233,7 +233,7 @@ async def maybe_flat_text(bot, guild_id: int, key: str, **variables: Any) -> str
 
     Unlike :func:`maybe_text`, structural documents are flattened to their
     text bodies (link buttons as ``label (url)``), so a rich customization is
-    never silently ignored by text-only call sites — members still receive
+    never silently ignored by text-only call sites -- members still receive
     the customized copy, minus the layout.
     """
     doc = await _override_document(bot, guild_id, key)
@@ -346,7 +346,7 @@ def safe_format_mentions(
 ) -> tuple[str, dict[str, tuple[str, int]]]:
     """Substitute ``{name}`` and ``{@name}``, collecting resolved mentions.
 
-    ``{@name}`` resolves to the *same value* as ``{name}`` — it only marks the
+    ``{@name}`` resolves to the *same value* as ``{name}`` -- it only marks the
     substitution as a mention, so the renderer knows which ids the customized
     text actually contains. Returns ``(text, mentions)`` where ``mentions``
     maps the placeholder name to ``("user" | "role", id)`` parsed from the
@@ -380,7 +380,7 @@ def document_mention_ids(
     and button/accessory labels) and parses the Discord id each ``{@name}``
     resolves to. Order-preserving de-duplication, so a mention repeated in
     the text pings once. Fields without ``{@...}`` are skipped without any
-    regex work — the common case for un-customized cards.
+    regex work -- the common case for un-customized cards.
     """
     users: list[int] = []
     roles: list[int] = []
@@ -606,7 +606,7 @@ class _ValidationState:
             self.error("bad_url")
             return False
         # Placeholders like {user_avatar} resolve at send time; accept them
-        # (both spellings — {name} and the explicit {@name} mention form).
+        # (both spellings -- {name} and the explicit {@name} mention form).
         if _PLACEHOLDER_RE.search(url) or _MENTION_RE.search(url):
             return len(url) <= URL_MAX * 2
         if not _URL_RE.match(url) or len(url) > URL_MAX:
@@ -620,7 +620,7 @@ class _ValidationState:
         if not isinstance(color, str):
             self.error("color_unknown", color=color)
             return
-        # Raw hex ("#rrggbb" or "rrggbb") is always valid — theme files speak
+        # Raw hex ("#rrggbb" or "rrggbb") is always valid -- theme files speak
         # Discord's own format where accent colors are self-contained.
         if _HEX_COLOR_RE.fullmatch(color.strip()):
             return
@@ -797,7 +797,7 @@ def resolve_mention_fields(
     """Resolve ``{@name}`` fields to their values, returning the document.
 
     Returns the original object untouched when no ``{@...}`` field exists
-    (the common case — zero copying); otherwise a deep copy with every
+    (the common case -- zero copying); otherwise a deep copy with every
     ``{@name}`` replaced by the same value ``{name}`` would resolve to.
     Mention tokens in URLs are meaningless, but resolving them keeps the
     document renderer single-pass.
@@ -913,7 +913,7 @@ def resolve_embed(
 ) -> tuple[discord.Embed, list[dict[str, Any]]]:
     """Resolve one embed document: ``(discord.Embed, buttons)``.
 
-    Placeholder resolution uses the same ``safe_format`` as V2 — theme emojis
+    Placeholder resolution uses the same ``safe_format`` as V2 -- theme emojis
     as defaults, caller variables win, unknown names stay visible. ``{@name}``
     mention fields resolve like V2 too (see :func:`resolve_mention_fields`)
     so pings-as-content keep working inside embeds.

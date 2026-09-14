@@ -44,10 +44,10 @@ themes:
   reloaded: '{success} Arquivos de tema relidos do disco; painéis atualizados.'
   remove_placeholder: Escolha um tema importado para remover...
   removed: '{success} Tema **{theme}** removido.'
-  removed_active: '{success} Tema **{theme}** removido — de volta ao padrão embutido.'
+  removed_active: '{success} Tema **{theme}** removido -- de volta ao padrão embutido.'
   not_found: '{error} Tema não encontrado.'
   rejected: '{error} Tema rejeitado: {reason}'
-  none_yet: '*Nenhum tema importado ainda — anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
+  none_yet: '*Nenhum tema importado ainda -- anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
   close: Fechar
   rejection_codes: 'Problemas encontrados: {codes}'
 general:
@@ -954,9 +954,9 @@ update:
     description: '[ADMIN] Atualiza o bot'
 updater:
   error_fetch: '{error} Não foi possível buscar atualizações no git.'
-  error_dirty: '{error} Árvore suja ({ahead} commit(s) locais) — update recusado.'
-  error_backup: '{error} Backup dos dados falhou — update abortado.'
-  error_reset: '{error} Git reset falhou — veja os logs do bot.'
+  error_dirty: '{error} Árvore suja ({ahead} commit(s) locais) -- update recusado.'
+  error_backup: '{error} Backup dos dados falhou -- update abortado.'
+  error_reset: '{error} Git reset falhou -- veja os logs do bot.'
   up_to_date: '{success} Já está atualizado.'
   confirm: '{warning} Atualizar para **{target}**? Backup, reset e restart?'
   confirm_button: Atualizar e reiniciar
@@ -1245,7 +1245,7 @@ invites:
     success: '{success} {codes} código(s) recontados.'
   codes:
     title: 'Códigos de convite'
-    line: '`{code}` — {uses} uso(s) de {inviter}{label}'
+    line: '`{code}` -- {uses} uso(s) de {inviter}{label}'
     empty: 'Nenhum código de convite encontrado.'
   blacklist:
     added: '{success} {target} adicionado à lista {kind}.'

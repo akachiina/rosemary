@@ -1,8 +1,8 @@
 """Birthday tracking with a daily announcement card.
 
 Members register their date via /birthday (localized as /aniversario); a
-per-guild minute loop compares local time — resolved from the guild timezone
-setting — against ``birthdays.announce_time`` and posts one card per
+per-guild minute loop compares local time -- resolved from the guild timezone
+setting -- against ``birthdays.announce_time`` and posts one card per
 celebrant, granting the configured role for the day. The announcement is a
 customizable card (``birthdays.announce``) edited through /customize.
 """

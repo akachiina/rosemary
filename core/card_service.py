@@ -3,11 +3,11 @@
 This is the single pipeline every card send goes through:
 
 1. the guild's active theme file may override the card (raw Discord Components
-   V2 in the theme, converted at load — see :mod:`rosemary.core.v2_convert`);
+   V2 in the theme, converted at load -- see :mod:`rosemary.core.v2_convert`);
 2. otherwise the feature's own default applies: a registered builder, the seed
    map (:data:`SEED_PARTS_BY_KEY`) or plain ``card.<key>``/``<key>`` scalars.
 
-Rendering validates first and raises :class:`CardsError` on invalid content —
+Rendering validates first and raises :class:`CardsError` on invalid content --
 send sites treat that as "use the default message", so a bad theme can never
 break a send.
 """
@@ -39,7 +39,7 @@ log = logging.getLogger(__name__)
 #: Where each card's default copy lives outside ``card.<key>``. Most features
 #: render catalog text from their own section (``about.title``,
 #: ``bump.messages.thank_you_description``, ...), while ``card.<key>`` only
-#: carries labels — so the map points at the keys the send site really
+#: carries labels -- so the map points at the keys the send site really
 #: resolves. Entry: ``(container_color | None, heading_key | None, parts)``.
 #: A part is a catalog key, a literal template, or a ``(label_key, value_key)``
 #: tuple. Used when a theme overrides a card but the feature has no builder:
@@ -101,7 +101,7 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     "partnerships.audit": ("warning", "partnerships.audit_title", ("{body}",)),
     "moderation.warnings": ("brand", None, ("{title}", "{body}")),
     "bump.stats": (None, None, ("{title}", "{body}")),
-    # Interactive menus: only the heading block is theme-customizable —
+    # Interactive menus: only the heading block is theme-customizable --
     # selects/buttons are code (Discord needs registered callbacks).
     "settings.title": ("brand", "settings.title", ("{body}",)),
     "themes.title": ("brand", "themes.title", ("{body}",)),
@@ -117,7 +117,7 @@ class CardPayload:
     A theme may write any card as Components V2 (default) or as an embed
     (``cards.<key>.embed``). This bundle makes the two shapes interchangeable
     at every send site: ``embed`` is set only for embed cards, and ``view``
-    carries the V2 items — or the classic ActionRow holding an embed card's
+    carries the V2 items -- or the classic ActionRow holding an embed card's
     buttons. Send through :func:`send_card` instead of touching the fields.
     """
 
@@ -142,8 +142,8 @@ async def send_card(
 ):
     """Send a rendered card payload through ``target.send``.
 
-    Dispatches the right keyword for the payload shape — ``view=`` for V2,
-    ``embed=`` (+ classic button view) for embed cards — so call sites never
+    Dispatches the right keyword for the payload shape -- ``view=`` for V2,
+    ``embed=`` (+ classic button view) for embed cards -- so call sites never
     branch on the card form. Interaction responses use
     ``ctx.respond(**payload.message_kwargs(), ...)`` instead.
     """
@@ -265,7 +265,7 @@ async def render_document(
 ) -> discord.ui.DesignerView:
     """Render one validated document into a Components V2 view.
 
-    ``guild_id`` selects the theme used for emoji tokens and color names —
+    ``guild_id`` selects the theme used for emoji tokens and color names --
     the guild's active theme when known, the built-in one otherwise.
     ``CardsError`` is intentionally allowed to propagate so callers can show
     the structured issue instead of silently substituting another message.
@@ -297,7 +297,7 @@ async def render_card_message(
 ) -> tuple[CardPayload | None, discord.AllowedMentions]:
     """Render a card for a real send: ``(payload, allowed_mentions)``.
 
-    ``payload`` is a :class:`CardPayload` — a Components V2 ``DesignerView``
+    ``payload`` is a :class:`CardPayload` -- a Components V2 ``DesignerView``
     **or** an ``embed=``-ready bundle when the active theme writes the card
     in embed form. ``None`` only when the card resolves no document at all,
     in which case the caller falls back to its own default view. Otherwise
@@ -305,7 +305,7 @@ async def render_card_message(
     tokens the resolved text actually contains may ping, and only when the
     theme's pings toggle for the card is on (or the caller forces
     ``silent``). An invalid document renders ``None`` so the caller's default
-    path takes over — sends never break on themed content.
+    path takes over -- sends never break on themed content.
     """
     from rosemary.core.mentions import allowed_for_document
     from rosemary.core.themes import theme_for
@@ -383,7 +383,7 @@ async def menu_heading_items(
 ) -> list[discord.ui.ViewItem]:
     """Themed heading items for an interactive menu (empty = code default).
 
-    Menus are interactive: their selects and buttons live in code — Discord
+    Menus are interactive: their selects and buttons live in code -- Discord
     needs registered callbacks, so a theme file cannot generate them. What a
     theme *can* restyle is the heading card (``settings.title``,
     ``themes.title``, ``debug.title``, ``boost.home``/``boost.admin``). The

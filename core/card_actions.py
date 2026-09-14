@@ -1,7 +1,7 @@
 """Action buttons for customized cards (beyond plain links).
 
 A row/accessory button may carry ``action`` instead of ``url``. Only the
-closed registry below is allowed — arbitrary callbacks can never come from
+closed registry below is allowed -- arbitrary callbacks can never come from
 user-edited JSON. Persistent views are rebuilt from stored documents at boot
 and after every editor save, so action buttons survive restarts.
 """

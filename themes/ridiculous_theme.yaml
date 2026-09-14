@@ -1,10 +1,10 @@
-# ridiculous_theme.yaml — tema de teste, deliberadamente ridículo. 🤡
+# ridiculous_theme.yaml -- tema de teste, deliberadamente ridículo. 🤡
 #
 # Importe com: /temas anexando este arquivo (ou solte-o em themes/ e reinicie).
 # Depois rode /sobre e republique o painel de tickets para ver as cards novas.
 #
 # Formato: Discord Components V2 cru (números de tipo oficiais), convertido e
-# validado no load/import — tema inválido é rejeitado, nunca quebra um envio.
+# validado no load/import -- tema inválido é rejeitado, nunca quebra um envio.
 
 name: ridiculous_theme
 
@@ -48,7 +48,7 @@ cards:
         - type: 9                 # Section com thumbnail ao lado
           components:
             - type: 10
-              content: "{popcorn} Versão **{version}** — monitorando {channel}. *(*mentira)*"
+              content: "{popcorn} Versão **{version}** -- monitorando {channel}. *(*mentira)*"
           accessory:
             type: 11              # Thumbnail
             media:
@@ -57,7 +57,7 @@ cards:
           spacing: 2
           divider: true
         - type: 10
-          content: "{alien} {clown} {party} {tada} {fire} — escolha o seu humor."
+          content: "{alien} {clown} {party} {tada} {fire} -- escolha o seu humor."
 
     - type: 12                    # MediaGallery = "imagem pura" (2 de uma vez)
       items:
@@ -82,7 +82,7 @@ cards:
           url: "https://www.youtube.com/watch?v=QH2-TGUlwu4"
 
   # Painel de tickets reescrito com BOTÕES que abrem ticket de verdade
-  # (convenção cardact:open_ticket:<tipo> — os tipos são os do código).
+  # (convenção cardact:open_ticket:<tipo> -- os tipos são os do código).
   tickets.panel:
     - type: 17
       accent_color: "#ff00ff"
@@ -111,7 +111,7 @@ cards:
               style: 1
               label: "🚀 Boost do telhado"
               custom_id: "cardact:open_ticket:boost"
-        # ⚠️ Exemplo do que AINDA NÃO funciona (modularidade — veja conversa):
+        # ⚠️ Exemplo do que AINDA NÃO funciona (modularidade -- veja conversa):
         # um tipo NOVO precisa existir em TICKET_TYPES no código; senão o
         # clique responde "tipo desconhecido". Descomente para testar o erro:
         # - type: 2
@@ -119,7 +119,7 @@ cards:
         #   label: "❓ Duvidas existenciais"
         #   custom_id: "cardact:open_ticket:duvidas"
 
-  # O MESMO /sobre, mas no formato EMBED clássico — os dois formatos
+  # O MESMO /sobre, mas no formato EMBED clássico -- os dois formatos
   # coexistem por card; o tema escolhe. Troque as chaves abaixo para ver:
   # (este exemplo fica desativado porque uma key só pode ter um documento.)
   # about.card:
@@ -142,7 +142,7 @@ cards:
   #       id: "circus_ticket"
 
   # Exemplo ativo de embed num card menos visível: o banner de Convite
-  # (welcome.card) — descomente para testar no vivo.
+  # (welcome.card) -- descomente para testar no vivo.
   # welcome.card:
   #   embed:
   #     title: "{party} CIRCO: novo palhaço!"

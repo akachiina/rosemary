@@ -160,7 +160,7 @@ def samples_for(names) -> dict[str, Any]:
 def lint_placeholders(doc: dict, allowed: set[str]) -> list[tuple[str, str | None]]:
     """Unknown ``{placeholders}`` in a document with close-match suggestions.
 
-    Never blocks saving — unknown names render literally, so this is a hint
+    Never blocks saving -- unknown names render literally, so this is a hint
     for typos (e.g. ``{usre}`` → ``{user}``), not a validation error.
     """
     import difflib

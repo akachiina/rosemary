@@ -74,7 +74,7 @@ class TicketsCog(commands.Cog):
         if not await get_setting(self.bot.storage, guild.id, "tickets.enabled"):
             return
         # Persistent dispatch matches on item custom_ids, so the registered
-        # views must carry their rows — an item-less view leaves every
+        # views must carry their rows -- an item-less view leaves every
         # button/select dead after a restart.
         panel_view = TicketPanelView(self.bot, guild.id)
         panel_view.add_item(await self._panel_select_row(guild.id))
@@ -117,7 +117,7 @@ class TicketsCog(commands.Cog):
         """The full panel view: themed card (or catalog default) + picker.
 
         A themed panel that already carries ``open_ticket`` buttons replaces
-        the stock type picker — no duplicated controls. ``trace=True`` (real
+        the stock type picker -- no duplicated controls. ``trace=True`` (real
         channel sends) routes through :func:`render_card_message` so the
         ``debug.card_paths`` hook fires; internal repaints stay silent."""
         if trace:
@@ -140,7 +140,7 @@ class TicketsCog(commands.Cog):
 
             return _Payload(view=view)
         if payload.embed is not None:
-            # Embed form: no V2 layout — the type picker rides as classic rows.
+            # Embed form: no V2 layout -- the type picker rides as classic rows.
             picker = TicketPanelView(self.bot, guild_id)
             extra = await picker.open_row()
             panel_view = payload.view or discord.ui.View(timeout=None)
@@ -179,7 +179,7 @@ class TicketsCog(commands.Cog):
                 await channel.get_partial_message(panel_id).edit(**payload.message_kwargs())
                 return
             except (discord.NotFound, discord.HTTPException):
-                pass  # message gone — re-post below
+                pass  # message gone -- re-post below
         await self._post_panel(guild, channel)
 
     async def _build_panel_view(self, guild_id: int):

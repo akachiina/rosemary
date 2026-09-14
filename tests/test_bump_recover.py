@@ -2,7 +2,7 @@
 
 The bot must resend an overdue bump reminder after a restart (matching the old
 Alecrins bot). ``BumpReminderCog.__init__`` does not start the scheduled loops
-(only ``start()`` does — py-cord 2.8.1 never calls ``cog_load``), so the cog can
+(only ``start()`` does -- py-cord 2.8.1 never calls ``cog_load``), so the cog can
 be built directly with fakes.
 """
 
