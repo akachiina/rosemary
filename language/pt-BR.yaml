@@ -76,7 +76,7 @@ settings:
     boost: Cargos Boost
     bump: Disboard Bump
     events: Anúncios
-    starboard: Mural de Estrelas
+    starboard: Starboard
     birthdays: Aniversários
     invites: Convites
     tickets: Tickets
@@ -151,7 +151,7 @@ settings:
     description: Rastreia com qual convite cada membro entrou.
   invites.show_inviter:
     label: Mostrar Quem Convidou
-    description: Mostra quem convidou cada membro no cartão de boas-vindas.
+    description: Mostra quem convidou cada membro no card de boas-vindas.
   invites.track_leaves:
     label: Rastrear Saídas
     description: Desconta do convidador quando um convidado sai.
@@ -337,10 +337,10 @@ settings:
     label: Proteção anti-raid
     description: Atrasa boas-vindas quando muita gente entra de uma vez.
   starboard.enabled:
-    label: Mural ativado
-    description: Destaca mensagens populares no mural.
+    label: Starboard ativado
+    description: Destaca mensagens populares no Starboard.
   starboard.channel:
-    label: Canal do mural
+    label: Canal do Starboard
     description: Canal onde as mensagens destacadas são postadas.
   starboard.threshold:
     label: Limite de estrelas (1-25)
@@ -1499,7 +1499,7 @@ variables:
     description: Nome do servidor
   count:
     label: Contagem
-    description: Um número deste cartão
+    description: Um número deste card
   inviter:
     label: Quem convidou
     description: Menção de quem convidou
@@ -1514,7 +1514,7 @@ variables:
     description: Menção do membro
   mention:
     label: Menção
-    description: Ping deste cartão
+    description: Ping deste card
   moderator:
     label: Moderador
     description: Menção do moderador atuante
@@ -1558,14 +1558,14 @@ variables:
     label: Nome do cargo
     description: Nome do cargo
   guild:
-    label: Guilda
-    description: Nome da guilda
+    label: Servidor
+    description: Nome do servidor
   body:
     label: Corpo
-    description: Texto principal do cartão
+    description: Texto principal do card
   title:
     label: Título
-    description: Título do cartão
+    description: Título do card
   ping:
     label: Ping
     description: Texto do ping
@@ -1619,7 +1619,7 @@ variables:
     description: Posição no placar
   stars:
     label: Estrelas
-    description: Número de estrelas no post do mural
+    description: Número de estrelas no post do Starboard
   ms:
     label: Milissegundos
     description: Latência em milissegundos
@@ -1777,14 +1777,14 @@ card:
   # Cards construídos em código promovidos a CardSpecs (customizáveis por tema).
   starboard:
     card:
-      title: Post do mural de estrelas
+      title: Post do Starboard
       placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}"
   utility:
     ping:
-      title: Cartão de latência
+      title: Card de latência
       placeholders: '{{ms}}'
     serverinfo:
-      title: Cartão de info do servidor
+      title: Card de info do servidor
       placeholders: "{{server}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{created_at}}, {{title}}, {{body}}"
   themes:
     title:
@@ -1829,7 +1829,7 @@ card:
         title: 'DM: erro no convite'
         placeholders: '{{body}}'
     preview:
-      title: Cartão de prévia do cargo
+      title: Card de prévia do cargo
       placeholders: '{{count}}, {{max_members}}, {{owner}}, {{role_name}}'
     logs:
       register:
@@ -1983,7 +1983,7 @@ card:
           placeholders: '{{author}}, {{count}}, {{total}}, {{user}}'
   warn:
     dm:
-      title: DM de advertência
+      title: DM de warn
       placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   mute:
     dm:
@@ -1999,7 +1999,7 @@ card:
       placeholders: '{{guild}}, {{moderator}}, {{reason}}'
   moderation:
     warnings:
-      title: Lista de advertências
+      title: Lista de warns
       placeholders: '{{user}}, {{title}}, {{body}}'
     logs:
       ban:
@@ -2016,7 +2016,7 @@ card:
           placeholders: ''
       warn:
         description:
-          title: 'Log: membro advertido'
+          title: 'Log: warn aplicado'
           placeholders: ''
   cleaner:
     confirm:
@@ -2091,10 +2091,10 @@ card:
       placeholders: '{{user}}, {{server}}, {{count}}'
   tickets:
     panel:
-      title: Cartão do painel de tickets
+      title: Card do painel de tickets
       placeholders: ''
     created:
-      title: Cartão de abertura de ticket
+      title: Card de abertura de ticket
       placeholders: '{{user}}, {{type}}'
     logs:
       opened:
@@ -2174,10 +2174,10 @@ card:
       title: Ranking de convidadores
       placeholders: '{{title}}, {{body}}'
     stats:
-      title: Cartão de stats de convites
+      title: Card de stats de convites
       placeholders: '{{user}}, {{total}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{rank}}, {{title}}, {{body}}'
     personal:
-      title: Cartão de convite pessoal
+      title: Card de convite pessoal
       placeholders: '{{user}}, {{link}}, {{total}}, {{regular}}, {{bonus}}, {{title}}, {{body}}'
     invited_list:
       title: Lista de convidados
@@ -2186,7 +2186,7 @@ card:
       title: Stats de convites do servidor
       placeholders: '{{joins}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{title}}, {{body}}'
     invited_by:
-      title: Cartão de quem convidou
+      title: Card de quem convidou
       placeholders: '{{body}}, {{code}}, {{inviter}}, {{status}}, {{title}}, {{user}}, {{when}}'
     logs:
       join:
@@ -2211,7 +2211,7 @@ card:
           placeholders: '{{moderator}}'
   about:
     card:
-      title: Cartão sobre
+      title: Card sobre
       placeholders: ''
   settings:
     title:
@@ -2258,20 +2258,20 @@ events:
     body: '{user_name} foi banido do {server}.'
 starboard:
   enabled:
-    label: Ativar mural de estrelas
+    label: Ativar Starboard
     description: Destaca mensagens populares num quadro.
   channel:
-    label: Canal do mural
+    label: Canal do Starboard
     description: Onde as mensagens estreladas são postadas.
   threshold:
     label: Limite de estrelas
-    description: Estrelas necessárias para entrar no mural.
+    description: Estrelas necessárias para entrar no Starboard.
   self_star_counts:
     label: Auto-estrela conta
     description: Se a estrela do próprio autor conta.
   allow_bots:
     label: Permitir bots
-    description: Deixa mensagens de bots entrarem no mural.
+    description: Deixa mensagens de bots entrarem no Starboard.
   jump: Ir para a mensagem
   no_content: '*[Sem conteúdo de texto]*'
 birthdays:
@@ -2280,7 +2280,7 @@ birthdays:
     description: Anuncia os aniversariantes do dia.
   channel:
     label: Canal de aniversários
-    description: Canal do cartão de anúncio.
+    description: Canal do card de anúncio.
   role:
     label: Cargo de aniversariante
     description: Cargo concedido durante o dia.
