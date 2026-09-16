@@ -76,6 +76,7 @@ settings:
     boost: Boost Roles
     bump: Disboard Bump
     events: Announcements
+    audit: Event Log
     starboard: Starboard
     birthdays: Birthdays
     invites: Invites
@@ -336,6 +337,45 @@ settings:
   events.raid_protection:
     label: Raid protection
     description: Delay welcomes when many members join at once.
+  audit.enabled:
+    label: Event Log enabled
+    description: Enables the server event log (bans, messages, roles, voice).
+  audit.channel:
+    label: Event log channel
+    description: The channel where all logged events are announced.
+  audit.ban_enabled:
+    label: Notify when someone is banned
+    description: Logs bans, with moderator and reason when available.
+  audit.unban_enabled:
+    label: Notify when someone is unbanned
+    description: Logs ban removals.
+  audit.message_delete_enabled:
+    label: Notify when a message is deleted
+    description: Logs deleted messages with their original content.
+  audit.message_edit_enabled:
+    label: Notify when a message is edited
+    description: Logs edits with before and after in ```text``` blocks.
+  audit.nickname_enabled:
+    label: Notify when someone changes their nickname
+    description: Shows the old and new nickname.
+  audit.avatar_enabled:
+    label: Notify when someone changes their avatar
+    description: Shows the old and new avatar (may not catch every change).
+  audit.roles_enabled:
+    label: Notify when someone gains or loses a role
+    description: Lists the roles added and removed.
+  audit.timeout_enabled:
+    label: Notify when someone is timed out
+    description: Logs timeout application and removal, with the expiry date.
+  audit.voice_enabled:
+    label: Notify voice channel join and leave
+    description: Logs when someone joins or leaves a voice channel.
+  audit.bulk_delete_enabled:
+    label: Notify bulk message purge
+    description: One summary with the total deleted and who ran it, instead of one card per message.
+  audit.bulk_file_enabled:
+    label: Attach a file of the deleted messages
+    description: Sends a .txt with the purged messages alongside the summary.
   starboard.enabled:
     label: Starboard enabled
     description: Highlight popular messages in the starboard channel.
@@ -1111,6 +1151,13 @@ tickets:
     transcript:
       title: '{scroll} Ticket Transcript'
       description: 'Transcript of {channel} (requested by {moderator}).'
+audit:
+  no_nickname: (no nickname)
+  roles_gained: 'Gained: {role}'
+  roles_lost: 'Lost: {role}'
+  timeout_applied: Timed out until {duration}.
+  timeout_removed: The timeout was removed.
+  bulk_multiple_channels: '{count} different channels'
 cleaner:
   error_disabled: '{error} The message cleaner is disabled on this server.'
   error_empty: '{error} Give me a word to purge.'
@@ -1634,6 +1681,30 @@ variables:
   created_at:
     label: Created at
     description: Server creation date
+  message_author:
+    label: Message author
+    description: Mention of who sent the message
+  message_author_name:
+    label: Author name
+    description: Display name of who sent the message
+  message:
+    label: Message
+    description: Original message content (in a text block)
+  new_message:
+    label: Edited message
+    description: New content after the edit (in a text block)
+  message_link:
+    label: Message link
+    description: Direct link to jump to the message
+  old_avatar:
+    label: Old avatar
+    description: URL of the previous avatar
+  new_avatar:
+    label: New avatar
+    description: URL of the current avatar
+  file_url:
+    label: Purge file
+    description: Link to the .txt with the bulk-deleted messages
   joins:
     label: Joins
     description: Server join count
@@ -2081,6 +2152,76 @@ card:
     ban:
       title: Ban message
       placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
+  audit:
+    ban:
+      title: Member banned
+      body: |
+        {user_name} was banned.{reason}
+        Moderator: {moderator}
+      placeholders: ''
+    unban:
+      title: Member unbanned
+      body: |
+        {user_name} was unbanned.{reason}
+        Moderator: {moderator}
+      placeholders: ''
+    message_delete:
+      title: Message deleted
+      body: |
+        Author: {message_author}
+        Channel: {channel}
+
+        {message}
+      placeholders: ''
+    message_edit:
+      title: Message edited
+      body: |
+        Author: {message_author}
+        Channel: {channel}
+
+        Before:
+        {message}
+
+        After:
+        {new_message}
+      placeholders: ''
+    bulk_delete:
+      title: Message purge
+      body: |
+        {count} messages deleted in {channel}.
+        Moderator: {moderator}
+        {file_url}
+      placeholders: ''
+    nickname:
+      title: Nickname changed
+      body: |
+        Before: {old_name}
+        Now: {new_name}
+      placeholders: ''
+    avatar:
+      title: Avatar changed
+      body: |
+        Before: {old_avatar}
+        Now: {new_avatar}
+      placeholders: ''
+    roles:
+      title: Roles changed
+      body: '{role}'
+      placeholders: ''
+    timeout:
+      title: Member timed out
+      body: |
+        {reason}
+        Valid until: {duration}
+      placeholders: ''
+    voice_join:
+      title: Joined voice channel
+      body: '{user_name} joined {channel}.'
+      placeholders: ''
+    voice_leave:
+      title: Left voice channel
+      body: '{user_name} left {channel}.'
+      placeholders: ''
   birthdays:
     list:
       title: Birthday list
@@ -2095,7 +2236,6 @@ card:
     created:
       title: Ticket intro card
       placeholders: '{{user}}, {{type}}'
-    logs:
     logs:
       opened:
         description:

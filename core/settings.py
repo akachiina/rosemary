@@ -46,6 +46,7 @@ class SettingCategory(StrEnum):
     MODERATION = "moderation"
     LOGGING = "logging"
     EVENTS = "events"
+    AUDIT = "audit"
     BOOST = "boost"
     BUMP = "bump"
     STARBOARD = "starboard"
@@ -325,6 +326,84 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.EVENTS,
             SettingType.BOOLEAN,
             False,
+        ),
+        _spec(
+            "audit.enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "audit.channel",
+            SettingCategory.AUDIT,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "audit.ban_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.unban_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.message_delete_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.message_edit_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.nickname_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.avatar_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "audit.roles_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.timeout_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.voice_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.bulk_delete_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "audit.bulk_file_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
         ),
         _spec(
             "starboard.enabled",

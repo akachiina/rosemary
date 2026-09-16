@@ -62,6 +62,13 @@ class CleanerCog(commands.Cog):
                 TextDisplay(await t(guild_id, "cleaner.progress", word=palavra))
             )
             await interaction.edit(view=view)
+            # Stamp the purge so the audit cog attributes the bulk summary and
+            # skips per-message cards while the run is active.
+            from rosemary.cogs.audit import AuditCog
+
+            audit = self.bot.get_cog("AuditCog")
+            if isinstance(audit, AuditCog):
+                audit.note_purge_context(ctx.guild, ctx.author)
             deleted = await cog._purge(guild_id, palavra.lower())
             view.clear_items()
             view.add_item(

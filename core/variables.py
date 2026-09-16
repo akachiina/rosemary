@@ -39,7 +39,7 @@ VARIABLES: dict[str, VariableSpec] = {
     spec.name: spec
     for spec in [
         _v("user", "<@0>", "mention"),
-        _v("user_name", "@voce"),
+        _v("user_name", "@you"),
         _v("user_avatar", "https://cdn.discordapp.com/embed/avatars/0.png", "image"),
         _v("user_mention", "<@0>", "mention"),
         _v("server", "…"),
@@ -69,8 +69,8 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("ping", "…"),
         _v("ping_role", "<@&0>", "mention"),
         _v("tag", "🏷️"),
-        _v("link", "https://exemplo.com/convite"),
-        _v("url", "https://exemplo.com", "url"),
+        _v("link", "https://example.com/invite"),
+        _v("url", "https://example.com", "url"),
         _v("cooldown", "…"),
         _v("days", 1, "number"),
         _v("total", 1, "number"),
@@ -135,6 +135,14 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("roles", 1, "number"),
         _v("channels", 1, "number"),
         _v("created_at", "<t:1111111111:D>"),
+        _v("message_author", "<@0>", "mention"),
+        _v("message_author_name", "@you"),
+        _v("message", "…"),
+        _v("new_message", "…"),
+        _v("message_link", "https://example.com/message", "url"),
+        _v("file_url", "https://example.com/purge.txt", "url"),
+        _v("old_avatar", "https://cdn.discordapp.com/embed/avatars/0.png", "image"),
+        _v("new_avatar", "https://cdn.discordapp.com/embed/avatars/1.png", "image"),
     ]
 }
 

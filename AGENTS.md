@@ -59,6 +59,14 @@ Rosemary -- a modular, multilingual Discord bot for multiple servers, built on *
 - Adding a setting = add a `SettingSpec` + matching `settings.<key>.label`/`.description` (and `.choices.*`) in BOTH catalogs; the UI is driven entirely by registry + catalogs, no per-setting UI code. **No test enforces settings-label parity** -- after adding specs, resolve every `settings.<key>.label/.description` in both languages or `/settings` renders raw keys.
 - `/settings` shows `ITEMS_PER_PAGE = 7` settings per page (Discord 40-component cap enforced by test); registry order = display order, so keep essentials first (locked by `test_bump_essentials_come_first`-style tests). Nav row is always `[Close, Prev?, Next?]` -- Close pinned at index 0.
 
+## Feature: Event Log (`cogs/audit.py`)
+
+- "Registro de Eventos" (AUDIT settings category): one master channel (`audit.channel`, `audit.enabled` master switch, default **off**) plus a per-event BOOLEAN toggle (`audit.<event>_enabled`). Do not add per-event channels -- the single master channel is the design (user decision, keeps /settings small).
+- Events: ban, unban, message_delete, message_edit, bulk_delete, nickname, avatar (best-effort without presences), roles, timeout, voice_join/voice_leave (one toggle `audit.voice_enabled` for the pair). All listeners wrap in try/except + `log.exception` (audit must never crash the dispatch loop).
+- Every event is a CardSpec (`audit.<event>`, `AUDIT_CARDS` in `core/card_specs.py`) sharing one variable contract (`AUDIT_VARIABLES`); default docs come from `default_audit_document` builders (welcome-cog style: avatar section, emoji title, divider, server footer). Message content is fenced (```) by the send site via `_fence()` -- theme overrides inherit the fence, so add `message`/`new_message` already fenced, never re-fence in catalogs.
+- Bulk deletes coalesce for a few seconds (`BULK_FLUSH_SECONDS`, re-arming while batches arrive) into ONE summary card plus a `.txt` transcript (`audit.bulk_file_enabled` toggle). `/limpar` stamps `note_purge_context()` so (a) the summary attributes the moderator and (b) single-deletes during the run are suppressed (no flood). Bots and the bot's own deletes are always skipped.
+- Ban/unban fetch moderator+reason from the Discord audit log (best-effort, 1 lookup, `AUDIT_BAN`/`AUDIT_UNBAN` action ids); empty when not found. Regression: `tests/test_audit.py`.
+
 ## Feature: Boost roles + Bump (Disboard)
 
 - `cogs/boost_roles.py` + `core/boost_roles.py` (`BoostRoleStore`): boost roles, invites, member panels. `cogs/bump_reminder.py` + `cogs/bump_leaderboard.py` + `core/bump.py` (`BumpStore`): weekly Disboard bump tracking. **Only Disboard is supported** (hardcoded bot ID in `bump_reminder.py`; mention it in copy).

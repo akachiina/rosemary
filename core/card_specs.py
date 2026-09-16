@@ -75,6 +75,32 @@ BUMP_LOGS = [
 EVENT_CARDS = ["welcome", "leave", "ban"]
 BIRTHDAY_CARDS = ["announce"]
 
+#: Registry cards: one per monitored event. Send sites pass exactly these
+#: variables (test_variables sweeps the contract).
+AUDIT_CARDS = [
+    ("ban", True),
+    ("unban", True),
+    ("message_delete", True),
+    ("message_edit", True),
+    ("bulk_delete", False),
+    ("nickname", True),
+    ("avatar", True),
+    ("roles", True),
+    ("timeout", True),
+    ("voice_join", True),
+    ("voice_leave", True),
+]
+
+#: Placeholder contract for every audit card. The ``body`` of each default is
+#: supplied by ``cogs.audit`` default builders from per-event template keys
+#: (``card.audit.<event>.body``); the shared frame carries the identity.
+AUDIT_VARIABLES = (
+    "user", "user_name", "user_avatar", "server",
+    "moderator", "reason", "message_author", "message_author_name", "message",
+    "new_message", "message_link", "channel", "count", "file_url", "old_name",
+    "new_name", "old_avatar", "new_avatar", "role", "duration",
+)
+
 INVITES_CARDS = [
     "leaderboard",
     "stats",
@@ -220,6 +246,9 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "about.card": ("version", "channel"),
 }
 
+for _name, _rich in AUDIT_CARDS:
+    VARIABLES_BY_KEY[f"audit.{_name}"] = AUDIT_VARIABLES
+
 #: Log bodies render from these message-template variables.
 LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "boost.logs.register.description": ("actor", "owner", "role"),
@@ -304,6 +333,10 @@ def _build() -> list[CardSpec]:
     specs += [
         _spec(f"events.{name}", "events", rich=True, mention_default="single")
         for name in EVENT_CARDS
+    ]
+    specs += [
+        _spec(f"audit.{name}", "audit", rich=rich)
+        for name, rich in AUDIT_CARDS
     ]
     specs += [
         _spec(f"birthdays.{name}", "birthdays", rich=True, mention_default="single")

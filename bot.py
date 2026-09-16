@@ -64,6 +64,7 @@ class RosemaryBot(commands.Bot):
         # synchronous here (returns None), unlike discord.py.
         from rosemary.cogs.about import AboutCog
         from rosemary.cogs.anti_invite import AntiInviteCog
+        from rosemary.cogs.audit import AuditCog
         from rosemary.cogs.birthdays import BirthdayCog
         from rosemary.cogs.boost_roles import BoostRolesCog
         from rosemary.cogs.broadcast import BroadcastCog
@@ -125,6 +126,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(DebugCog(self))
         self.add_cog(InvitesCog(self))
         self.add_cog(WelcomeCog(self))
+        self.add_cog(AuditCog(self))
         self.add_cog(StarboardCog(self))
         self.add_cog(TicketsCog(self))
         self.add_cog(BirthdayCog(self))

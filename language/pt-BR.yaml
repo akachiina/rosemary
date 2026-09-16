@@ -76,6 +76,7 @@ settings:
     boost: Cargos Boost
     bump: Disboard Bump
     events: Anúncios
+    audit: Registro de Eventos
     starboard: Starboard
     birthdays: Aniversários
     invites: Convites
@@ -336,6 +337,45 @@ settings:
   events.raid_protection:
     label: Proteção anti-raid
     description: Atrasa boas-vindas quando muita gente entra de uma vez.
+  audit.enabled:
+    label: Registro de Eventos ativado
+    description: Ativa o registro de eventos do servidor (bans, mensagens, cargos, voz).
+  audit.channel:
+    label: Canal do registro
+    description: Canal onde todos os eventos registrados serão anunciados.
+  audit.ban_enabled:
+    label: Avisar quando alguém for banido
+    description: Registra banimentos, com moderador e motivo quando disponíveis.
+  audit.unban_enabled:
+    label: Avisar quando alguém for desbanido
+    description: Registra a remoção de banimentos.
+  audit.message_delete_enabled:
+    label: Avisar quando uma mensagem for deletada
+    description: Registra mensagens apagadas com o conteúdo original.
+  audit.message_edit_enabled:
+    label: Avisar quando uma mensagem for editada
+    description: Registra edições com o antes e o depois entre ```texto```.
+  audit.nickname_enabled:
+    label: Avisar quando alguém alterar o apelido
+    description: Mostra o apelido antigo e o novo.
+  audit.avatar_enabled:
+    label: Avisar quando alguém alterar o avatar
+    description: Mostra o avatar antigo e o novo (pode não capturar todas as mudanças).
+  audit.roles_enabled:
+    label: Avisar quando alguém ganhar ou perder cargo
+    description: Lista os cargos adicionados e removidos.
+  audit.timeout_enabled:
+    label: Avisar quando alguém receber timeout
+    description: Registra aplicação e remoção de timeout, com data de validade.
+  audit.voice_enabled:
+    label: Avisar entrada e saída de canal de voz
+    description: Registra quando alguém entra ou sai de um canal de voz.
+  audit.bulk_delete_enabled:
+    label: Avisar purga de mensagens em massa
+    description: Um resumo com o total apagado e quem executou, em vez de um card por mensagem.
+  audit.bulk_file_enabled:
+    label: Anexar arquivo das mensagens apagadas
+    description: Envia um .txt com as mensagens da purga junto do resumo.
   starboard.enabled:
     label: Starboard ativado
     description: Destaca mensagens populares no Starboard.
@@ -1111,6 +1151,13 @@ tickets:
     transcript:
       title: '{scroll} Transcrição de Ticket'
       description: 'Transcrição de {channel} (pedida por {moderator}).'
+audit:
+  no_nickname: (sem apelido)
+  roles_gained: 'Ganhou: {role}'
+  roles_lost: 'Perdeu: {role}'
+  timeout_applied: Recebeu timeout até {duration}.
+  timeout_removed: O timeout foi removido.
+  bulk_multiple_channels: '{count} canais diferentes'
 cleaner:
   error_disabled: '{error} A limpeza de mensagens está desativada neste servidor.'
   error_empty: '{error} Me diga uma palavra para apagar.'
@@ -1635,6 +1682,30 @@ variables:
   created_at:
     label: Criado em
     description: Data de criação do servidor
+  message_author:
+    label: Autor da mensagem
+    description: Menção de quem enviou a mensagem
+  message_author_name:
+    label: Nome do autor
+    description: Nome de exibição de quem enviou a mensagem
+  message:
+    label: Mensagem
+    description: Conteúdo original da mensagem (em bloco de texto)
+  new_message:
+    label: Mensagem editada
+    description: Novo conteúdo após a edição (em bloco de texto)
+  message_link:
+    label: Link da mensagem
+    description: Link direto para pular até a mensagem
+  old_avatar:
+    label: Avatar antigo
+    description: URL do avatar anterior
+  new_avatar:
+    label: Avatar novo
+    description: URL do avatar atual
+  file_url:
+    label: Arquivo da purga
+    description: Link do .txt com as mensagens apagadas em massa
   joins:
     label: Entradas
     description: Qtd. de entradas no servidor
@@ -2082,6 +2153,76 @@ card:
     ban:
       title: Mensagem de banimento
       placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
+  audit:
+    ban:
+      title: Membro banido
+      body: |
+        {user_name} foi banido.{reason}
+        Moderador: {moderator}
+      placeholders: ''
+    unban:
+      title: Membro desbanido
+      body: |
+        {user_name} foi desbanido.{reason}
+        Moderador: {moderator}
+      placeholders: ''
+    message_delete:
+      title: Mensagem deletada
+      body: |
+        Autor: {message_author}
+        Canal: {channel}
+
+        {message}
+      placeholders: ''
+    message_edit:
+      title: Mensagem editada
+      body: |
+        Autor: {message_author}
+        Canal: {channel}
+
+        Antes:
+        {message}
+
+        Depois:
+        {new_message}
+      placeholders: ''
+    bulk_delete:
+      title: Purga de mensagens
+      body: |
+        {count} mensagens apagadas em {channel}.
+        Moderador: {moderator}
+        {file_url}
+      placeholders: ''
+    nickname:
+      title: Apelido alterado
+      body: |
+        Antes: {old_name}
+        Agora: {new_name}
+      placeholders: ''
+    avatar:
+      title: Avatar alterado
+      body: |
+        Antes: {old_avatar}
+        Agora: {new_avatar}
+      placeholders: ''
+    roles:
+      title: Cargos alterados
+      body: '{role}'
+      placeholders: ''
+    timeout:
+      title: Timeout de membro
+      body: |
+        {reason}
+        Válido até: {duration}
+      placeholders: ''
+    voice_join:
+      title: Entrou em canal de voz
+      body: '{user_name} entrou em {channel}.'
+      placeholders: ''
+    voice_leave:
+      title: Saiu de canal de voz
+      body: '{user_name} saiu de {channel}.'
+      placeholders: ''
   birthdays:
     list:
       title: Lista de aniversários
