@@ -29,3 +29,21 @@ async def fan_out(
             failed += 1
         await asyncio.sleep(max(delay, 0))
     return sent, failed
+
+
+def with_role(
+    members: Iterable[discord.Member], role_id: int | None
+) -> list[discord.Member]:
+    """Filter ``members`` to those having ``role_id``; ``None``/``0`` keeps all."""
+    if not role_id:
+        return list(members)
+    try:
+        wanted = int(role_id)
+    except (TypeError, ValueError):
+        return list(members)
+    kept = []
+    for member in list(members):
+        roles = getattr(member, "roles", None) or []
+        if any(getattr(role, "id", None) == wanted for role in roles):
+            kept.append(member)
+    return kept

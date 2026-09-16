@@ -130,10 +130,12 @@ class RemindersCog(commands.Cog):
                 ephemeral=True,
             )
         await ctx.response.defer(ephemeral=True)
-        from rosemary.core.mass_dm import fan_out
+        from rosemary.core.mass_dm import fan_out, with_role
 
         delay = await get_setting(self.bot.storage, guild_id, "reminders.delay_seconds")
-        sent, failed = await fan_out(ctx.guild.members, message, delay)
+        target = await get_setting(self.bot.storage, guild_id, "reminders.target_role")
+        members = with_role(ctx.guild.members, target)
+        sent, failed = await fan_out(members, message, delay)
         await send_channel_log(
             self.bot,
             guild_id,

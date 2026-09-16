@@ -82,6 +82,7 @@ settings:
     invites: Invites
     tickets: Tickets
     partnerships: Partnerships
+    broadcast_reminders: Broadcast & Reminders
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.
@@ -254,12 +255,18 @@ settings:
   reminders.enabled:
     label: Reminders enabled
     description: Whether saved DM reminders can be used.
+  reminders.target_role:
+    label: Reminder target role
+    description: Only members with this role receive reminders. Empty means everyone.
   reminders.delay_seconds:
     label: Reminder DM delay (0-30s)
     description: Pause between reminder DMs.
   broadcast.enabled:
-    label: Broadcasts enabled
+    label: Broadcast enabled
     description: Whether live broadcast relay can be used.
+  broadcast.target_role:
+    label: Broadcast target role
+    description: Only members with this role receive broadcasts. Empty means everyone.
   broadcast.delay_seconds:
     label: Broadcast DM delay (0-30s)
     description: Pause between broadcast DMs.

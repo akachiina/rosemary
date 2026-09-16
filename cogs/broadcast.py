@@ -138,13 +138,14 @@ class BroadcastCog(commands.Cog):
         )
 
     async def _fan_out(self, guild_id: int, text: str, session: _Session) -> None:
-        from rosemary.core.mass_dm import fan_out
+        from rosemary.core.mass_dm import fan_out, with_role
 
         guild = self.bot.get_guild(guild_id)
         if guild is None:
             return
         delay = await get_setting(self.bot.storage, guild_id, "broadcast.delay_seconds")
-        sent, failed = await fan_out(guild.members, text, delay)
+        target = await get_setting(self.bot.storage, guild_id, "broadcast.target_role")
+        sent, failed = await fan_out(with_role(guild.members, target), text, delay)
         session.sent += sent
         session.failed += failed
 

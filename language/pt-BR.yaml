@@ -82,6 +82,7 @@ settings:
     invites: Convites
     tickets: Tickets
     partnerships: Parcerias
+    broadcast_reminders: Broadcast & Lembretes
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
@@ -254,15 +255,21 @@ settings:
   reminders.enabled:
     label: Lembretes ativados
     description: Se lembretes por DM podem ser usados.
+  reminders.target_role:
+    label: Cargo-alvo dos lembretes
+    description: Somente membros com este cargo recebem lembretes. Vazio significa todos.
   reminders.delay_seconds:
-    label: Pausa entre DMs (0-30s)
+    label: Pausa entre DMs dos lembretes (0-30s)
     description: Pausa entre DMs de lembrete.
   broadcast.enabled:
-    label: Transmissões ativadas
-    description: Se transmissão ao vivo pode ser usada.
+    label: Broadcast ativado
+    description: Se broadcast ao vivo pode ser usado.
+  broadcast.target_role:
+    label: Cargo-alvo do broadcast
+    description: Somente membros com este cargo recebem broadcasts. Vazio significa todos.
   broadcast.delay_seconds:
-    label: Pausa da transmissão (0-30s)
-    description: Pausa entre DMs da transmissão.
+    label: Pausa entre DMs do broadcast (0-30s)
+    description: Pausa entre DMs do broadcast.
   updater.enabled:
     label: Auto-update ativado
     description: Verifica e aplica updates sozinho.
@@ -1219,26 +1226,26 @@ reminders:
       description: '{moderator} enviou `{name}` ({sent} enviados, {failed} falharam).'
 broadcast_start:
   command:
-    name: iniciar_transmissao
-    description: '[ADMIN] Inicia transmissão ao vivo neste canal'
+    name: iniciar_broadcast
+    description: '[ADMIN] Inicia broadcast ao vivo neste canal'
 broadcast_stop:
   command:
-    name: parar_transmissao
-    description: '[ADMIN] Para a transmissão ao vivo'
+    name: parar_broadcast
+    description: '[ADMIN] Para o broadcast ao vivo'
 broadcast:
-  error_disabled: '{error} Transmissões estão desativadas neste servidor.'
-  error_active: '{error} Já há uma transmissão rolando.'
-  error_none: '{error} Nenhuma transmissão rolando.'
+  error_disabled: '{error} Broadcasts estão desativados neste servidor.'
+  error_active: '{error} Já há um broadcast rolando.'
+  error_none: '{error} Nenhum broadcast rolando.'
   header: '**{title}** (de {server})'
   started: '{success} Abertura enviada para {sent} membro(s) ({failed} falharam). Poste neste canal para replicar.'
-  ended: '{success} Transmissão encerrada: {relayed} mensagem(ns) ({sent} DMs, {failed} falharam).'
+  ended: '{success} Broadcast encerrado: {relayed} mensagem(ns) ({sent} DMs, {failed} falharam).'
   logs:
     started:
-      title: '{envelope} Transmissão Iniciada'
-      description: '{moderator} iniciou “{title}” em {channel}.'
+      title: '{envelope} Broadcast Iniciado'
+      description: '{moderator} iniciou "{title}" em {channel}.'
     ended:
-      title: '{check} Transmissão Encerrada'
-      description: '{moderator} encerrou a transmissão ({relayed} replicadas, {sent} enviadas, {failed} falharam).'
+      title: '{check} Broadcast Encerrado'
+      description: '{moderator} encerrou o broadcast ({relayed} replicadas, {sent} enviadas, {failed} falharam).'
 invites:
   command:
     name: convites
@@ -2129,11 +2136,11 @@ card:
     logs:
       started:
         description:
-          title: 'Log: transmissão iniciada'
+          title: 'Log: broadcast iniciado'
           placeholders: '{{channel}}, {{moderator}}, {{title}}'
       ended:
         description:
-          title: 'Log: transmissão encerrada'
+          title: 'Log: broadcast encerrado'
           placeholders: '{{failed}}, {{moderator}}, {{relayed}}, {{sent}}'
   updater:
     confirm:

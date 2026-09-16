@@ -55,6 +55,7 @@ class SettingCategory(StrEnum):
     INVITES = "invites"
     TICKETS = "tickets"
     PARTNERSHIPS = "partnerships"
+    BROADCAST_REMINDERS = "broadcast_reminders"
 
 
 @dataclass(frozen=True)
@@ -156,13 +157,19 @@ SETTINGS: dict[str, SettingSpec] = {
         ),
         _spec(
             "reminders.enabled",
-            SettingCategory.GENERAL,
+            SettingCategory.BROADCAST_REMINDERS,
             SettingType.BOOLEAN,
             False,
         ),
         _spec(
+            "reminders.target_role",
+            SettingCategory.BROADCAST_REMINDERS,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
             "reminders.delay_seconds",
-            SettingCategory.GENERAL,
+            SettingCategory.BROADCAST_REMINDERS,
             SettingType.INTEGER,
             2,
             min_value=0,
@@ -170,13 +177,19 @@ SETTINGS: dict[str, SettingSpec] = {
         ),
         _spec(
             "broadcast.enabled",
-            SettingCategory.GENERAL,
+            SettingCategory.BROADCAST_REMINDERS,
             SettingType.BOOLEAN,
             False,
         ),
         _spec(
+            "broadcast.target_role",
+            SettingCategory.BROADCAST_REMINDERS,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
             "broadcast.delay_seconds",
-            SettingCategory.GENERAL,
+            SettingCategory.BROADCAST_REMINDERS,
             SettingType.INTEGER,
             2,
             min_value=0,
