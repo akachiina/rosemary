@@ -156,6 +156,28 @@ def get_default_builder(key: str) -> Callable[..., Any] | None:
     return _DEFAULT_BUILDERS.get(key)
 
 
+async def author_footer_blocks(bot, guild_id: int | None = None) -> list[dict[str, Any]]:
+    """The standard author-attribution footer blocks for default builders.
+
+    A divider plus one small (``-#``) line from ``card.author_footer.text``
+    in the catalogs (default ``by {user} · {timestamp}``) so every card that
+    attributes a person carries the same visual signature. ``{user}`` and
+    ``{timestamp}`` stay literal here -- the render mapping resolves them
+    from the variables the send site passes (contract: ``user`` +
+    ``timestamp``).
+    """
+    footer_template = "by {user} · {timestamp}"
+    raw = getattr(bot.translator, "raw", None)
+    if callable(raw):
+        found = await raw(guild_id, "card.author_footer.text")
+        if isinstance(found, str) and found.strip() and found != "card.author_footer.text":
+            footer_template = found
+    return [
+        {"type": "divider"},
+        {"type": "text", "body": f"-# {footer_template}"},
+    ]
+
+
 # -- resolution --------------------------------------------------------------
 
 
@@ -752,7 +774,8 @@ def build_items(
             and not safe_format(str(block.get("body", "")), mapping).strip()
         )
     ]
-    return [_build_block(block, theme, mapping, card_key) for block in blocks]
+    built = [_build_block(block, theme, mapping, card_key) for block in blocks]
+    return [item for item in built if item is not None]
 
 
 def _build_block(
@@ -833,8 +856,16 @@ def _build_divider(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -
 
 def _build_gallery(
     block: dict[str, Any], theme: Any, mapping: dict[str, Any]
-) -> discord.ui.MediaGallery:
-    items = [discord.MediaGalleryItem(_fill(url, mapping)) for url in block.get("urls", [])]
+) -> discord.ui.MediaGallery | None:
+    items = [
+        discord.MediaGalleryItem(_fill(url, mapping))
+        for url in block.get("urls", [])
+        if _fill(url, mapping).strip()
+    ]
+    if not items:
+        # Every url resolved empty (e.g. the starboard card's optional
+        # {image_url}): the gallery contributes nothing to the message.
+        return None
     return discord.ui.MediaGallery(*items)
 
 
@@ -1048,9 +1079,8 @@ def _build_container(
                 color = theme.color(token)
             except KeyError as exc:
                 raise CardsError([CardIssue("color_unknown", (("color", token),))]) from exc
-    children = [
-        _build_block(child, theme, mapping, card_key) for child in block.get("children", [])
-    ]
+    built = [_build_block(child, theme, mapping, card_key) for child in block.get("children", [])]
+    children = [item for item in built if item is not None]
     if color is not None:
         return Container(*children, color=color)
     return Container(*children)

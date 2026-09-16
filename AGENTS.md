@@ -83,6 +83,8 @@ Rosemary -- modular, multilingual Discord bot for multiple servers, built on **p
 - Log bodies use compact fields (`**Alvo:** @x`, one line per field), never the old double-line shape. Unknown fields render a translated placeholder, never bare `-`. Titles carry a theme emoji token.
 - **YAML quoting**: single-quoted strings keep `\n` literal -- multi-line templates must use **double quotes**. Regression: `test_log_templates_use_real_newlines`.
 - Event cards (welcome/leave/ban): container -> section with member avatar thumbnail (`{user_avatar}`), emoji `#` title, body, divider, `-# {server} · #{count}` footer. Built by `cogs/welcome.py:default_event_document`; sends via `render_card_message`.
+- **Author footer is the standard attribution line** for cards that point at a person (starboard, audit): divider + small (`-#`) `card.author_footer.text` (`by {user} · {timestamp}`, both catalogs) via `core/cards.py:author_footer_blocks`. V2 has no native footer and its thumbnail is always right-side; an embed footer (`footer.icon_url`, left side) exists only in theme-written `embed:` cards. Welcome/keep their own server/count footer. The `{timestamp}` variable formats as a Discord relative timestamp at the send site.
+- Default builders may receive send-site variables: `default_document(bot, guild_id, key, variables)` forwards `**variables`, so builders must take `**kwargs` and can react to content (starboard skips the gallery when `{image_url}` resolves empty -- `_build_gallery` drops galleries whose urls all resolve empty). Seeded previews without variables still work.
 
 ## Gotchas
 

@@ -196,7 +196,12 @@ def _seed_document(bot, guild_id: int | None, blocks: list[dict[str, Any]]) -> d
     return {"v": DOCUMENT_VERSION, "blocks": blocks}
 
 
-async def default_document(bot, guild_id: int, key: str) -> dict[str, Any] | None:
+async def default_document(
+    bot,
+    guild_id: int,
+    key: str,
+    variables: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     """The feature's default document for ``key`` (no theme override).
 
     Resolution order:
@@ -204,11 +209,16 @@ async def default_document(bot, guild_id: int, key: str) -> dict[str, Any] | Non
     2. the declared seed map (:data:`SEED_PARTS_BY_KEY`);
     3. plain ``card.<key>`` / ``<key>`` scalars (DM and log cards);
     4. ``None`` when the feature resolves no catalog copy at all.
+
+    ``variables`` (the send-site contract values) pass through to feature
+    builders, so defaults can react to real content (e.g. the starboard card
+    skips its gallery when the starred message has no image). Builders must
+    accept them as ``**kwargs`` -- seeded previews (no variables) still work.
     """
     builder = get_default_builder(key)
     if builder is not None:
         try:
-            doc = await builder(bot, guild_id)
+            doc = await builder(bot, guild_id, **(variables or {}))
         except Exception as exc:
             log.warning("default builder failed for card %s: %s", key, exc)
         else:
@@ -246,12 +256,17 @@ async def default_document(bot, guild_id: int, key: str) -> dict[str, Any] | Non
     return _seed_document(bot, guild_id, blocks)
 
 
-async def get_effective_document(bot, guild_id: int, key: str) -> dict[str, Any] | None:
+async def get_effective_document(
+    bot,
+    guild_id: int,
+    key: str,
+    variables: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     """Themed override, else the feature's default document (or ``None``)."""
     themed = await card_document(bot, guild_id, key)
     if themed is not None:
         return copy.deepcopy(themed)
-    return await default_document(bot, guild_id, key)
+    return await default_document(bot, guild_id, key, variables)
 
 
 async def render_document(
@@ -310,7 +325,7 @@ async def render_card_message(
     from rosemary.core.mentions import allowed_for_document
     from rosemary.core.themes import theme_for
 
-    doc = await get_effective_document(bot, guild_id, key)
+    doc = await get_effective_document(bot, guild_id, key, variables)
     if doc is None:
         return None, discord.AllowedMentions.none()
     mapping = {

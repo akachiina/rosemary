@@ -1697,6 +1697,9 @@ variables:
   created_at:
     label: Created at
     description: Server creation date
+  timestamp:
+    label: Relative time
+    description: Event moment as a Discord relative timestamp (e.g. "3 hours ago")
   message_author:
     label: Message author
     description: Mention of who sent the message
@@ -1860,6 +1863,10 @@ variables:
     label: Server name
     description: Name of the server
 card:
+  # Default author footer (``author_footer_blocks`` builder helper): a small
+  # (``-#``) line with the mention of who triggered the card and relative time.
+  author_footer:
+    text: "by {user} · {timestamp}"
   # Code-built cards promoted to CardSpecs (theme-customizable like any card).
   starboard:
     card:

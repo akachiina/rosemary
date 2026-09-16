@@ -95,7 +95,7 @@ AUDIT_CARDS = [
 #: supplied by ``cogs.audit`` default builders from per-event template keys
 #: (``card.audit.<event>.body``); the shared frame carries the identity.
 AUDIT_VARIABLES = (
-    "user", "user_name", "user_avatar", "server",
+    "user", "user_name", "user_avatar", "server", "timestamp",
     "moderator", "reason", "message_author", "message_author_name", "message",
     "new_message", "message_link", "channel", "count", "file_url", "old_name",
     "new_name", "old_avatar", "new_avatar", "role", "duration",
@@ -167,7 +167,9 @@ SHARED_EXTRA_LOGS = [
 #: Cards assembled in feature code that are now first-class CardSpecs --
 #: "everything the bot sends is theme-customizable" (user mandate).
 CONTENT_CARDS = {
-    "starboard.card": ("user", "user_name", "user_avatar", "stars", "title", "body", "image_url"),
+    "starboard.card": (
+        "user", "user_name", "user_avatar", "stars", "title", "body", "image_url", "timestamp",
+    ),
     "utility.ping": ("ms",),
     "utility.serverinfo": (
         "server", "owner", "members", "roles", "channels", "created_at", "title", "body",

@@ -245,6 +245,16 @@ def test_build_items_raises_cards_error_on_invalid(theme):
         build_items(theme, _doc({"type": "row", "buttons": []}), {})
 
 
+def test_build_items_skips_gallery_that_resolves_empty(theme):
+    """A gallery whose urls all resolve empty contributes nothing (optional media)."""
+    doc = _doc(
+        {"type": "gallery", "urls": ["{image_url}"]},
+        {"type": "text", "body": "corpo"},
+    )
+    (text,) = build_items(theme, doc, {"image_url": ""})
+    assert text.content == "corpo"
+
+
 # -- persistence -------------------------------------------------------------
 # Per-card persistence moved to theme files: covered by tests/test_themes.py
 # (ThemeStore import/export/selection) and tests/test_themes_menu.py.

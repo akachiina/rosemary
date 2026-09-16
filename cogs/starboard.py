@@ -29,6 +29,7 @@ EDIT_COOLDOWN_SECONDS = 2.0
 class StarboardCog(commands.Cog):
     """Raw reaction listeners driving the starboard."""
 
+    _TIER_THRESHOLDS = (1, 2, 3, 5, 8, 13)
 
     def __init__(self, bot) -> None:
         self.bot = bot
@@ -40,8 +41,6 @@ class StarboardCog(commands.Cog):
         if message_id not in self._locks:
             self._locks[message_id] = asyncio.Lock()
         return self._locks[message_id]
-
-    _TIER_THRESHOLDS = (1, 2, 3, 5, 8, 13)
 
     def _tier_style(self, stars: int) -> str:
         for threshold in sorted(self._TIER_THRESHOLDS, reverse=True):
@@ -86,6 +85,7 @@ class StarboardCog(commands.Cog):
         stars: int,
         jump_label: str,
         no_content_label: str,
+        footer_text: str,
     ) -> discord.ui.DesignerView:
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
@@ -111,6 +111,7 @@ class StarboardCog(commands.Cog):
         ]
         if image_url is not None:
             container_items.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image_url)))
+        container_items.append(discord.ui.TextDisplay(footer_text))
         container_items.append(
             discord.ui.ActionRow(
                 discord.ui.Button(
@@ -164,15 +165,33 @@ class StarboardCog(commands.Cog):
                 "title": title,
                 "body": body,
                 "image_url": image_url or "",
+                "timestamp": discord.utils.format_dt(message.created_at, style="R"),
             },
         )
         if payload is not None:
             return payload
         from rosemary.core.card_service import CardPayload
 
-        return CardPayload(
-            view=self._build_card(message, stars, jump_label, no_content_label)
+        footer_text = await self._footer_text(
+            guild_id,
+            message.author.mention,
+            discord.utils.format_dt(message.created_at, style="R"),
         )
+        return CardPayload(
+            view=self._build_card(message, stars, jump_label, no_content_label, footer_text)
+        )
+
+    async def _footer_text(self, guild_id: int, user_mention: str, timestamp: str) -> str:
+        """The author footer line for the code-built fallback (``-#`` small)."""
+        from rosemary.core.cards import safe_format
+
+        template = "by {user} · {timestamp}"
+        raw = getattr(self.bot.translator, "raw", None)
+        if callable(raw):
+            found = await raw(guild_id, "card.author_footer.text")
+            if isinstance(found, str) and found.strip() and found != "card.author_footer.text":
+                template = found
+        return safe_format(template, {"user": user_mention, "timestamp": timestamp})
 
     # -- core update ---------------------------------------------------------
 
@@ -294,4 +313,63 @@ class StarboardCog(commands.Cog):
         if isinstance(board, discord.TextChannel):
             await self._delete_post(board, entry)
         await self.store.remove(payload.guild_id, payload.message_id)
+
+
+# -- default builder -----------------------------------------------------------
+
+#: Star counts where a higher ``star_tier_*`` style kicks in (theme-defined).
+_TIER_THRESHOLDS = (1, 2, 3, 5, 8, 13)
+
+
+def _tier_style_for(bot, stars: int) -> str:
+    """The highest defined ``star_tier_*`` style the count reaches."""
+    for threshold in sorted(_TIER_THRESHOLDS, reverse=True):
+        if stars >= threshold and f"star_tier_{threshold}" in bot.theme.styles:
+            return f"star_tier_{threshold}"
+    return "star_tier_1"
+
+
+async def default_starboard_document(bot, guild_id: int, **variables) -> dict:
+    """Full featured default for ``starboard.card`` (no theme override).
+
+    The tiered container wraps: the tiered title beside the author's avatar
+    thumbnail, the attachment gallery (skipped when ``{image_url}`` resolves
+    empty -- no image in the starred message), a divider and the standard
+    author footer (``card.author_footer.text``). Placeholders stay literal:
+    this is a template.
+    """
+    from rosemary.core.cards import author_footer_blocks
+
+    color_token = bot.theme.style(_tier_style_for(bot, int(variables.get("stars") or 1))).color
+    footer = await author_footer_blocks(bot, guild_id)
+    return {
+        "v": 1,
+        "blocks": [
+            {
+                "type": "container",
+                "color": color_token,
+                "children": [
+                    {
+                        "type": "section",
+                        "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
+                        "children": [
+                            {"type": "text", "body": "# {title}"},
+                            {"type": "text", "body": "{body}"},
+                        ],
+                    },
+                    {"type": "gallery", "urls": ["{image_url}"]},
+                    *footer,
+                ],
+            }
+        ],
+    }
+
+
+def _register_default_builder() -> None:
+    from rosemary.core.cards import set_default_builder
+
+    set_default_builder("starboard.card", default_starboard_document)
+
+
+_register_default_builder()
 

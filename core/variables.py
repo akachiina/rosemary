@@ -135,6 +135,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("roles", 1, "number"),
         _v("channels", 1, "number"),
         _v("created_at", "<t:1111111111:D>"),
+        _v("timestamp", "<t:1111111111:R>"),
         _v("message_author", "<@0>", "mention"),
         _v("message_author_name", "@you"),
         _v("message", "…"),

@@ -112,6 +112,27 @@ async def test_default_builders_render_every_audit_card():
         assert doc["blocks"], name
 
 
+def _footer_texts(doc) -> list[str]:
+    return [
+        block["body"]
+        for block in doc["blocks"][0]["children"]
+        if block.get("type") == "text" and block.get("body", "").startswith("-# ")
+    ]
+
+
+async def test_every_audit_default_carries_author_footer():
+    """The standard footer (author + relative time) replaces the old server line."""
+    from rosemary.core.card_service import default_document
+
+    bot = MagicMock()
+    bot.theme = load_theme()
+    bot.translator = FakeTranslator()
+    for name, _ in AUDIT_CARDS:
+        doc = await default_document(bot, 1, f"audit.{name}")
+        footers = _footer_texts(doc)
+        assert footers == ["-# by {user} · {timestamp}"], name
+
+
 def test_fence_wraps_and_neutralizes_backticks():
     assert _fence("hello").startswith("```")
     assert _fence("hello").endswith("```")

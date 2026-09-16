@@ -207,3 +207,75 @@ async def test_zero_stars_deletes_post(tmp_path):
 
     partial.delete.assert_awaited()
     assert await cog.store.get_entry(1, 10) is None
+
+
+# -- default builder ---------------------------------------------------------------
+
+
+async def test_default_document_is_full_rich_layout(tmp_path):
+    """The seed {title}/{body} used to shadow the rich card; the builder wins now."""
+    from rosemary.core.card_service import default_document, render_document
+
+    bot = FakeBot(tmp_path)
+    doc = await default_document(
+        bot, 1, "starboard.card",
+        {"stars": 3, "image_url": "https://a.b/cat.png", "timestamp": "<t:1:R>"},
+    )
+    assert doc is not None
+    view = await render_document(
+        bot,
+        doc,
+        {
+            "user": "<@7>",
+            "user_avatar": "https://a.b/x.png",
+            "stars": 3,
+            "title": "⭐ 3 • #geral",
+            "body": "miau",
+            "image_url": "https://a.b/cat.png",
+            "timestamp": "<t:1:R>",
+        },
+        guild_id=1,
+        card_key="starboard.card",
+    )
+    texts = [
+        item.content
+        for item in view.walk_children()
+        if isinstance(item, discord.ui.TextDisplay)
+    ]
+    assert any("⭐ 3 • #geral" in text for text in texts), texts
+    assert any("-# by <@7>" in text for text in texts), texts
+    galleries = [i for i in view.walk_children() if isinstance(i, discord.ui.MediaGallery)]
+    assert len(galleries) == 1
+
+
+async def test_default_document_skips_gallery_without_image(tmp_path):
+    """No image attachment means no empty gallery skeleton in the message."""
+    from rosemary.core.card_service import default_document, render_document
+
+    bot = FakeBot(tmp_path)
+    doc = await default_document(bot, 1, "starboard.card", {"stars": 2})
+    view = await render_document(
+        bot,
+        doc,
+        {
+            "user": "<@7>",
+            "user_avatar": "https://a.b/x.png",
+            "stars": 2,
+            "title": "⭐ 2 • #geral",
+            "body": "só texto",
+            "image_url": "",
+            "timestamp": "<t:1:R>",
+        },
+        guild_id=1,
+        card_key="starboard.card",
+    )
+    assert not any(isinstance(i, discord.ui.MediaGallery) for i in view.walk_children())
+
+
+async def test_builder_reacts_to_star_tier(tmp_path):
+    from rosemary.core.card_service import default_document
+
+    bot = FakeBot(tmp_path)
+    low = await default_document(bot, 1, "starboard.card", {"stars": 1})
+    high = await default_document(bot, 1, "starboard.card", {"stars": 13})
+    assert low["blocks"][0]["color"] != high["blocks"][0]["color"]

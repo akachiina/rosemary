@@ -49,6 +49,9 @@ def _variables(user: discord.abc.User, guild: discord.Guild) -> dict:
         "user_name": getattr(user, "display_name", None) or user.name,
         "user_avatar": user.display_avatar.url,
         "server": guild.name,
+        "timestamp": discord.utils.format_dt(
+            discord.utils.utcnow(), style="R"
+        ),
     }
 
 
@@ -60,8 +63,13 @@ def _timeout_until(member):
 async def default_audit_document(
     bot, guild_id: int, *, title_key: str, body_key: str, color: str, emoji_token: str
 ) -> dict:
-    """Catalog-default audit card, mirroring the welcome-cog event layout."""
-    from rosemary.core.cards import ECHO_VARIABLES, safe_format
+    """Catalog-default audit card, mirroring the welcome-cog event layout.
+
+    Footer is the standard author attribution (``card.author_footer.text``):
+    the actor mention plus the relative event time -- ``{user}`` and
+    ``{timestamp}`` resolve at render from the send-site variables.
+    """
+    from rosemary.core.cards import ECHO_VARIABLES, author_footer_blocks, safe_format
 
     mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
 
@@ -73,6 +81,7 @@ async def default_audit_document(
         emoji = bot.theme.emojis.get(emoji_token, "")
         title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
     body = await raw(body_key)
+    footer = await author_footer_blocks(bot, guild_id)
     return {
         "v": 1,
         "blocks": [
@@ -88,8 +97,7 @@ async def default_audit_document(
                             {"type": "text", "body": body},
                         ],
                     },
-                    {"type": "divider"},
-                    {"type": "text", "body": "-# {server}"},
+                    *footer,
                 ],
             }
         ],

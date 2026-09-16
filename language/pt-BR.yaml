@@ -1698,6 +1698,9 @@ variables:
   created_at:
     label: Criado em
     description: Data de criação do servidor
+  timestamp:
+    label: Tempo relativo
+    description: Momento do evento em tempo relativo do Discord (ex. "há 3 horas")
   message_author:
     label: Autor da mensagem
     description: Menção de quem enviou a mensagem
@@ -1861,6 +1864,10 @@ variables:
     label: Nome do servidor
     description: Nome do servidor
 card:
+  # Rodapé de autoria padrão (builder helper ``author_footer_blocks``): linha
+  # pequena (``-#``) com a menção de quem gerou o card e o tempo relativo.
+  author_footer:
+    text: "por {user} · {timestamp}"
   # Cards construídos em código promovidos a CardSpecs (customizáveis por tema).
   starboard:
     card:
