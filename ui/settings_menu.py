@@ -38,6 +38,9 @@ from rosemary.ui.menu import MenuView
 log = logging.getLogger(__name__)
 
 ITEMS_PER_PAGE = 7
+#: Places shown per management page. Each row is a Section (text + button),
+#: so the 40-component ceiling bounds this, not a flat count.
+LIST_ITEMS_PER_PAGE = 10
 
 
 class SettingsMenuView(MenuView):
@@ -61,6 +64,9 @@ class SettingsMenuView(MenuView):
         self.category: SettingCategory = SettingCategory.GENERAL
         self.page = 0
         self.editing_key: str | None = None
+        self.list_page = 0
+        self.add_mode = False
+        self._pending_adds: tuple[int, ...] = ()
         self.test_open = False
         self.flash: str | None = None
         self.flash_color: str | None = None
@@ -86,6 +92,15 @@ class SettingsMenuView(MenuView):
                 SettingType.ROLE,
             ):
                 self.register(f"settings_set:{key}", self._set_value_select)
+            elif spec.value_type is SettingType.CHANNEL_LIST:
+                self.register(f"settings_list_add:{key}", self._list_add_mode)
+                self.register(f"settings_list_pick:{key}", self._list_pick)
+                self.register(f"settings_list_confirm:{key}", self._list_confirm)
+                self.register(f"settings_list_cancel:{key}", self._list_cancel)
+                self.register(f"settings_list_clear:{key}", self._list_clear)
+                self.register(f"settings_list_prev:{key}", self._list_prev)
+                self.register(f"settings_list_next:{key}", self._list_next)
+                self.register("settings_list_remove", self._list_remove)
         self.register("settings_test", self._test_action)
         self.register("settings_test_open", self._open_tests)
         self.register("settings_test_close", self._close_tests)
@@ -100,6 +115,9 @@ class SettingsMenuView(MenuView):
     async def _back(self, interaction: discord.Interaction) -> None:
         self.editing_key = None
         self.test_open = False
+        self.add_mode = False
+        self._pending_adds = ()
+        self.list_page = 0
         await self.rerender(interaction)
 
     async def _prev(self, interaction: discord.Interaction) -> None:
@@ -146,7 +164,92 @@ class SettingsMenuView(MenuView):
             return
         await self._apply_value(interaction, key, values[0])
 
-    async def _apply_value(self, interaction: discord.Interaction, key: str, raw: Any) -> None:
+    # -- CHANNEL_LIST management screens ------------------------------------
+
+    async def _list_value(self, key: str) -> tuple[int, ...]:
+        return await get_setting(self.bot.storage, self.guild_id, key)
+
+    async def _list_add_mode(self, interaction: discord.Interaction) -> None:
+        await self._ack(interaction)
+        self.add_mode = True
+        self._pending_adds = ()
+        await self.rerender(interaction)
+
+    async def _list_pick(self, interaction: discord.Interaction) -> None:
+        """Collect multi-select picks; Concluir applies them."""
+        await self._ack(interaction)
+        values = (interaction.data or {}).get("values") or []
+        picks: list[int] = []
+        for raw in values:
+            try:
+                picks.append(int(raw))
+            except (TypeError, ValueError):
+                continue
+        merged = list(self._pending_adds)
+        merged.extend(p for p in picks if p not in merged)
+        self._pending_adds = tuple(merged)
+        await self.rerender(interaction)
+
+    async def _list_confirm(self, interaction: discord.Interaction) -> None:
+        await self._ack(interaction)
+        key = interaction.custom_id.split(":", 1)[1]
+        current = list(await self._list_value(key))
+        for place in self._pending_adds:
+            if place not in current:
+                current.append(place)
+        self.add_mode = False
+        self._pending_adds = ()
+        self.list_page = 0
+        await self._apply_value(interaction, key, current, stay_in_edit=True)
+
+    async def _list_cancel(self, interaction: discord.Interaction) -> None:
+        await self._ack(interaction)
+        self.add_mode = False
+        self._pending_adds = ()
+        await self.rerender(interaction)
+
+    async def _list_clear(self, interaction: discord.Interaction) -> None:
+        key = interaction.custom_id.split(":", 1)[1]
+        self.list_page = 0
+        await self._apply_value(interaction, key, (), stay_in_edit=True)
+
+    async def _list_prev(self, interaction: discord.Interaction) -> None:
+        await self._ack(interaction)
+        if self.list_page > 0:
+            self.list_page -= 1
+        await self.rerender(interaction)
+
+    async def _list_next(self, interaction: discord.Interaction) -> None:
+        await self._ack(interaction)
+        key = interaction.custom_id.split(":", 1)[1]
+        total = len(await self._list_value(key))
+        pages = max(1, -(-total // LIST_ITEMS_PER_PAGE))
+        if self.list_page < pages - 1:
+            self.list_page += 1
+        await self.rerender(interaction)
+
+    async def _list_remove(self, interaction: discord.Interaction) -> None:
+        """Remove one place: ``settings_list_remove:{key}:{id}``."""
+        _, key, raw = interaction.custom_id.split(":", 2)
+        try:
+            place = int(raw)
+        except ValueError:
+            return
+        current = [p for p in await self._list_value(key) if p != place]
+        # Removing the last row of a page must not strand an empty view.
+        pages = max(1, -(-len(current) // LIST_ITEMS_PER_PAGE))
+        if self.list_page >= pages:
+            self.list_page = pages - 1
+        await self._apply_value(interaction, key, current, stay_in_edit=True)
+
+    async def _apply_value(
+        self,
+        interaction: discord.Interaction,
+        key: str,
+        raw: Any,
+        *,
+        stay_in_edit: bool = False,
+    ) -> None:
         if not interaction.response.is_done():
             await interaction.response.defer()
         t = self.bot.translator.t
@@ -194,7 +297,8 @@ class SettingsMenuView(MenuView):
         from rosemary.core.panels import on_setting_changed
 
         await on_setting_changed(self.bot, self.guild_id, spec.key)
-        self.editing_key = None
+        if not stay_in_edit:
+            self.editing_key = None
         await self.rerender(interaction)
 
     async def _open_modal(
@@ -314,6 +418,11 @@ class SettingsMenuView(MenuView):
     async def build_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
         if self.editing_key is not None:
+            spec = SETTINGS[self.editing_key]
+            if spec.value_type is SettingType.CHANNEL_LIST:
+                if self.add_mode:
+                    return await self._build_list_add_page(t, spec)
+                return await self._build_list_page(t, spec)
             return await self._build_edit_page(t)
         if self.test_open and self.category is SettingCategory.BUMP:
             return await self._build_test_screen(t)
@@ -511,6 +620,158 @@ class SettingsMenuView(MenuView):
                     label=await t(self.guild_id, "settings.back"),
                     emoji=theme.emojis.get("back", ""),
                 )
+            ),
+        ]
+
+    async def _build_list_page(
+        self, t: Any, spec: SettingSpec
+    ) -> list[discord.ui.ViewItem]:
+        """Manage one CHANNEL_LIST setting: rows with per-row Remove."""
+        theme = self.bot.theme
+        label = await t(self.guild_id, f"settings.{spec.key}.label")
+        description = await t(self.guild_id, f"settings.{spec.key}.description")
+        places = list(await self._list_value(spec.key))
+        parts = [
+            TextDisplay(theme.md("edit_title", label=label)),
+            TextDisplay(description),
+        ]
+        total_pages = 1
+        page_places: list[int] = []
+        if not places:
+            parts.append(TextDisplay(await t(self.guild_id, "settings.list.empty")))
+        else:
+            total_pages = max(1, -(-len(places) // LIST_ITEMS_PER_PAGE))
+            self.list_page = min(self.list_page, total_pages - 1)
+            start = self.list_page * LIST_ITEMS_PER_PAGE
+            page_places = places[start : start + LIST_ITEMS_PER_PAGE]
+            if total_pages > 1:
+                parts.append(
+                    TextDisplay(
+                        await t(
+                            self.guild_id,
+                            "settings.page_indicator",
+                            page=self.list_page + 1,
+                            pages=total_pages,
+                        )
+                    )
+                )
+        if self.flash:
+            parts.append(TextDisplay(self.flash))
+            self.flash = None
+            flash_color = self.flash_color or "brand"
+            self.flash_color = None
+        else:
+            flash_color = "brand"
+        container = designer_container(theme.color(flash_color), *parts)
+
+        items: list[discord.ui.ViewItem] = [container, divider()]
+        for place in page_places:
+            items.append(
+                Section(
+                    TextDisplay(f"<#{place}>"),
+                    accessory=self.make_button(
+                        custom_id=f"settings_list_remove:{spec.key}:{place}",
+                        label=await t(self.guild_id, "settings.list.remove"),
+                        emoji=theme.emojis.get("trash", ""),
+                        style=discord.ButtonStyle.danger,
+                    ),
+                )
+            )
+        items.append(divider())
+        nav = [
+            self.make_button(
+                custom_id=f"settings_list_add:{spec.key}",
+                label=await t(self.guild_id, "settings.list.add"),
+                emoji=theme.emojis.get("plus", ""),
+                style=discord.ButtonStyle.success,
+            )
+        ]
+        if places:
+            nav.append(
+                self.make_button(
+                    custom_id=f"settings_list_clear:{spec.key}",
+                    label=await t(self.guild_id, "settings.list.clear"),
+                    emoji=theme.emojis.get("trash", ""),
+                    style=discord.ButtonStyle.danger,
+                )
+            )
+        if self.list_page > 0:
+            nav.append(
+                self.make_button(
+                    custom_id=f"settings_list_prev:{spec.key}",
+                    label=await t(self.guild_id, "settings.prev"),
+                )
+            )
+        if self.list_page < total_pages - 1:
+            nav.append(
+                self.make_button(
+                    custom_id=f"settings_list_next:{spec.key}",
+                    label=await t(self.guild_id, "settings.next"),
+                )
+            )
+        items.append(discord.ui.ActionRow(*nav))
+        items.append(
+            discord.ui.ActionRow(
+                self.make_button(
+                    custom_id="settings_back",
+                    label=await t(self.guild_id, "settings.back"),
+                    emoji=theme.emojis.get("back", ""),
+                )
+            )
+        )
+        return items
+
+    async def _build_list_add_page(
+        self, t: Any, spec: SettingSpec
+    ) -> list[discord.ui.ViewItem]:
+        """Batch-add screen: one multi-select (channels + categories)."""
+        theme = self.bot.theme
+        label = await t(self.guild_id, f"settings.{spec.key}.label")
+        pending = self._pending_adds
+        parts = [
+            TextDisplay(theme.md("edit_title", label=label)),
+            TextDisplay(await t(self.guild_id, "settings.list.add_hint")),
+        ]
+        if pending:
+            shown = " ".join(f"<#{p}>" for p in pending[:25])
+            parts.append(
+                TextDisplay(
+                    await t(self.guild_id, "settings.list.pending", count=len(pending),
+                            places=shown)
+                )
+            )
+        container = designer_container(theme.color("brand"), *parts)
+
+        # One picker handles both shapes: channel_types accepts text channels
+        # AND categories together (Discord renders categories in the list).
+        select = discord.ui.Select(
+            select_type=discord.ComponentType.channel_select,
+            custom_id=f"settings_list_pick:{spec.key}",
+            placeholder=await t(self.guild_id, "settings.list.pick_placeholder"),
+            min_values=1,
+            max_values=25,
+            channel_types=[
+                discord.ChannelType.text,
+                discord.ChannelType.category,
+            ],
+        )
+        select.callback = self._handlers[f"settings_list_pick:{spec.key}"]
+        return [
+            container,
+            discord.ui.ActionRow(select),
+            discord.ui.ActionRow(
+                self.make_button(
+                    custom_id=f"settings_list_confirm:{spec.key}",
+                    label=await t(self.guild_id, "settings.list.confirm"),
+                    emoji=theme.emojis.get("check", ""),
+                    style=discord.ButtonStyle.success,
+                    disabled=not pending,
+                ),
+                self.make_button(
+                    custom_id=f"settings_list_cancel:{spec.key}",
+                    label=await t(self.guild_id, "settings.cancel"),
+                    emoji=theme.emojis.get("back", ""),
+                ),
             ),
         ]
 

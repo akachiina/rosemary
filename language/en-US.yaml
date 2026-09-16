@@ -239,9 +239,16 @@ settings:
   anti_invite.warn_on_delete:
     label: Warn on delete
     description: Post a warning when an invite is deleted.
-  anti_invite.exempt_channel:
-    label: Anti-invite exempt channel
-    description: Channel where invite links are allowed.
+  anti_invite.exempt_places:
+    label: Anti-invite exempt places
+    description: Channels and categories where invite links are allowed.
+  list.empty: No exempt places yet. Use Add to pick channels or categories.
+  list.remove: Remove
+  list.add: Add
+  list.clear: Clear all
+  list.add_hint: Tap the picker to choose several places. Categories cover every channel inside them.
+  list.pending: 'Selected ({count}): {places}'
+  list.pick_placeholder: Channels and categories…
   reminders.enabled:
     label: Reminders enabled
     description: Whether saved DM reminders can be used.

@@ -24,6 +24,7 @@ async def test_registry_covers_all_types_and_categories():
         SettingType.INTEGER,
         SettingType.BOOLEAN,
         SettingType.CHANNEL,
+        SettingType.CHANNEL_LIST,
         SettingType.CATEGORY,
         SettingType.CHOICE,
         SettingType.ROLE,
@@ -172,7 +173,7 @@ async def test_settings_for_category_ordering():
         "cleaner.enabled",
         "anti_invite.enabled",
         "anti_invite.warn_on_delete",
-        "anti_invite.exempt_channel",
+        "anti_invite.exempt_places",
         "moderation.mute_seconds",
     ]
 

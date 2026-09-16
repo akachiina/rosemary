@@ -2,8 +2,9 @@
 
 Deletes messages containing ``discord.gg/`` / ``discord.com/invite/`` codes
 that do not belong to this guild, warns the author in-channel, and logs the
-block. Members with ``manage_messages`` and the exempt channel are skipped.
-Own codes are resolved with a single API lookup per offending message.
+block. Members with ``manage_messages`` and the exempt places (channels or
+whole categories, ``anti_invite.exempt_places``) are skipped. Own codes are
+resolved with a single API lookup per offending message.
 """
 
 import logging
@@ -43,10 +44,7 @@ class AntiInviteCog(commands.Cog):
                 return
             if message.author.guild_permissions.manage_messages:
                 return
-            exempt = await get_setting(
-                self.bot.storage, guild_id, "anti_invite.exempt_channel"
-            )
-            if exempt and message.channel.id == exempt:
+            if await self._is_exempt(guild_id, message.channel):
                 return
             if await self._is_own_code(message.guild, match.group(1)):
                 return
@@ -83,6 +81,16 @@ class AntiInviteCog(commands.Cog):
             )
         except Exception as exc:
             log.error("Anti-invite check failed: %s", exc)
+
+    async def _is_exempt(self, guild_id: int, channel) -> bool:
+        """Whether this channel (or its whole category) is exempt."""
+        places = await get_setting(self.bot.storage, guild_id, "anti_invite.exempt_places")
+        if not places:
+            return False
+        if channel.id in places:
+            return True
+        category_id = getattr(channel, "category_id", None)
+        return category_id is not None and category_id in places
 
     async def _is_own_code(self, guild: discord.Guild, code: str) -> bool:
         """Whether an invite code belongs to this guild (one API lookup)."""

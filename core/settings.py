@@ -35,6 +35,7 @@ class SettingType(StrEnum):
     BOOLEAN = "boolean"
     CHOICE = "choice"
     CHANNEL = "channel"
+    CHANNEL_LIST = "channel_list"
     CATEGORY = "category"
     ROLE = "role"
 
@@ -68,6 +69,9 @@ class SettingSpec:
     max_value: int | None = None
     choices: tuple[str, ...] = ()
     is_duration: bool = False
+    #: CHANNEL_LIST only: a renamed-away scalar setting whose stored value
+    #: seeds the list until the menu saves it canonically (see get_setting).
+    legacy_single_key: str | None = None
 
 
 def _spec(
@@ -144,10 +148,11 @@ SETTINGS: dict[str, SettingSpec] = {
             True,
         ),
         _spec(
-            "anti_invite.exempt_channel",
+            "anti_invite.exempt_places",
             SettingCategory.MODERATION,
-            SettingType.CHANNEL,
-            None,
+            SettingType.CHANNEL_LIST,
+            (),
+            legacy_single_key="anti_invite.exempt_channel",
         ),
         _spec(
             "reminders.enabled",
@@ -748,6 +753,25 @@ def coerce_value(
             return (False, None)
         return (True, value if value > 0 else None)
 
+    if value_type is SettingType.CHANNEL_LIST:
+        # Stored as a tuple of positive channel/category ids. Accepts a raw
+        # list (multi-select values), a single id (migration from the old
+        # single-channel setting) and an empty/None marker to clear.
+        if raw is None or raw == "" or raw == 0:
+            return (True, ())
+        raw_items = raw if isinstance(raw, (list, tuple)) else [raw]
+        values: list[int] = []
+        for item in raw_items:
+            try:
+                item_value = int(item)
+            except (TypeError, ValueError):
+                return (False, None)
+            if item_value <= 0:
+                return (False, None)
+            values.append(item_value)
+        # Deduplicated, order-preserving (repeat picks are a no-op).
+        return (True, tuple(dict.fromkeys(values)))
+
     log.warning("Unhandled setting type %r for %s", value_type, spec.key)
     return (False, None)
 
@@ -784,6 +808,26 @@ def format_value(spec: SettingSpec, value: Any) -> FormattedValue:
             return FormattedValue("settings.none", translate=True, is_default=is_default)
         return FormattedValue(f"<#{value}>", translate=False, is_default=is_default)
 
+    if value_type is SettingType.CHANNEL_LIST:
+        items = list(value or ())
+        if not items:
+            return FormattedValue("settings.none", translate=True, is_default=is_default)
+        return FormattedValue(
+            " ".join(f"<#{item}>" for item in items),
+            translate=False,
+            is_default=is_default,
+        )
+
+    if value_type is SettingType.CHANNEL_LIST:
+        items = list(value or ())
+        if not items:
+            return FormattedValue("settings.none", translate=True, is_default=is_default)
+        return FormattedValue(
+            " ".join(f"<#{item}>" for item in items),
+            translate=False,
+            is_default=is_default,
+        )
+
     if value_type is SettingType.ROLE:
         if value is None:
             return FormattedValue("settings.none", translate=True, is_default=is_default)
@@ -811,7 +855,36 @@ async def get_setting(storage: GuildStorage, guild_id: int, key: str) -> Any:
     spec = SETTINGS[key]
     data = await storage.get(guild_id)
     ok, value = coerce_value(spec, data.get(key, spec.default))
-    return value if ok else spec.default
+    if ok:
+        if spec.value_type is SettingType.CHANNEL_LIST:
+            value = await _migrated_list_value(storage, guild_id, spec, data, value)
+        return value
+    return spec.default
+
+
+async def _migrated_list_value(
+    storage: GuildStorage,
+    guild_id: int,
+    spec: SettingSpec,
+    data: dict,
+    value: tuple[int, ...],
+) -> tuple[int, ...]:
+    """One-shot migration for list settings renamed from a scalar setting.
+
+    ``anti_invite.exempt_channel`` (single int) became
+    ``anti_invite.exempt_places`` (list). When the new key was never written
+    and the old one holds a value, that value seeds the list (lazy migration:
+    read path only, no write -- the next menu save persists it canonically).
+    """
+    legacy = getattr(spec, "legacy_single_key", None)
+    if value or legacy is None:
+        return value
+    # Migrate only while the new key was never written; the legacy key
+    # holding a value is precisely the case that seeds the list.
+    if legacy not in data:
+        return value
+    ok, migrated = coerce_value(spec, data.get(legacy))
+    return migrated if ok else value
 
 
 async def set_setting(

@@ -239,9 +239,16 @@ settings:
   anti_invite.warn_on_delete:
     label: Avisar ao apagar
     description: Posta um aviso quando um convite é apagado.
-  anti_invite.exempt_channel:
-    label: Canal isento do anti-convite
-    description: Canal onde links de convite são permitidos.
+  anti_invite.exempt_places:
+    label: Locais isentos do anti-convite
+    description: Canais e categorias onde links de convite são permitidos.
+  list.empty: Nenhum local isento ainda. Use Adicionar para escolher canais ou categorias.
+  list.remove: Remover
+  list.add: Adicionar
+  list.clear: Limpar tudo
+  list.add_hint: Toque no seletor para escolher vários locais. Categorias valem para todos os canais dentro delas.
+  list.pending: 'Selecionados ({count}): {places}'
+  list.pick_placeholder: Canais e categorias…
   reminders.enabled:
     label: Lembretes ativados
     description: Se lembretes por DM podem ser usados.
