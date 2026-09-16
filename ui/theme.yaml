@@ -112,12 +112,27 @@ styles:
   bump_leaderboard: { extends: base, color: "warning" }
   bump_no_data: { extends: base, color: "info" }
   bump_test: { extends: base, color: "brand" }
-  star_tier_1: { extends: base, color: "info" }
-  star_tier_2: { extends: base, color: "success" }
-  star_tier_3: { extends: base, color: "warning" }
+  # Starboard: cor contínua por estrelas (rampa amarela, do fraco ao forte).
+  # `star_ramp.limit` e a contagem de estrelas que atinge o tom forte; a partir
+  # dela a cor para de mudar. `star_tier_1` continua como fallback para temas
+  # que não definem rampa.
+  star_tier_1: { extends: base, color: "warning" }
+  star_tier_2: { extends: base, color: "warning" }
+  star_tier_3: { extends: base, color: "gold" }
   star_tier_5: { extends: base, color: "gold" }
   star_tier_8: { extends: base, color: "orange" }
-  star_tier_13: { extends: base, color: "danger" }
+  star_tier_13: { extends: base, color: "orange" }
+  star_ramp:
+    from_color: "#F7EFA8"
+    to_color: "#FF8C00"
+    limit: 13
+
+# Título do post do starboard por marco de estrelas (o maior marco alcançado
+# vence; abaixo do primeiro, cai para o emoji `star` comum).
+star_tier_emoji:
+  3: "✨"
+  8: "💫"
+  13: "🌟"
 
 # bump defaults: used to reset or provide a base for the MVP role
 bump:

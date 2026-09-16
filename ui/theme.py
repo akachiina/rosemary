@@ -17,6 +17,7 @@ split into three layers:
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -54,6 +55,7 @@ class Theme:
         styles: dict[str, dict[str, str]] | None = None,
         bump: dict[str, str] | None = None,
         medals: dict[str, str] | None = None,
+        star_tier_emoji: dict[Any, str] | None = None,
     ) -> None:
         self.colors = colors
         self.emojis = emojis
@@ -61,6 +63,7 @@ class Theme:
         self.styles = styles or {}
         self.bump = bump or {}
         self.medals = medals or {}
+        self.star_tier_emoji = star_tier_emoji or {}
 
     def color(self, name: str) -> discord.Colour:
         """Return a ``discord.Colour`` for a named theme color."""
@@ -105,6 +108,86 @@ class Theme:
         body = template.format(**{**self.emojis, **kwargs})
         return f"{style.prefix}{body}{style.suffix}"
 
+    # -- star tier ramp ------------------------------------------------------
+
+    def star_ramp(self, stars: int) -> str:
+        """The accent color for a star count, as a hex string.
+
+        Continuous ramp from ``star_ramp.from_color`` (few stars) toward
+        ``star_ramp.to_color`` (many stars), reaching the strong end at
+        ``star_ramp.limit`` and holding there -- every star nudges the tone,
+        like the legacy bot. ``from_color``/``to_color`` accept theme color
+        token names or ``#rrggbb``. Missing/malformed ramp config falls back
+        to the ``star_tier_1`` style color, so guild themes without a ramp
+        keep a working look.
+        """
+        ramp = self.star_ramp_config()
+        if ramp is None:
+            return self.style("star_tier_1").color
+        from_color, to_color, limit = ramp
+        try:
+            count = max(1, int(stars))
+        except (TypeError, ValueError):
+            count = 1
+        ratio = min(1.0, (count - 1) / max(1, limit - 1))
+        return _blend_hex(from_color, to_color, ratio)
+
+    def star_ramp_config(self) -> tuple[str, str, int] | None:
+        """``(from_color, to_color, limit)`` for the star ramp, or ``None``.
+
+        ``from_color``/``to_color`` are theme color token names or hex;
+        ``limit`` is the star count that reaches the strong end (minimum 1).
+        """
+        ramp = self.styles.get("star_ramp")
+        if not isinstance(ramp, dict):
+            return None
+        start = ramp.get("from_color")
+        end = ramp.get("to_color")
+        limit = ramp.get("limit", ramp.get("to", ramp.get("at")))
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            return None
+        if not isinstance(start, str) or not isinstance(end, str) or limit < 1:
+            return None
+        from_color = self.colors.get(start, start)
+        to_color = self.colors.get(end, end)
+        if not _HEX.fullmatch(from_color) or not _HEX.fullmatch(to_color):
+            return None
+        return from_color, to_color, limit
+
+    def star_title_emoji(self, stars: int) -> str:
+        """The title emoji for a star count (milestone map, highest wins).
+
+        Theme ``star_tier_emoji:`` maps a star count to a glyph; the highest
+        threshold reached wins, below the lowest one the emoji falls back to
+        the plain ``star`` token. (The attribute holds the raw YAML map;
+        the method reads it through :meth:`star_tier_emoji_map`.)
+        """
+        milestones = self.star_tier_emoji_map()
+        best = 0
+        for threshold in sorted(milestones):
+            if stars >= threshold and threshold > best:
+                best = threshold
+        if best:
+            return milestones[best]
+        return self.emoji("star") or "⭐"
+
+    def star_tier_emoji_map(self) -> dict[int, str]:
+        """Parsed ``star_tier_emoji:`` milestone map (int keys, non-empty)."""
+        raw = getattr(self, "star_tier_emoji", None)
+        if not isinstance(raw, dict):
+            return {}
+        parsed: dict[int, str] = {}
+        for key, glyph in raw.items():
+            try:
+                threshold = int(key)
+            except (TypeError, ValueError):
+                continue
+            if threshold >= 1 and isinstance(glyph, str) and glyph.strip():
+                parsed[threshold] = glyph
+        return parsed
+
     def _resolve_style(self, name: str) -> dict[str, str]:
         seen: set[str] = set()
         merged: dict[str, str] = {}
@@ -124,6 +207,22 @@ class Theme:
         return value.format(**self.emojis)
 
 
+#: ``#rrggbb`` / ``rrggbb`` -- the only color forms the ramp blends.
+_HEX = re.compile(r"#?[0-9a-fA-F]{6}")
+
+
+def _blend_hex(start: str, end: str, ratio: float) -> str:
+    """Linear RGB blend ``start`` -> ``end`` (``ratio`` 0..1), as ``#rrggbb``."""
+    def channels(value: str) -> tuple[int, int, int]:
+        value = value.lstrip("#")
+        return int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16)
+
+    r1, g1, b1 = channels(start)
+    r2, g2, b2 = channels(end)
+    mix = lambda a, b: round(a + (b - a) * ratio)  # noqa: E731
+    return f"#{mix(r1, r2):02X}{mix(g1, g2):02X}{mix(b1, b2):02X}"
+
+
 def load_theme(path: Path | None = None) -> Theme:
     """Load the theme YAML, falling back to empty resources on failure."""
     theme_path = Path(path) if path else THEME_PATH
@@ -133,6 +232,7 @@ def load_theme(path: Path | None = None) -> Theme:
     styles: dict[str, dict[str, str]] = {}
     bump: dict[str, str] = {}
     medals: dict[str, str] = {}
+    star_tier_emoji: dict[Any, str] = {}
     if theme_path.exists():
         try:
             with theme_path.open("r", encoding="utf-8") as fh:
@@ -146,12 +246,13 @@ def load_theme(path: Path | None = None) -> Theme:
             }
             bump = {str(k): str(v) for k, v in (data.get("bump") or {}).items()}
             medals = {str(k): str(v) for k, v in (data.get("medals") or {}).items()}
+            star_tier_emoji = dict((data.get("star_tier_emoji") or {}).items())
         except yaml.YAMLError as exc:
             log.error("Failed to load theme %s: %s", theme_path, exc)
     else:
         log.warning("Theme file not found: %s", theme_path)
     _validate_theme(theme_path, colors, emojis)
-    return Theme(colors, emojis, markdown, styles, bump, medals)
+    return Theme(colors, emojis, markdown, styles, bump, medals, star_tier_emoji)
 
 
 def _validate_theme(path: Path, colors: dict[str, str], emojis: dict[str, str]) -> None:

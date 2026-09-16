@@ -58,12 +58,13 @@ class RosemaryTheme(Theme):
         styles: dict[str, dict[str, str]] | None = None,
         bump: dict[str, str] | None = None,
         medals: dict[str, str] | None = None,
+        star_tier_emoji: dict[Any, str] | None = None,
         *,
         name: str = "",
         cards: dict[str, dict[str, Any]] | None = None,
         pings: dict[str, bool] | None = None,
     ) -> None:
-        super().__init__(colors, emojis, markdown, styles, bump, medals)
+        super().__init__(colors, emojis, markdown, styles, bump, medals, star_tier_emoji)
         self.name = name
         self.cards = cards or {}
         self.pings = pings or {}
@@ -103,8 +104,16 @@ def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
     }
     bump = _string_map(data.get("bump"))
     medals = _string_map(data.get("medals"))
+    star_tier_emoji = {
+        str(k): str(v)
+        for k, v in (data.get("star_tier_emoji") or {}).items()
+        if isinstance(v, str)
+    }
 
-    theme = RosemaryTheme(colors, emojis, markdown, styles, bump, medals, name=theme_name)
+    theme = RosemaryTheme(
+        colors, emojis, markdown, styles, bump, medals,
+        star_tier_emoji=star_tier_emoji, name=theme_name,
+    )
 
     cards_section = data.get("cards") or {}
     if not isinstance(cards_section, dict):

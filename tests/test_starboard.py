@@ -116,16 +116,36 @@ def test_tier_styles_exist_in_theme():
         assert f"star_tier_{threshold}" in theme.styles
 
 
-def test_tier_style_progression(tmp_path):
-    class Bot(FakeBot):
-        def __init__(self):
-            super().__init__(tmp_path)
+def test_star_ramp_is_continuous_and_monotonic():
+    """The legacy feel: every star nudges the tone toward the strong end."""
+    theme = load_theme()
+    ramp = theme.star_ramp_config()
+    assert ramp is not None, "built-in theme must define the star ramp"
+    from_color, to_color, limit = ramp
+    below = [theme.star_ramp(n) for n in range(1, limit + 1)]
+    assert below[0] == from_color, "one star starts at the weak end"
+    assert below[-1] == to_color, "the limit reaches the strong end"
+    assert len(set(below)) == len(below), "tone must change every star up to the limit"
+    assert theme.star_ramp(limit + 5) == to_color, "the ramp holds past the limit"
 
-    cog = StarboardCog(Bot())
-    assert cog._tier_style(1) == "star_tier_1"
-    assert cog._tier_style(3) == "star_tier_3"
-    assert cog._tier_style(20) == "star_tier_13"
-    assert cog._tier_style(0) == "star_tier_1"
+
+def test_star_ramp_without_config_falls_back_to_tier_style(tmp_path):
+    """Guild themes without a ramp keep the tier-style look working."""
+    from rosemary.cogs.starboard import _ramp_color
+
+    theme = load_theme()
+    theme.styles.pop("star_ramp", None)
+    assert theme.star_ramp_config() is None
+    assert _ramp_color(theme, 1) == theme.color("warning")
+
+
+def test_star_title_emoji_milestones():
+    theme = load_theme()
+    assert theme.star_title_emoji(1) == theme.emoji("star")
+    assert theme.star_title_emoji(3) != theme.star_title_emoji(1)
+    assert theme.star_title_emoji(12) == theme.star_title_emoji(8)
+    assert theme.star_title_emoji(13) != theme.star_title_emoji(12)
+    assert theme.star_title_emoji(99) == theme.star_title_emoji(13)
 
 
 # -- posting flow ------------------------------------------------------------------
@@ -273,9 +293,18 @@ async def test_default_document_skips_gallery_without_image(tmp_path):
 
 
 async def test_builder_reacts_to_star_tier(tmp_path):
+    """The document carries hex strings (schema contract) and the ramp moves."""
     from rosemary.core.card_service import default_document
 
     bot = FakeBot(tmp_path)
     low = await default_document(bot, 1, "starboard.card", {"stars": 1})
+    mid = await default_document(bot, 1, "starboard.card", {"stars": 5})
     high = await default_document(bot, 1, "starboard.card", {"stars": 13})
-    assert low["blocks"][0]["color"] != high["blocks"][0]["color"]
+    low_c, mid_c, high_c = (
+        doc["blocks"][0]["color"] for doc in (low, mid, high)
+    )
+    for value in (low_c, mid_c, high_c):
+        assert isinstance(value, str) and value.startswith("#"), value
+    assert low_c != mid_c != high_c, "ramp must move between 1/5/13 stars"
+    # Monotonic toward the strong end: red channel only rises (yellow->orange).
+    assert int(low_c[1:3], 16) <= int(mid_c[1:3], 16) <= int(high_c[1:3], 16)

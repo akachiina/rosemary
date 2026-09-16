@@ -29,8 +29,6 @@ EDIT_COOLDOWN_SECONDS = 2.0
 class StarboardCog(commands.Cog):
     """Raw reaction listeners driving the starboard."""
 
-    _TIER_THRESHOLDS = (1, 2, 3, 5, 8, 13)
-
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = StarboardStore(bot.storage.data_dir)
@@ -41,12 +39,6 @@ class StarboardCog(commands.Cog):
         if message_id not in self._locks:
             self._locks[message_id] = asyncio.Lock()
         return self._locks[message_id]
-
-    def _tier_style(self, stars: int) -> str:
-        for threshold in sorted(self._TIER_THRESHOLDS, reverse=True):
-            if stars >= threshold and f"star_tier_{threshold}" in self.bot.theme.styles:
-                return f"star_tier_{threshold}"
-        return "star_tier_1"
 
     async def _star_emoji(self, guild_id: int) -> str:
         return self.bot.theme.emoji("star") or "⭐"
@@ -121,9 +113,9 @@ class StarboardCog(commands.Cog):
                 )
             )
         )
-        color_token = theme.style(self._tier_style(stars)).color
+        color = _ramp_color(theme, stars)
         view = DesignerView(store=False)
-        view.add_item(designer_container(theme.color(color_token), *container_items))
+        view.add_item(designer_container(color, *container_items))
         return view
 
     async def _card_view(
@@ -141,7 +133,7 @@ class StarboardCog(commands.Cog):
         star tier (accent color) and the original attachments."""
         from rosemary.core.card_service import render_card_message
 
-        star = self.bot.theme.emoji("star")
+        star = _ramp_emoji(self.bot.theme, stars)
         channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
         title = f"{star} {stars} • {channel_mention}"
         body = message.content or no_content_label
@@ -312,13 +304,39 @@ class StarboardCog(commands.Cog):
 
 # -- default builder -----------------------------------------------------------
 
+#: Star counts where a higher ``star_tier_*`` style kicks in (theme-defined).
+#: Only used when the theme has no continuous ``star_ramp`` (legacy fallback).
+_TIER_THRESHOLDS = (1, 2, 3, 5, 8, 13)
 
-def _tier_style_for(bot, stars: int) -> str:
-    """Module-level tier resolution (the class method is the legacy shim)."""
-    for threshold in sorted(StarboardCog._TIER_THRESHOLDS, reverse=True):
-        if stars >= threshold and f"star_tier_{threshold}" in bot.theme.styles:
+
+def _tier_style_for(theme, stars: int) -> str:
+    """The highest defined ``star_tier_*`` style the count reaches."""
+    for threshold in sorted(_TIER_THRESHOLDS, reverse=True):
+        if stars >= threshold and f"star_tier_{threshold}" in theme.styles:
             return f"star_tier_{threshold}"
     return "star_tier_1"
+
+
+def _ramp_hex(theme, stars: int) -> str:
+    """Accent color for a star count as ``#rrggbb`` (documents speak hex):
+    continuous ramp when the theme has one, else the tier style token, which
+    resolves through the theme palette (guild themes without ``star_ramp``
+    keep working)."""
+    if theme.star_ramp_config() is not None:
+        return theme.star_ramp(stars)
+    return f"#{theme.color(theme.style(_tier_style_for(theme, stars)).color).value:06X}"
+
+
+def _ramp_color(theme, stars: int) -> discord.Colour:
+    """Same ramp as :func:`_ramp_hex`, resolved to a ``discord.Colour``."""
+    return theme.color(theme.style(_tier_style_for(theme, stars)).color) if (
+        theme.star_ramp_config() is None
+    ) else discord.Colour(int(theme.star_ramp(stars).lstrip("#"), 16))
+
+
+def _ramp_emoji(theme, stars: int) -> str:
+    """Title emoji for a star count (milestone map, plain star as fallback)."""
+    return theme.star_title_emoji(stars)
 
 
 async def default_starboard_document(bot, guild_id: int, **variables) -> dict:
@@ -332,14 +350,14 @@ async def default_starboard_document(bot, guild_id: int, **variables) -> dict:
     """
     from rosemary.core.cards import author_footer_blocks
 
-    color_token = bot.theme.style(_tier_style_for(bot, int(variables.get("stars") or 1))).color
+    stars = int(variables.get("stars") or 1)
     footer = await author_footer_blocks(bot, guild_id)
     return {
         "v": 1,
         "blocks": [
             {
                 "type": "container",
-                "color": color_token,
+                "color": _ramp_hex(bot.theme, stars),
                 "children": [
                     {
                         "type": "section",
