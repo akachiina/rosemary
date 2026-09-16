@@ -293,7 +293,7 @@ async def test_member_update_timeout_diff(tmp_path):
 
 
 async def test_member_update_without_timeout_attr_never_crashes(tmp_path, caplog):
-    """Regression: live Member has no timed_out_until (py-cord uses communication_disabled_until)."""
+    """Regression: live Member lacks timed_out_until (py-cord name differs)."""
     import logging
     from types import SimpleNamespace
 
