@@ -67,7 +67,7 @@ def member(mid=5, name="Ana", nick=None):
     m.display_avatar.url = "https://a.b/ana.png"
     m.guild_permissions = discord.Permissions.none()
     m.roles = []
-    m.timed_out_until = None
+    m.communication_disabled_until = None
     m.guild = None  # callers set the real fake guild
     return m
 
@@ -276,20 +276,56 @@ async def test_member_update_timeout_diff(tmp_path):
     bot, guild, audit_channel, cog = make_world(tmp_path)
     await cog._arm()
     before = member()
-    before.timed_out_until = None
+    before.communication_disabled_until = None
     after = member()
-    after.timed_out_until = dt.datetime.now(dt.UTC) + dt.timedelta(hours=1)
+    after.communication_disabled_until = dt.datetime.now(dt.UTC) + dt.timedelta(hours=1)
     after.guild = guild
     await cog.on_member_update(before, after)
     assert audit_channel.send.await_count == 1
 
     before2 = member()
-    before2.timed_out_until = after.timed_out_until
+    before2.communication_disabled_until = after.communication_disabled_until
     after2 = member()
-    after2.timed_out_until = None
+    after2.communication_disabled_until = None
     after2.guild = guild
     await cog.on_member_update(before2, after2)
     assert audit_channel.send.await_count == 2
+
+
+async def test_member_update_without_timeout_attr_never_crashes(tmp_path, caplog):
+    """Regression: live Member has no timed_out_until (py-cord uses communication_disabled_until)."""
+    import logging
+    from types import SimpleNamespace
+
+    import discord
+
+    from rosemary.cogs.audit import _timeout_until
+
+    # The installed py-cord exposes the timeout under the py-cord name only.
+    assert hasattr(discord.Member, "communication_disabled_until")
+    assert not hasattr(discord.Member, "timed_out_until")
+
+    # Helper covers both shapes without raising.
+    assert _timeout_until(SimpleNamespace(communication_disabled_until=None)) is None
+    assert _timeout_until(SimpleNamespace(timed_out_until=None)) is None
+
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    before = member()
+    after = member()
+    after.guild = guild
+    # Live shape: only the py-cord attribute exists, direct access would raise.
+    assert before.communication_disabled_until is None
+    try:
+        before.timed_out_until  # noqa: B018
+        raise AssertionError("live-shaped fake should not expose timed_out_until")
+    except AttributeError:
+        pass
+
+    with caplog.at_level(logging.ERROR, logger="rosemary.cogs.audit"):
+        await cog.on_member_update(before, after)
+    assert "on_member_update audit failed" not in caplog.text
+    assert audit_channel.send.await_count == 0
 
 
 async def test_bot_member_changes_are_ignored(tmp_path):

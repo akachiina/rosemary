@@ -52,6 +52,11 @@ def _variables(user: discord.abc.User, guild: discord.Guild) -> dict:
     }
 
 
+def _timeout_until(member):
+    """Timeout expiry, tolerant to the discord.py vs py-cord attribute name."""
+    return getattr(member, "communication_disabled_until", getattr(member, "timed_out_until", None))
+
+
 async def default_audit_document(
     bot, guild_id: int, *, title_key: str, body_key: str, color: str, emoji_token: str
 ) -> dict:
@@ -483,8 +488,8 @@ class AuditCog(commands.Cog):
                             {**_variables(after, guild), "role": "\n".join(lines)},
                         )
 
-            old_to = before.timed_out_until
-            new_to = after.timed_out_until
+            old_to = _timeout_until(before)
+            new_to = _timeout_until(after)
             if old_to != new_to and await self._on(guild.id, "audit.timeout_enabled"):
                 channel = channel or await self._channel(guild.id)
                 if channel is not None:
