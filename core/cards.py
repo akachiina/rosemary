@@ -156,6 +156,26 @@ def get_default_builder(key: str) -> Callable[..., Any] | None:
     return _DEFAULT_BUILDERS.get(key)
 
 
+#: Catalog key and fallback of the standard author-attribution footer line.
+AUTHOR_FOOTER_KEY = "card.author_footer.text"
+AUTHOR_FOOTER_DEFAULT = "by {user} · {timestamp}"
+
+
+async def author_footer_template(bot, guild_id: int | None = None) -> str:
+    """The raw author-footer template (``{user}``/``{timestamp}`` intact)."""
+    raw = getattr(bot.translator, "raw", None)
+    if callable(raw):
+        found = await raw(guild_id, AUTHOR_FOOTER_KEY)
+        if isinstance(found, str) and found.strip() and found != AUTHOR_FOOTER_KEY:
+            return found
+    return AUTHOR_FOOTER_DEFAULT
+
+
+def author_footer_text(template: str, user_mention: str, timestamp: str) -> str:
+    """Resolve the author-footer template with real values (code-built views)."""
+    return safe_format(template, {"user": user_mention, "timestamp": timestamp})
+
+
 async def author_footer_blocks(bot, guild_id: int | None = None) -> list[dict[str, Any]]:
     """The standard author-attribution footer blocks for default builders.
 
@@ -166,15 +186,10 @@ async def author_footer_blocks(bot, guild_id: int | None = None) -> list[dict[st
     from the variables the send site passes (contract: ``user`` +
     ``timestamp``).
     """
-    footer_template = "by {user} · {timestamp}"
-    raw = getattr(bot.translator, "raw", None)
-    if callable(raw):
-        found = await raw(guild_id, "card.author_footer.text")
-        if isinstance(found, str) and found.strip() and found != "card.author_footer.text":
-            footer_template = found
+    template = await author_footer_template(bot, guild_id)
     return [
         {"type": "divider"},
-        {"type": "text", "body": f"-# {footer_template}"},
+        {"type": "text", "body": f"-# {template}"},
     ]
 
 

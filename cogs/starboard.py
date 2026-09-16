@@ -183,15 +183,10 @@ class StarboardCog(commands.Cog):
 
     async def _footer_text(self, guild_id: int, user_mention: str, timestamp: str) -> str:
         """The author footer line for the code-built fallback (``-#`` small)."""
-        from rosemary.core.cards import safe_format
+        from rosemary.core.cards import author_footer_template, author_footer_text
 
-        template = "by {user} · {timestamp}"
-        raw = getattr(self.bot.translator, "raw", None)
-        if callable(raw):
-            found = await raw(guild_id, "card.author_footer.text")
-            if isinstance(found, str) and found.strip() and found != "card.author_footer.text":
-                template = found
-        return safe_format(template, {"user": user_mention, "timestamp": timestamp})
+        template = await author_footer_template(self.bot, guild_id)
+        return author_footer_text(template, user_mention, timestamp)
 
     # -- core update ---------------------------------------------------------
 
@@ -317,13 +312,10 @@ class StarboardCog(commands.Cog):
 
 # -- default builder -----------------------------------------------------------
 
-#: Star counts where a higher ``star_tier_*`` style kicks in (theme-defined).
-_TIER_THRESHOLDS = (1, 2, 3, 5, 8, 13)
-
 
 def _tier_style_for(bot, stars: int) -> str:
-    """The highest defined ``star_tier_*`` style the count reaches."""
-    for threshold in sorted(_TIER_THRESHOLDS, reverse=True):
+    """Module-level tier resolution (the class method is the legacy shim)."""
+    for threshold in sorted(StarboardCog._TIER_THRESHOLDS, reverse=True):
         if stars >= threshold and f"star_tier_{threshold}" in bot.theme.styles:
             return f"star_tier_{threshold}"
     return "star_tier_1"

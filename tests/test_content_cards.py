@@ -138,12 +138,18 @@ async def test_seed_documents_render():
         assert view.children, f"{key}: rendered no items"
 
 
-async def test_starboard_seed_renders_with_tiered_title():
+async def test_starboard_card_resolves_via_builder_not_seed():
+    """The builder owns the starboard default; a seed entry here would shadow
+    it with bare {title}/{body} -- the exact bug that made live posts plain
+    (regression for the seed-map shadowing)."""
+    from rosemary.core.card_service import SEED_PARTS_BY_KEY, render_document
+
     bot = make_bot()
+    assert "starboard.card" not in SEED_PARTS_BY_KEY, (
+        "a seed entry would shadow the registered rich builder"
+    )
     doc = await default_document(bot, 1, "starboard.card")
     assert doc is not None
-    from rosemary.core.card_service import render_document
-
     view = await render_document(
         bot,
         doc,
@@ -155,12 +161,15 @@ async def test_starboard_seed_renders_with_tiered_title():
             "title": "⭐ 3 • #geral",
             "body": "mensagem estrelada",
             "image_url": "https://a.b/img.png",
+            "timestamp": "<t:1:R>",
         },
         guild_id=1,
         card_key="starboard.card",
     )
     texts = container_texts(view)
     assert any("mensagem estrelada" in text for text in texts)
+    # Builder signature: thumbnail section + author footer, not the bare seed.
+    assert any("-# by <@5>" in text for text in texts), texts
 
 
 # -- menu heading splice -------------------------------------------------------
