@@ -247,8 +247,10 @@ settings:
   list.add: Add
   list.clear: Clear all
   list.add_hint: Tap the picker to choose several places. Categories cover every channel inside them.
+  list.confirm: Done
   list.pending: 'Selected ({count}): {places}'
   list.pick_placeholder: Channels and categories…
+  cancel: Cancel
   reminders.enabled:
     label: Reminders enabled
     description: Whether saved DM reminders can be used.

@@ -247,8 +247,10 @@ settings:
   list.add: Adicionar
   list.clear: Limpar tudo
   list.add_hint: Toque no seletor para escolher vários locais. Categorias valem para todos os canais dentro delas.
+  list.confirm: Concluir
   list.pending: 'Selecionados ({count}): {places}'
   list.pick_placeholder: Canais e categorias…
+  cancel: Cancelar
   reminders.enabled:
     label: Lembretes ativados
     description: Se lembretes por DM podem ser usados.

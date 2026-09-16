@@ -337,6 +337,28 @@ async def test_anti_invite_listener_spares_exempt_category(tmp_path, monkeypatch
 # -- catalogs ---------------------------------------------------------------------
 
 
+def test_every_static_settings_menu_key_exists_in_both_catalogs():
+    """Sweep: a missing catalog key renders the raw key on a button (real bug).
+
+    Parses every static ``settings.*`` literal from ui/settings_menu.py and
+    demands it in both flattened catalogs. New code with a new literal fails
+    here until the catalogs carry it -- buttons never show raw keys again.
+    """
+    import re
+
+    from rosemary.core.i18n import _flatten
+
+    with open("ui/settings_menu.py", encoding="utf-8") as fh:
+        src = fh.read()
+    keys = sorted(set(re.findall(r'"(settings\.[a-z0-9_.]+)"', src)))
+    assert keys, "sweep found no keys; check the regex"
+    for lang in ("en-US", "pt-BR"):
+        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
+            flat = _flatten(yaml.safe_load(fh))
+        missing = [key for key in keys if key not in flat]
+        assert missing == [], f"{lang}: keys missing from catalog: {missing}"
+
+
 def test_list_ui_keys_in_both_catalogs():
     from rosemary.core.i18n import _flatten
 
@@ -349,8 +371,10 @@ def test_list_ui_keys_in_both_catalogs():
             "settings.list.add",
             "settings.list.clear",
             "settings.list.add_hint",
+            "settings.list.confirm",
             "settings.list.pending",
             "settings.list.pick_placeholder",
+            "settings.cancel",
         ):
             assert isinstance(flat.get(key), str), f"{lang}:{key}"
         for key in (
