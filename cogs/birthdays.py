@@ -289,7 +289,7 @@ def asyncio_exception_guard(what: str):
 
 
 
-async def default_announce_document(bot, guild_id: int) -> dict:
+async def default_announce_document(bot, guild_id: int, **_variables) -> dict:
     """Catalog-default birthday announcement as an editable block document."""
     from rosemary.core.cards import safe_format
 

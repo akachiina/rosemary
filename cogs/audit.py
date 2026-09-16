@@ -142,7 +142,11 @@ def _register_default_builders() -> None:
 
     for name, title_key, body_key, color, emoji in _AUDIT_EVENTS:
 
-        async def _builder(bot, guild_id, *, t=title_key, b=body_key, c=color, e=emoji):
+        # Send-site variables flow through (``**_variables``); the layout is
+        # fixed per event, so only the closure-bound keys matter here.
+        async def _builder(
+            bot, guild_id, *, t=title_key, b=body_key, c=color, e=emoji, **_variables
+        ):
             return await default_audit_document(
                 bot, guild_id, title_key=t, body_key=b, color=c, emoji_token=e
             )
@@ -200,10 +204,12 @@ class AuditCog(commands.Cog):
                             TextDisplay(
                                 theme.md(
                                     "title",
-                                    title=await t(guild_id, f"{card_key}.title"),
+                                    title=await t(guild_id, f"card.{card_key}.title"),
                                 )
                             ),
-                            TextDisplay(await t(guild_id, f"{card_key}.body", **variables)),
+                            TextDisplay(
+                                await t(guild_id, f"card.{card_key}.body", **variables)
+                            ),
                         )
                     )
                 else:

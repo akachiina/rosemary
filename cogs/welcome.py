@@ -81,7 +81,9 @@ def _register_default_builders() -> None:
         ("leave", "events.leave.title", "events.leave.body", "warning"),
         ("ban", "events.ban.title", "events.ban.body", "danger"),
     ):
-        async def _builder(bot, guild_id, *, t=title, b=body, c=color, n=name):
+        # Send-site variables flow through (``**_variables``); the layout is
+        # fixed per event.
+        async def _builder(bot, guild_id, *, t=title, b=body, c=color, n=name, **_variables):
             return await default_event_document(
                 bot, guild_id, title_key=t, body_key=b, color=c, emoji_token=n
             )

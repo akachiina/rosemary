@@ -16,8 +16,9 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import inspect
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import discord
 
@@ -33,6 +34,9 @@ from rosemary.core.cards import (
     safe_format,
 )
 from rosemary.core.themes import card_document, card_origin, theme_for
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 log = logging.getLogger(__name__)
 
@@ -198,6 +202,27 @@ def _seed_document(bot, guild_id: int | None, blocks: list[dict[str, Any]]) -> d
     return {"v": DOCUMENT_VERSION, "blocks": blocks}
 
 
+def _bind_builder_kwargs(builder: Callable[..., Any], variables: dict[str, Any]) -> dict[str, Any]:
+    """Send-site variables the builder's signature actually accepts.
+
+    Builders own the full layout, so most ignore per-send content; those that
+    react to it (starboard gallery, ramp color) declare ``**variables`` or the
+    named params. Filtering instead of forwarding everything means an old
+    closed-signature builder degrades to its static default instead of
+    crashing ``default_document`` (which would silently drop the card to the
+    raw-key fallback).
+    """
+    try:
+        params = inspect.signature(builder).parameters
+    except (TypeError, ValueError):  # builtins / exotic callables
+        return dict(variables)
+    accepts_kwargs = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    if accepts_kwargs:
+        return dict(variables)
+    known = {name for name in params if name not in ("bot", "guild_id")}
+    return {name: value for name, value in variables.items() if name in known}
+
+
 async def default_document(
     bot,
     guild_id: int,
@@ -220,7 +245,7 @@ async def default_document(
     builder = get_default_builder(key)
     if builder is not None:
         try:
-            doc = await builder(bot, guild_id, **(variables or {}))
+            doc = await builder(bot, guild_id, **_bind_builder_kwargs(builder, variables or {}))
         except Exception as exc:
             log.warning("default builder failed for card %s: %s", key, exc)
         else:

@@ -112,6 +112,94 @@ async def test_default_builders_render_every_audit_card():
         assert doc["blocks"], name
 
 
+async def test_default_builders_accept_send_site_variables():
+    """Regression: builders crashed on send-site kwargs (closed signatures).
+
+    When a builder rejects the contract variables, ``default_document`` logs a
+    warning and falls through -- live sends then showed raw catalog keys.
+    Every audit builder must render a real document WITH the variables the
+    cog actually passes.
+    """
+    from rosemary.core.card_service import default_document
+    from rosemary.core.variables import samples_for
+
+    bot = MagicMock()
+    bot.theme = load_theme()
+    bot.translator = FakeTranslator()
+    for name, _ in AUDIT_CARDS:
+        variables = samples_for(VARIABLES_BY_KEY[f"audit.{name}"])
+        doc = await default_document(bot, 1, f"audit.{name}", variables)
+        assert doc is not None and doc["blocks"], (
+            f"audit.{name} fell through with variables {sorted(variables)}"
+        )
+
+
+def test_all_builders_signatures_accept_variables():
+    """Sweep: no registered builder may have a closed signature again."""
+    import inspect
+
+    import rosemary.cogs.audit  # noqa: F401  (registers builders)
+    import rosemary.cogs.birthdays  # noqa: F401
+    import rosemary.cogs.starboard  # noqa: F401
+    import rosemary.cogs.welcome  # noqa: F401
+    from rosemary.core.cards import _DEFAULT_BUILDERS
+
+    for key, builder in _DEFAULT_BUILDERS.items():
+        params = inspect.signature(builder).parameters
+        assert any(
+            p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
+        ), f"builder for {key} does not accept **variables"
+
+
+async def test_audit_fallback_uses_card_prefixed_catalog_keys(tmp_path, caplog):
+    """Regression: the emergency fallback looked up ``audit.*.title`` (raw)."""
+    from contextlib import contextmanager
+
+    @contextmanager
+    def hide_default_builder(key: str):
+        from rosemary.core import cards
+
+        saved = cards._DEFAULT_BUILDERS.pop(key, None)
+        try:
+            yield
+        finally:
+            if saved is not None:
+                cards._DEFAULT_BUILDERS[key] = saved
+
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    author = member()
+    msg = MagicMock(spec=discord.Message)
+    msg.guild = guild
+    msg.author = author
+    msg.content = "oi"
+    msg.channel = MagicMock(mention="<#7>")
+    msg.jump_url = "https://x"
+    with hide_default_builder("audit.message_delete"), caplog.at_level("WARNING"):
+        await cog.on_message_delete(msg)
+    audit_channel.send.assert_awaited_once()
+    texts: list[str] = []
+
+    def walk(node) -> None:
+        if hasattr(node, "content") and isinstance(node.content, str):
+            texts.append(node.content)
+        for child in (
+            list(getattr(node, "children", []) or [])
+            + list(getattr(node, "items", []) or [])
+            + list(getattr(node, "walk_children", lambda: [])())
+        ):
+            walk(child)
+
+    view = audit_channel.send.await_args.kwargs["view"]
+    for item in view.children:
+        walk(item)
+    joined = " ".join(texts)
+    # The catalog keys are ``card.audit.*`` -- the fallback must find them.
+    assert "card.audit.message_delete.title" in joined
+    assert "card.audit.message_delete.body" in joined
+    assert not any("default builder failed" in r.message for r in caplog.records)
+
+
 def _footer_texts(doc) -> list[str]:
     return [
         block["body"]
