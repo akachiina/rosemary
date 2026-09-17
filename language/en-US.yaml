@@ -1913,8 +1913,6 @@ card:
       title: Server info card
       placeholders: "{{server}}, {{server_icon}}, {{banner_url}}, {{description}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{text_channels}}, {{voice_channels}}, {{boosts}}, {{emojis}}, {{stickers}}, {{verification}}, {{created_at}}, {{created_rel}}, {{server_id}}, {{title}}, {{body}}"
       subtitle: "{crown} {owner} · {people} {members} members"
-      owner_label: "{crown} Owner"
-      members_label: "{people} Members"
       created_label: "{calendar} Created"
       created_value: "{created_at} · {created_rel}"
       channels_label: "{speech} Channels"

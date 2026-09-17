@@ -1914,8 +1914,6 @@ card:
       title: Card de info do servidor
       placeholders: "{{server}}, {{server_icon}}, {{banner_url}}, {{description}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{text_channels}}, {{voice_channels}}, {{boosts}}, {{emojis}}, {{stickers}}, {{verification}}, {{created_at}}, {{created_rel}}, {{server_id}}, {{title}}, {{body}}"
       subtitle: "{crown} {owner} · {people} {members} membros"
-      owner_label: "{crown} Dono"
-      members_label: "{people} Membros"
       created_label: "{calendar} Criado em"
       created_value: "{created_at} · {created_rel}"
       channels_label: "{speech} Canais"
