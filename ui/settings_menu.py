@@ -109,16 +109,19 @@ class SettingsMenuView(MenuView):
     #: handlers ----------------------------------------------------------
 
     async def _open_colors(self, interaction: discord.Interaction) -> None:
-        """Swap into the color panel manager (category's management screen)."""
+        """Swap into the color panel manager on the same message (anti-invite
+        pattern: no second orphan message, Back returns here)."""
         from rosemary.ui.colors_menu import ColorsManagerView
 
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         manager = ColorsManagerView(
             self.bot, self.guild_id, self.author_id or interaction.user.id
         )
-        # V2 payloads must be built before the send (same contract as the
-        # /settings command: prepare() assembles the components).
+        # V2 payloads must be built before the edit (prepare() assembles the
+        # components); rerender edits the message in place.
         await manager.prepare()
-        await interaction.response.send_message(view=manager, ephemeral=True)
+        await interaction.edit(view=manager)
         self.stop()
 
     async def _close(self, interaction: discord.Interaction) -> None:

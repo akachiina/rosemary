@@ -807,7 +807,9 @@ colors:
     edit: Edit
     remove: Remove
     add: Create
+    role_add: Create role
     attach: Attach roles
+    pending: 'Selected ({count}): {roles}'
     attach_title: Attach Roles
     attach_hint: 'Pick the roles that become colors. Each role''s current color is inherited; edit later to adjust name or hex.'
     attach_placeholder: Choose the roles...

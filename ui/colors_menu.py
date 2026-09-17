@@ -15,8 +15,6 @@ a role is attached.
 
 from __future__ import annotations
 
-import contextlib
-
 import discord
 
 from rosemary.core.colors import MAX_COLORS, ColorStore
@@ -50,14 +48,28 @@ class ColorsManagerView(MenuView):
         self.page = 0
         self.mode = "list"  # list | attach | delete
         self.deleting_id: str | None = None
+        self._pending_roles: tuple[int, ...] = ()
         self.flash: str | None = None
         self.flash_color: str = "brand"
         self._register_handlers()
+        # First open seeds the pastel defaults so the manager never shows an
+        # empty list; store keeps a flag, so this is a no-op after the first
+        # time even if the admin removes every color.
+        self.seeded_entries: list | None = None
+
+    async def ensure_seeded(self) -> None:
+        """Seed the pastel defaults once (cog resolves translated names)."""
+        if self.seeded_entries is not None:
+            return
+        self.seeded_entries = []
+        cog = self.bot.get_cog("ColorsCog")
+        if cog is not None:
+            self.seeded_entries = await cog.seed_if_needed(self.guild_id)
 
     # handlers ====================
 
     def _register_handlers(self) -> None:
-        self.register("colors_mgr_close", self._close)
+        self.register("colors_mgr_exit", self._exit)
         self.register("colors_mgr_back", self._back)
         self.register("colors_mgr_add", self._add)
         self.register("colors_mgr_attach", self._open_attach)
@@ -80,16 +92,22 @@ class ColorsManagerView(MenuView):
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=True)
 
-    async def _close(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+    async def _exit(self, interaction: discord.Interaction) -> None:
+        """Back to /settings: swap this view out on the same message."""
+        from rosemary.ui.settings_menu import SettingsMenuView
+
+        settings_view = SettingsMenuView(
+            self.bot, self.guild_id, owner_id=self.author_id
+        )
+        await settings_view.prepare()
+        await interaction.edit(view=settings_view)
         self.stop()
-        with contextlib.suppress(discord.HTTPException):
-            await interaction.edit(view=None)
 
     async def _back(self, interaction: discord.Interaction) -> None:
         await self._ack(interaction)
         self.mode = "list"
         self.deleting_id = None
+        self._pending_roles = ()
         await self.rerender(interaction)
 
     # helpers ====================
@@ -122,6 +140,7 @@ class ColorsManagerView(MenuView):
     # screens ====================
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
+        await self.ensure_seeded()
         if self.mode == "attach":
             return await self._build_attach()
         if self.mode == "delete":
@@ -194,6 +213,13 @@ class ColorsManagerView(MenuView):
                 disabled=len(entries) >= MAX_COLORS,
             ),
             self.make_button(
+                custom_id="colors_mgr_create_role",
+                label=await self._t("colors.manager.role_add"),
+                emoji=theme.emojis.get("register", ""),
+                style=discord.ButtonStyle.success,
+                disabled=len(entries) >= MAX_COLORS,
+            ),
+            self.make_button(
                 custom_id="colors_mgr_attach",
                 label=await self._t("colors.manager.attach"),
                 style=discord.ButtonStyle.primary,
@@ -213,12 +239,14 @@ class ColorsManagerView(MenuView):
                     )
                 )
         items.append(discord.ui.ActionRow(*nav))
+        # Nav row follows the settings convention: Back pinned at index 0,
+        # returning to /settings on the same message (no dead-end Close).
         items.append(
             discord.ui.ActionRow(
                 self.make_button(
-                    custom_id="colors_mgr_close",
-                    label=await self._t("settings.close"),
-                    style=discord.ButtonStyle.danger,
+                    custom_id="colors_mgr_exit",
+                    label=await self._t("settings.back"),
+                    emoji=theme.emojis.get("back", ""),
                 ),
             )
         )
@@ -226,10 +254,20 @@ class ColorsManagerView(MenuView):
 
     async def _build_attach(self) -> list[discord.ui.ViewItem]:
         theme = self.bot.theme
+        pending = self._pending_roles
         parts = [
             TextDisplay(theme.md("title", title=await self._t("colors.manager.attach_title"))),
             TextDisplay(await self._t("colors.manager.attach_hint")),
         ]
+        if pending:
+            shown = " ".join(f"<@&{p}>" for p in pending[:25])
+            parts.append(
+                TextDisplay(
+                    await self._t(
+                        "colors.manager.pending", count=len(pending), roles=shown
+                    )
+                )
+            )
         self._flash_in(parts)
         container = designer_container(theme.color("brand"), *parts)
         select = discord.ui.Select(
@@ -249,6 +287,7 @@ class ColorsManagerView(MenuView):
                     label=await self._t("settings.list.confirm"),
                     emoji=theme.emojis.get("check", ""),
                     style=discord.ButtonStyle.success,
+                    disabled=not pending,
                 ),
                 self.make_button(
                     custom_id="colors_mgr_back",
@@ -452,37 +491,47 @@ class ColorsManagerView(MenuView):
         await self.rerender(interaction)
 
     async def _attach_pick(self, interaction: discord.Interaction) -> None:
-        """Stage role picks in the select itself; confirm persists."""
+        """Stage role picks in the select itself; Concluir applies them."""
         await self._ack(interaction)
+        values = (interaction.data or {}).get("values") or []
+        picks: list[int] = []
+        for raw in values:
+            try:
+                picks.append(int(raw))
+            except (TypeError, ValueError):
+                continue
+        merged = list(self._pending_roles)
+        merged.extend(p for p in picks if p not in merged)
+        self._pending_roles = tuple(merged)
+        await self.rerender(interaction)
 
     async def _attach_confirm(self, interaction: discord.Interaction) -> None:
-        values = (interaction.data or {}).get("values") or []
-        if not values:
+        """Attach every staged role, inheriting its live color."""
+        await self._ack(interaction)
+        pending = self._pending_roles
+        self._pending_roles = ()
+        guild = self.bot.get_guild(self.guild_id)
+        if not pending or guild is None:
             return await self._back(interaction)
         entries = await self._entries()
-        by_role = {entry.role_id: entry for entry in entries if entry.role_id}
-        changed = False
-        for raw in values:
-            role_id = int(raw)
-            role = (self.bot.get_guild(self.guild_id).get_role(role_id),)
-            role_obj = role[0]
-            live = getattr(getattr(role_obj, "color", None), "value", 0) or 0
-            hex_value = f"#{live:06X}" if live else "#99AAB5"
-            existing = by_role.get(role_id)
-            if existing is not None:
-                continue
+        taken = {entry.role_id for entry in entries if entry.role_id}
+        from rosemary.core.colors import ColorEntry, new_color_id
+
+        attached = 0
+        for role_id in pending:
             if len(entries) >= MAX_COLORS:
                 break
-            from rosemary.core.colors import ColorEntry, new_color_id
-
-            entries.append(
-                ColorEntry(new_color_id(), role_obj.name, hex_value, role_id)
-            )
-            changed = True
-        if changed:
+            role = guild.get_role(role_id)
+            if role is None or role_id in taken:
+                continue
+            live = getattr(getattr(role, "color", None), "value", 0) or 0
+            hex_value = f"#{live:06X}" if live else "#99AAB5"
+            entries.append(ColorEntry(new_color_id(), role.name, hex_value, role_id))
+            attached += 1
+        if attached:
             await self.store.set_colors(self.guild_id, entries)
             await self._panel_repaint()
-            self.flash = await self._t("colors.manager.attached", count=len(values))
+            self.flash = await self._t("colors.manager.attached", count=attached)
         await self._back(interaction)
 
     async def _open_delete(self, interaction: discord.Interaction) -> None:

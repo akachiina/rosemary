@@ -366,6 +366,102 @@ async def test_pick_hierarchy_and_missing_role(tmp_path):
     assert "error_no_role" in text2
 
 
+# == manager flows ==========================================================
+
+
+async def test_manager_open_seeds_pastels(tmp_path):
+    """First manager open must create the pastel defaults (regression: the
+    seed helper existed but nothing ever called it, so the list was empty)."""
+    from rosemary.cogs.colors import ColorsCog
+    from rosemary.ui.colors_menu import ColorsManagerView
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    manager = ColorsManagerView(bot, 1, author_id=42)
+    await manager.prepare()
+    entries = await manager.store.list_colors(1)
+    assert len(entries) == len(PASTEL_SEEDS)
+    assert entries[0].name == "colors.defaults.rose"  # FakeTranslator echoes keys
+    # Second open must not duplicate.
+    manager2 = ColorsManagerView(bot, 1, author_id=42)
+    await manager2.prepare()
+    assert len(await manager2.store.list_colors(1)) == len(PASTEL_SEEDS)
+
+
+async def test_manager_back_button_returns_to_settings(tmp_path):
+    """The nav row carries Voltar (colors_mgr_exit), which swaps the settings
+    menu back onto the same message: no dead-end Close."""
+    from rosemary.ui.colors_menu import ColorsManagerView
+    from rosemary.ui.settings_menu import SettingsMenuView
+
+    bot = _bot(tmp_path)
+    manager = ColorsManagerView(bot, 1, author_id=42)
+    await manager.prepare()
+    ids = [
+        b.custom_id
+        for c in manager.children
+        for b in getattr(c, "children", [])
+        if hasattr(b, "custom_id")
+    ]
+    assert "colors_mgr_exit" in ids
+    assert "colors_mgr_close" not in ids
+
+    interaction = MagicMock()
+    interaction.response.is_done = MagicMock(return_value=False)
+    interaction.response.defer = AsyncMock()
+    interaction.edit = AsyncMock()
+    await manager._exit(interaction)
+    swapped = interaction.edit.call_args.kwargs.get("view")
+    assert isinstance(swapped, SettingsMenuView)
+
+
+async def test_manager_attach_stages_and_confirms(tmp_path):
+    """Anti-invite pattern: the select stages picks, Concluir persists.
+    Regression: confirm read ``values`` from the button interaction (never
+    set), so attaching silently did nothing."""
+    from rosemary.ui.colors_menu import ColorsManagerView
+
+    bot = _bot(tmp_path)
+    role_a, role_b = FakeRole(11), FakeRole(22)
+    role_a.name, role_b.name = "Rosa", "Céu"
+    role_a.color = discord.Colour(0xFFB7C5)
+    role_b.color = discord.Colour(0)
+    bot.guild.roles = [role_a, role_b]
+    bot.guild.get_role = lambda rid: {11: role_a, 22: role_b}.get(rid)
+    cog = MagicMock()
+    cog.seed_if_needed = AsyncMock(return_value=[])
+    cog.repaint_panel = AsyncMock()
+    bot.cog = cog
+
+    manager = ColorsManagerView(bot, 1, author_id=42)
+    await manager.prepare()
+    await manager._open_attach(_ack_only())
+    assert manager.mode == "attach"
+    # Pick through the select handler (values arrive on the select interaction).
+    pick = _ack_only({"values": ["11", "22"]})
+    await manager._attach_pick(pick)
+    assert manager._pending_roles == (11, 22)
+    # Confirm persists both, inheriting each role's live color.
+    await manager._attach_confirm(_ack_only())
+    entries = await manager.store.list_colors(1)
+    attached = {(e.role_id, e.color) for e in entries if e.role_id}
+    assert attached == {(11, "#FFB7C5"), (22, "#99AAB5")}
+    assert manager.mode == "list" and manager._pending_roles == ()
+    assert cog.repaint_panel.await_count == 1
+
+
+def _ack_only(data=None):
+    """Interaction mock whose defer/edit/rerender path is fully awaitable."""
+    interaction = MagicMock()
+    interaction.response.is_done = MagicMock(return_value=False)
+    interaction.response.defer = AsyncMock()
+    interaction.edit = AsyncMock()
+    interaction.followup.send = AsyncMock()
+    interaction.data = data
+    return interaction
+
+
 # == catalog parity ==========================================================
 
 

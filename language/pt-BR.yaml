@@ -808,7 +808,9 @@ colors:
     edit: Editar
     remove: Remover
     add: Criar
+    role_add: Criar cargo
     attach: Anexar cargos
+    pending: 'Selecionados ({count}): {roles}'
     attach_title: Anexar Cargos
     attach_hint: 'Selecione os cargos que viram cores. A cor atual de cada cargo é herdada; edite depois para ajustar nome ou hex.'
     attach_placeholder: Escolha os cargos...
