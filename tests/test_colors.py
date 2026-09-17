@@ -7,7 +7,7 @@ key shows up here instead of in production.
 from __future__ import annotations
 
 import io
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 import pytest
@@ -473,6 +473,103 @@ async def test_manager_attach_stages_and_confirms(tmp_path):
     assert attached == {(11, "#FFB7C5"), (22, "#99AAB5")}
     assert manager.mode == "list" and manager._pending_roles == ()
     assert cog.repaint_panel.await_count == 1
+
+
+async def test_manager_list_stays_under_component_cap(tmp_path):
+    """The full list screen (text + row + 4 buttons per entry) must stay
+    under Discord's 40-component ceiling (nested nodes count)."""
+    from rosemary.cogs.colors import ColorsCog
+    from rosemary.ui.colors_menu import LIST_ITEMS_PER_PAGE, ColorsManagerView
+
+    bot = _bot(tmp_path)
+    bot.cog = ColorsCog(bot)
+    manager = ColorsManagerView(bot, 1, author_id=42)
+    await manager.prepare()
+
+    def total(view):
+        count = 0
+
+        def walk(item):
+            nonlocal count
+            count += 1
+            for sub in getattr(item, "children", []) or []:
+                walk(sub)
+
+        for item in view.children:
+            walk(item)
+        return count
+
+    assert total(manager) <= 40
+    # Pages are full except the last one.
+    assert LIST_ITEMS_PER_PAGE == 4
+
+
+async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
+    """PartialMessage.edit is JSON-only: an image panel must re-post (and
+    remove the stale message) instead of editing files into it."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    await cog.store.set_colors(
+        1, [ColorEntry(new_color_id(), "A", "#111111", role_id=11)]
+    )
+    await bot.storage.set(1, "colors.enabled", True)
+    await bot.storage.set(1, "colors.panel_channel", 55)
+
+    sent = {}
+    deleted = []
+
+    class FakePartial:
+        def __init__(self, message_id):
+            self.id = message_id
+
+        async def delete(self, delay=None):
+            deleted.append(self.id)
+
+        async def edit(self, **kw):  # pragma: no cover - must not be called
+            raise AssertionError("partial edit attempted with files")
+
+    class FakeChannel(discord.TextChannel):
+        def __init__(self):
+            self.id = 55
+            self.guild = guild
+            self._state = MagicMock()
+
+        def get_partial_message(self, message_id):
+            return FakePartial(message_id)
+
+        async def send(self, **kw):
+            sent.update(kw)
+            message = MagicMock()
+            message.id = 777
+            return message
+
+    guild = bot.guild
+    guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
+    files = [MagicMock()]
+    with patch(
+        "rosemary.cogs.colors.ColorsCog._panel_payload"
+    ) as payload_mock:
+        payload = MagicMock()
+        payload.message_kwargs.return_value = {"view": MagicMock(), "files": files}
+        payload_mock.return_value = (payload, None)
+        await cog.repaint_panel(bot, 1)
+    assert sent.get("files") == files
+    assert deleted == []  # no previous panel id: nothing to replace
+    assert await cog.store.get_panel(1) == 777
+
+    # Second repaint with files: deletes the stale panel message.
+    with patch(
+        "rosemary.cogs.colors.ColorsCog._panel_payload"
+    ) as payload_mock:
+        payload = MagicMock()
+        payload.message_kwargs.return_value = {"view": MagicMock(), "files": files}
+        payload_mock.return_value = (payload, None)
+        await cog.repaint_panel(bot, 1)
+    assert deleted == [777]
+    assert await cog.store.get_panel(1) == 777  # same mock id re-stored
 
 
 def _ack_only(data=None):

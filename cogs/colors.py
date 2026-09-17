@@ -23,6 +23,7 @@ Architecture mirrors tickets:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 
 import discord
@@ -200,9 +201,20 @@ class ColorsCog(commands.Cog):
                 return payload
         return await self.build_panel_view(guild_id)
 
-    async def _post_panel(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
+    async def _post_panel(
+        self,
+        guild: discord.Guild,
+        channel: discord.TextChannel,
+        *,
+        replace_id: int | None = None,
+    ) -> None:
+        """Post the panel; ``replace_id`` deletes the stale panel first so a
+        re-post (image repaint) does not leave the old message behind."""
         from rosemary.core.mentions import allowed_for_ids
 
+        if replace_id is not None:
+            with contextlib.suppress(discord.NotFound, discord.HTTPException):
+                await channel.get_partial_message(replace_id).delete()
         payload, _picker = await self._panel_payload(guild.id, trace=True)
         message = await channel.send(
             **payload.message_kwargs(),
@@ -211,11 +223,13 @@ class ColorsCog(commands.Cog):
         await self.store.set_panel(guild.id, message.id)
 
     async def repaint_panel(self, bot, guild_id: int) -> None:
-        """Edit the posted panel in place (theme/setting/manager changed).
+        """Refresh the posted panel (theme/setting/manager changed).
 
-        Deleted or unreachable message falls back to a fresh post; a disabled
-        feature or missing channel leaves the panel as-is. Registered in
-        :mod:`rosemary.core.panels`.
+        Imageless panels edit in place; panels carrying generated images
+        re-post, because ``PartialMessage.edit`` is JSON-only and cannot
+        upload files. A deleted or unreachable message always falls back to
+        a fresh post; a disabled feature or missing channel leaves the panel
+        as-is. Registered in :mod:`rosemary.core.panels`.
         """
         if not await self.enabled(guild_id):
             return
@@ -224,8 +238,9 @@ class ColorsCog(commands.Cog):
         if guild is None or channel is None:
             return
         payload, _picker = await self._panel_payload(guild_id)
+        has_files = bool(payload.message_kwargs().get("files"))
         panel_id = await self.store.get_panel(guild_id)
-        if panel_id is not None:
+        if panel_id is not None and not has_files:
             try:
                 await channel.get_partial_message(panel_id).edit(
                     **payload.message_kwargs()
@@ -233,7 +248,7 @@ class ColorsCog(commands.Cog):
                 return
             except (discord.NotFound, discord.HTTPException):
                 pass  # message gone - re-post below
-        await self._post_panel(guild, channel)
+        await self._post_panel(guild, channel, replace_id=panel_id if has_files else None)
 
     async def seed_if_needed(self, guild_id: int) -> list:
         """First manager open creates the pastel defaults (translated)."""

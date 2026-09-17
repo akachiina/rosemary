@@ -21,7 +21,10 @@ from rosemary.core.colors import MAX_COLORS, ColorStore
 from rosemary.ui.containers import TextDisplay, designer_container, divider
 from rosemary.ui.menu import MenuView
 
-LIST_ITEMS_PER_PAGE = 5
+# Discord caps a message at 40 components total (nested items count). Each
+# entry costs two top-level items (text line + action row) plus its four
+# buttons, so the page holds at most 4 entries alongside header/nav rows.
+LIST_ITEMS_PER_PAGE = 4
 
 
 def resolve_color(member_colors: dict[int, int | None], entry) -> str:

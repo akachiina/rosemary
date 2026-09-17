@@ -27,6 +27,10 @@ from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
+# WeasyPrint logs its render pipeline ("Step 2 - Fetching and parsing CSS")
+# at INFO on its own logger; that is noise in bot.log on every repaint.
+logging.getLogger("weasyprint").setLevel(logging.WARNING)
+
 #: Hard rasterization cap: Discord downscales large images and the panel is
 #: decorative, so oversized templates are clipped instead of failing.
 _MAX_SIDE = 1600
