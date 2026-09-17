@@ -1,8 +1,8 @@
 """Embed card entries: the classic rich message as a theme alternative.
 
 A theme ``cards:`` entry may be written as an **embed** instead of raw
-Components V2 -- same placeholders (``{user}``), same pings (``{@user}``), and
-optionally classic ActionRow buttons (link or action -- ``open_ticket`` /
+Components V2: same placeholders (``{user}``), same pings (``{@user}``), and
+optionally classic ActionRow buttons (link or action: ``open_ticket`` /
 ``dismiss`` work identically). This module converts and validates the embed
 shape once, at theme load/import, into an internal document::
 
@@ -63,7 +63,7 @@ def convert_embed_entry(key: str, entry: dict[str, Any]) -> dict[str, Any]:
     """Convert + validate one embed card entry into the internal document.
 
     Raises :class:`ThemeError` carrying every problem found (never fails
-    silently -- a rejected import explains itself).
+    silently: a rejected import explains itself).
     """
     issues: list[CardIssue] = []
     raw = entry["embed"]
@@ -203,7 +203,7 @@ def _check_length(issues: list[CardIssue], field: str, text: str, limit: int) ->
 
 
 def _convert_color(issues: list[CardIssue], value: Any) -> str | None:
-    """Color int / ``#rrggbb`` / theme token -- stored as token-or-hex string."""
+    """Color int / ``#rrggbb`` / theme token: stored as token-or-hex string."""
     if value is None:
         return None
     if isinstance(value, bool):

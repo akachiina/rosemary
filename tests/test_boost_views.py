@@ -293,7 +293,7 @@ async def test_invite_edit_replaces_components_without_content(bot):
     assert view.decline_button.disabled is True
 
 
-# -- component placement validation ------------------------------------------
+#: component placement validation ------------------------------------------
 
 
 def _validate_components(d, path, errors):

@@ -1,7 +1,7 @@
 """The /themes panel: render, select, import and reset flows.
 
 Fake bot + real catalogs: every button flips store state, snapshots the theme
-cache and re-renders -- the exact sequence a live click performs.
+cache and re-renders: the exact sequence a live click performs.
 """
 
 from __future__ import annotations
@@ -162,7 +162,7 @@ async def test_remove_only_lists_guild_imports(tmp_path):
 
 def _walk(items):
     """Depth-first walk; py-cord rows expose .items AND .children (same list)
-    -- visit each child once."""
+   : visit each child once."""
     for item in items:
         yield item
         if isinstance(item, discord.ui.ActionRow):

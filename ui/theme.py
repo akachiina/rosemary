@@ -108,14 +108,14 @@ class Theme:
         body = template.format(**{**self.emojis, **kwargs})
         return f"{style.prefix}{body}{style.suffix}"
 
-    # -- star tier ramp ------------------------------------------------------
+    #: star tier ramp ------------------------------------------------------
 
     def star_ramp(self, stars: int) -> str:
         """The accent color for a star count, as a hex string.
 
         Continuous ramp from ``star_ramp.from_color`` (few stars) toward
         ``star_ramp.to_color`` (many stars), reaching the strong end at
-        ``star_ramp.limit`` and holding there -- every star nudges the tone,
+        ``star_ramp.limit`` and holding there: every star nudges the tone,
         like the legacy bot. ``from_color``/``to_color`` accept theme color
         token names or ``#rrggbb``. Missing/malformed ramp config falls back
         to the ``star_tier_1`` style color, so guild themes without a ramp
@@ -207,7 +207,7 @@ class Theme:
         return value.format(**self.emojis)
 
 
-#: ``#rrggbb`` / ``rrggbb`` -- the only color forms the ramp blends.
+#: ``#rrggbb`` / ``rrggbb``: the only color forms the ramp blends.
 _HEX = re.compile(r"#?[0-9a-fA-F]{6}")
 
 
@@ -224,8 +224,18 @@ def _blend_hex(start: str, end: str, ratio: float) -> str:
 
 
 def load_theme(path: Path | None = None) -> Theme:
-    """Load the theme YAML, falling back to empty resources on failure."""
-    theme_path = Path(path) if path else THEME_PATH
+    """Load the theme YAML, falling back to empty resources on failure.
+
+    Without an explicit path the canonical ``themes/default.yaml`` is loaded
+   : the same file :class:`~rosemary.core.themes.ThemeStore` lists as the
+    selectable "default" theme, so bot fallback and store stay one file.
+    (Lazy import: ``core.themes`` imports this module's ``Theme``.)"""
+    if path is not None:
+        theme_path = Path(path)
+    else:
+        from rosemary.core.themes import THEMES_DIR
+
+        theme_path = THEMES_DIR / "default.yaml"
     colors: dict[str, str] = {}
     emojis: dict[str, str] = {}
     markdown: dict[str, str] = {}

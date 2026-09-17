@@ -41,7 +41,7 @@ async def default_event_document(
     Layout: a section whose accessory is the member's avatar thumbnail, the
     emoji-decorated ``#`` title and body beside it, a divider and a footer
     (``-#`` markdown). Placeholders (``{user}``, ``{server}``...) stay
-    literal -- this is a template. Theme emoji tokens resolve; unknown
+    literal: this is a template. Theme emoji tokens resolve; unknown
     placeholders are preserved by :func:`rosemary.core.cards.safe_format`.
     """
     from rosemary.core.cards import safe_format
@@ -103,7 +103,7 @@ class WelcomeCog(commands.Cog):
         self._raid_active: set[int] = set()
         self._recently_banned: set[int] = set()
 
-    # -- helpers -------------------------------------------------------------
+    #: helpers -------------------------------------------------------------
 
     async def _t(self, guild_id: int, key: str, **variables) -> str:
         return await self.bot.translator.t(guild_id, key, **variables)
@@ -223,7 +223,7 @@ class WelcomeCog(commands.Cog):
         channel = guild.get_channel(channel_id) if channel_id else None
         return channel if isinstance(channel, discord.TextChannel) else None
 
-    # -- listeners -----------------------------------------------------------
+    #: listeners -----------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:

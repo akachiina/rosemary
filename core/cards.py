@@ -23,7 +23,7 @@ composites ``container``/``section``. Every text field supports placeholders:
 known names resolve from the caller-supplied variables plus theme emojis,
 unknown ones stay visible so admins can spot typos.
 
-Colors are *theme token names* (see ``ui/theme.yaml``), never raw hex -- the
+Colors are *theme token names* (see ``ui/theme.yaml``), never raw hex: the
 visual identity stays in one place. Rendering validates against Discord's V2
 limits first; an invalid stored document falls back to the feature default at
 the call site instead of breaking sends.
@@ -63,6 +63,9 @@ _PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 _MENTION_RE = re.compile(r"\{@([a-zA-Z_][a-zA-Z0-9_]*)\}")
 _MENTION_TOKEN_RE = re.compile(r"<@!?([0-9]{1,20})>|<@&([0-9]{1,20})>")
 _URL_RE = re.compile(r"https?://\S+")
+#: Discord's internal reference for images uploaded with the same message
+#: (``attachment://name.png``): the color panel image rides this way.
+_ATTACHMENT_URL_RE = re.compile(r"attachment://[\w./-]+$")
 #: Self-contained hex color token ("#rrggbb"), valid anywhere a palette name is.
 _HEX_COLOR_RE = re.compile(r"#?[0-9a-fA-F]{6}")
 
@@ -78,7 +81,7 @@ class CardsError(ValueError):
 log = logging.getLogger(__name__)
 
 
-# -- registry ----------------------------------------------------------------
+#: registry ----------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -140,7 +143,7 @@ def cards_for_category(category: str) -> list[CardSpec]:
     return [spec for spec in _CARDS.values() if spec.category == category]
 
 
-# -- default builders --------------------------------------------------------
+#: default builders --------------------------------------------------------
 
 #: Renders what members receive when a card has no override. Registered by
 #: features; powers the editor's "compare with default" screen. Signature:
@@ -182,7 +185,7 @@ async def author_footer_blocks(bot, guild_id: int | None = None) -> list[dict[st
     A divider plus one small (``-#``) line from ``card.author_footer.text``
     in the catalogs (default ``by {user} · {timestamp}``) so every card that
     attributes a person carries the same visual signature. ``{user}`` and
-    ``{timestamp}`` stay literal here -- the render mapping resolves them
+    ``{timestamp}`` stay literal here: the render mapping resolves them
     from the variables the send site passes (contract: ``user`` +
     ``timestamp``).
     """
@@ -193,7 +196,7 @@ async def author_footer_blocks(bot, guild_id: int | None = None) -> list[dict[st
     ]
 
 
-# -- resolution --------------------------------------------------------------
+#: resolution --------------------------------------------------------------
 
 
 def card_store(bot):
@@ -270,7 +273,7 @@ async def maybe_flat_text(bot, guild_id: int, key: str, **variables: Any) -> str
 
     Unlike :func:`maybe_text`, structural documents are flattened to their
     text bodies (link buttons as ``label (url)``), so a rich customization is
-    never silently ignored by text-only call sites -- members still receive
+    never silently ignored by text-only call sites: members still receive
     the customized copy, minus the layout.
     """
     doc = await _override_document(bot, guild_id, key)
@@ -383,7 +386,7 @@ def safe_format_mentions(
 ) -> tuple[str, dict[str, tuple[str, int]]]:
     """Substitute ``{name}`` and ``{@name}``, collecting resolved mentions.
 
-    ``{@name}`` resolves to the *same value* as ``{name}`` -- it only marks the
+    ``{@name}`` resolves to the *same value* as ``{name}``: it only marks the
     substitution as a mention, so the renderer knows which ids the customized
     text actually contains. Returns ``(text, mentions)`` where ``mentions``
     maps the placeholder name to ``("user" | "role", id)`` parsed from the
@@ -417,7 +420,7 @@ def document_mention_ids(
     and button/accessory labels) and parses the Discord id each ``{@name}``
     resolves to. Order-preserving de-duplication, so a mention repeated in
     the text pings once. Fields without ``{@...}`` are skipped without any
-    regex work -- the common case for un-customized cards.
+    regex work: the common case for un-customized cards.
     """
     users: list[int] = []
     roles: list[int] = []
@@ -515,7 +518,7 @@ def reid_tree(block: dict[str, Any]) -> dict[str, Any]:
     return block
 
 
-# -- validation -------------------------------------------------------------
+#: validation -------------------------------------------------------------
 
 #: Stable error codes; catalogs translate them under ``cards.errors.<code>``.
 
@@ -643,13 +646,13 @@ class _ValidationState:
             self.error("bad_url")
             return False
         # Placeholders like {user_avatar} resolve at send time; accept them
-        # (both spellings -- {name} and the explicit {@name} mention form).
+        # (both spellings: {name} and the explicit {@name} mention form).
         if _PLACEHOLDER_RE.search(url) or _MENTION_RE.search(url):
             return len(url) <= URL_MAX * 2
-        if not _URL_RE.match(url) or len(url) > URL_MAX:
-            self.error("bad_url")
-            return False
-        return True
+        if _ATTACHMENT_URL_RE.match(url) or _URL_RE.match(url):
+            return len(url) <= URL_MAX
+        self.error("bad_url")
+        return False
 
     def _check_color(self, color: Any) -> None:
         if color is None:
@@ -657,7 +660,7 @@ class _ValidationState:
         if not isinstance(color, str):
             self.error("color_unknown", color=color)
             return
-        # Raw hex ("#rrggbb" or "rrggbb") is always valid -- theme files speak
+        # Raw hex ("#rrggbb" or "rrggbb") is always valid: theme files speak
         # Discord's own format where accent colors are self-contained.
         if _HEX_COLOR_RE.fullmatch(color.strip()):
             return
@@ -708,8 +711,16 @@ class _ValidationState:
                 self.error("button_url_and_action")
             if button.get("style") is not None and button.get("style") not in INTERACTIVE_STYLES:
                 self.error("button_unknown_style", style=button.get("style"))
-        else:
+        elif button.get("url") is not None:
+            # Link button: URL required and validated. A url-less interactive
+            # button (no action) is a code-wired picker (color panel): it
+            # validates by style alone.
             self._check_url(button.get("url"))
+        elif (
+            button.get("style") is not None
+            and button.get("style") not in INTERACTIVE_STYLES
+        ):
+            self.error("button_unknown_style", style=button.get("style"))
 
     def _check_section(self, block: dict[str, Any], depth: int) -> None:
         children = block.get("children")
@@ -755,7 +766,7 @@ class _ValidationState:
             self.check_block(child, depth + 1)
 
 
-# -- rendering --------------------------------------------------------------
+#: rendering --------------------------------------------------------------
 
 
 def build_items(
@@ -835,7 +846,7 @@ def resolve_mention_fields(
     """Resolve ``{@name}`` fields to their values, returning the document.
 
     Returns the original object untouched when no ``{@...}`` field exists
-    (the common case -- zero copying); otherwise a deep copy with every
+    (the common case: zero copying); otherwise a deep copy with every
     ``{@name}`` replaced by the same value ``{name}`` would resolve to.
     Mention tokens in URLs are meaningless, but resolving them keeps the
     document renderer single-pass.
@@ -937,7 +948,7 @@ def _build_section(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -
     return Section(*children, accessory=item)
 
 
-# -- embed documents ---------------------------------------------------------
+#: embed documents ---------------------------------------------------------
 
 #: Placeholder-bearing string fields of an embed doc, for mention walking and
 #: length checks: (path into doc["embed"], kind).
@@ -959,7 +970,7 @@ def resolve_embed(
 ) -> tuple[discord.Embed, list[dict[str, Any]]]:
     """Resolve one embed document: ``(discord.Embed, buttons)``.
 
-    Placeholder resolution uses the same ``safe_format`` as V2 -- theme emojis
+    Placeholder resolution uses the same ``safe_format`` as V2: theme emojis
     as defaults, caller variables win, unknown names stay visible. ``{@name}``
     mention fields resolve like V2 too (see :func:`resolve_mention_fields`)
     so pings-as-content keep working inside embeds.

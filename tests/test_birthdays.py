@@ -47,7 +47,7 @@ def make_member(uid):
     return member
 
 
-# -- store ----------------------------------------------------------------------
+#: store ----------------------------------------------------------------------
 
 
 async def test_store_roundtrip_and_year_preserved(tmp_path):
@@ -74,7 +74,7 @@ async def test_store_isolated_per_guild(tmp_path):
     assert await store.get(2, 10) is None
 
 
-# -- validation -----------------------------------------------------------------
+#: validation -----------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -85,7 +85,7 @@ def test_validate_date(day, month, expected):
     assert validate_date(day, month) == expected
 
 
-# -- announcement flow ----------------------------------------------------------
+#: announcement flow ----------------------------------------------------------
 
 
 async def seed_settings(bot, *, channel=77, role_id=None):
@@ -194,7 +194,7 @@ async def test_announce_honors_override_document(tmp_path):
     assert any("PARABÉNS <@10>!" in text for text in found)
 
 
-# -- disabled / missing channel ---------------------------------------------------
+#: disabled / missing channel ---------------------------------------------------
 
 
 async def test_disabled_or_missing_channel_is_silent(tmp_path):

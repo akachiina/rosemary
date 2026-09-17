@@ -33,7 +33,7 @@ class FakeBot:
         return self._channel_by_id.get(channel_id)
 
 
-# -- store ----------------------------------------------------------------------
+#: store ----------------------------------------------------------------------
 
 
 async def test_store_roundtrip(tmp_path):
@@ -54,7 +54,7 @@ async def test_store_isolated_per_guild(tmp_path):
     assert await store.get_entry(2, 10) is None
 
 
-# -- counting -------------------------------------------------------------------
+#: counting -------------------------------------------------------------------
 
 
 def make_reaction(users, *, bots=()):
@@ -107,7 +107,7 @@ async def test_effective_stars_filters_bots():
     assert result == 1
 
 
-# -- tiers ------------------------------------------------------------------------
+#: tiers ------------------------------------------------------------------------
 
 
 def test_tier_styles_exist_in_theme():
@@ -148,7 +148,7 @@ def test_star_title_emoji_milestones():
     assert theme.star_title_emoji(99) == theme.star_title_emoji(13)
 
 
-# -- posting flow ------------------------------------------------------------------
+#: posting flow ------------------------------------------------------------------
 
 
 def make_flow(tmp_path, *, threshold=3):
@@ -229,7 +229,7 @@ async def test_zero_stars_deletes_post(tmp_path):
     assert await cog.store.get_entry(1, 10) is None
 
 
-# -- default builder ---------------------------------------------------------------
+#: default builder ---------------------------------------------------------------
 
 
 async def test_default_document_is_full_rich_layout(tmp_path):

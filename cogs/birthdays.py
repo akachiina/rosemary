@@ -1,8 +1,8 @@
 """Birthday tracking with a daily announcement card.
 
 Members register their date via /birthday (localized as /aniversario); a
-per-guild minute loop compares local time -- resolved from the guild timezone
-setting -- against ``birthdays.announce_time`` and posts one card per
+per-guild minute loop compares local time: resolved from the guild timezone
+setting: against ``birthdays.announce_time`` and posts one card per
 celebrant, granting the configured role for the day. The announcement is a
 customizable card (``birthdays.announce``) edited through /customize.
 """
@@ -50,7 +50,7 @@ class BirthdayCog(commands.Cog):
     async def _before_loop(self) -> None:
         await self.bot.wait_until_ready()
 
-    # -- helpers -------------------------------------------------------------
+    #: helpers -------------------------------------------------------------
 
     async def check_guild(self, guild: discord.Guild, *, now: datetime | None = None) -> None:
         if not await get_setting(self.bot.storage, guild.id, "birthdays.enabled"):
@@ -157,7 +157,7 @@ class BirthdayCog(commands.Cog):
         )
         return view
 
-    # -- slash commands ------------------------------------------------------
+    #: slash commands ------------------------------------------------------
 
     birthday_group = discord.SlashCommandGroup(
         "birthday",

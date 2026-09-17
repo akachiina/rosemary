@@ -125,7 +125,7 @@ async def test_trace_skipped_when_card_has_no_document(tmp_path, monkeypatch):
 
 
 def test_no_duplicate_top_level_catalog_keys():
-    """PyYAML silently keeps only the LAST duplicate top-level key -- a
+    """PyYAML silently keeps only the LAST duplicate top-level key: a
     second ``debug:`` block once made ``debug.trace.*`` vanish at runtime,
     so traces rendered raw keys (``debug.trace.title``)."""
     for lang in ("en-US", "pt-BR"):

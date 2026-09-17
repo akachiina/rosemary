@@ -66,7 +66,7 @@ async def default_audit_document(
     """Catalog-default audit card, mirroring the welcome-cog event layout.
 
     Footer is the standard author attribution (``card.author_footer.text``):
-    the actor mention plus the relative event time -- ``{user}`` and
+    the actor mention plus the relative event time: ``{user}`` and
     ``{timestamp}`` resolve at render from the send-site variables.
     """
     from rosemary.core.cards import ECHO_VARIABLES, author_footer_blocks, safe_format
@@ -167,7 +167,7 @@ class AuditCog(commands.Cog):
         #: guild_id -> (member_id, monotonic expiry) for /limpar attribution.
         self._purge_context: dict[int, tuple[int, float]] = {}
 
-    # -- plumbing ------------------------------------------------------------
+    #: plumbing ------------------------------------------------------------
 
     async def _channel(self, guild_id: int) -> discord.TextChannel | None:
         """The master audit channel, or None when the feature is off."""
@@ -232,7 +232,7 @@ class AuditCog(commands.Cog):
             pass
         return "", ""
 
-    # -- ban / unban ---------------------------------------------------------
+    #: ban / unban ---------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User) -> None:
@@ -266,7 +266,7 @@ class AuditCog(commands.Cog):
         except Exception:
             log.exception("on_member_unban audit failed")
 
-    # -- messages ------------------------------------------------------------
+    #: messages ------------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message) -> None:
@@ -427,7 +427,7 @@ class AuditCog(commands.Cog):
         """Stamp who is running a purge so the bulk summary can attribute it."""
         self._purge_context[guild.id] = (moderator.id, time.monotonic() + PURGE_CONTEXT_SECONDS)
 
-    # -- member changes ------------------------------------------------------
+    #: member changes ------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
@@ -523,7 +523,7 @@ class AuditCog(commands.Cog):
         except Exception:
             log.exception("on_member_update audit failed")
 
-    # -- voice ---------------------------------------------------------------
+    #: voice ---------------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before, after) -> None:

@@ -1,8 +1,8 @@
 """Invite tracking persistence and attribution helpers.
 
 Data lives per guild in its own JSON file (``data/<guild_id>/invites.json``).
-Per inviter four counters are kept -- ``regular``, ``bonus``, ``fake`` and
-``left`` -- and the public total follows the market-standard formula::
+Per inviter four counters are kept: ``regular``, ``bonus``, ``fake`` and
+``left``: and the public total follows the market-standard formula::
 
     total = regular - left - fake + bonus
 
@@ -120,7 +120,7 @@ class InviteStore:
     async def _save(self, guild_id: int, doc: dict[str, Any]) -> None:
         await self.storage.set_all(guild_id, doc)
 
-    # -- joins / leaves ----------------------------------------------------
+    #: joins / leaves ----------------------------------------------------
 
     async def record_join(
         self,
@@ -166,7 +166,7 @@ class InviteStore:
         entry = doc["members"].get(str(member_id))
         return dict(entry) if isinstance(entry, dict) else None
 
-    # -- stats ---------------------------------------------------------------
+    #: stats ---------------------------------------------------------------
 
     async def get_stats(self, guild_id: int, user_id: int) -> dict[str, int]:
         doc = await self._doc(guild_id)
@@ -215,7 +215,7 @@ class InviteStore:
         totals["total"] = totals["regular"] - totals["left"] - totals["fake"] + totals["bonus"]
         return totals
 
-    # -- bonus (manual accounting) -------------------------------------------
+    #: bonus (manual accounting) -------------------------------------------
 
     async def add_bonus(self, guild_id: int, user_id: int, amount: int) -> dict[str, int]:
         doc = await self._doc(guild_id)
@@ -225,7 +225,7 @@ class InviteStore:
         await self._save(guild_id, doc)
         return {**counters, "total": total_of(counters)}
 
-    # -- recount ---------------------------------------------------------------
+    #: recount ---------------------------------------------------------------
 
     async def reconcile_uses(
         self, guild_id: int, live: list[InviteSnapshot]
@@ -237,7 +237,7 @@ class InviteStore:
         """
         return {invite.code: invite.uses for invite in live}
 
-    # -- blacklist / hidden ----------------------------------------------------
+    #: blacklist / hidden ----------------------------------------------------
 
     async def _id_list(self, guild_id: int, key: str) -> list[int]:
         doc = await self._doc(guild_id)
@@ -274,7 +274,7 @@ class InviteStore:
             return True
         return any(rid in roles for rid in inviter_role_ids)
 
-    # -- labels ------------------------------------------------------------------
+    #: labels ------------------------------------------------------------------
 
     async def set_label(self, guild_id: int, code: str, label: str | None) -> None:
         doc = await self._doc(guild_id)
@@ -293,7 +293,7 @@ class InviteStore:
         label = (doc.get("labels") or {}).get(code)
         return str(label) if label else None
 
-    # -- maintenance ---------------------------------------------------------------
+    #: maintenance ---------------------------------------------------------------
 
     async def reset(self, guild_id: int) -> None:
         await self.storage.set_all(

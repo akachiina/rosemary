@@ -2,7 +2,7 @@
 
 Sends ``text`` to every non-bot member with a configurable pace delay,
 counting successes and failures. ``Forbidden``/``HTTPException`` per member
-never abort the run -- the same ``suppress`` pattern every fan-out used
+never abort the run: the same ``suppress`` pattern every fan-out used
 before, now in one place.
 """
 

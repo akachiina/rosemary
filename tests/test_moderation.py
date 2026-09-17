@@ -219,7 +219,7 @@ async def test_can_moderate_blocks_bot_hierarchy(tmp_path):
     )
 
 
-# -- _execute_action regression: duration=None + format placeholders ---------
+#: _execute_action regression: duration=None + format placeholders ---------
 
 
 class _ActionMember:

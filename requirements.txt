@@ -4,3 +4,5 @@ aiosqlite
 aiohttp
 python-dotenv
 PyNaCl
+WeasyPrint
+PyMuPDF

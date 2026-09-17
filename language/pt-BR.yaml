@@ -44,10 +44,10 @@ themes:
   reloaded: '{success} Arquivos de tema relidos do disco; painéis atualizados.'
   remove_placeholder: Escolha um tema importado para remover...
   removed: '{success} Tema **{theme}** removido.'
-  removed_active: '{success} Tema **{theme}** removido -- de volta ao padrão embutido.'
+  removed_active: '{success} Tema **{theme}** removido: de volta ao padrão embutido.'
   not_found: '{error} Tema não encontrado.'
   rejected: '{error} Tema rejeitado: {reason}'
-  none_yet: '*Nenhum tema importado ainda -- anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
+  none_yet: '*Nenhum tema importado ainda: anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
   close: Fechar
   rejection_codes: 'Problemas encontrados: {codes}'
 general:
@@ -83,6 +83,24 @@ settings:
     tickets: Tickets
     partnerships: Parcerias
     broadcast_reminders: Broadcast & Lembretes
+    colors: Painel de Cores
+    colors: Painel de Cores
+  colors.enabled:
+    label: Painel de Cores Ativado
+    description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).
+  colors.panel_channel:
+    label: Canal do Painel
+    description: Canal onde o painel de cores é postado e repintado quando muda.
+  colors.picker:
+    label: Seletor do Painel
+    description: Como os membros escolhem a cor no painel.
+    choices:
+      buttons: Botões numerados
+      select: Menu de seleção
+  colors.per_container:
+    label: Cores por Card
+    description: Quantas cores por card do painel (cada card tem a própria imagem e botões).
+  colors.manage: Gerenciar cores
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
@@ -756,6 +774,62 @@ boost:
       title: '{ban} Cargo Órfão Removido'
       description: "**Cargo:** {role} de {owner} foi removido do sistema."
   error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
+colors:
+  defaults:
+    rose: Rosa Pastel
+    salmon: Salmão Pastel
+    peach: Pêssego Pastel
+    butter: Manteiga Pastel
+    mint: Menta Pastel
+    sage: Sálvia Pastel
+    sky: Céu Pastel
+    lavender: Lavanda Pastel
+    lilac: Lilás Pastel
+    periwinkle: Azul-Marinha Pastel
+    cotton_candy: Algodão-Doce Pastel
+    sand: Areia Pastel
+  error_disabled: '{error} O painel de cores está desativado neste servidor.'
+  error_no_panel: '{warning} Configure o canal do painel em /settings antes de publicá-lo.'
+  error_no_perms: '{error} Preciso da permissão **Gerenciar Cargos** para isso.'
+  error_full: '{warning} Limite de {max} cores atingido. Remova uma antes de adicionar outra.'
+  error_bad_hex: '{error} Cor inválida. Use o formato hexadecimal, ex: `#FFB7C5`.'
+  error_not_found: '{warning} Essa cor não existe mais. O painel pode estar desatualizado.'
+  error_no_role: '{warning} A cor **{name}** não tem cargo anexado. Peça a um admin para vincular um.'
+  error_role_gone: '{warning} O cargo da cor **{name}** foi deletado. Peça a um admin para vincular outro.'
+  error_hierarchy: '{error} Não consigo gerenciar esse cargo: ele está acima do meu maior cargo.'
+  panel_posted: '{check} Painel de cores publicado!'
+  list_title: Cores Disponíveis
+  list_current: ' (sua cor atual)'
+  list_empty: '{warning} Nenhuma cor configurada ainda. Um admin pode configurar em /settings.'
+  manager:
+    title: Gerenciar Cores
+    hint: 'Cores: {count}/{max}. ↑/↓ reordenam (afetam a imagem e os botões); editar muda nome e hexadecimal.'
+    no_role: sem cargo
+    edit: Editar
+    remove: Remover
+    add: Criar
+    attach: Anexar cargos
+    attach_title: Anexar Cargos
+    attach_hint: 'Selecione os cargos que viram cores. A cor atual de cada cargo é herdada; edite depois para ajustar nome ou hex.'
+    attach_placeholder: Escolha os cargos...
+    attached: '{check} {count} cargo(s) anexado(s).'
+    saved: '{check} Cor atualizada.'
+    added: '{check} Cor **{name}** criada.'
+    removed: '{check} Cor **{name}** removida.'
+    role_created: '{check} Cargo **{role}** criado e anexado.'
+    role_modal_title: Criar Cargo de Cor
+    edit_modal_title: Editar Cor
+    field_name: Nome (aparece na imagem)
+    field_hex: 'Cor hexadecimal (ex: FFB7C5)'
+    delete_title: Remover Cor
+    delete_text: 'A cor **{name}** sai do painel. O cargo do Discord **não** é deletado.'
+    delete_confirm: Remover
+  panel:
+    title: Escolha sua Cor
+    text: 'Clique no número da cor desejada ({count} disponíveis). Clicar de novo remove a cor.'
+    placeholder: Escolha sua cor...
+    applied: '{check} Cor **{name}** aplicada!'
+    removed: '{check} Cor **{name}** removida.'
 bump:
   messages:
     anti_camping: 🔒 **|** O canal foi bloqueado temporariamente. O bump estará disponível em instantes!
@@ -1010,9 +1084,9 @@ update:
     description: '[ADMIN] Atualiza o bot'
 updater:
   error_fetch: '{error} Não foi possível buscar atualizações no git.'
-  error_dirty: '{error} Árvore suja ({ahead} commit(s) locais) -- update recusado.'
-  error_backup: '{error} Backup dos dados falhou -- update abortado.'
-  error_reset: '{error} Git reset falhou -- veja os logs do bot.'
+  error_dirty: '{error} Árvore suja ({ahead} commit(s) locais): update recusado.'
+  error_backup: '{error} Backup dos dados falhou: update abortado.'
+  error_reset: '{error} Git reset falhou: veja os logs do bot.'
   up_to_date: '{success} Já está atualizado.'
   confirm: '{warning} Atualizar para **{target}**? Backup, reset e restart?'
   confirm_button: Atualizar e reiniciar
@@ -1308,7 +1382,7 @@ invites:
     success: '{success} {codes} código(s) recontados.'
   codes:
     title: 'Códigos de convite'
-    line: '`{code}` -- {uses} uso(s) de {inviter}{label}'
+    line: '`{code}`: {uses} uso(s) de {inviter}{label}'
     empty: 'Nenhum código de convite encontrado.'
   blacklist:
     added: '{success} {target} adicionado à lista {kind}.'
@@ -1902,6 +1976,10 @@ card:
   author_footer:
     text: "por {user} · {timestamp}"
   # Cards construídos em código promovidos a CardSpecs (customizáveis por tema).
+  colors:
+    panel:
+      title: Card do painel de cores
+      placeholders: ''
   starboard:
     card:
       title: Post do Starboard

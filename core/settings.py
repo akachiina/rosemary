@@ -17,6 +17,7 @@ from datetime import timedelta
 from enum import StrEnum
 from typing import Any
 
+from rosemary.core.colors import MAX_COLORS as _COLORS_MAX
 from rosemary.core.storage import GuildStorage
 from rosemary.core.time_parser import TimeParser
 
@@ -56,6 +57,7 @@ class SettingCategory(StrEnum):
     TICKETS = "tickets"
     PARTNERSHIPS = "partnerships"
     BROADCAST_REMINDERS = "broadcast_reminders"
+    COLORS = "colors"
 
 
 @dataclass(frozen=True)
@@ -194,6 +196,33 @@ SETTINGS: dict[str, SettingSpec] = {
             2,
             min_value=0,
             max_value=30,
+        ),
+        _spec(
+            "colors.enabled",
+            SettingCategory.COLORS,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "colors.panel_channel",
+            SettingCategory.COLORS,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "colors.picker",
+            SettingCategory.COLORS,
+            SettingType.CHOICE,
+            "buttons",
+            choices=("buttons", "select"),
+        ),
+        _spec(
+            "colors.per_container",
+            SettingCategory.COLORS,
+            SettingType.INTEGER,
+            10,
+            min_value=3,
+            max_value=_COLORS_MAX,
         ),
         _spec(
             "tickets.enabled",
@@ -887,7 +916,7 @@ async def _migrated_list_value(
     ``anti_invite.exempt_channel`` (single int) became
     ``anti_invite.exempt_places`` (list). When the new key was never written
     and the old one holds a value, that value seeds the list (lazy migration:
-    read path only, no write -- the next menu save persists it canonically).
+    read path only, no write: the next menu save persists it canonically).
     """
     legacy = getattr(spec, "legacy_single_key", None)
     if value or legacy is None:

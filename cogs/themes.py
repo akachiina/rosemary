@@ -5,7 +5,7 @@ a select to switch, an attachment import (validated before anything is
 written), an export select that posts the raw YAML back to the channel and a
 remove select for guild-imported files. Every write reloads the guild's theme
 snapshot (:func:`rosemary.core.themes.preload_themes`) so changes apply
-immediately -- no restart.
+immediately: no restart.
 
 Like ``cogs/moderation.py``, this module intentionally omits
 ``from __future__ import annotations``: py-cord inspects slash-command
@@ -60,10 +60,10 @@ class ThemesMenuView(MenuView):
         await self.prepare()
         await self.rerender(interaction)
         # Stale panels and action-button dispatch views must follow the new
-        # theme immediately -- no restart.
+        # theme immediately: no restart.
         await on_theme_changed(self.bot, self.guild_id)
 
-    # -- handlers ------------------------------------------------------------
+    #: handlers ------------------------------------------------------------
 
     async def _select(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
@@ -140,7 +140,7 @@ class ThemesMenuView(MenuView):
         await interaction.edit(view=self)
         self.stop()
 
-    # -- rendering -----------------------------------------------------------
+    #: rendering -----------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
@@ -291,7 +291,7 @@ class ThemesCog(commands.Cog):
         await view.prepare()
         from rosemary.core.card_service import trace_card_path
 
-        # Heading is theme-customizable (card.themes.title) -- trace the path.
+        # Heading is theme-customizable (card.themes.title): trace the path.
         await trace_card_path(self.bot, ctx.guild_id, "themes.title")
         await ctx.respond(view=view, ephemeral=True)
 

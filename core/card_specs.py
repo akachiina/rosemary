@@ -183,7 +183,7 @@ CONTENT_CARDS = {
     "bump.stats": ("title", "body"),
     # Interactive menus expose only their heading block: selects and buttons
     # are code (Discord needs registered callbacks), so a theme can restyle
-    # the heading -- color, title text, footer -- but not generate components.
+    # the heading: color, title text, footer: but not generate components.
     "settings.title": (),
     "themes.title": (),
     "debug.title": (),

@@ -25,7 +25,7 @@ def _doc(*blocks):
     return {"v": 1, "blocks": list(blocks)}
 
 
-# -- placeholders ------------------------------------------------------------
+#: placeholders ------------------------------------------------------------
 
 
 def test_safe_format_replaces_known_and_keeps_unknown():
@@ -41,7 +41,7 @@ def test_safe_format_never_raises_on_braces():
     assert safe_format("{{{weird}}} {x}", {}) == "{{{weird}}} {x}"
 
 
-# -- validation --------------------------------------------------------------
+#: validation --------------------------------------------------------------
 
 
 def test_single_text_document_is_valid(theme):
@@ -191,7 +191,7 @@ def test_malformed_documents_report_errors(theme):
     assert [i.code for i in validate_document(_doc("nope"), theme=theme)] == ["unknown_block"]
 
 
-# -- rendering ---------------------------------------------------------------
+#: rendering ---------------------------------------------------------------
 
 
 def test_build_items_renders_container_tree(theme):
@@ -255,7 +255,7 @@ def test_build_items_skips_gallery_that_resolves_empty(theme):
     assert text.content == "corpo"
 
 
-# -- persistence -------------------------------------------------------------
+#: persistence -------------------------------------------------------------
 # Per-card persistence moved to theme files: covered by tests/test_themes.py
 # (ThemeStore import/export/selection) and tests/test_themes_menu.py.
 

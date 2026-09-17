@@ -69,7 +69,7 @@ class BumpLeaderboardCog(commands.Cog):
     def cog_unload(self) -> None:
         self._reset_task.cancel()
 
-    # -- Scheduled Tasks -----------------------------------------------------
+    #: Scheduled Tasks -----------------------------------------------------
 
     @tasks.loop(minutes=1)
     async def _reset_task(self) -> None:
@@ -189,7 +189,7 @@ class BumpLeaderboardCog(commands.Cog):
         )
         return "posted"
 
-    # -- Helpers -------------------------------------------------------------
+    #: Helpers -------------------------------------------------------------
 
     async def _post_no_bumps(self, guild: discord.Guild, channel: discord.TextChannel) -> None:
         from rosemary.core.card_service import render_card_message
@@ -447,7 +447,7 @@ class BumpLeaderboardCog(commands.Cog):
                         winner_mention=f"<@{new_winner_id}>",
                     )
 
-    # -- Commands ------------------------------------------------------------
+    #: Commands ------------------------------------------------------------
 
     @discord.slash_command(
         name="bump_leaderboard",
@@ -795,7 +795,7 @@ class BumpLeaderboardCog(commands.Cog):
             ephemeral=True,
         )
 
-    # -- Listeners -----------------------------------------------------------
+    #: Listeners -----------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_guild_role_update(self, before: discord.Role, after: discord.Role) -> None:

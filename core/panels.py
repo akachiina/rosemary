@@ -2,14 +2,14 @@
 
 A "panel" is a long-lived posted message that reflects bot state (the ticket
 panel, a future partnerships board...). When the active theme changes or a
-relevant setting is edited, stale panels must be rebuilt in place -- but the
+relevant setting is edited, stale panels must be rebuilt in place: but the
 theme/setting layers cannot know which features post panels. This registry
 inverts the dependency: each feature registers an async repaint callback and
 the shared entry points (:func:`repaint_guild`, :func:`on_theme_changed`,
 :func:`on_setting_changed`, :func:`repaint_all`) fan out to every registrant.
 
 Contract for a repaint callback: ``async def(bot, guild_id) -> None``. It must
-be idempotent and defensive -- a failure in one panel never blocks the others
+be idempotent and defensive: a failure in one panel never blocks the others
 (each call site already wraps the fan-out in per-panel error handling).
 """
 
@@ -28,7 +28,7 @@ _REGISTRY: dict[str, tuple[frozenset[str], RepaintFn]] = {}
 
 
 def register(name: str, callback: RepaintFn, *, setting_keys: tuple[str, ...] = ()) -> None:
-    """Register one panel's repaint (idempotent by ``name`` -- re-registering
+    """Register one panel's repaint (idempotent by ``name``: re-registering
     replaces, keeping module import semantics friendly)."""
     _REGISTRY[name] = (frozenset(setting_keys), callback)
 

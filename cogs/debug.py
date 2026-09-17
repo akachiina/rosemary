@@ -1,4 +1,4 @@
-"""The ``/debug`` command -- a diagnostics panel with a log-channel test button."""
+"""The ``/debug`` command: a diagnostics panel with a log-channel test button."""
 
 import logging
 
@@ -109,6 +109,6 @@ class DebugCog(commands.Cog):
         await view.prepare()
         from rosemary.core.card_service import trace_card_path
 
-        # Heading is theme-customizable (card.debug.title) -- trace the path.
+        # Heading is theme-customizable (card.debug.title): trace the path.
         await trace_card_path(self.bot, ctx.guild_id, "debug.title")
         await ctx.respond(view=view, ephemeral=True)

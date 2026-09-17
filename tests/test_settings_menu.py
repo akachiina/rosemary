@@ -169,7 +169,7 @@ async def test_non_duration_setting_skips_localized_aliases(tmp_path):
     assert await get_setting(bot.storage, 1, "general.timezone") == "UTC-3"
 
 
-# -- Discord 40-component limit regression (error 50035) -----------------------
+#: Discord 40-component limit regression (error 50035) -----------------------
 
 
 def _count_components(view) -> int:

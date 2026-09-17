@@ -19,7 +19,7 @@ async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
     """Catalog-default ``/info_servidor`` card (no theme override).
 
     Layout: brand container with the server name beside the icon thumbnail
-    (the single accessory -- V2 sections stack their texts, so stats live in
+    (the single accessory: V2 sections stack their texts, so stats live in
     a full-width ``**label:** value`` block below, owner/member carried by
     the subtitle), the banner as a full-width media gallery and a small
     ID footer. Content-reactive
@@ -32,7 +32,7 @@ async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
     # Theme emojis resolve in the builder (labels, subtitle) while every
     # contracted placeholder self-echoes: the document stays a literal
     # template and {members} is not swallowed by the members emoji token
-    # at build time -- the render resolves it with the real variables.
+    # at build time: the render resolves it with the real variables.
     mapping = {
         **bot.theme.emojis,
         **{name: f"{{{name}}}" for name in variables},
@@ -56,7 +56,7 @@ async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
 
     # The heading is the server name itself, bare (no emoji decoration) per
     # the visual standard for this card. Single icon: the header accessory.
-    # Owner/member live in the subtitle only -- repeating them as stat lines
+    # Owner/member live in the subtitle only: repeating them as stat lines
     # is the clutter this layout avoids.
     heading = "# {server}"
     header_texts = [heading, await raw("subtitle")]

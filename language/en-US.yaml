@@ -44,10 +44,10 @@ themes:
   reloaded: '{success} Theme files re-read from disk; panels refreshed.'
   remove_placeholder: Choose an imported theme to remove...
   removed: '{success} Theme **{theme}** removed.'
-  removed_active: '{success} Theme **{theme}** removed -- back to the built-in default.'
+  removed_active: '{success} Theme **{theme}** removed: back to the built-in default.'
   not_found: '{error} Theme not found.'
   rejected: '{error} Theme rejected: {reason}'
-  none_yet: '*No themes imported yet -- attach a ``.yaml`` file to /themes to add one.*'
+  none_yet: '*No themes imported yet: attach a ``.yaml`` file to /themes to add one.*'
   close: Close
   rejection_codes: 'Problems found: {codes}'
 general:
@@ -83,6 +83,23 @@ settings:
     tickets: Tickets
     partnerships: Partnerships
     broadcast_reminders: Broadcast & Reminders
+    colors: Color Panel
+  colors.enabled:
+    label: Color Panel Enabled
+    description: Enables the color panel (colored roles any member can pick).
+  colors.panel_channel:
+    label: Panel Channel
+    description: Channel where the color panel is posted and repainted on change.
+  colors.picker:
+    label: Panel Picker
+    description: How members pick a color on the panel.
+    choices:
+      buttons: Numbered buttons
+      select: Select menu
+  colors.per_container:
+    label: Colors per Card
+    description: How many colors per panel card (each card gets its own image and buttons).
+  colors.manage: Manage colors
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.
@@ -756,6 +773,62 @@ boost:
       title: '{ban} Orphan Role Removed'
       description: "**Role:** {role} from {owner} was removed from the system."
   error_disabled: '{error} The boost roles system is disabled in this server.'
+colors:
+  defaults:
+    rose: Pastel Rose
+    salmon: Pastel Salmon
+    peach: Pastel Peach
+    butter: Pastel Butter
+    mint: Pastel Mint
+    sage: Pastel Sage
+    sky: Pastel Sky
+    lavender: Pastel Lavender
+    lilac: Pastel Lilac
+    periwinkle: Pastel Periwinkle
+    cotton_candy: Pastel Cotton Candy
+    sand: Pastel Sand
+  error_disabled: '{error} The color panel is disabled in this server.'
+  error_no_panel: '{warning} Set the panel channel in /settings before posting it.'
+  error_no_perms: '{error} I need the **Manage Roles** permission for that.'
+  error_full: '{warning} Limit of {max} colors reached. Remove one before adding another.'
+  error_bad_hex: '{error} Invalid color. Use the hexadecimal format, e.g. `#FFB7C5`.'
+  error_not_found: '{warning} That color no longer exists. The panel may be outdated.'
+  error_no_role: '{warning} The color **{name}** has no attached role. Ask an admin to link one.'
+  error_role_gone: '{warning} The role for color **{name}** was deleted. Ask an admin to link another.'
+  error_hierarchy: '{error} I cannot manage that role: it is above my highest role.'
+  panel_posted: '{check} Color panel posted!'
+  list_title: Available Colors
+  list_current: ' (your current color)'
+  list_empty: '{warning} No colors configured yet. An admin can set them up in /settings.'
+  manager:
+    title: Manage Colors
+    hint: 'Colors: {count}/{max}. Up/Down reorders (affects the image and buttons); edit changes name and hex.'
+    no_role: no role
+    edit: Edit
+    remove: Remove
+    add: Create
+    attach: Attach roles
+    attach_title: Attach Roles
+    attach_hint: 'Pick the roles that become colors. Each role''s current color is inherited; edit later to adjust name or hex.'
+    attach_placeholder: Choose the roles...
+    attached: '{check} {count} role(s) attached.'
+    saved: '{check} Color updated.'
+    added: '{check} Color **{name}** created.'
+    removed: '{check} Color **{name}** removed.'
+    role_created: '{check} Role **{role}** created and attached.'
+    role_modal_title: Create Color Role
+    edit_modal_title: Edit Color
+    field_name: Name (shown in the image)
+    field_hex: 'Hex color (e.g. FFB7C5)'
+    delete_title: Remove Color
+    delete_text: 'Color **{name}** leaves the panel. The Discord role is **not** deleted.'
+    delete_confirm: Remove
+  panel:
+    title: Pick your Color
+    text: 'Click the number of the color you want ({count} available). Clicking again removes it.'
+    placeholder: Pick your color...
+    applied: '{check} Color **{name}** applied!'
+    removed: '{check} Color **{name}** removed.'
 bump:
   messages:
     anti_camping: 🔒 **|** The channel is temporarily locked. Bump will be available shortly!
@@ -1010,9 +1083,9 @@ update:
     description: '[ADMIN] Update the bot'
 updater:
   error_fetch: '{error} Could not fetch updates from git.'
-  error_dirty: '{error} Working tree is dirty ({ahead} local commit(s)) -- update refused.'
-  error_backup: '{error} Data backup failed -- update aborted.'
-  error_reset: '{error} Git reset failed -- check the bot logs.'
+  error_dirty: '{error} Working tree is dirty ({ahead} local commit(s)): update refused.'
+  error_backup: '{error} Data backup failed: update aborted.'
+  error_reset: '{error} Git reset failed: check the bot logs.'
   up_to_date: '{success} Already up to date.'
   confirm: '{warning} Update to **{target}**? Back up data, reset and restart?'
   confirm_button: Update and restart
@@ -1308,7 +1381,7 @@ invites:
     success: '{success} Recounted {codes} invite code(s).'
   codes:
     title: 'Invite codes'
-    line: '`{code}` -- {uses} use(s) by {inviter}{label}'
+    line: '`{code}`: {uses} use(s) by {inviter}{label}'
     empty: 'No invite codes found.'
   blacklist:
     added: '{success} Added {target} to the {kind} list.'
@@ -1901,6 +1974,10 @@ card:
   author_footer:
     text: "by {user} · {timestamp}"
   # Code-built cards promoted to CardSpecs (theme-customizable like any card).
+  colors:
+    panel:
+      title: Color panel card
+      placeholders: ''
   starboard:
     card:
       title: Starboard post

@@ -67,7 +67,7 @@ def nav_ids(row) -> list:
     return [getattr(item, "custom_id", None) for item in row.children]
 
 
-# -- Close-first navigation --------------------------------------------------
+#: Close-first navigation --------------------------------------------------
 
 
 async def test_settings_nav_close_always_first(tmp_path):
@@ -99,7 +99,7 @@ async def test_settings_nav_close_always_first(tmp_path):
             )
 
 
-# -- defer-before-work ---------------------------------------------------------
+#: defer-before-work ---------------------------------------------------------
 
 
 async def test_moderation_confirm_defers_first(tmp_path):

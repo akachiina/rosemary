@@ -32,7 +32,7 @@ def make_invite_bot(tmp_path):
     return bot
 
 
-# -- invite attribution (the pre-join cache race) ------------------------------
+#: invite attribution (the pre-join cache race) ------------------------------
 
 
 async def test_join_attributes_via_prejoin_cache(tmp_path, monkeypatch):
@@ -71,7 +71,7 @@ async def test_join_attributes_via_prejoin_cache(tmp_path, monkeypatch):
     assert sent, "join log should have been requested"
 
 
-# -- event document layout -----------------------------------------------------
+#: event document layout -----------------------------------------------------
 
 
 async def test_event_document_has_avatar_section_and_footer(tmp_path):
@@ -129,7 +129,7 @@ async def test_event_document_has_avatar_section_and_footer(tmp_path):
     assert found_thumb, "avatar thumbnail must render with the resolved url"
 
 
-# -- catalog templates: real newlines, never literal "\n" ----------------------
+#: catalog templates: real newlines, never literal "\n" ----------------------
 
 
 def test_every_log_title_has_theme_emoji():
@@ -168,7 +168,7 @@ def test_boost_log_fields_are_bold_labeled():
 
 
 def test_birthday_catalog_keys_match_spec():
-    """birthdays.announce is the customizable card key -- catalogs follow."""
+    """birthdays.announce is the customizable card key: catalogs follow."""
     for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
         with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)

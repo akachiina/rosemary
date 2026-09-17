@@ -43,7 +43,7 @@ class BoostRolesCog(commands.Cog):
         self._views_registered = False
         self._cleanup_task: asyncio.Task | None = None
 
-    # -- lifecycle ----------------------------------------------------------
+    #: lifecycle ----------------------------------------------------------
 
     async def start(self) -> None:
         """Start per-guild background work once per process.
@@ -109,7 +109,7 @@ class BoostRolesCog(commands.Cog):
                 log.error("Boost invite cleanup failed: %s", exc)
             await asyncio.sleep(_CLEANUP_INTERVAL)
 
-    # -- listeners ----------------------------------------------------------
+    #: listeners ----------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member) -> None:
@@ -190,7 +190,7 @@ class BoostRolesCog(commands.Cog):
         for role_id_str in await self.store.get_roles_as_member(guild_id, member.id):
             await self.store.remove_member(guild_id, int(role_id_str), member.id)
 
-    # -- helpers ------------------------------------------------------------
+    #: helpers ------------------------------------------------------------
 
     def _guild_id(self, ctx) -> int:
         return ctx.guild.id
@@ -199,11 +199,11 @@ class BoostRolesCog(commands.Cog):
         await view.prepare()
         from rosemary.core.card_service import trace_card_path
 
-        # The menu heading is theme-customizable (card.boost.home) -- trace it.
+        # The menu heading is theme-customizable (card.boost.home): trace it.
         await trace_card_path(self.bot, self._guild_id(ctx), "boost.home")
         await ctx.respond(view=view, ephemeral=True)
 
-    # -- commands -----------------------------------------------------------
+    #: commands -----------------------------------------------------------
 
     @discord.slash_command(
         name="boost",

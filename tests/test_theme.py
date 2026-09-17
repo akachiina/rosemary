@@ -121,7 +121,7 @@ def test_every_theme_emoji_is_discord_valid():
 
     Buttons/selects pass theme glyphs to Discord as ``emoji.name``, and
     Discord rejects anything outside the RGI emoji set with 400 Invalid Form
-    Body (``emoji.name: Invalid emoji``) -- which made the /personalizar
+    Body (``emoji.name: Invalid emoji``): which made the /personalizar
     editor fail to open when the text-only '✓' was used as a button emoji.
     This sweep keeps every future theme emoji button-safe.
     """

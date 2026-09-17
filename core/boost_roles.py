@@ -66,7 +66,7 @@ class BoostRoleStore:
     async def _set(self, guild_id: int, key: str, value: dict[str, Any]) -> None:
         await self.storage.set(guild_id, key, value)
 
-    # -- roles --------------------------------------------------------------
+    #: roles --------------------------------------------------------------
 
     async def get_roles(self, guild_id: int) -> dict[str, dict[str, Any]]:
         """Return every registered boost role keyed by ``str(role_id)``."""
@@ -186,7 +186,7 @@ class BoostRoleStore:
             await self._set(guild.id, _ROLES_KEY, roles)
         return changed
 
-    # -- invites ------------------------------------------------------------
+    #: invites ------------------------------------------------------------
 
     async def add_invite(
         self,

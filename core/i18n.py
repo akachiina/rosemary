@@ -101,7 +101,7 @@ class Translator:
         """Return the unformatted template for ``key`` (placeholders intact).
 
         Missing keys fall back like :meth:`t` and ultimately return the key
-        itself. Theme emojis are NOT injected -- callers decide how to render.
+        itself. Theme emojis are NOT injected: callers decide how to render.
         """
         language = await self.resolve_async(guild_id)
         catalog = self._catalogs.get(language, {})

@@ -52,7 +52,7 @@ def container_texts(view) -> list[str]:
     return texts
 
 
-# -- every promoted spec exists with a catalog title ---------------------------
+#: every promoted spec exists with a catalog title ---------------------------
 
 
 def test_promoted_content_specs_registered():
@@ -91,7 +91,7 @@ def test_promoted_spec_titles_in_both_catalogs():
     assert missing == []
 
 
-# -- seed documents render for every content card ------------------------------
+#: seed documents render for every content card ------------------------------
 
 
 async def test_seed_documents_render():
@@ -139,7 +139,7 @@ async def test_seed_documents_render():
 
 async def test_starboard_card_resolves_via_builder_not_seed():
     """The builder owns the starboard default; a seed entry here would shadow
-    it with bare {title}/{body} -- the exact bug that made live posts plain
+    it with bare {title}/{body}: the exact bug that made live posts plain
     (regression for the seed-map shadowing)."""
     import rosemary.cogs.starboard  # noqa: F401  (registers the builder)
     from rosemary.core.card_service import SEED_PARTS_BY_KEY, render_document
@@ -172,13 +172,13 @@ async def test_starboard_card_resolves_via_builder_not_seed():
     assert any("-# by <@5>" in text for text in texts), texts
 
 
-# -- serverinfo rich builder ---------------------------------------------------
+#: serverinfo rich builder ---------------------------------------------------
 
 
 async def test_serverinfo_card_resolves_via_builder_not_seed():
     """The serverinfo default lives in a registered rich builder (icon section,
     stat columns, banner gallery, ID footer); a seed-map entry would shadow it
-    with bare key/value lines -- same shadowing regression as the starboard."""
+    with bare key/value lines: same shadowing regression as the starboard."""
     from pathlib import Path
 
     import rosemary.cogs.utility  # noqa: F401  (registers the builder)
@@ -271,7 +271,7 @@ async def test_serverinfo_builder_degrades_without_banner_and_icon():
     assert not any("servidor de testes" in text for text in texts)
 
 
-# -- menu heading splice -------------------------------------------------------
+#: menu heading splice -------------------------------------------------------
 
 
 async def test_menu_heading_empty_without_theme(tmp_path):

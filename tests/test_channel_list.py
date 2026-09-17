@@ -33,7 +33,7 @@ _LIST_SPEC = SettingSpec(
 )
 
 
-# -- coercion and display -------------------------------------------------------
+#: coercion and display -------------------------------------------------------
 
 
 def test_channel_list_coerce_accepts_lists_scalars_and_empty():
@@ -85,7 +85,7 @@ def test_exempt_places_spec_keeps_legacy_key():
     assert spec.legacy_single_key == "anti_invite.exempt_channel"
 
 
-# -- management screens ----------------------------------------------------------
+#: management screens ----------------------------------------------------------
 
 
 class FakeTranslator:
@@ -236,7 +236,7 @@ async def test_clear_all_empties_the_list(tmp_path):
     assert menu.editing_key == "anti_invite.exempt_places"  # stayed on the screen
 
 
-# -- anti-invite honors channels and categories ----------------------------------
+#: anti-invite honors channels and categories ----------------------------------
 
 
 def _anti_cog(tmp_path):
@@ -334,7 +334,7 @@ async def test_anti_invite_listener_spares_exempt_category(tmp_path, monkeypatch
     message.delete.assert_not_awaited()
 
 
-# -- catalogs ---------------------------------------------------------------------
+#: catalogs ---------------------------------------------------------------------
 
 
 def test_every_static_settings_menu_key_exists_in_both_catalogs():
@@ -342,7 +342,7 @@ def test_every_static_settings_menu_key_exists_in_both_catalogs():
 
     Parses every static ``settings.*`` literal from ui/settings_menu.py and
     demands it in both flattened catalogs. New code with a new literal fails
-    here until the catalogs carry it -- buttons never show raw keys again.
+    here until the catalogs carry it: buttons never show raw keys again.
     """
     import re
 

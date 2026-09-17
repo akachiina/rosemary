@@ -21,6 +21,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from rosemary.core.logging import setup_logging  # noqa: E402
 from rosemary.core.settings import get_setting  # noqa: E402
+from rosemary.core.themes import THEMES_DIR  # noqa: E402
 from rosemary.ui.theme import Theme, load_theme  # noqa: E402
 
 if TYPE_CHECKING:
@@ -71,6 +72,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
         from rosemary.cogs.bump_reminder import BumpReminderCog
         from rosemary.cogs.cleaner import CleanerCog
+        from rosemary.cogs.colors import ColorsCog
         from rosemary.cogs.debug import DebugCog
         from rosemary.cogs.invites import InvitesCog
         from rosemary.cogs.language import LanguageCog
@@ -101,7 +103,10 @@ class RosemaryBot(commands.Bot):
             return settings.get("language", "en-US")
 
         languages_dir = Path(__file__).resolve().parent / "language"
-        self.theme = load_theme()
+        # The built-in theme is themes/default.yaml: the same file the
+        # ThemeStore lists as the selectable/importable "default" theme, so
+        # there is exactly one source of truth for the bot's look.
+        self.theme = load_theme(THEMES_DIR / "default.yaml")
         self.translator = Translator(
             languages_dir=languages_dir,
             resolver=_resolver,
@@ -129,6 +134,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(AuditCog(self))
         self.add_cog(StarboardCog(self))
         self.add_cog(TicketsCog(self))
+        self.add_cog(ColorsCog(self))
         self.add_cog(BirthdayCog(self))
         # py-cord's sync add_cog never calls cog_load (and cog listeners added
         # here only fire on the *next* ready dispatch), so background work must

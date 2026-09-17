@@ -4,10 +4,10 @@ A theme is one YAML file (``cute_theme.yaml``) carrying the look & feel that
 :mod:`rosemary.ui.theme` already consumed (``colors``/``emojis``/``markdown``/
 ``styles``) plus two new optional sections:
 
-* ``cards:`` -- per-card overrides keyed by card key (``about.card``), written
+* ``cards:``: per-card overrides keyed by card key (``about.card``), written
   in raw Discord Components V2 (see :mod:`rosemary.core.v2_convert`) or as a
   plain string shortcut for single-text cards;
-* ``pings:`` -- per-card mention toggles (``true``/``false``), replacing the
+* ``pings:``: per-card mention toggles (``true``/``false``), replacing the
   old per-card editor toggle.
 
 Layout::
@@ -18,7 +18,7 @@ Layout::
 
 Resolution per guild: the active theme's ``cards``/``pings`` override the
 catalog defaults; look & feel falls back to the built-in theme for anything
-the file omits. Files are validated fully at load/import -- an invalid theme is
+the file omits. Files are validated fully at load/import: an invalid theme is
 rejected with :class:`ThemeError`, never breaks a send later.
 """
 
@@ -40,8 +40,8 @@ from rosemary.ui.theme import Theme
 log = logging.getLogger(__name__)
 
 #: Global themes shipped with the bot (resolved from the package root, like
-#: ``language/`` and ``data/`` -- never from the CWD).
-THEMES_DIR = Path(__file__).resolve().parent / "themes"
+#: ``language/`` and ``data/``: never from the CWD).
+THEMES_DIR = Path(__file__).resolve().parent.parent / "themes"
 
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 _MAX_THEME_BYTES = 64 * 1024
@@ -63,18 +63,27 @@ class RosemaryTheme(Theme):
         name: str = "",
         cards: dict[str, dict[str, Any]] | None = None,
         pings: dict[str, bool] | None = None,
+        color_panel: dict[str, str] | None = None,
     ) -> None:
         super().__init__(colors, emojis, markdown, styles, bump, medals, star_tier_emoji)
         self.name = name
         self.cards = cards or {}
         self.pings = pings or {}
+        # Color panel image templates (HTML): ``html`` (page frame) +
+        # ``item`` (one row per color). Missing/empty falls back to the
+        # built-in layout in :mod:`rosemary.core.color_image`.
+        self.color_panel = {
+            str(k): str(v)
+            for k, v in (color_panel or {}).items()
+            if isinstance(v, str) and v.strip()
+        }
 
 
 def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
     """Parse and fully validate one theme YAML file.
 
     Raises :class:`ThemeError` on YAML errors, bad tokens or invalid card
-    documents -- callers reject the theme instead of failing at send time.
+    documents: callers reject the theme instead of failing at send time.
     """
     theme_name = name if name is not None else path.stem
     if not _NAME_RE.match(theme_name):
@@ -110,9 +119,16 @@ def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
         if isinstance(v, str)
     }
 
+    color_panel = {
+        str(k): str(v)
+        for k, v in (data.get("color_panel") or {}).items()
+        if isinstance(k, str) and isinstance(v, str)
+    }
+
     theme = RosemaryTheme(
         colors, emojis, markdown, styles, bump, medals,
         star_tier_emoji=star_tier_emoji, name=theme_name,
+        color_panel=color_panel,
     )
 
     cards_section = data.get("cards") or {}
@@ -144,15 +160,19 @@ def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
 
 
 def _string_map(raw: Any, code: str = "theme_document_shape") -> dict[str, str]:
-    """``{str: str}`` from YAML, rejecting non-string values."""
+    """``{str: str}`` from YAML, rejecting non-string values.
+
+    Keys are coerced with ``str()``: YAML 1.1 parses bare numeric keys
+    (``medals: 1: ...``) as ints, and a theme file must not be rejected for
+    the same content the built-in loader tolerates."""
     if raw is None:
         return {}
     if not isinstance(raw, dict):
         raise ThemeError([CardIssue(code)])
-    for key, value in raw.items():
-        if not isinstance(key, str) or not isinstance(value, str):
+    for _key, value in raw.items():
+        if not isinstance(value, str):
             raise ThemeError([CardIssue(code)])
-    return dict(raw)
+    return {str(key): value for key, value in raw.items()}
 
 
 def _validate_card_colors(key: str, doc: dict[str, Any], theme: RosemaryTheme) -> None:
@@ -202,7 +222,7 @@ def _validate_card_colors(key: str, doc: dict[str, Any], theme: RosemaryTheme) -
                 CardIssue("color_unknown", (("color", unknown),)),
             ]
         )
-    # Full Discord layout validation (counts, nesting, urls...) -- hex colors
+    # Full Discord layout validation (counts, nesting, urls...): hex colors
     # are self-contained, so the theme palette is not passed here.
     errors = validate_document(doc, draft=True)
     if errors:
@@ -221,7 +241,7 @@ class ThemeStore:
         # (guild_id, theme_name) -> RosemaryTheme; invalidated on every write.
         self._cache: dict[tuple[int, str], RosemaryTheme] = {}
 
-    # -- discovery ---------------------------------------------------------
+    #: discovery ---------------------------------------------------------
 
     def _guild_dir(self, guild_id: int) -> Path:
         return self._data_dir / str(guild_id) / "themes"
@@ -253,7 +273,7 @@ class ThemeStore:
         )
 
     def _path_for(self, guild_id: int | None, name: str) -> Path | None:
-        """File for ``name`` -- the guild's own file first, then global."""
+        """File for ``name``: the guild's own file first, then global."""
         if not _NAME_RE.match(name):
             return None
         if guild_id is not None:
@@ -275,7 +295,7 @@ class ThemeStore:
             raise ThemeError([CardIssue("theme_not_found", (("name", name),))])
         return load_theme_file(path, name=name)
 
-    # -- per-guild selection -----------------------------------------------
+    #: per-guild selection -----------------------------------------------
 
     async def get_active(self, guild_id: int) -> str | None:
         """The guild's selected theme name or ``None`` (built-in default)."""
@@ -327,7 +347,7 @@ class ThemeStore:
         self._cache[(guild_id, active)] = theme
         return theme
 
-    # -- import / export ----------------------------------------------------
+    #: import / export ----------------------------------------------------
 
     async def import_theme(self, guild_id: int, filename: str, payload: bytes) -> str:
         """Validate and store an uploaded theme; returns its name.
@@ -382,7 +402,7 @@ def theme_store(bot) -> ThemeStore:
     return ThemeStore(bot.storage.data_dir)
 
 
-# -- resolution ------------------------------------------------------------
+#: resolution ------------------------------------------------------------
 
 
 async def preload_themes(bot) -> None:
@@ -411,7 +431,7 @@ def theme_for(bot, guild_id: int | None) -> Theme:
     """The guild's effective theme, synchronously (see :func:`preload_themes`).
 
     Falls back to the built-in theme when the guild has no active theme or its
-    snapshot is cold -- a cold snapshot means the built-in look until the next
+    snapshot is cold: a cold snapshot means the built-in look until the next
     preload, never a broken send.
     """
     if guild_id is None:
@@ -428,7 +448,7 @@ async def card_document(bot, guild_id: int | None, key: str) -> dict[str, Any] |
     """The guild's themed override document for ``key`` (``None`` = default).
 
     Resolution: active theme file's ``cards.<key>`` -> ``None`` (the caller
-    keeps its own catalog/builder default). Validates lazily too -- files were
+    keeps its own catalog/builder default). Validates lazily too: files were
     already validated at load, this is belt-and-braces against hand edits.
     """
     if guild_id is None:
@@ -441,7 +461,7 @@ async def card_document(bot, guild_id: int | None, key: str) -> dict[str, Any] |
         return None
     if is_embed_document(doc):
         # Embed docs carry no V2 blocks; shape and limits were fully
-        # validated at load (convert_embed_entry) -- pass them through.
+        # validated at load (convert_embed_entry): pass them through.
         return doc
     if validate_document(doc, draft=True):
         log.warning(

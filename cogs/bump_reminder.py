@@ -172,7 +172,7 @@ class BumpReminderCog(commands.Cog):
     async def _schedule_before_loop(self) -> None:
         await self.bot.wait_until_ready()
 
-    # -- Core Logic ----------------------------------------------------------
+    #: Core Logic ----------------------------------------------------------
 
     async def _check_pending_reminders(self, guild_id: int) -> None:
         await self.bot.wait_until_ready()
@@ -425,7 +425,7 @@ class BumpReminderCog(commands.Cog):
             log.error("Error in unlock task for %s: %s", guild_id, exc)
             await self.unlock_channel(guild_id)
 
-    # -- Actions -------------------------------------------------------------
+    #: Actions -------------------------------------------------------------
 
     async def lock_channel(self, guild_id: int) -> None:
         channel_id = await get_setting(self.bot.storage, guild_id, "bump.channel")
@@ -774,7 +774,7 @@ class BumpReminderCog(commands.Cog):
         )
         return view
 
-    # -- Listeners -----------------------------------------------------------
+    #: Listeners -----------------------------------------------------------
 
     async def _is_bump_bot(self, message: discord.Message) -> bool:
         """Check the author against the guild-configured bump bot ID.
@@ -837,7 +837,7 @@ class BumpReminderCog(commands.Cog):
             return
 
         # Cooldown guard: a /bump response inside the cooldown window is always
-        # an error ("wait X hours") -- a successful bump cannot happen earlier
+        # an error ("wait X hours"): a successful bump cannot happen earlier
         # than Disboard's enforced cooldown. This filters error responses while
         # letting any-language success messages through.
         cooldown = await get_setting(self.bot.storage, guild.id, "bump.cooldown")
@@ -884,7 +884,7 @@ class BumpReminderCog(commands.Cog):
             mention_user_ids=[user_id],
         )
 
-    # -- Commands ------------------------------------------------------------
+    #: Commands ------------------------------------------------------------
 
     @discord.slash_command(
         name="test_bump",

@@ -62,7 +62,7 @@ class PartnershipsCog(commands.Cog):
             elif age >= renewal + grace:
                 await self._expire(guild, partner_id, entry)
 
-    # -- helpers ---------------------------------------------------------------
+    #: helpers ---------------------------------------------------------------
 
     async def _channel(self, guild: discord.Guild):
         channel_id = await get_setting(self.bot.storage, guild.id, "partnerships.channel")
@@ -170,7 +170,7 @@ class PartnershipsCog(commands.Cog):
             log.warning("Partnership ad post failed in %s: %s", guild.id, exc)
             return None
 
-    # -- commands ------------------------------------------------------------------
+    #: commands ------------------------------------------------------------------
 
     @discord.slash_command(
         name="partnerships_add",

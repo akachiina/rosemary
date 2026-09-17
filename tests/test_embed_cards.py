@@ -6,7 +6,7 @@ validation (:mod:`rosemary.core.embed_convert`), render-time resolution
 (:func:`rosemary.core.cards.resolve_embed`), the payload indirection that
 makes both shapes interchangeable at send sites
 (:class:`rosemary.core.card_service.CardPayload`) and the fallback rule
-(an invalid embed document never breaks a send -- the caller's default wins).
+(an invalid embed document never breaks a send: the caller's default wins).
 """
 
 from __future__ import annotations

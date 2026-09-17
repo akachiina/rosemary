@@ -79,7 +79,7 @@ class BumpStore:
         doc[key] = data
         await self.storage.set_all(guild_id, doc)
 
-    # -- Reminder State ------------------------------------------------------
+    #: Reminder State ------------------------------------------------------
 
     async def get_reminder(self, guild_id: int) -> dict[str, Any]:
         doc = await self.storage.get(guild_id)
@@ -158,7 +158,7 @@ class BumpStore:
         state["week_start"] = start_time.isoformat()
         await self._set_reminder(guild_id, state)
 
-    # -- Leaderboard State ---------------------------------------------------
+    #: Leaderboard State ---------------------------------------------------
 
     async def get_leaderboard(self, guild_id: int) -> dict[str, int]:
         doc = await self.storage.get(guild_id)
@@ -181,7 +181,7 @@ class BumpStore:
         state["week_start"] = datetime.now(UTC).isoformat()
         await self._set_reminder(guild_id, state)
 
-    # -- Winner State --------------------------------------------------------
+    #: Winner State --------------------------------------------------------
 
     async def get_winner_data(self, guild_id: int) -> dict[str, Any]:
         doc = await self.storage.get(guild_id)

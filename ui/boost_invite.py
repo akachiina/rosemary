@@ -87,7 +87,7 @@ class BoostInviteView(discord.ui.DesignerView):
         self.decline_button = decline
         self.add_item(discord.ui.ActionRow(accept, decline))
 
-    # -- helpers ------------------------------------------------------------
+    #: helpers ------------------------------------------------------------
 
     async def _t(self, key: str, **variables) -> str:
         return await self.bot.translator.t(self.guild_id, key, **variables)
@@ -133,7 +133,7 @@ class BoostInviteView(discord.ui.DesignerView):
             card_key=description_key,
         )
 
-    # -- handlers -----------------------------------------------------------
+    #: handlers -----------------------------------------------------------
 
     async def _accept(self, interaction: discord.Interaction) -> None:
         invite = await self.store.get_invite(self.guild_id, self.invite_id)

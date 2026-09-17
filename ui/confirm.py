@@ -3,7 +3,7 @@
 Several features need the same flow (moderation actions, warning cleanup):
 ask a question with confirm/cancel buttons, run an async action, then show
 the outcome. The outcome reuses the question content plus the result, minus
-the button rows -- so the terminal state survives the rebuild in
+the button rows: so the terminal state survives the rebuild in
 :meth:`rerender`. Never rely on ``disable_all_items()`` before a rebuild:
 :meth:`prepare` clears and recreates every component, wiping the disabled
 flags.

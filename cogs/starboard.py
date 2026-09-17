@@ -4,8 +4,8 @@ Reactions with the theme star emoji are counted (with an optional self-star
 rule and bot filter); once the configured threshold is reached the message is
 published as a V2 card whose accent color climbs through ``star_tier_*``
 theme styles. Edits are debounced per message; deleting an original removes
-its post. Nothing here is customizable through /customize -- the card mirrors
-someone else's message -- but every knob lives in /settings.
+its post. Nothing here is customizable through /customize: the card mirrors
+someone else's message: but every knob lives in /settings.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ class StarboardCog(commands.Cog):
             "allow_bots": await get_setting(self.bot.storage, guild_id, "starboard.allow_bots"),
         }
 
-    # -- counting ------------------------------------------------------------
+    #: counting ------------------------------------------------------------
 
     @staticmethod
     async def _effective_stars(
@@ -69,7 +69,7 @@ class StarboardCog(commands.Cog):
             return others
         return len(users)
 
-    # -- rendering -----------------------------------------------------------
+    #: rendering -----------------------------------------------------------
 
     def _build_card(
         self,
@@ -180,7 +180,7 @@ class StarboardCog(commands.Cog):
         template = await author_footer_template(self.bot, guild_id)
         return author_footer_text(template, user_mention, timestamp)
 
-    # -- core update ---------------------------------------------------------
+    #: core update ---------------------------------------------------------
 
     async def _update_starboard(
         self, channel: discord.TextChannel, message: discord.Message, stars: int
@@ -240,7 +240,7 @@ class StarboardCog(commands.Cog):
         with contextlib.suppress(discord.NotFound, discord.Forbidden, discord.HTTPException):
             await board.get_partial_message(entry["post_id"]).delete()
 
-    # -- listeners -----------------------------------------------------------
+    #: listeners -----------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent) -> None:
@@ -302,7 +302,7 @@ class StarboardCog(commands.Cog):
         await self.store.remove(payload.guild_id, payload.message_id)
 
 
-# -- default builder -----------------------------------------------------------
+#: default builder -----------------------------------------------------------
 
 #: Star counts where a higher ``star_tier_*`` style kicks in (theme-defined).
 #: Only used when the theme has no continuous ``star_ramp`` (legacy fallback).
@@ -344,7 +344,7 @@ async def default_starboard_document(bot, guild_id: int, **variables) -> dict:
 
     The tiered container wraps: the tiered title beside the author's avatar
     thumbnail, the attachment gallery (skipped when ``{image_url}`` resolves
-    empty -- no image in the starred message), a divider and the standard
+    empty: no image in the starred message), a divider and the standard
     author footer (``card.author_footer.text``). Placeholders stay literal:
     this is a template.
     """

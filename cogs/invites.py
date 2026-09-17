@@ -3,7 +3,7 @@
 Attributes each join to the invite code that brought the member in (by
 diffing invite ``uses``), keeps per-inviter counters (regular/bonus/fake/left)
 and serves stats, ranking, personal links and admin tooling. Joins that happen
-while the bot is away cannot be attributed -- members who joined before
+while the bot is away cannot be attributed: members who joined before
 tracking started stay ``unknown``.
 
 Note: this file intentionally does NOT import ``from __future__ import
@@ -65,7 +65,7 @@ class InvitesCog(commands.Cog):
         for guild in self.bot.guilds:
             await self._prime_cache(guild.id)
 
-    # -- cache ---------------------------------------------------------------
+    #: cache ---------------------------------------------------------------
 
     async def _fetch_snapshots(self, guild: discord.Guild) -> list[InviteSnapshot] | None:
         try:
@@ -84,7 +84,7 @@ class InvitesCog(commands.Cog):
             self._cache[guild_id] = {s.code: s.uses for s in snapshots}
             self._cache_ts[guild_id] = time.monotonic()
 
-    # -- attribution -----------------------------------------------------------
+    #: attribution -----------------------------------------------------------
 
     @staticmethod
     def _account_age_days(member: discord.Member) -> float:
@@ -141,7 +141,7 @@ class InvitesCog(commands.Cog):
         )
         return inviter_id, code, status
 
-    # -- listeners ---------------------------------------------------------------
+    #: listeners ---------------------------------------------------------------
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
@@ -173,7 +173,7 @@ class InvitesCog(commands.Cog):
                 return
             inviter_id, code, status = await self._attribute(member, snapshots)
             # ``_attribute`` diffs the pre-join cache against ``snapshots``
-            # (which already include this join) -- only NOW may the cache be
+            # (which already include this join): only NOW may the cache be
             # refreshed, or every future diff would be zero and every join
             # would attribute to ``unknown``.
             if snapshots is not None:
@@ -257,7 +257,7 @@ class InvitesCog(commands.Cog):
             mention_user_ids=[member.id, *( [inviter_id] if inviter_id else [])],
         )
 
-    # -- shared card builder -----------------------------------------------------
+    #: shared card builder -----------------------------------------------------
 
     async def _rank_of(self, guild_id: int, user_id: int) -> int:
         for position, (uid, _) in enumerate(await self.store.leaderboard(guild_id), start=1):
@@ -265,7 +265,7 @@ class InvitesCog(commands.Cog):
                 return position
         return 0
 
-    # -- public commands -----------------------------------------------------------
+    #: public commands -----------------------------------------------------------
 
     @discord.slash_command(
         name="invites",
@@ -426,7 +426,7 @@ class InvitesCog(commands.Cog):
         Override authors receive ``title``/``body`` plus the card-specific
         ``variables`` (see ``card.<key>.placeholders`` in the catalogs).
         Routes through :func:`render_card_message` so ``debug.card_paths``
-        traces these ephemeral cards too -- they are theme-customizable, so
+        traces these ephemeral cards too: they are theme-customizable, so
         admins need their paths."""
         from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
@@ -695,7 +695,7 @@ class InvitesCog(commands.Cog):
         )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    # -- admin commands ----------------------------------------------------------
+    #: admin commands ----------------------------------------------------------
 
     @discord.slash_command(
         name="invites_bonus",

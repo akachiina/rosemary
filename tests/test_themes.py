@@ -25,7 +25,7 @@ from rosemary.core.themes import (
 from rosemary.core.v2_convert import ThemeError, convert_card_entry, convert_raw_document
 from rosemary.ui.theme import load_theme
 
-# -- v2_convert ---------------------------------------------------------------
+#: v2_convert ---------------------------------------------------------------
 
 
 def test_convert_full_document_preserves_order_and_mixing():
@@ -125,7 +125,7 @@ def test_convert_string_shortcut_and_validation():
         convert_card_entry("bad.card", [{"type": 99}])
 
 
-# -- ThemeStore ---------------------------------------------------------------
+#: ThemeStore ---------------------------------------------------------------
 
 
 @pytest.fixture
@@ -205,7 +205,7 @@ def test_theme_store_binds_once(tmp_path):
     assert theme_store(bot) is theme_store(bot)  # bot-owned store is reused
 
 
-# -- resolution ---------------------------------------------------------------
+#: resolution ---------------------------------------------------------------
 
 
 class ThemeBot:

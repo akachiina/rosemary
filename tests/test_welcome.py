@@ -80,7 +80,7 @@ def texts(view) -> str:
     return "\n".join(found)
 
 
-# -- join ----------------------------------------------------------------------
+#: join ----------------------------------------------------------------------
 
 
 @pytest.mark.parametrize("welcome", [True])
@@ -141,7 +141,7 @@ async def test_join_uses_plain_override(tmp_path):
     assert "BEM-VINDA Ana!" in texts(kwargs["view"])
 
 
-# -- leave / ban ---------------------------------------------------------------
+#: leave / ban ---------------------------------------------------------------
 
 
 async def test_leave_sends_to_leave_channel(tmp_path):
@@ -170,7 +170,7 @@ async def test_ban_suppresses_following_leave(tmp_path):
     assert leave_channel.send.await_count == 0
 
 
-# -- raid protection ------------------------------------------------------------
+#: raid protection ------------------------------------------------------------
 
 
 async def test_raid_protection_delays_welcomes(tmp_path, monkeypatch):

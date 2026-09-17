@@ -72,7 +72,7 @@ class SettingsMenuView(MenuView):
         self.flash_color: str | None = None
         self._register_handlers()
 
-    # -- handler registration ----------------------------------------------
+    #: handler registration ----------------------------------------------
 
     def _register_handlers(self) -> None:
         self.register("settings_close", self._close)
@@ -104,8 +104,19 @@ class SettingsMenuView(MenuView):
         self.register("settings_test", self._test_action)
         self.register("settings_test_open", self._open_tests)
         self.register("settings_test_close", self._close_tests)
+        self.register("settings_colors_manage", self._open_colors)
 
-    # -- handlers ----------------------------------------------------------
+    #: handlers ----------------------------------------------------------
+
+    async def _open_colors(self, interaction: discord.Interaction) -> None:
+        """Swap into the color panel manager (category's management screen)."""
+        from rosemary.ui.colors_menu import ColorsManagerView
+
+        manager = ColorsManagerView(
+            self.bot, self.guild_id, self.author_id or interaction.user.id
+        )
+        await interaction.response.send_message(view=manager, ephemeral=True)
+        self.stop()
 
     async def _close(self, interaction: discord.Interaction) -> None:
         self.disable_all_items()
@@ -164,7 +175,7 @@ class SettingsMenuView(MenuView):
             return
         await self._apply_value(interaction, key, values[0])
 
-    # -- CHANNEL_LIST management screens ------------------------------------
+    #: CHANNEL_LIST management screens ------------------------------------
 
     async def _list_value(self, key: str) -> tuple[int, ...]:
         return await get_setting(self.bot.storage, self.guild_id, key)
@@ -338,7 +349,7 @@ class SettingsMenuView(MenuView):
 
         return submit
 
-    # -- test actions ------------------------------------------------------
+    #: test actions ------------------------------------------------------
 
     async def _test_action(self, interaction: discord.Interaction) -> None:
         """Run a Bump test action from the settings BUMP category."""
@@ -413,7 +424,7 @@ class SettingsMenuView(MenuView):
         self.flash_color = "success" if key != "error" else "danger"
         await self.rerender(interaction)
 
-    # -- rendering ---------------------------------------------------------
+    #: rendering ---------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
@@ -521,6 +532,15 @@ class SettingsMenuView(MenuView):
                 style=discord.ButtonStyle.danger,
             )
         ]
+        if self.category is SettingCategory.COLORS:
+            nav.append(
+                self.make_button(
+                    custom_id="settings_colors_manage",
+                    label=await t(self.guild_id, "settings.colors.manage"),
+                    emoji=theme.emojis.get("palette", ""),
+                    style=discord.ButtonStyle.primary,
+                )
+            )
         if self.page > 0:
             nav.append(
                 self.make_button(

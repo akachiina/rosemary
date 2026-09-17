@@ -51,7 +51,7 @@ class _Bot:
         self.translator = _Translator()
 
 
-# -- {@name} syntax ----------------------------------------------------------
+#: {@name} syntax ----------------------------------------------------------
 
 
 def test_mention_placeholder_resolves_and_collects_user():
@@ -142,7 +142,7 @@ def test_resolve_mention_fields_noop_without_mentions():
     assert resolve_mention_fields(doc, {"user": "<@5>"}) is doc
 
 
-# -- pings toggle ------------------------------------------------------------
+#: pings toggle ------------------------------------------------------------
 
 
 def test_pings_default_follows_spec():
@@ -191,7 +191,7 @@ async def test_pings_theme_unset_keeps_spec_default(tmp_path):
     assert theme_pings(bot, 1, "bump.no_bumps") is False
 
 
-# -- allowed_for_* entry points ----------------------------------------------
+#: allowed_for_* entry points ----------------------------------------------
 
 
 async def test_allowed_for_ids_gated_by_toggle(tmp_path):
@@ -254,7 +254,7 @@ async def test_allowed_for_document_gated_by_toggle(tmp_path):
     assert allowed.to_dict() == {"parse": []}
 
 
-# -- render_card_message -----------------------------------------------------
+#: render_card_message -----------------------------------------------------
 
 
 async def test_render_card_message_none_without_document(tmp_path):

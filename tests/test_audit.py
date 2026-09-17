@@ -72,7 +72,7 @@ def member(mid=5, name="Ana", nick=None):
     return m
 
 
-# -- card inventory and contracts ----------------------------------------------
+#: card inventory and contracts ----------------------------------------------
 
 
 def test_audit_cards_registered_with_variables():
@@ -116,7 +116,7 @@ async def test_default_builders_accept_send_site_variables():
     """Regression: builders crashed on send-site kwargs (closed signatures).
 
     When a builder rejects the contract variables, ``default_document`` logs a
-    warning and falls through -- live sends then showed raw catalog keys.
+    warning and falls through: live sends then showed raw catalog keys.
     Every audit builder must render a real document WITH the variables the
     cog actually passes.
     """
@@ -194,7 +194,7 @@ async def test_audit_fallback_uses_card_prefixed_catalog_keys(tmp_path, caplog):
     for item in view.children:
         walk(item)
     joined = " ".join(texts)
-    # The catalog keys are ``card.audit.*`` -- the fallback must find them.
+    # The catalog keys are ``card.audit.*``: the fallback must find them.
     assert "card.audit.message_delete.title" in joined
     assert "card.audit.message_delete.body" in joined
     assert not any("default builder failed" in r.message for r in caplog.records)
@@ -227,7 +227,7 @@ def test_fence_wraps_and_neutralizes_backticks():
     assert "```" not in _fence("has ``` inside")[3:-3]
 
 
-# -- gating and send path -------------------------------------------------------
+#: gating and send path -------------------------------------------------------
 
 
 async def test_disabled_master_setting_sends_nothing(tmp_path):
@@ -451,7 +451,7 @@ async def test_bot_member_changes_are_ignored(tmp_path):
     assert audit_channel.send.await_count == 0
 
 
-# -- bulk purge coalescing -------------------------------------------------------
+#: bulk purge coalescing -------------------------------------------------------
 
 
 async def test_bulk_delete_coalesces_into_one_card_and_file(tmp_path):

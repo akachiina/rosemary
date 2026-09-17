@@ -97,7 +97,7 @@ class _BaseMenu(MenuView):
         self.flash_color: str = "brand"
         self._register_handlers()
 
-    # -- generic handlers ---------------------------------------------------
+    #: generic handlers ---------------------------------------------------
 
     def _register_handlers(self) -> None:
         self.register("boost_close", self._close)
@@ -134,7 +134,7 @@ class _BaseMenu(MenuView):
     def _total_pages(self) -> int:
         raise NotImplementedError
 
-    # -- small helpers ------------------------------------------------------
+    #: small helpers ------------------------------------------------------
 
     async def _ack(self, interaction: discord.Interaction) -> None:
         """Acknowledge the component interaction immediately.
@@ -256,7 +256,7 @@ class _BaseMenu(MenuView):
         )
         await dm.send_preview(self.bot, member, self.guild_id, role, data)
 
-    # -- register owner selection -------------------------------------------
+    #: register owner selection -------------------------------------------
 
     async def _pick_register_owner(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
@@ -383,7 +383,7 @@ class _BaseMenu(MenuView):
         """Return a small icon thumbnail for the role, if it has a custom icon.
 
         Thumbnails may only be used as a ``Section`` accessory, so callers must
-        pass the result to ``Section(..., accessory=thumbnail)`` -- never add it
+        pass the result to ``Section(..., accessory=thumbnail)``: never add it
         as a bare container/section item.
         """
         if role.icon is not None:
@@ -458,7 +458,7 @@ class BoostMenuView(_BaseMenu):
     def _total_pages(self) -> int:
         return 1
 
-    # -- navigation ---------------------------------------------------------
+    #: navigation ---------------------------------------------------------
 
     async def _open_my_roles(self, interaction: discord.Interaction) -> None:
         self.screen = _Screen.MY_ROLES
@@ -514,7 +514,7 @@ class BoostMenuView(_BaseMenu):
         self.role_id = int(_suffix(interaction.custom_id, "boost_leave_confirm"))
         await self.rerender(interaction)
 
-    # -- leave ---------------------------------------------------------------
+    #: leave ---------------------------------------------------------------
 
     async def _pick_leave(self, interaction: discord.Interaction) -> None:
         role = await self._resolve_role(interaction)
@@ -574,7 +574,7 @@ class BoostMenuView(_BaseMenu):
         await self._flash("boost.success.left_role", role=f"@{role.name}")
         await self.rerender(interaction)
 
-    # -- management ---------------------------------------------------------
+    #: management ---------------------------------------------------------
 
     async def _open_rename(self, interaction: discord.Interaction) -> None:
         self.role_id = int(_suffix(interaction.custom_id, "boost_rename"))
@@ -1132,7 +1132,7 @@ class BoostMenuView(_BaseMenu):
         await self._flash("boost.success.ownership_transferred", role=f"@{role.name}")
         await self.rerender(interaction)
 
-    # -- rendering ----------------------------------------------------------
+    #: rendering ----------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
@@ -1975,7 +1975,7 @@ class AdminBoostMenuView(_BaseMenu):
         await self._flash("boost.success.role_removed")
         await self.rerender(interaction)
 
-    # -- rendering ----------------------------------------------------------
+    #: rendering ----------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t

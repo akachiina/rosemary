@@ -269,7 +269,7 @@ class ModerationCog(commands.Cog):
         self.bot = bot
         self.warnings = WarningsStore(bot.storage)
 
-    # -- helpers -----------------------------------------------------------
+    #: helpers -----------------------------------------------------------
 
     def _response_view(self, title: str, *, color: str = "info") -> discord.ui.DesignerView:
         view = discord.ui.DesignerView(store=False)
@@ -507,7 +507,7 @@ class ModerationCog(commands.Cog):
             )
         return await t(guild_id, f"{action}.success", member=target.mention)
 
-    # -- commands ----------------------------------------------------------
+    #: commands ----------------------------------------------------------
 
     @discord.slash_command(
         name="ban",
@@ -710,7 +710,7 @@ class ModerationCog(commands.Cog):
             ephemeral=True,
         )
 
-    # -- prefix commands ---------------------------------------------------
+    #: prefix commands ---------------------------------------------------
 
     @commands.command(name="ban")
     async def ban_prefix(

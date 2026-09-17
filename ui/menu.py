@@ -47,7 +47,7 @@ class MenuView(discord.ui.DesignerView):
         self._handlers: dict[str, Handler] = {}
         self._prepared = False
 
-    # -- handler registry ---------------------------------------------------
+    #: handler registry ---------------------------------------------------
 
     def register(self, custom_id: str, handler: Handler) -> Handler:
         """Register an async handler for a component ``custom_id``.
@@ -73,7 +73,7 @@ class MenuView(discord.ui.DesignerView):
             return None
         return self._handlers[max(matches, key=len)]
 
-    # -- item factories -----------------------------------------------------
+    #: item factories -----------------------------------------------------
 
     async def _ack(
         self,
@@ -83,7 +83,7 @@ class MenuView(discord.ui.DesignerView):
     ) -> None:
         """Defer once; safe to call even when the interaction is already ACKed.
 
-        Every handler starts with this -- Discord shows "the application did
+        Every handler starts with this: Discord shows "the application did
         not respond" past 3s without an ACK. ``suppress_errors=True`` is for
         modal submits, where a failed defer must not mask the follow-up
         ``rerender`` (which handles HTTP failures itself).
@@ -224,7 +224,7 @@ class MenuView(discord.ui.DesignerView):
             disabled=disabled,
         )
 
-    # -- lifecycle ----------------------------------------------------------
+    #: lifecycle ----------------------------------------------------------
 
     async def prepare(self) -> None:
         """Rebuild the view's children for the current state.
