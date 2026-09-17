@@ -94,8 +94,14 @@ def chunk_containers(
                 {
                     "type": "row",
                     "buttons": [
-                        {"type": "button", "label": str(number), "style": "secondary"}
-                        for number, _entry in chunk[start : start + 5]
+                        {
+                            "type": "button",
+                            "label": str(number),
+                            "style": "secondary",
+                            # custom_id the ColorPickerView dispatcher owns.
+                            "id": f"{_PICK_ID}:{entry.id}",
+                        }
+                        for number, entry in chunk[start : start + 5]
                     ],
                 }
             )

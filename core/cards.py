@@ -925,11 +925,28 @@ def _build_row(
             continue
         if button.get("action") is not None:
             buttons.append(_build_action_button(button, mapping, card_key))
-        else:
+        elif button.get("url") is not None:
             buttons.append(
                 _build_link_button(button.get("label", ""), button.get("url", ""), mapping)
             )
+        else:
+            # Url-less, action-less button: a code-wired picker (color panel).
+            # Its custom_id matches the picker's dispatcher; code outside the
+            # document owns the callback.
+            buttons.append(_build_picker_button(button, mapping))
     return ActionRow(*buttons)
+
+
+def _build_picker_button(button: dict[str, Any], mapping: dict[str, Any]) -> discord.ui.Button:
+    """Interactive button owned by code, not by the document (color panel)."""
+    from rosemary.core.card_actions import button_style
+
+    return discord.ui.Button(
+        style=button_style(button.get("style")),
+        label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "•",
+        custom_id=str(button.get("id", "")) or None,
+        emoji=_fill(button.get("emoji", ""), mapping) or None,
+    )
 
 
 def _build_section(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> Section:

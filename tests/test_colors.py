@@ -195,6 +195,24 @@ async def test_chunk_containers_files_and_rows(tmp_path):
         for button in child["buttons"]
     ]
     assert all_buttons == list(range(1, 13))
+    # Every picker button carries its dispatcher custom_id: a url-less,
+    # id-less button would render as a link button without a URL and 400 the
+    # whole panel send (Discord 50035 "A url is required").
+    for document in documents:
+        for child in document["children"]:
+            if child["type"] != "row":
+                continue
+            for button in child["buttons"]:
+                assert button["id"].startswith("colors_pick:")
+    expected_ids = {f"colors_pick:{entry.id}" for entry in entries}
+    carried = {
+        button["id"]
+        for document in documents
+        for child in document["children"]
+        if child["type"] == "row"
+        for button in child["buttons"]
+    }
+    assert carried == expected_ids
 
 
 async def test_picker_view_rows_carry_ids_and_handlers(tmp_path):
