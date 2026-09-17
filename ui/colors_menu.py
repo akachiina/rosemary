@@ -194,14 +194,15 @@ class ColorsManagerView(MenuView):
                     style=discord.ButtonStyle.danger,
                 ),
             )
+            # Section accessories accept a single button or thumbnail only
+            # (Discord 50035 otherwise), so each entry is a text line plus a
+            # top-level ActionRow, not a Section with a row accessory.
             items.append(
-                discord.ui.Section(
-                    TextDisplay(
-                        f"**{entry_number(position)}** {entry.name} · `{hex_value}`{role_part}"
-                    ),
-                    accessory=row,
+                TextDisplay(
+                    f"**{entry_number(position)}** {entry.name} · `{hex_value}`{role_part}"
                 )
             )
+            items.append(row)
         items.append(divider())
 
         nav = [

@@ -406,6 +406,12 @@ async def test_manager_back_button_returns_to_settings(tmp_path):
     ]
     assert "colors_mgr_exit" in ids
     assert "colors_mgr_close" not in ids
+    # Section accessories accept a single button or thumbnail only; a row
+    # there 400s the whole edit (Discord 50035).
+    for child in manager.children:
+        if type(child).__name__ == "Section":
+            accessory = getattr(child, "accessory", None)
+            assert not isinstance(accessory, discord.ui.ActionRow)
 
     interaction = MagicMock()
     interaction.response.is_done = MagicMock(return_value=False)
