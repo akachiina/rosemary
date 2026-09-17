@@ -56,9 +56,8 @@ html, body { margin: 0; padding: 0; background: transparent; }
   font-weight: 600;
   color: #dbdee1;
   white-space: nowrap;
-  /* Clip long names at the column edge instead of bleeding into the
-     neighbor column (WeasyPrint lacks text-overflow). */
-  overflow: hidden;
+  /* No overflow rule: the renderer grows the page until every label fits
+     (render_panel measures the PDF and re-renders wider on clipping). */
 }
 .dot {
   display: inline-block;
@@ -162,6 +161,39 @@ def _rasterize(pdf: bytes) -> bytes | None:
         return None
 
 
+def _measure_and_fit(build_page) -> bytes | None:
+    """Render with a growing page until no ``.item`` text clips.
+
+    WeasyPrint truncates ``overflow: hidden`` text silently, so the rendered
+    PDF is checked word by word: any word ending within 2pt of the page's
+    right edge means a label was cut and the next attempt renders 30% wider.
+    After four attempts the last render ships anyway (a slightly tight image
+    beats no image).
+    """
+    from weasyprint import HTML
+
+    width = 560 * 0.75
+    pdf = None
+    for _attempt in range(4):
+        try:
+            pdf = HTML(string=build_page(width)).write_pdf()
+        except Exception:
+            log.warning("color panel HTML render failed", exc_info=True)
+            return None
+        try:
+            import pymupdf
+
+            doc = pymupdf.open(stream=pdf, filetype="pdf")
+            words = doc[0].get_text("words")
+        except Exception:
+            log.warning("color panel measurement failed", exc_info=True)
+            return pdf
+        if not any(word[2] >= width - 2 for word in words):
+            break
+        width *= 1.3
+    return pdf
+
+
 def render_panel(
     colors: list[PanelColor],
     template: str | None = None,
@@ -189,17 +221,19 @@ def render_panel(
                 hex=_css_color(entry.color),
             )
         )
-    # Page size only anchors the PDF page; the PNG is cropped to content.
-    width = 560
-    height = max(120, 56 * len(colors) + 32)
-    page = base_template.replace("__ITEMS__", "".join(items)).replace(
-        "__PANEL_W__", str(width)
-    ).replace("__PANEL_H__", str(height))
-    try:
-        from weasyprint import HTML
+    joined = "".join(items)
+    # CSS px must reach WeasyPrint as PDF points (0.75pt/px at 96dpi): px
+    # values shrink the page to 75% and the columns overflow their edge.
+    height_px = max(120, 56 * len(colors) + 32)
 
-        pdf = HTML(string=page).write_pdf()
-    except Exception:
-        log.warning("color panel HTML render failed", exc_info=True)
+    def build_page(width_pt: float) -> str:
+        return (
+            base_template.replace("__ITEMS__", joined)
+            .replace("__PANEL_W__", str(width_pt))
+            .replace("__PANEL_H__", str(height_px * 0.75))
+        )
+
+    pdf = _measure_and_fit(build_page)
+    if pdf is None:
         return None
     return _rasterize(pdf)

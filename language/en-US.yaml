@@ -775,18 +775,26 @@ boost:
   error_disabled: '{error} The boost roles system is disabled in this server.'
 colors:
   defaults:
-    rose: Pastel Rose
-    salmon: Pastel Salmon
-    peach: Pastel Peach
-    butter: Pastel Butter
-    mint: Pastel Mint
-    sage: Pastel Sage
-    sky: Pastel Sky
-    lavender: Pastel Lavender
-    lilac: Pastel Lilac
-    periwinkle: Pastel Periwinkle
-    cotton_candy: Pastel Cotton Candy
-    sand: Pastel Sand
+    rose_light: Light Rose
+    rose_dark: Dark Rose
+    peach_light: Light Peach
+    peach_dark: Dark Peach
+    butter_light: Light Butter
+    butter_dark: Dark Butter
+    mint_light: Light Mint
+    mint_dark: Dark Mint
+    sky_light: Light Sky
+    sky_dark: Dark Sky
+    lavender_light: Light Lavender
+    lavender_dark: Dark Lavender
+    periwinkle_light: Light Periwinkle
+    periwinkle_dark: Dark Periwinkle
+    cotton_light: Light Cotton Candy
+    cotton_dark: Dark Cotton Candy
+    sand_light: Light Sand
+    sand_dark: Dark Sand
+    sage_light: Light Sage
+    sage_dark: Dark Sage
   error_disabled: '{error} The color panel is disabled in this server.'
   error_no_panel: '{warning} Set the panel channel in /settings before posting it.'
   error_no_perms: '{error} I need the **Manage Roles** permission for that.'

@@ -41,21 +41,30 @@ _UNSET = object()
 #: the select picker shares the same 25-option limit.
 MAX_COLORS = 25
 
-#: First-run pastel seed: (slug, hex). Names resolve from
+#: First-run pastel seed: (slug, hex). Twenty colors alternating a light
+#: and a darker pastel per hue (the Color-Chan look). Names resolve from
 #: ``colors.defaults.<slug>`` so the guild language decides the label.
 PASTEL_SEEDS: tuple[tuple[str, str], ...] = (
-    ("rose", "#FFB7C5"),
-    ("salmon", "#FFB3A7"),
-    ("peach", "#FFDAB9"),
-    ("butter", "#FDFD96"),
-    ("mint", "#B5EAD7"),
-    ("sage", "#C1E1C1"),
-    ("sky", "#AEC6CF"),
-    ("lavender", "#C3B1E1"),
-    ("lilac", "#C8A2C8"),
-    ("periwinkle", "#CCCCFF"),
-    ("cotton_candy", "#F7C9DE"),
-    ("sand", "#F5E6D3"),
+    ("rose_light", "#FFD6E0"),
+    ("rose_dark", "#E8A0B4"),
+    ("peach_light", "#FFE4CE"),
+    ("peach_dark", "#F0B48A"),
+    ("butter_light", "#FFF2AE"),
+    ("butter_dark", "#E8D27C"),
+    ("mint_light", "#D5F5DF"),
+    ("mint_dark", "#9FD6AE"),
+    ("sky_light", "#D8EDF9"),
+    ("sky_dark", "#A3CBE3"),
+    ("lavender_light", "#E6D9F7"),
+    ("lavender_dark", "#C2ABE3"),
+    ("periwinkle_light", "#DFE5FA"),
+    ("periwinkle_dark", "#ADB9E6"),
+    ("cotton_light", "#FBD9E9"),
+    ("cotton_dark", "#E7A6C4"),
+    ("sand_light", "#F3E6CF"),
+    ("sand_dark", "#D8BC94"),
+    ("sage_light", "#DEEDDE"),
+    ("sage_dark", "#A5C6A5"),
 )
 
 

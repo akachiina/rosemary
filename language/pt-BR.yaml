@@ -776,18 +776,26 @@ boost:
   error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
 colors:
   defaults:
-    rose: Rosa Pastel
-    salmon: Salmão Pastel
-    peach: Pêssego Pastel
-    butter: Manteiga Pastel
-    mint: Menta Pastel
-    sage: Sálvia Pastel
-    sky: Céu Pastel
-    lavender: Lavanda Pastel
-    lilac: Lilás Pastel
-    periwinkle: Azul-Marinha Pastel
-    cotton_candy: Algodão-Doce Pastel
-    sand: Areia Pastel
+    rose_light: Rosa Claro
+    rose_dark: Rosa Escuro
+    peach_light: Pêssego Claro
+    peach_dark: Pêssego Escuro
+    butter_light: Manteiga Claro
+    butter_dark: Manteiga Escuro
+    mint_light: Menta Claro
+    mint_dark: Menta Escuro
+    sky_light: Céu Claro
+    sky_dark: Céu Escuro
+    lavender_light: Lavanda Claro
+    lavender_dark: Lavanda Escuro
+    periwinkle_light: Azul-Marinha Claro
+    periwinkle_dark: Azul-Marinha Escuro
+    cotton_light: Algodão-Doce Claro
+    cotton_dark: Algodão-Doce Escuro
+    sand_light: Areia Claro
+    sand_dark: Areia Escuro
+    sage_light: Sálvia Claro
+    sage_dark: Sálvia Escuro
   error_disabled: '{error} O painel de cores está desativado neste servidor.'
   error_no_panel: '{warning} Configure o canal do painel em /settings antes de publicá-lo.'
   error_no_perms: '{error} Preciso da permissão **Gerenciar Cargos** para isso.'

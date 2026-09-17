@@ -56,14 +56,18 @@ def chunk_containers(
     guild_id: int,
     entries: list[ColorEntry],
     per_container: int,
-) -> tuple[list[discord.File], list[dict]]:
-    """Files + container documents for the panel's chunks.
+) -> tuple[list[discord.File], list[dict], list[dict]]:
+    """Files, chunk container documents and picker row documents.
 
     One image per chunk (rendered with the theme's ``color_panel`` HTML
     templates, live role colors applied); a chunk whose render fails (no
     WeasyPrint/Pango, template error) contributes no gallery - the panel
     still posts, imageless. Colors without an attached role render with
     their stored hex but cannot be picked.
+
+    Picker rows are TOP-LEVEL documents, deliberately outside the chunk
+    containers: buttons belong to the message, not to the color card (the
+    Color-Chan layout the user asked for).
     """
     theme = theme_for(bot, guild_id)
     templates = getattr(theme, "color_panel", {}) or {}
@@ -77,6 +81,7 @@ def chunk_containers(
     )
     files: list[discord.File] = []
     documents: list[dict] = []
+    row_documents: list[dict] = []
     for index, chunk in enumerate(chunks_of(entries, per_container), start=1):
         rows = [
             PanelColor(number, entry.name, resolve_color(live, entry))
@@ -89,24 +94,27 @@ def chunk_containers(
         children: list[dict] = []
         if png is not None:
             children.append({"type": "gallery", "urls": [f"attachment://{filename}"]})
-        for start in range(0, len(chunk), 5):
-            children.append(
-                {
-                    "type": "row",
-                    "buttons": [
-                        {
-                            "type": "button",
-                            "label": str(number),
-                            "style": "secondary",
-                            # custom_id the ColorPickerView dispatcher owns.
-                            "id": f"{_PICK_ID}:{entry.id}",
-                        }
-                        for number, entry in chunk[start : start + 5]
-                    ],
-                }
-            )
         documents.append({"type": "container", "color": "brand", "children": children})
-    return files, documents
+    # Numbered picker buttons as separate top-level rows (5 per row).
+    for start in range(0, len(entries), 5):
+        row_documents.append(
+            {
+                "type": "row",
+                "buttons": [
+                    {
+                        "type": "button",
+                        "label": str(position),
+                        "style": "secondary",
+                        # custom_id the ColorPickerView dispatcher owns.
+                        "id": f"{_PICK_ID}:{entry.id}",
+                    }
+                    for position, entry in enumerate(
+                        entries[start : start + 5], start=start + 1
+                    )
+                ],
+            }
+        )
+    return files, documents, row_documents
 
 
 class ColorPickerView(MenuView):

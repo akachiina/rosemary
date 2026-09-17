@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+from dataclasses import replace
 
 import discord
 from discord.ext import commands
@@ -114,6 +115,55 @@ class ColorsCog(commands.Cog):
             for slug, _hex in PASTEL_SEEDS
         }
 
+    async def _ensure_seed_roles(
+        self, guild: discord.Guild, entries: list
+    ) -> list:
+        """Create a Discord role for every seed entry missing one.
+
+        The bot owns seeding, so the admin never hand-attaches roles for the
+        defaults: each entry gets a role named after the color with that hex,
+        positioned below the bot's top role. Failures (missing permission,
+        role cap) keep the entry role-less; the panel shows it as detached
+        and a later manager save can retry.
+        """
+        if not self._can_manage_roles(guild):
+            log.warning(
+                "color seed skipped in %s: missing Manage Roles", guild.id
+            )
+            return entries
+        created: dict[str, int] = {}
+        for entry in entries:
+            if entry.role_id is not None:
+                continue
+            if guild.get_role(entry.role_id) if entry.role_id else False:
+                continue
+            try:
+                role = await guild.create_role(
+                    name=entry.name,
+                    colour=discord.Colour(
+                        int(entry.color.lstrip("#"), 16)
+                    ),
+                    reason="Color panel seed",
+                )
+                created[entry.id] = role.id
+            except discord.HTTPException as exc:
+                log.warning(
+                    "color seed role %r failed in %s: %s",
+                    entry.name,
+                    guild.id,
+                    exc,
+                )
+        if not created:
+            return entries
+        updated = [
+            replace(entry, role_id=created[entry.id])
+            if entry.id in created
+            else entry
+            for entry in entries
+        ]
+        await self.store.set_colors(guild.id, updated)
+        return updated
+
     # panel ====================
 
     async def build_panel_view(self, guild_id: int, entries=None):
@@ -126,7 +176,6 @@ class ColorsCog(commands.Cog):
         """
         from rosemary.core.cards import build_items
         from rosemary.core.themes import theme_for
-        from rosemary.ui.colors_panel import chunks_of
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
         if entries is None:
@@ -142,7 +191,9 @@ class ColorsCog(commands.Cog):
                 TextDisplay(await t(guild_id, "colors.panel.text", count=len(entries))),
             )
         )
-        files, documents = chunk_containers(self.bot, guild_id, entries, per)
+        files, documents, row_docs = chunk_containers(
+            self.bot, guild_id, entries, per
+        )
         for doc in documents:
             try:
                 for item in build_items(theme_for(self.bot, guild_id), {"blocks": [doc]}):
@@ -154,9 +205,16 @@ class ColorsCog(commands.Cog):
         if mode == "select":
             view.add_item(await picker.select_row())
         else:
-            for chunk in chunks_of(entries, per):
-                for row in picker.rows_for([entry for _n, entry in chunk]):
-                    view.add_item(row)
+            # Picker rows are top-level documents (outside every container):
+            # buttons belong to the message, not to the color card.
+            for row_doc in row_docs:
+                try:
+                    for item in build_items(
+                        theme_for(self.bot, guild_id), {"blocks": [row_doc]}
+                    ):
+                        view.add_item(item)
+                except Exception as exc:
+                    log.warning("color panel row skipped in %s: %s", guild_id, exc)
         return CardPayload(view=view, files=files), picker
 
     async def _panel_payload(self, guild_id: int, *, trace: bool = False):
@@ -187,12 +245,11 @@ class ColorsCog(commands.Cog):
             if payload is not None:
                 # V2 themed frame: splice chunks + picker onto it.
                 entries = await self.store.list_colors(guild_id)
-                files, documents = chunk_containers(
+                files, documents, row_docs = chunk_containers(
                     self.bot, guild_id, entries, await self.per_container(guild_id)
                 )
                 from rosemary.core.cards import build_items
                 from rosemary.core.themes import theme_for
-                from rosemary.ui.colors_panel import chunks_of
 
                 for doc in documents:
                     try:
@@ -207,9 +264,16 @@ class ColorsCog(commands.Cog):
                 if mode == "select":
                     payload.view.add_item(await picker.select_row())
                 else:
-                    for chunk in chunks_of(entries, await self.per_container(guild_id)):
-                        for row in picker.rows_for([entry for _n, entry in chunk]):
-                            payload.view.add_item(row)
+                    for row_doc in row_docs:
+                        try:
+                            for item in build_items(
+                                theme_for(self.bot, guild_id), {"blocks": [row_doc]}
+                            ):
+                                payload.view.add_item(item)
+                        except Exception as exc:
+                            log.warning(
+                                "color panel row skipped in %s: %s", guild_id, exc
+                            )
                 payload = CardPayload(view=payload.view, files=files)
                 return payload
         return await self.build_panel_view(guild_id)
@@ -264,8 +328,14 @@ class ColorsCog(commands.Cog):
         await self._post_panel(guild, channel, replace_id=panel_id if has_files else None)
 
     async def seed_if_needed(self, guild_id: int) -> list:
-        """First manager open creates the pastel defaults (translated)."""
-        return await self.store.seed_pastels(guild_id, await self._seed_names(guild_id))
+        """First open seeds 20 pastels AND creates their Discord roles."""
+        entries = await self.store.seed_pastels(
+            guild_id, await self._seed_names(guild_id)
+        )
+        guild = self.bot.get_guild(guild_id)
+        if guild is not None and any(e.role_id is None for e in entries):
+            entries = await self._ensure_seed_roles(guild, entries)
+        return entries
 
     # commands ====================
 

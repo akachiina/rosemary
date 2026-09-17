@@ -162,6 +162,21 @@ def _bot(tmp_path, roles=()):
     guild = MagicMock()
     guild.id = 1
     guild.roles = list(roles)
+    # Seeding creates real roles: default to an awaitable creator the tests
+    # can override.
+    created: list = []
+
+    async def _create_role(**kw):
+        role = MagicMock()
+        role.id = 9000 + len(created)
+        role.name = kw["name"]
+        created.append(role)
+        return role
+
+    guild.create_role = _create_role
+    guild.created_roles = created
+    guild.me = MagicMock()
+    guild.me.guild_permissions.manage_roles = True
     bot.guild = guild
     return bot
 
@@ -171,47 +186,32 @@ async def test_chunk_containers_files_and_rows(tmp_path):
 
     bot = _bot(tmp_path)
     entries = [ColorEntry(new_color_id(), f"C{i}", "#123456") for i in range(12)]
-    files, documents = chunk_containers(bot, 1, entries, 10)
+    files, documents, row_docs = chunk_containers(bot, 1, entries, 10)
     assert len(files) == 2
     assert len(documents) == 2
     for document in documents:
         assert document["type"] == "container"
-        gallery = document["children"][0]
-        assert gallery["type"] == "gallery"
-        assert gallery["urls"][0].startswith("attachment://color_panel_")
-        buttons = [
-            button
-            for child in document["children"]
-            if child["type"] == "row"
-            for button in child["buttons"]
-        ]
-        assert 1 <= len(buttons) <= 10
+        # Image-only containers: picker buttons live OUTSIDE the cards.
+        assert all(child["type"] == "gallery" for child in document["children"])
+    # Picker rows are separate top-level documents, 5 buttons each.
+    assert len(row_docs) == 3
+    assert all(doc["type"] == "row" for doc in row_docs)
     # Without the renderer present the panels still build (imageless).
     all_buttons = [
         int(button["label"])
-        for document in documents
-        for child in document["children"]
-        if child["type"] == "row"
-        for button in child["buttons"]
+        for document in row_docs
+        for button in document["buttons"]
     ]
     assert all_buttons == list(range(1, 13))
     # Every picker button carries its dispatcher custom_id: a url-less,
     # id-less button would render as a link button without a URL and 400 the
     # whole panel send (Discord 50035 "A url is required").
-    for document in documents:
-        for child in document["children"]:
-            if child["type"] != "row":
-                continue
-            for button in child["buttons"]:
-                assert button["id"].startswith("colors_pick:")
-    expected_ids = {f"colors_pick:{entry.id}" for entry in entries}
     carried = {
         button["id"]
-        for document in documents
-        for child in document["children"]
-        if child["type"] == "row"
-        for button in child["buttons"]
+        for document in row_docs
+        for button in document["buttons"]
     }
+    expected_ids = {f"colors_pick:{entry.id}" for entry in entries}
     assert carried == expected_ids
 
 
@@ -420,6 +420,41 @@ async def test_boot_registers_picker_with_real_rows(tmp_path):
     assert repaints == [1]
 
 
+async def test_seed_creates_discord_roles(tmp_path):
+    """Seeding must create the Discord roles: the admin never hand-attaches
+    the pastel defaults (regression: seeds stored role-less entries and the
+    panel could not grant anything)."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    created_roles = []
+
+    async def fake_create_role(**kw):
+        role = MagicMock()
+        role.id = 9000 + len(created_roles)
+        role.name = kw["name"]
+        created_roles.append(kw["name"])
+        return role
+
+    bot.guild.create_role = fake_create_role
+    bot.guild.me = MagicMock()
+    bot.guild.me.guild_permissions.manage_roles = True
+
+    entries = await cog.seed_if_needed(1)
+    assert len(entries) == len(PASTEL_SEEDS)
+    assert len(created_roles) == len(PASTEL_SEEDS)
+    assert all(entry.role_id for entry in entries)
+    # Role color matches the entry hex.
+    first_hex = int(entries[0].color.lstrip("#"), 16)
+    bot.guild.create_role = AsyncMock(return_value=MagicMock(id=1))
+    # Stored entries carry the role ids (persisted, not just returned).
+    stored = await cog.store.list_colors(1)
+    assert [e.role_id for e in stored] == [e.role_id for e in entries]
+    assert int(entries[0].color.lstrip("#"), 16) == first_hex
+
+
 async def test_colors_panel_command_replaces_stored_panel(tmp_path):
     """Re-posting must pass the stored panel id along so the old message is
     deleted; otherwise panels stack up on the channel."""
@@ -470,7 +505,7 @@ async def test_manager_open_seeds_pastels(tmp_path):
     await manager.prepare()
     entries = await manager.store.list_colors(1)
     assert len(entries) == len(PASTEL_SEEDS)
-    assert entries[0].name == "colors.defaults.rose"  # FakeTranslator echoes keys
+    assert entries[0].name == "colors.defaults.rose_light"  # FakeTranslator echoes keys
     # Second open must not duplicate.
     manager2 = ColorsManagerView(bot, 1, author_id=42)
     await manager2.prepare()
@@ -665,7 +700,8 @@ async def test_catalogs_carry_color_strings():
         "colors.panel.removed",
         "colors.manager.title",
         "colors.error_hierarchy",
-        "colors.defaults.rose",
+        "colors.defaults.rose_light",
+        "colors.defaults.sage_dark",
         "settings.colors.enabled.label",
         "settings.colors.picker.choices.buttons",
         "settings.category.colors",
