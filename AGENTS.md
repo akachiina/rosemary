@@ -19,13 +19,13 @@ Rosemary: modular, multilingual Discord bot for multiple servers, built on **py-
 
 ## Architecture
 
-- `bot.py` = `RosemaryBot` + `main()`. `_setup()` runs once in `on_ready`: registers cogs, loads `language/*.yaml` + `ui/theme.yaml`, snapshots `_command_base_keys` for per-guild re-localization.
+- `bot.py` = `RosemaryBot` + `main()`. `_setup()` runs once in `on_ready`: registers cogs, loads `language/*.yaml` + `themes/default.yaml` (the single theme file, see Themes), snapshots `_command_base_keys` for per-guild re-localization.
 - Cogs registered explicitly in `_setup()` via `add_cog(Class(bot))`: no auto-discovery, no `def setup(bot)` hooks. Commands sync **per guild, never globally**; `on_guild_join()` syncs newly joined servers.
 - i18n (`core/i18n.py`): YAML sections flatten to dotted keys. `language_meta` is metadata for `/language` choices, not a translation key. **en↔pt key parity enforced by `test_i18n.py`**: add new keys to both catalogs.
 - **PT-BR wording**: keep Discord pt-BR community terms untranslated (`Starboard`, `Card`, `Bump`, `Cooldown`, `Boost`, `Warn`, `Ticket`, `Embed`, `Leaderboard`). Say `servidor`, never `guilda`. Mirror vocabulary already in `pt-BR.yaml`.
 - **List-valued catalog keys (e.g. `time_parser.*`) must use `translator.raw()`, never `t()`**: `t()` calls `.format()` and crashes on lists.
 - **Quote YAML `on`/`off`/`yes`/`no`/`true`/`false` keys**: unquoted they parse as booleans and `t()` falls back to the raw key. Swept by `test_no_boolean_keys`.
-- **Emojis never hardcoded**: `t()` auto-injects every `emojis:` entry from `ui/theme.yaml` as a format placeholder; colors via `theme.color("<name>")`. Component `emoji=` must be RGI-valid or Discord 400s the whole payload (swept by `test_every_theme_emoji_is_discord_valid`).
+- **Emojis never hardcoded**: `t()` auto-injects every `emojis:` entry from `themes/default.yaml` as a format placeholder; colors via `theme.color("<name>")`. Component `emoji=` must be RGI-valid or Discord 400s the whole payload (swept by `test_every_theme_emoji_is_discord_valid`).
 - Per-guild command localization mutates shared `cmd.name`/`cmd.description` from `<cmd>.command.name`/`.description`, validated against `_COMMAND_NAME_RE` with fallback to the base name (a missing/invalid key would 400 the whole bulk sync; swept by `test_guild_join.py`).
 - Persistence: one JSON file per guild, `data/<guild_id>/<filename>` via `GuildStorage`. Defaults merged on read (`use_defaults=False` skips the `language` default). Writes are atomic (temp + rename).
 - Channel logs go through `core/debug.send_channel_log(...)` (no-ops unless `logging.enabled` + channel configured).
@@ -40,7 +40,8 @@ Rosemary: modular, multilingual Discord bot for multiple servers, built on **py-
 
 ## Themes (`core/themes.py` + `cogs/themes.py`)
 
-- A theme = one YAML with `colors`/`emojis`/`markdown`/`styles` (same shape as `ui/theme.yaml`) + optional `cards:` and `pings:`. Locations: `themes/` (global) + `data/<id>/themes/` (per-guild imports) + `themes.json` selection. Active theme resolves via sync `theme_for(bot, guild_id)` (boot snapshot; falls back to built-in `bot.theme`).
+- **One theme file**: `themes/default.yaml` feeds BOTH the built-in fallback (`bot.theme`, loaded by `bot.py` and `ui/theme.load_theme()`) and the selectable "default" in `/themes`. `ui/theme.yaml` is gone; `THEMES_DIR` (`core/themes.py`) resolves from the package root (`parent.parent`, same trick as `language/`). A theme = one YAML with `colors`/`emojis`/`markdown`/`styles` + optional `cards:`, `pings:`, `color_panel:` (HTML templates for the color-panel image). Locations: `themes/` (global) + `data/<id>/themes/` (per-guild imports) + `themes.json` selection. Active theme resolves via sync `theme_for(bot, guild_id)` (boot snapshot; falls back to built-in `bot.theme`).
+- YAML 1.1 parses bare numeric keys as ints (`medals: 1:`): theme loaders coerce keys with `str()`; do not reject otherwise-valid files over key type.
 - **`cards:` values are raw Components V2 JSON** converted at load by `core/v2_convert.py`; Discord limits validated at load (40 components, depth 5, 4000 chars). Invalid themed card logs and falls back to the built-in default: never breaks a send.
 - **Embed form is a per-card alternative** (`core/embed_convert.py`): a `cards:` entry as `embed: {...}` + optional sibling `buttons:` (link + `cardact:` both work). Same placeholder/ping behavior; invalid embeds degrade at load, never at send. Send sites use `CardPayload.message_kwargs()` and never branch on the card form.
 - Card keys are dotted paths; resolution: themed override -> registered default builder (`set_default_builder`) -> catalog seed.
@@ -64,6 +65,16 @@ Rosemary: modular, multilingual Discord bot for multiple servers, built on **py-
 - Events: ban, unban, message_delete, message_edit, bulk_delete, nickname, avatar (best-effort), roles, timeout, voice_join/voice_leave (one toggle for the pair).
 - Message content travels already fenced via `_fence()` at the send site: never re-fence in catalogs. Bots and the bot's own deletes are skipped.
 - Bulk deletes coalesce (`BULK_FLUSH_SECONDS`, re-arming) into ONE card + `.txt` transcript (`audit.bulk_file_enabled`). `/limpar` stamps `note_purge_context()` for attribution and single-delete suppression. Ban/unban moderator+reason come from one best-effort audit-log lookup. Regression: `tests/test_audit.py`.
+
+## Color Panel (`cogs/colors.py` + `core/colors.py` + `core/color_image.py`)
+
+- Color-Chan style: members pick color roles from a posted panel; picking again removes (toggle), picking another switches (drops the previous color role). `/my_colors` lists entries; `/colors_panel` (admin) posts the panel.
+- Settings category `colors` (`colors.enabled` default **off**, `colors.panel_channel`, `colors.picker` = `buttons`/`select`, `colors.per_container` 3 to 25, default 10). Manager screen opens from the category page button (pattern: anti-invite's batch attach + tickets' manager): reorder up/down, edit name/hex modals, batch role attach, create role from scratch, delete confirm. Every mutation repaints the posted panel via the `core/panels.py` registry.
+- Persistence: `ColorStore` (`data/<id>/colors.json`), ordered entry list (order = image and button order), `MAX_COLORS = 25` (Discord hard cap: 5 rows of 5 buttons, 25 select options). Entries link to roles by `role_id` (None = renders but cannot be picked). The live role color wins over stored hex at render time.
+- First manager open seeds 12 pastels (names from `colors.defaults.<slug>` in both catalogs); seed flag prevents re-seeding.
+- Panel layout: themed frame card `colors.panel` + one V2 container per `per_container` chunk, each with its own image and that chunk's numbered buttons (numbers run continuously across chunks). Picker views are persistent (`colors_pick:<id>` re-registered at boot); embed-form themes get classic rows instead (embeds cannot host V2 galleries).
+- Panel image: theme `color_panel.html`/`item` HTML templates (placeholders `{number}`/`{name}`/`{color}`) rendered by `core/color_image.render_panel` (WeasyPrint to PDF, PyMuPDF raster with alpha, cropped to content, transparent background). Optional deps: a missing renderer or a broken template posts the panel imageless (warning only, never breaks sends). Galleries reference files via `attachment://name.png`; `CardPayload(files=...)` carries the `discord.File` list and `message_kwargs()` forwards it (works on send and edit).
+- Regression: `tests/test_colors.py` (store, image bytes, chunk numbering, pick/toggle flows, catalog parity).
 
 ## Boost + Bump (Disboard)
 
