@@ -1697,6 +1697,39 @@ variables:
   created_at:
     label: Created at
     description: Server creation date
+  created_rel:
+    label: Creation (relative)
+    description: Server age as a Discord relative timestamp (e.g. "a year ago")
+  server_icon:
+    label: Server icon
+    description: Server icon image URL
+  banner_url:
+    label: Server banner
+    description: Server banner image URL
+  description:
+    label: Description
+    description: Public server description
+  text_channels:
+    label: Text channels
+    description: Number of text channels
+  voice_channels:
+    label: Voice channels
+    description: Number of voice channels
+  boosts:
+    label: Boosts
+    description: Number of server boosts
+  emojis:
+    label: Emojis
+    description: Number of server emojis
+  stickers:
+    label: Stickers
+    description: Number of server stickers
+  verification:
+    label: Verification
+    description: Server verification level (translated)
+  server_id:
+    label: Server ID
+    description: Numeric server ID
   timestamp:
     label: Relative time
     description: Event moment as a Discord relative timestamp (e.g. "3 hours ago")
@@ -1878,7 +1911,25 @@ card:
       placeholders: '{{ms}}'
     serverinfo:
       title: Server info card
-      placeholders: "{{server}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{created_at}}, {{title}}, {{body}}"
+      placeholders: "{{server}}, {{server_icon}}, {{banner_url}}, {{description}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{text_channels}}, {{voice_channels}}, {{boosts}}, {{emojis}}, {{stickers}}, {{verification}}, {{created_at}}, {{created_rel}}, {{server_id}}, {{title}}, {{body}}"
+      subtitle: "{crown} {owner} · {people} {members} members"
+      owner_label: "{crown} Owner"
+      members_label: "{people} Members"
+      created_label: "{calendar} Created"
+      created_value: "{created_at} · {created_rel}"
+      channels_label: "{speech} Channels"
+      channels_value: "{channels} · {text_channels} text · {voice_channels} voice"
+      roles_label: "{tag} Roles"
+      boosts_label: "{rocket} Boosts"
+      emojis_label: "{palette} Emojis"
+      stickers_label: "{love_letter} Stickers"
+      verification_label: "{lock} Verification"
+      verification:
+        none: None
+        low: Low
+        medium: Medium
+        high: High
+        highest: Very high
   themes:
     title:
       title: Themes menu heading

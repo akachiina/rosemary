@@ -1698,6 +1698,39 @@ variables:
   created_at:
     label: Criado em
     description: Data de criação do servidor
+  created_rel:
+    label: Criação (relativa)
+    description: Idade do servidor em tempo relativo do Discord (ex. "há um ano")
+  server_icon:
+    label: Ícone do servidor
+    description: URL da imagem do ícone do servidor
+  banner_url:
+    label: Banner do servidor
+    description: URL da imagem do banner do servidor
+  description:
+    label: Descrição
+    description: Descrição pública do servidor
+  text_channels:
+    label: Canais de texto
+    description: Número de canais de texto
+  voice_channels:
+    label: Canais de voz
+    description: Número de canais de voz
+  boosts:
+    label: Boosts
+    description: Número de boosts do servidor
+  emojis:
+    label: Emojis
+    description: Número de emojis do servidor
+  stickers:
+    label: Stickers
+    description: Número de stickers do servidor
+  verification:
+    label: Verificação
+    description: Nível de verificação do servidor (traduzido)
+  server_id:
+    label: ID do servidor
+    description: ID numérico do servidor
   timestamp:
     label: Tempo relativo
     description: Momento do evento em tempo relativo do Discord (ex. "há 3 horas")
@@ -1879,7 +1912,25 @@ card:
       placeholders: '{{ms}}'
     serverinfo:
       title: Card de info do servidor
-      placeholders: "{{server}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{created_at}}, {{title}}, {{body}}"
+      placeholders: "{{server}}, {{server_icon}}, {{banner_url}}, {{description}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{text_channels}}, {{voice_channels}}, {{boosts}}, {{emojis}}, {{stickers}}, {{verification}}, {{created_at}}, {{created_rel}}, {{server_id}}, {{title}}, {{body}}"
+      subtitle: "{crown} {owner} · {people} {members} membros"
+      owner_label: "{crown} Dono"
+      members_label: "{people} Membros"
+      created_label: "{calendar} Criado em"
+      created_value: "{created_at} · {created_rel}"
+      channels_label: "{speech} Canais"
+      channels_value: "{channels} · {text_channels} texto · {voice_channels} voz"
+      roles_label: "{tag} Cargos"
+      boosts_label: "{rocket} Boosts"
+      emojis_label: "{palette} Emojis"
+      stickers_label: "{love_letter} Stickers"
+      verification_label: "{lock} Verificação"
+      verification:
+        none: Nenhuma
+        low: Baixa
+        medium: Média
+        high: Alta
+        highest: Muito alta
   themes:
     title:
       title: Cabeçalho do menu de temas

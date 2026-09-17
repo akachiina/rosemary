@@ -15,6 +15,97 @@ from rosemary.core.card_service import CardPayload, render_card_message
 from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
 
+async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
+    """Catalog-default ``/info_servidor`` card (no theme override).
+
+    Layout: brand container with the server name beside the icon thumbnail,
+    an owner/member subtitle, then one section of three label/value columns
+    (owner+created / members+channels / roles+boosts) with the icon as the
+    section accessory, the banner as a full-width media gallery and a small
+    ID footer. Content-reactive blocks (description, banner) read the real
+    send-site variables and are omitted when they resolve empty; other
+    placeholders stay literal so the document doubles as the theme template.
+    """
+    from rosemary.core.cards import safe_format
+
+    # Theme emojis resolve in the builder (labels, subtitle) while every
+    # contracted placeholder self-echoes: the document stays a literal
+    # template and {members} is not swallowed by the members emoji token
+    # at build time -- the render resolves it with the real variables.
+    mapping = {
+        **bot.theme.emojis,
+        **{name: f"{{{name}}}" for name in variables},
+    }
+
+    async def raw(key: str) -> str:
+        return safe_format(
+            await bot.translator.raw(guild_id, f"card.utility.serverinfo.{key}"), mapping
+        )
+
+    async def column(*names: str) -> str:
+        parts = []
+        for name in names:
+            label = await raw(f"{name}_label")
+            # Optional composed value (e.g. channels: total + per-type split);
+            # ``raw`` echoes the full key when absent, so plain variables win.
+            value_key = f"{name}_value"
+            full_key = f"card.utility.serverinfo.{value_key}"
+            template = await bot.translator.raw(guild_id, full_key)
+            value = template if template != full_key else f"{{{name}}}"
+            parts.append(f"**{label}**\n{value}")
+        return "\n\n".join(parts)
+
+    # The heading is the server name itself, bare (no emoji decoration) per
+    # the visual standard for this card.
+    heading = "# {server}"
+    header_texts = [heading, await raw("subtitle")]
+    description = safe_format("{description}", mapping)
+    if isinstance(variables.get("description"), str) and variables["description"].strip():
+        header_texts.append(description)
+    children: list[dict] = [
+        {
+            "type": "section",
+            "accessory": {"type": "thumbnail", "url": "{server_icon}"},
+            "children": [
+                {"type": "text", "body": text} for text in header_texts
+            ],
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "accessory": {"type": "thumbnail", "url": "{server_icon}"},
+            "children": [
+                {"type": "text", "body": await column("owner", "created")},
+                {"type": "text", "body": await column("members", "channels")},
+                {"type": "text", "body": await column("roles", "boosts")},
+            ],
+        },
+    ]
+    stats = (
+        f"**{await raw('emojis_label')}:** {{emojis}} · "
+        f"**{await raw('stickers_label')}:** {{stickers}} · "
+        f"**{await raw('verification_label')}:** {{verification}}"
+    )
+    children.append({"type": "text", "body": stats})
+    if isinstance(variables.get("banner_url"), str) and variables["banner_url"].strip():
+        children.append({"type": "gallery", "urls": ["{banner_url}"]})
+    children.append({"type": "divider"})
+    children.append({"type": "text", "body": "-# {server_id}"})
+    return {
+        "v": 1,
+        "blocks": [{"type": "container", "color": "brand", "children": children}],
+    }
+
+
+def _register_default_builders() -> None:
+    from rosemary.core.cards import set_default_builder
+
+    set_default_builder("utility.serverinfo", default_serverinfo_document)
+
+
+_register_default_builders()
+
+
 class UtilityCog(commands.Cog):
     """Latency and server diagnostics."""
 
@@ -58,37 +149,39 @@ class UtilityCog(commands.Cog):
         contexts={discord.InteractionContextType.guild},
     )
     async def serverinfo(self, ctx: discord.ApplicationContext) -> None:
-        """Show guild information."""
-        t = self.bot.translator.t
+        """Show guild information as the rich default card (or a theme override)."""
         guild = ctx.guild
-        created = f"<t:{int(guild.created_at.timestamp())}:D>" if guild.created_at else "-"
-        rows = "\n".join(
-            [
-                await t(ctx.guild_id, "serverinfo.name", value=guild.name),
-                await t(ctx.guild_id, "serverinfo.owner", value=str(guild.owner)),
-                await t(
-                    ctx.guild_id, "serverinfo.members", value=guild.member_count or 0
-                ),
-                await t(ctx.guild_id, "serverinfo.roles", value=len(guild.roles)),
-                await t(
-                    ctx.guild_id,
-                    "serverinfo.channels",
-                    value=len(guild.text_channels) + len(guild.voice_channels),
-                ),
-                await t(ctx.guild_id, "serverinfo.created", value=created),
-            ]
+        created = (
+            f"<t:{int(guild.created_at.timestamp())}:D>" if guild.created_at else "-"
         )
-        title = await t(ctx.guild_id, "serverinfo.title")
-        body = rows
+        created_rel = (
+            f"<t:{int(guild.created_at.timestamp())}:R>" if guild.created_at else "-"
+        )
+        t = self.bot.translator.t
+        verification = await t(
+            ctx.guild_id,
+            f"card.utility.serverinfo.verification.{guild.verification_level.name}",
+        )
         variables = {
             "server": guild.name,
             "owner": str(guild.owner),
             "members": guild.member_count or 0,
             "roles": len(guild.roles),
             "channels": len(guild.text_channels) + len(guild.voice_channels),
+            "text_channels": len(guild.text_channels),
+            "voice_channels": len(guild.voice_channels),
+            "boosts": guild.premium_subscription_count or 0,
+            "emojis": len(guild.emojis),
+            "stickers": len(guild.stickers),
+            "verification": verification,
+            "description": guild.description or "",
+            "server_icon": guild.icon.url if guild.icon else "",
+            "banner_url": guild.banner.url if guild.banner else "",
             "created_at": created,
-            "title": title,
-            "body": body,
+            "created_rel": created_rel,
+            "server_id": guild.id,
+            "title": await t(ctx.guild_id, "serverinfo.title"),
+            "body": "",
         }
         payload, _allowed = await render_card_message(
             self.bot, ctx.guild_id, "utility.serverinfo", variables
@@ -98,9 +191,8 @@ class UtilityCog(commands.Cog):
             view.add_item(
                 designer_container(
                     self.bot.theme.color("brand"),
-                    TextDisplay(self.bot.theme.md("title", title=title)),
-                    TextDisplay(body),
+                    TextDisplay(self.bot.theme.md("title", title=guild.name)),
                 )
             )
             payload = CardPayload(view=view)
-        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
+        await ctx.respond(**payload.message_kwargs())

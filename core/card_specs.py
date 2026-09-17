@@ -172,7 +172,9 @@ CONTENT_CARDS = {
     ),
     "utility.ping": ("ms",),
     "utility.serverinfo": (
-        "server", "owner", "members", "roles", "channels", "created_at", "title", "body",
+        "server", "owner", "members", "roles", "channels", "text_channels", "voice_channels",
+        "boosts", "emojis", "stickers", "verification", "description", "server_icon",
+        "banner_url", "created_at", "created_rel", "server_id", "title", "body",
     ),
     "birthdays.list": ("body",),
     "partnerships.list": ("title", "body"),

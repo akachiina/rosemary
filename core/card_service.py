@@ -97,11 +97,12 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     # Code-built cards promoted to CardSpecs: the send site passes the rendered
     # title/body plus card-specific variables; {title}/{body} keep the seed
     # identical to what the code fallback shows.
-    # starboard.card is intentionally absent: a registered default builder
-    # owns its full rich layout (avatar, gallery, author footer). A seed here
-    # would shadow the builder -- the exact bug that made live posts bare.
+    # starboard.card and utility.serverinfo are intentionally absent: a
+    # registered default builder owns their full rich layout (starboard:
+    # avatar, gallery, author footer; serverinfo: icon thumbnail, columns,
+    # banner). A seed here would shadow the builder -- the exact bug that
+    # made live posts bare.
     "utility.ping": ("info", "ping.title", ("ping.latency",)),
-    "utility.serverinfo": ("brand", "serverinfo.title", ("{body}",)),
     "birthdays.list": ("info", "birthdays.list_title", ("{body}",)),
     "partnerships.list": ("info", "partnerships.list_title", ("{body}",)),
     "partnerships.audit": ("warning", "partnerships.audit_title", ("{body}",)),

@@ -112,7 +112,6 @@ async def test_seed_documents_render():
     }
     keys = [
         "utility.ping",
-        "utility.serverinfo",
         "birthdays.list",
         "partnerships.list",
         "partnerships.audit",
@@ -142,6 +141,7 @@ async def test_starboard_card_resolves_via_builder_not_seed():
     """The builder owns the starboard default; a seed entry here would shadow
     it with bare {title}/{body} -- the exact bug that made live posts plain
     (regression for the seed-map shadowing)."""
+    import rosemary.cogs.starboard  # noqa: F401  (registers the builder)
     from rosemary.core.card_service import SEED_PARTS_BY_KEY, render_document
 
     bot = make_bot()
@@ -170,6 +170,97 @@ async def test_starboard_card_resolves_via_builder_not_seed():
     assert any("mensagem estrelada" in text for text in texts)
     # Builder signature: thumbnail section + author footer, not the bare seed.
     assert any("-# by <@5>" in text for text in texts), texts
+
+
+# -- serverinfo rich builder ---------------------------------------------------
+
+
+async def test_serverinfo_card_resolves_via_builder_not_seed():
+    """The serverinfo default lives in a registered rich builder (icon section,
+    stat columns, banner gallery, ID footer); a seed-map entry would shadow it
+    with bare key/value lines -- same shadowing regression as the starboard."""
+    from pathlib import Path
+
+    import rosemary.cogs.utility  # noqa: F401  (registers the builder)
+    from rosemary.core.card_service import SEED_PARTS_BY_KEY, render_document
+    from rosemary.core.i18n import Translator
+
+    bot = make_bot()
+    # Real catalogs: the builder composes stat rows from serverinfo.* keys.
+    bot.translator = Translator(Path("language"))
+    assert "utility.serverinfo" not in SEED_PARTS_BY_KEY, (
+        "a seed entry would shadow the registered rich builder"
+    )
+    variables = {
+        "server": "Overdose Community",
+        "server_icon": "https://a.b/icon.png",
+        "banner_url": "https://a.b/banner.png",
+        "owner": "<@42>",
+        "members": 623,
+        "channels": 46,
+        "text_channels": 34,
+        "voice_channels": 12,
+        "roles": 103,
+        "boosts": 3,
+        "emojis": 120,
+        "stickers": 10,
+        "description": "servidor de testes",
+        "verification": "Médio",
+        "created_at": "<t:1111111111:D>",
+        "created_rel": "<t:1111111111:R>",
+        "server_id": "1388731936914280540",
+    }
+    doc = await default_document(bot, 1, "utility.serverinfo")
+    assert doc is not None
+    view = await render_document(
+        bot, doc, variables, guild_id=1, card_key="utility.serverinfo"
+    )
+    texts = container_texts(view)
+    assert any("Overdose Community" in text for text in texts)
+    # Builder signature: stat columns (channel breakdown) + verification row.
+    assert any("34" in text and "12" in text for text in texts), texts
+    assert any("120" in text and "10" in text for text in texts), texts
+    assert any("Médio" in text for text in texts), texts
+
+
+async def test_serverinfo_builder_degrades_without_banner_and_icon():
+    """No banner -> gallery resolves empty and is skipped; no icon -> the
+    section accessory is omitted instead of 400ing the payload."""
+    from pathlib import Path
+
+    import rosemary.cogs.utility  # noqa: F401  (registers the builder)
+    from rosemary.core.card_service import render_document
+    from rosemary.core.i18n import Translator
+
+    bot = make_bot()
+    bot.translator = Translator(Path("language"))
+    variables = {
+        "server": "Serv",
+        "server_icon": "",
+        "banner_url": "",
+        "owner": "<@42>",
+        "members": 10,
+        "channels": 7,
+        "text_channels": 6,
+        "voice_channels": 1,
+        "roles": 3,
+        "boosts": 0,
+        "emojis": 0,
+        "stickers": 0,
+        "description": "",
+        "verification": "Baixo",
+        "created_at": "<t:1111111111:D>",
+        "created_rel": "<t:1111111111:R>",
+        "server_id": "123",
+    }
+    doc = await default_document(bot, 1, "utility.serverinfo")
+    view = await render_document(
+        bot, doc, variables, guild_id=1, card_key="utility.serverinfo"
+    )
+    assert view.children
+    texts = container_texts(view)
+    assert any("Serv" in text for text in texts)
+    assert not any("servidor de testes" in text for text in texts)
 
 
 # -- menu heading splice -------------------------------------------------------
