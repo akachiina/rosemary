@@ -18,13 +18,13 @@ from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
     """Catalog-default ``/info_servidor`` card (no theme override).
 
-    Layout: brand container with the server name beside the icon thumbnail,
-    an owner/member subtitle, then one section of three label/value columns
-    (owner+created / members+channels / roles+boosts) with the icon as the
-    section accessory, the banner as a full-width media gallery and a small
-    ID footer. Content-reactive blocks (description, banner) read the real
-    send-site variables and are omitted when they resolve empty; other
-    placeholders stay literal so the document doubles as the theme template.
+    Layout: brand container with the server name beside the icon thumbnail
+    (the single accessory -- V2 sections stack their texts, so stats live in
+    full-width text blocks below, ``**label** value`` per line), the banner
+    as a full-width media gallery and a small ID footer. Content-reactive
+    blocks (description, banner) read the real send-site variables and are
+    omitted when they resolve empty; other placeholders stay literal so the
+    document doubles as the theme template.
     """
     from rosemary.core.cards import safe_format
 
@@ -42,21 +42,19 @@ async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
             await bot.translator.raw(guild_id, f"card.utility.serverinfo.{key}"), mapping
         )
 
-    async def column(*names: str) -> str:
-        parts = []
-        for name in names:
-            label = await raw(f"{name}_label")
-            # Optional composed value (e.g. channels: total + per-type split);
-            # ``raw`` echoes the full key when absent, so plain variables win.
-            value_key = f"{name}_value"
-            full_key = f"card.utility.serverinfo.{value_key}"
-            template = await bot.translator.raw(guild_id, full_key)
-            value = template if template != full_key else f"{{{name}}}"
-            parts.append(f"**{label}**\n{value}")
-        return "\n\n".join(parts)
+    async def line(name: str) -> str:
+        """One ``**label** value`` stat line; optional composed value
+        templates (e.g. channels: total + per-type split) win over the plain
+        variable (``raw`` echoes the full key when absent)."""
+        label = await raw(f"{name}_label")
+        value_key = f"{name}_value"
+        full_key = f"card.utility.serverinfo.{value_key}"
+        template = await bot.translator.raw(guild_id, full_key)
+        value = template if template != full_key else f"{{{name}}}"
+        return f"**{label}** {value}"
 
     # The heading is the server name itself, bare (no emoji decoration) per
-    # the visual standard for this card.
+    # the visual standard for this card. Single icon: the header accessory.
     heading = "# {server}"
     header_texts = [heading, await raw("subtitle")]
     description = safe_format("{description}", mapping)
@@ -71,20 +69,12 @@ async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
             ],
         },
         {"type": "divider"},
-        {
-            "type": "section",
-            "accessory": {"type": "thumbnail", "url": "{server_icon}"},
-            "children": [
-                {"type": "text", "body": await column("owner", "created")},
-                {"type": "text", "body": await column("members", "channels")},
-                {"type": "text", "body": await column("roles", "boosts")},
-            ],
-        },
+        {"type": "text", "body": "\n".join([await line("owner"), await line("members")])},
+        {"type": "text", "body": "\n".join([await line("created"), await line("channels")])},
+        {"type": "text", "body": "\n".join([await line("roles"), await line("boosts")])},
     ]
-    stats = (
-        f"**{await raw('emojis_label')}:** {{emojis}} · "
-        f"**{await raw('stickers_label')}:** {{stickers}} · "
-        f"**{await raw('verification_label')}:** {{verification}}"
+    stats = " · ".join(
+        [await line("emojis"), await line("stickers"), await line("verification")]
     )
     children.append({"type": "text", "body": stats})
     if isinstance(variables.get("banner_url"), str) and variables["banner_url"].strip():

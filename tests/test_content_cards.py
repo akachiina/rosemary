@@ -217,10 +217,18 @@ async def test_serverinfo_card_resolves_via_builder_not_seed():
     )
     texts = container_texts(view)
     assert any("Overdose Community" in text for text in texts)
-    # Builder signature: stat columns (channel breakdown) + verification row.
+    # Builder signature: stat lines (channel breakdown) + verification row.
     assert any("34" in text and "12" in text for text in texts), texts
     assert any("120" in text and "10" in text for text in texts), texts
     assert any("Médio" in text for text in texts), texts
+    # Exactly one icon: the header accessory (V2 sections stack texts, so a
+    # second section would duplicate the thumbnail).
+    from rosemary.core.cards import build_items
+
+    items = build_items(bot.theme, doc, variables)
+    sections = [i for i in items[0].items if type(i).__name__ == "Section"]
+    assert len(sections) == 1
+    assert type(sections[0].accessory).__name__ == "Thumbnail"
 
 
 async def test_serverinfo_builder_degrades_without_banner_and_icon():
