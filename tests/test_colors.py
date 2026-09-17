@@ -387,6 +387,76 @@ async def test_pick_hierarchy_and_missing_role(tmp_path):
 # == manager flows ==========================================================
 
 
+async def test_boot_registers_picker_with_real_rows(tmp_path):
+    """py-cord's view store indexes only real children: the boot dispatcher
+    must carry the picker rows, or every click dies as "did not respond"."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    await cog.store.set_colors(
+        1, [ColorEntry(new_color_id(), "A", "#111111", role_id=11)]
+    )
+    await bot.storage.set(1, "colors.enabled", True)
+    await bot.storage.set(1, "colors.panel_channel", 55)
+    repaints = []
+
+    async def fake_repaint(_bot, _gid):
+        repaints.append(_gid)
+
+    cog.repaint_panel = fake_repaint
+    added = []
+    bot.add_view = lambda view: added.append(view)
+    await cog._restore_guild(MagicMock(id=1))
+    assert len(added) == 1
+    picker = added[0]
+    indexed = [
+        item.custom_id
+        for item in picker.walk_children()
+        if getattr(item, "custom_id", None)
+    ]
+    assert indexed == [f"colors_pick:{(await cog.store.list_colors(1))[0].id}"]
+    assert repaints == [1]
+
+
+async def test_colors_panel_command_replaces_stored_panel(tmp_path):
+    """Re-posting must pass the stored panel id along so the old message is
+    deleted; otherwise panels stack up on the channel."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    await cog.store.set_panel(1, 4242)
+    calls = []
+
+    async def fake_post(guild, channel, *, replace_id=None):
+        calls.append(replace_id)
+
+    cog._post_panel = fake_post
+    cog._can_manage_roles = lambda guild: True
+
+    ctx = MagicMock()
+    ctx.guild = bot.guild
+    ctx.guild.id = 1
+    ctx.response.defer = AsyncMock()
+    ctx.respond = AsyncMock()
+    bot.storage_set = None
+
+    async def fake_enabled(_gid):
+        return True
+
+    async def fake_channel(_guild):
+        return MagicMock()
+
+    cog.enabled = fake_enabled
+    cog._panel_channel = fake_channel
+    # Invoke the underlying callback (the attribute is a SlashCommand wrapper).
+    await ColorsCog.colors_panel.callback(cog, ctx)
+    assert calls == [4242]
+
+
 async def test_manager_open_seeds_pastels(tmp_path):
     """First manager open must create the pastel defaults (regression: the
     seed helper existed but nothing ever called it, so the list was empty)."""

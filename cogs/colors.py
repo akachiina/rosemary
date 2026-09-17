@@ -32,7 +32,7 @@ from discord.ext import commands
 from rosemary.core.card_service import CardPayload
 from rosemary.core.colors import PASTEL_SEEDS, ColorStore
 from rosemary.core.settings import get_setting
-from rosemary.ui.colors_panel import ColorPickerView, chunk_containers
+from rosemary.ui.colors_panel import ColorPickerView, chunk_containers, chunks_of
 
 log = logging.getLogger(__name__)
 
@@ -66,8 +66,21 @@ class ColorsCog(commands.Cog):
     async def _restore_guild(self, guild: discord.Guild) -> None:
         if not await self.enabled(guild.id):
             return
+        await self.seed_if_needed(guild.id)
         entries = await self.store.list_colors(guild.id)
-        self.bot.add_view(ColorPickerView(self.bot, guild.id, entries))
+        # The registered dispatcher must CARRY the picker rows: py-cord's
+        # view store indexes only real children (walk_children), so an empty
+        # view registers nothing and every click dies as "did not respond".
+        picker = ColorPickerView(self.bot, guild.id, entries)
+        mode = await self.picker_mode(guild.id)
+        if mode == "select":
+            picker.add_item(await picker.select_row())
+        else:
+            per = await self.per_container(guild.id)
+            for chunk in chunks_of(entries, per):
+                for row in picker.rows_for([entry for _n, entry in chunk]):
+                    picker.add_item(row)
+        self.bot.add_view(picker)
         await self.repaint_panel(self.bot, guild.id)
 
     # helpers ====================
@@ -282,7 +295,11 @@ class ColorsCog(commands.Cog):
                 ephemeral=True,
             )
         await ctx.response.defer(ephemeral=True)
-        await self._post_panel(guild, channel)
+        # Re-posting replaces the stored panel message: two live panels would
+        # both render picker rows and overlap on the channel.
+        await self._post_panel(
+            guild, channel, replace_id=await self.store.get_panel(guild.id)
+        )
         await ctx.respond(
             await self.bot.translator.t(guild.id, "colors.panel_posted"),
             ephemeral=True,

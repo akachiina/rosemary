@@ -171,12 +171,16 @@ color_panel:
     @page { size: __PANEL_W__px __PANEL_H__px; margin: 0; background: transparent; }
     html, body { margin: 0; padding: 0; background: transparent; }
     .grid { column-count: 2; column-gap: 64px; padding: 8px; }
+    /* overflow: hidden + nowrap clips long names at the column edge
+       (WeasyPrint has no text-overflow: ellipsis) instead of bleeding
+       into the neighboring column. */
     .item {
       font-family: "Segoe UI", "Ubuntu", "Noto Sans", sans-serif;
       font-size: 26px;
       font-weight: 600;
       color: #dbdee1;
       white-space: nowrap;
+      overflow: hidden;
     }
     .dot {
       display: inline-block;

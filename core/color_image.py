@@ -56,6 +56,9 @@ html, body { margin: 0; padding: 0; background: transparent; }
   font-weight: 600;
   color: #dbdee1;
   white-space: nowrap;
+  /* Clip long names at the column edge instead of bleeding into the
+     neighbor column (WeasyPrint lacks text-overflow). */
+  overflow: hidden;
 }
 .dot {
   display: inline-block;
