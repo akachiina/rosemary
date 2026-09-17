@@ -285,18 +285,25 @@ class ColorsCog(commands.Cog):
         *,
         replace_id: int | None = None,
     ) -> None:
-        """Post the panel; ``replace_id`` deletes the stale panel first so a
-        re-post (image repaint) does not leave the old message behind."""
+        """Post the panel, sweeping away every earlier panel message.
+
+        Deletes the stored ``replace_id`` AND every other recorded panel id
+        (older posts predate the single-panel invariant and would stay on
+        the channel forever, stacked under the fresh one)."""
         from rosemary.core.mentions import allowed_for_ids
 
+        stale = set(await self.store.known_panels(guild.id))
         if replace_id is not None:
-            with contextlib.suppress(discord.NotFound, discord.HTTPException):
-                await channel.get_partial_message(replace_id).delete()
+            stale.add(replace_id)
         payload, _picker = await self._panel_payload(guild.id, trace=True)
         message = await channel.send(
             **payload.message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "colors.panel"),
         )
+        stale.discard(message.id)
+        for panel_id in stale:
+            with contextlib.suppress(discord.NotFound, discord.HTTPException):
+                await channel.get_partial_message(panel_id).delete()
         await self.store.set_panel(guild.id, message.id)
 
     async def repaint_panel(self, bot, guild_id: int) -> None:

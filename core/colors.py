@@ -151,6 +151,29 @@ class ColorStore:
         panel = (await self._doc(guild_id)).get("panel_message_id")
         return int(panel) if panel else None
 
+    async def add_known_panel(self, guild_id: int, message_id: int) -> None:
+        """Record every panel message id ever posted.
+
+        Older buggy posts predate the single-panel invariant; the repost
+        path sweeps these ids so stacked panels self-heal instead of
+        staying on the channel forever.
+        """
+        doc = await self._doc(guild_id)
+        known: list = doc.setdefault("known_panel_ids", [])
+        if message_id not in known:
+            known.append(message_id)
+        await self._save(guild_id, doc)
+
+    async def known_panels(self, guild_id: int) -> list[int]:
+        """Every panel message id ever posted for the guild."""
+        doc = await self._doc(guild_id)
+        known = doc.get("known_panel_ids") or []
+        current = doc.get("panel_message_id")
+        ids = {int(mid) for mid in known if mid}
+        if current:
+            ids.add(int(current))
+        return sorted(ids)
+
     # writes ====================
 
     async def set_colors(self, guild_id: int, entries: list[ColorEntry]) -> None:
@@ -260,4 +283,8 @@ class ColorStore:
     async def set_panel(self, guild_id: int, message_id: int | None) -> None:
         doc = await self._doc(guild_id)
         doc["panel_message_id"] = message_id
+        if message_id is not None:
+            # The live panel is the whole history: the repost swept every
+            # older message, so keeping their ids would re-delete later.
+            doc["known_panel_ids"] = [message_id]
         await self._save(guild_id, doc)

@@ -624,6 +624,7 @@ async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
     await bot.storage.set(1, "colors.panel_channel", 55)
 
     sent = {}
+    sent_ids: list[int] = []
     deleted = []
 
     class FakePartial:
@@ -648,7 +649,8 @@ async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
         async def send(self, **kw):
             sent.update(kw)
             message = MagicMock()
-            message.id = 777
+            message.id = 777 + len(sent_ids)
+            sent_ids.append(message.id)
             return message
 
     guild = bot.guild
@@ -673,8 +675,64 @@ async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
         payload.message_kwargs.return_value = {"view": MagicMock(), "files": files}
         payload_mock.return_value = (payload, None)
         await cog.repaint_panel(bot, 1)
-    assert deleted == [777]
-    assert await cog.store.get_panel(1) == 777  # same mock id re-stored
+    assert deleted == [777]  # the first panel is swept on the re-post
+    assert await cog.store.get_panel(1) == 778  # the new message id
+
+
+async def test_repost_sweeps_orphan_panels(tmp_path):
+    """Panels posted before the single-panel invariant (unknown ids) are
+    swept on the next post: stacked panels self-heal."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    await cog.store.set_colors(
+        1, [ColorEntry(new_color_id(), "A", "#111111", role_id=11)]
+    )
+    await bot.storage.set(1, "colors.enabled", True)
+    await bot.storage.set(1, "colors.panel_channel", 55)
+    # Simulate two orphan panels from before the fix (never recorded in
+    # known_panel_ids, one is the stale current pointer).
+    await cog.store.set_panel(1, 111)
+    await cog.store.add_known_panel(1, 222)
+
+    sent, deleted = {}, []
+
+    class FakePartial:
+        def __init__(self, message_id):
+            self.id = message_id
+
+        async def delete(self, delay=None):
+            deleted.append(self.id)
+
+    class FakeChannel(discord.TextChannel):
+        def __init__(self):
+            self.id = 55
+            self.guild = bot.guild
+            self._state = MagicMock()
+
+        def get_partial_message(self, message_id):
+            return FakePartial(message_id)
+
+        async def send(self, **kw):
+            sent.update(kw)
+            message = MagicMock()
+            message.id = 999
+            return message
+
+    bot.guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
+    with patch(
+        "rosemary.cogs.colors.ColorsCog._panel_payload"
+    ) as payload_mock:
+        payload = MagicMock()
+        payload.message_kwargs.return_value = {"view": MagicMock(), "files": [MagicMock()]}
+        payload_mock.return_value = (payload, None)
+        await cog.repaint_panel(bot, 1)
+    assert sorted(deleted) == [111, 222]  # both orphans swept
+    assert await cog.store.get_panel(1) == 999
+    known = await cog.store.known_panels(1)
+    assert known == [999]  # history collapses to the live panel
 
 
 def _ack_only(data=None):
