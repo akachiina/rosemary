@@ -266,12 +266,16 @@ class RosemaryBot(commands.Bot):
         custom_id = getattr(item, "custom_id", None) or "?"
         view = getattr(interaction, "view", None)
         view_name = type(view).__name__ if view is not None else "?"
-        log.exception(
+        # exc_info=error (not log.exception): py-cord invokes this handler
+        # outside the except block, so the active-exception context is empty
+        # and log.exception would print a useless "NoneType: None".
+        log.error(
             "Component error in %s (custom_id=%r, user=%s, guild=%s)",
             view_name,
             custom_id,
             getattr(getattr(interaction, "user", None), "id", None),
             getattr(interaction, "guild_id", None),
+            exc_info=error,
         )
         try:
             if interaction.response.is_done():

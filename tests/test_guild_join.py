@@ -75,6 +75,45 @@ async def test_reapply_localization_still_syncs_every_guild() -> None:
     assert bot._command_base_keys["about"].name == "about"
 
 
+async def test_every_registered_command_has_a_valid_localized_name() -> None:
+    """Sweep every cog's top-level commands x both catalogs: ``<cmd>.command.name``
+    must exist and be a valid Discord command name. A missing key silently falls
+    back to the raw dotted key, which fails the name regex here and 400s the
+    bulk sync live (this is how the color panel commands shipped broken)."""
+    import importlib
+
+    cog_names = set()
+    cogs_dir = Path(__file__).resolve().parents[1] / "cogs"
+    for path in sorted(cogs_dir.glob("*.py")):
+        if path.stem.startswith("_"):
+            continue
+        module = importlib.import_module(f"rosemary.cogs.{path.stem}")
+        for obj in vars(module).values():
+            if (
+                isinstance(obj, type)
+                and issubclass(obj, commands.Cog)
+                and obj.__module__ == module.__name__
+            ):
+                for attr in vars(obj).values():
+                    name = getattr(attr, "name", None)
+                    kind = type(attr).__name__
+                    if not name or kind not in ("SlashCommand", "SlashCommandGroup"):
+                        continue
+                    if getattr(attr, "parent", None) is not None:
+                        continue  # group subcommand: never localized by name alone
+                    cog_names.add(name)
+
+    assert cog_names, "command introspection found nothing"
+    for lang in ("pt-BR", "en-US"):
+        translator = Translator(LANG_DIR)
+        translator.resolver = lambda _gid, _lang=lang: _lang
+        for base in sorted(cog_names):
+            name = await translator.t(None, f"{base}.command.name")
+            assert _COMMAND_NAME_RE.match(name) and name == name.lower(), (
+                f"{lang}: {base}.command.name resolved to {name!r}"
+            )
+
+
 async def test_invalid_localized_name_falls_back_to_base() -> None:
     """A bad translation must not break the sync (400 Invalid Form Body)."""
 

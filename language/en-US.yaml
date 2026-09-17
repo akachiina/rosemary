@@ -829,6 +829,14 @@ colors:
     placeholder: Pick your color...
     applied: '{check} Color **{name}** applied!'
     removed: '{check} Color **{name}** removed.'
+colors_panel:
+  command:
+    name: colors_panel
+    description: '[ADMIN] Post the color panel'
+my_colors:
+  command:
+    name: my_colors
+    description: List the available panel colors
 bump:
   messages:
     anti_camping: 🔒 **|** The channel is temporarily locked. Bump will be available shortly!

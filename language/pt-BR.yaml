@@ -830,6 +830,14 @@ colors:
     placeholder: Escolha sua cor...
     applied: '{check} Cor **{name}** aplicada!'
     removed: '{check} Cor **{name}** removida.'
+colors_panel:
+  command:
+    name: painel_cores
+    description: '[ADMIN] Posta o painel de cores'
+my_colors:
+  command:
+    name: minhas_cores
+    description: Lista as cores disponíveis no painel
 bump:
   messages:
     anti_camping: 🔒 **|** O canal foi bloqueado temporariamente. O bump estará disponível em instantes!

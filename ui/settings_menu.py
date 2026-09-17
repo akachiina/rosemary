@@ -115,6 +115,9 @@ class SettingsMenuView(MenuView):
         manager = ColorsManagerView(
             self.bot, self.guild_id, self.author_id or interaction.user.id
         )
+        # V2 payloads must be built before the send (same contract as the
+        # /settings command: prepare() assembles the components).
+        await manager.prepare()
         await interaction.response.send_message(view=manager, ephemeral=True)
         self.stop()
 
