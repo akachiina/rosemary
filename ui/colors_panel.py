@@ -57,17 +57,19 @@ def chunk_containers(
     entries: list[ColorEntry],
     per_container: int,
 ) -> tuple[list[discord.File], list[dict], list[dict]]:
-    """Files, chunk container documents and picker row documents.
+    """Files and interleaved chunk/button documents for the panel message.
 
-    One image per chunk (rendered with the theme's ``color_panel`` HTML
-    templates, live role colors applied); a chunk whose render fails (no
-    WeasyPrint/Pango, template error) contributes no gallery - the panel
-    still posts, imageless. Colors without an attached role render with
-    their stored hex but cannot be picked.
+    ``documents`` alternates one image container per chunk with that
+    chunk's picker rows right below it (the Color-Chan layout: each card is
+    followed by its own numbered buttons, outside the container but visually
+    grouped with it)::
 
-    Picker rows are TOP-LEVEL documents, deliberately outside the chunk
-    containers: buttons belong to the message, not to the color card (the
-    Color-Chan layout the user asked for).
+        [card: image 1-10] [1][2]..[10] [card: image 11-20] [11]..[20]
+
+    A chunk whose render fails (no WeasyPrint/Pango, template error)
+    contributes no gallery - the panel still posts, imageless. Colors
+    without an attached role render with their stored hex but cannot be
+    picked.
     """
     theme = theme_for(bot, guild_id)
     templates = getattr(theme, "color_panel", {}) or {}
@@ -81,7 +83,6 @@ def chunk_containers(
     )
     files: list[discord.File] = []
     documents: list[dict] = []
-    row_documents: list[dict] = []
     for index, chunk in enumerate(chunks_of(entries, per_container), start=1):
         rows = [
             PanelColor(number, entry.name, resolve_color(live, entry))
@@ -95,9 +96,16 @@ def chunk_containers(
         if png is not None:
             children.append({"type": "gallery", "urls": [f"attachment://{filename}"]})
         documents.append({"type": "container", "color": "brand", "children": children})
-    # Numbered picker buttons as separate top-level rows (5 per row).
-    for start in range(0, len(entries), 5):
-        row_documents.append(
+        # This chunk's buttons, right under its card (top-level rows).
+        documents.extend(_picker_rows(chunk))
+    return files, documents
+
+
+def _picker_rows(chunk: list[tuple[int, ColorEntry]]) -> list[dict]:
+    """Top-level button-row documents for one chunk (5 buttons per row)."""
+    rows: list[dict] = []
+    for start in range(0, len(chunk), 5):
+        rows.append(
             {
                 "type": "row",
                 "buttons": [
@@ -108,13 +116,11 @@ def chunk_containers(
                         # custom_id the ColorPickerView dispatcher owns.
                         "id": f"{_PICK_ID}:{entry.id}",
                     }
-                    for position, entry in enumerate(
-                        entries[start : start + 5], start=start + 1
-                    )
+                    for position, entry in chunk[start : start + 5]
                 ],
             }
         )
-    return files, documents, row_documents
+    return rows
 
 
 class ColorPickerView(MenuView):

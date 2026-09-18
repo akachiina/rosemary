@@ -225,30 +225,19 @@ class ColorsCog(commands.Cog):
                 TextDisplay(await t(guild_id, "colors.panel.text", count=len(entries))),
             )
         )
-        files, documents, row_docs = chunk_containers(
-            self.bot, guild_id, entries, per
-        )
+        files, documents = chunk_containers(self.bot, guild_id, entries, per)
+        # documents alternates image containers with their picker rows:
+        # each card is followed by its own numbered buttons (Color-Chan).
         for doc in documents:
             try:
                 for item in build_items(theme_for(self.bot, guild_id), {"blocks": [doc]}):
                     view.add_item(item)
             except Exception as exc:
-                log.warning("color panel chunk skipped in %s: %s", guild_id, exc)
+                log.warning("color panel block skipped in %s: %s", guild_id, exc)
         picker = ColorPickerView(self.bot, guild_id, entries)
         mode = await self.picker_mode(guild_id)
         if mode == "select":
             view.add_item(await picker.select_row())
-        else:
-            # Picker rows are top-level documents (outside every container):
-            # buttons belong to the message, not to the color card.
-            for row_doc in row_docs:
-                try:
-                    for item in build_items(
-                        theme_for(self.bot, guild_id), {"blocks": [row_doc]}
-                    ):
-                        view.add_item(item)
-                except Exception as exc:
-                    log.warning("color panel row skipped in %s: %s", guild_id, exc)
         return CardPayload(view=view, files=files), picker
 
     async def _panel_payload(self, guild_id: int, *, trace: bool = False):
@@ -277,9 +266,10 @@ class ColorsCog(commands.Cog):
                         payload.view.add_item(row)
                 return payload
             if payload is not None:
-                # V2 themed frame: splice chunks + picker onto it.
+                # V2 themed frame: splice chunks (each card + its buttons)
+                # onto it.
                 entries = await self.store.list_colors(guild_id)
-                files, documents, row_docs = chunk_containers(
+                files, documents = chunk_containers(
                     self.bot, guild_id, entries, await self.per_container(guild_id)
                 )
                 from rosemary.core.cards import build_items
@@ -292,22 +282,11 @@ class ColorsCog(commands.Cog):
                         ):
                             payload.view.add_item(item)
                     except Exception as exc:
-                        log.warning("color panel chunk skipped in %s: %s", guild_id, exc)
+                        log.warning("color panel block skipped in %s: %s", guild_id, exc)
                 picker = ColorPickerView(self.bot, guild_id, entries)
                 mode = await self.picker_mode(guild_id)
                 if mode == "select":
                     payload.view.add_item(await picker.select_row())
-                else:
-                    for row_doc in row_docs:
-                        try:
-                            for item in build_items(
-                                theme_for(self.bot, guild_id), {"blocks": [row_doc]}
-                            ):
-                                payload.view.add_item(item)
-                        except Exception as exc:
-                            log.warning(
-                                "color panel row skipped in %s: %s", guild_id, exc
-                            )
                 payload = CardPayload(view=payload.view, files=files)
                 return payload
         return await self.build_panel_view(guild_id)

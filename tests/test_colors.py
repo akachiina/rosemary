@@ -192,29 +192,37 @@ async def test_chunk_containers_files_and_rows(tmp_path):
 
     bot = _bot(tmp_path)
     entries = [ColorEntry(new_color_id(), f"C{i}", "#123456") for i in range(12)]
-    files, documents, row_docs = chunk_containers(bot, 1, entries, 10)
+    files, documents = chunk_containers(bot, 1, entries, 10)
     assert len(files) == 2
-    assert len(documents) == 2
+    # Interleaved: card(chunk 1), its buttons (10 = 2 rows), card(chunk 2),
+    # its buttons.
+    assert [doc["type"] for doc in documents] == [
+        "container", "row", "row", "container", "row",
+    ]
     for document in documents:
-        assert document["type"] == "container"
+        if document["type"] != "container":
+            continue
         # Image-only containers: picker buttons live OUTSIDE the cards.
         assert all(child["type"] == "gallery" for child in document["children"])
-    # Picker rows are separate top-level documents, 5 buttons each.
-    assert len(row_docs) == 3
-    assert all(doc["type"] == "row" for doc in row_docs)
-    # Without the renderer present the panels still build (imageless).
-    all_buttons = [
-        int(button["label"])
-        for document in row_docs
-        for button in document["buttons"]
-    ]
-    assert all_buttons == list(range(1, 13))
+    # Each chunk's rows carry that chunk's numbers (5 buttons per row).
+    def _row_numbers(documents_slice):
+        return [
+            int(button["label"])
+            for document in documents_slice
+            for button in document["buttons"]
+        ]
+
+    first_chunk_numbers = _row_numbers(documents[1:3])
+    second_chunk_numbers = _row_numbers(documents[4:5])
+    assert first_chunk_numbers == list(range(1, 11))
+    assert second_chunk_numbers == list(range(11, 13))
     # Every picker button carries its dispatcher custom_id: a url-less,
     # id-less button would render as a link button without a URL and 400 the
     # whole panel send (Discord 50035 "A url is required").
     carried = {
         button["id"]
-        for document in row_docs
+        for document in documents
+        if document["type"] == "row"
         for button in document["buttons"]
     }
     expected_ids = {f"colors_pick:{entry.id}" for entry in entries}

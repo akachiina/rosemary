@@ -238,32 +238,42 @@ def _crop_bbox(
 def _rasterize(pdf: bytes) -> bytes | None:
     """PDF bytes to a cropped transparent PNG (``None`` when blank/failed).
 
-    The first pass locates the content's bounding box at :data:`_ZOOM` scale;
-    a second pass with ``clip=`` renders just that region - the module
-    version's Pixmap copy-constructor cannot crop an alpha pixmap in place.
-    Oversized results downscale to :data:`_MAX_SIDE`.
+    The probe pass renders the whole page at :data:`_ZOOM` and locates the
+    content's bounding box **in probe pixels**; converted to page points it
+    becomes the clip rect of the final pass (a module-version Pixmap cannot
+    crop an alpha pixmap in place). The final zoom stays at :data:`_ZOOM`
+    unless the crop would exceed :data:`_MAX_SIDE`, which downscales instead
+    of shipping a huge upload.
     """
     try:
         import pymupdf
 
         doc = pymupdf.open(stream=pdf, filetype="pdf")
         page = doc[0]
-        matrix = pymupdf.Matrix(_ZOOM, _ZOOM)
-        probe = page.get_pixmap(alpha=True, matrix=matrix)
+        probe = page.get_pixmap(alpha=True, matrix=pymupdf.Matrix(_ZOOM, _ZOOM))
         bbox = _crop_bbox(
             probe.samples, probe.width, probe.height, probe.n, probe.stride
         )
         if bbox is None:
             return None
         x0, y0, x1, y1 = bbox
+        # Probe pixels -> page points (the probe rasterized at _ZOOM).
+        rect = pymupdf.Rect(
+            x0 / _ZOOM, y0 / _ZOOM, x1 / _ZOOM, y1 / _ZOOM
+        )
         zoom = float(_ZOOM)
-        # Downscale oversized results (template authors control size, not us).
-        if x1 - x0 > _MAX_SIDE or y1 - y0 > _MAX_SIDE:
+        if (
+            rect.width * zoom > _MAX_SIDE
+            or rect.height * zoom > _MAX_SIDE
+        ):
             zoom = min(
-                _MAX_SIDE / max(x1 - x0, 1), _MAX_SIDE / max(y1 - y0, 1), _ZOOM
+                _MAX_SIDE / max(rect.width, 1e-6),
+                _MAX_SIDE / max(rect.height, 1e-6),
+                _ZOOM,
             )
-        rect = pymupdf.Rect(x0 / zoom, y0 / zoom, x1 / zoom, y1 / zoom)
-        pix = page.get_pixmap(alpha=True, clip=rect, matrix=pymupdf.Matrix(zoom, zoom))
+        pix = page.get_pixmap(
+            alpha=True, clip=rect, matrix=pymupdf.Matrix(zoom, zoom)
+        )
         return pix.tobytes("png")
     except Exception:
         log.warning("color panel rasterization failed", exc_info=True)
