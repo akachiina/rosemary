@@ -13,6 +13,7 @@ import discord
 import pytest
 
 from rosemary.core.colors import (
+    LEGACY_SEEDS,
     MAX_COLORS,
     PASTEL_SEEDS,
     ColorEntry,
@@ -177,6 +178,11 @@ def _bot(tmp_path, roles=()):
     guild.created_roles = created
     guild.me = MagicMock()
     guild.me.guild_permissions.manage_roles = True
+    guild.me.id = 4242
+    # The orphan sweep needs Manage Messages; the cog checks manage_roles on
+    # this same object. Real Permissions computes channel overwrites from
+    # guild.default_role, which is a mock here, so tests stub permissions_for
+    # on their fake channels instead (see the FakeChannel classes).
     bot.guild = guild
     return bot
 
@@ -626,6 +632,7 @@ async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
     sent = {}
     sent_ids: list[int] = []
     deleted = []
+    history: list = []
 
     class FakePartial:
         def __init__(self, message_id):
@@ -643,13 +650,25 @@ async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
             self.guild = guild
             self._state = MagicMock()
 
+        def permissions_for(self, member):
+            return discord.Permissions(
+                manage_messages=True, manage_roles=True, read_messages=True,
+                send_messages=True,
+            )
+
         def get_partial_message(self, message_id):
             return FakePartial(message_id)
+
+        def history(self, limit=50):
+            return _history_iter(history)
 
         async def send(self, **kw):
             sent.update(kw)
             message = MagicMock()
             message.id = 777 + len(sent_ids)
+            message.author.id = 4242
+            message.components = []
+            history.append(message)
             sent_ids.append(message.id)
             return message
 
@@ -698,6 +717,7 @@ async def test_repost_sweeps_orphan_panels(tmp_path):
     await cog.store.add_known_panel(1, 222)
 
     sent, deleted = {}, []
+    history: list = []
 
     class FakePartial:
         def __init__(self, message_id):
@@ -712,13 +732,24 @@ async def test_repost_sweeps_orphan_panels(tmp_path):
             self.guild = bot.guild
             self._state = MagicMock()
 
+        def permissions_for(self, member):
+            return discord.Permissions(
+                manage_messages=True, read_messages=True, send_messages=True,
+            )
+
         def get_partial_message(self, message_id):
             return FakePartial(message_id)
+
+        def history(self, limit=50):
+            return _history_iter(history)
 
         async def send(self, **kw):
             sent.update(kw)
             message = MagicMock()
             message.id = 999
+            message.author.id = 4242
+            message.components = []
+            history.append(message)
             return message
 
     bot.guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
@@ -733,6 +764,173 @@ async def test_repost_sweeps_orphan_panels(tmp_path):
     assert await cog.store.get_panel(1) == 999
     known = await cog.store.known_panels(1)
     assert known == [999]  # history collapses to the live panel
+
+
+async def test_orphan_scan_finds_picker_messages(tmp_path):
+    """History scan: any bot message whose components carry a ``colors_pick``
+    custom_id (nested or top-level) is a color panel; the live panel and
+    other-bot/human messages are left alone."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    await bot.storage.set(1, "colors.enabled", True)
+    await bot.storage.set(1, "colors.panel_channel", 55)
+    await cog.store.set_panel(1, 100)  # the live panel is protected
+
+    def _button(custom_id):
+        button = MagicMock()
+        button.custom_id = custom_id
+        return button
+
+    def _message(message_id, author_id, components):
+        message = MagicMock()
+        message.id = message_id
+        message.author.id = author_id
+        message.components = components
+        return message
+
+    nested_row = MagicMock(children=[_button("colors_pick:abc123")])
+    orphan_nested = _message(201, 4242, [nested_row])
+    orphan_flat = _message(202, 4242, [_button("colors_pick_select")])
+    live = _message(100, 4242, [nested_row])
+    other_bot = _message(203, 9999, [nested_row])
+    unrelated = _message(204, 4242, [_button("tickets_open:xyz")])
+    history = [orphan_nested, orphan_flat, live, other_bot, unrelated]
+
+    class FakeChannel(discord.TextChannel):
+        def __init__(self):
+            self.id = 55
+            self.guild = bot.guild
+            self._state = MagicMock()
+
+        def permissions_for(self, member):
+            return discord.Permissions(
+                manage_messages=True, read_messages=True, send_messages=True,
+            )
+
+        def history(self, limit=50):
+            return _history_iter(history)
+
+    bot.guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
+    orphans = await cog._orphan_ids(bot.guild)
+    assert orphans == {201, 202}
+
+
+async def test_migrate_seed_v2_store(tmp_path):
+    """A stock v1 (12-color) seed migrates to the 20-color set: donor entries
+    keep id + role (buttons/members survive), new hues arrive role-less, and
+    the stamp makes the migration one-time."""
+    store = ColorStore(tmp_path)
+    for index, (slug, hex_) in enumerate(LEGACY_SEEDS):
+        await store.add_color(1, slug.title(), hex_, role_id=1000 + index)
+    await store.mark_seeded(1)
+    names = {slug: slug.replace("_", " ").title() for slug, _ in PASTEL_SEEDS}
+
+    result = await store.migrate_seed_v2(1, names)
+    assert result is not None
+    entries, role_updates = result
+    assert len(entries) == 20
+    assert len(role_updates) == 12  # every donor role renamed/recolored
+    donors = [entry for entry in entries if entry.role_id is not None]
+    assert len(donors) == 12
+    assert {entry.role_id for entry in donors} == {1000 + i for i in range(12)}
+    fresh = [entry for entry in entries if entry.role_id is None]
+    assert len(fresh) == 8
+    # Donor order follows the v2 palette order.
+    assert entries[0].color.upper() == PASTEL_SEEDS[0][1].upper()
+    # One-time: second call is a no-op and the stamp persists.
+    assert await store.migrate_seed_v2(1, names) is None
+    assert (await store.storage.get(1))["seed_version"] == 2
+    # Stored list matches what was returned.
+    assert [entry.id for entry in await store.list_colors(1)] == [
+        entry.id for entry in entries
+    ]
+
+
+async def test_migrate_seed_v2_skips_customized_guilds(tmp_path):
+    """A guild that renamed/recolor entries (or started from scratch) is not
+    touched; the stamp just records the check so it never runs again."""
+    store = ColorStore(tmp_path)
+    await store.add_color(1, "Minha Cor", "#123456", role_id=55)
+    await store.mark_seeded(1)
+    names = {slug: slug.replace("_", " ").title() for slug, _ in PASTEL_SEEDS}
+    assert await store.migrate_seed_v2(1, names) is None
+    entries = await store.list_colors(1)
+    assert [entry.name for entry in entries] == ["Minha Cor"]
+    assert (await store.storage.get(1))["seed_version"] == 2
+
+
+async def test_migrate_seed_v2_keeps_extra_entries(tmp_path):
+    """Admin-added colors outside the stock palette survive the migration."""
+    store = ColorStore(tmp_path)
+    for slug, hex_ in LEGACY_SEEDS:
+        await store.add_color(1, slug.title(), hex_)
+    await store.add_color(1, "Custom", "#ABCDEF", role_id=77)
+    await store.mark_seeded(1)
+    names = {slug: slug.replace("_", " ").title() for slug, _ in PASTEL_SEEDS}
+    result = await store.migrate_seed_v2(1, names)
+    assert result is not None
+    entries, _updates = result
+    custom = [entry for entry in entries if entry.name == "Custom"]
+    assert len(custom) == 1 and custom[0].role_id == 77
+
+
+async def test_seed_migration_creates_and_updates_roles(tmp_path):
+    """The cog path: donor roles are renamed/recolored in Discord, fresh hues
+    get created roles, and the panel repaints after the migration."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    for index, (slug, hex_) in enumerate(LEGACY_SEEDS):
+        await cog.store.add_color(1, slug.title(), hex_, role_id=2000 + index)
+    await cog.store.mark_seeded(1)
+
+    def _role(role_id, name):
+        role = MagicMock()
+        role.id = role_id
+        role.name = name
+        role.edit = AsyncMock()
+        return role
+
+    live_roles = {
+        2000 + index: _role(2000 + index, slug.title())
+        for index, (slug, _hex) in enumerate(LEGACY_SEEDS)
+    }
+    bot.guild.get_role = lambda rid: live_roles.get(rid)
+    cog.repaint_panel = AsyncMock()
+
+    await cog._maybe_migrate_seed(bot.guild)
+    # Donor roles got an edit call (rename/recolor).
+    edited = [role for role in live_roles.values() if role.edit.await_count >= 1]
+    assert len(edited) == 12
+    # 8 fresh hues: roles created through the store round-trip.
+    entries = await cog.store.list_colors(1)
+    assert len(entries) == 20
+    assert all(entry.role_id is not None for entry in entries)
+    assert cog.repaint_panel.await_count == 1
+
+
+async def test_migrate_seed_v2_noop_when_disabled(tmp_path):
+    """Migration only runs from the enabled boot path; the store method
+    itself never seeds from nothing."""
+    store = ColorStore(tmp_path)
+    names = {slug: slug.replace("_", " ").title() for slug, _ in PASTEL_SEEDS}
+    assert await store.migrate_seed_v2(1, names) is None
+    assert await store.list_colors(1) == []
+
+
+def _history_iter(messages):
+    """py-cord's ``channel.history`` returns an async iterator."""
+
+    async def _gen():
+        for message in messages:
+            yield message
+
+    return _gen()
 
 
 def _ack_only(data=None):

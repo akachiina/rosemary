@@ -68,6 +68,7 @@ class ColorsCog(commands.Cog):
         if not await self.enabled(guild.id):
             return
         await self.seed_if_needed(guild.id)
+        await self._maybe_migrate_seed(guild)
         entries = await self.store.list_colors(guild.id)
         # The registered dispatcher must CARRY the picker rows: py-cord's
         # view store indexes only real children (walk_children), so an empty
@@ -107,6 +108,39 @@ class ColorsCog(commands.Cog):
     def _can_manage_roles(self, guild: discord.Guild) -> bool:
         permissions = getattr(guild.me, "guild_permissions", None)
         return bool(permissions and permissions.manage_roles)
+
+    async def _maybe_migrate_seed(self, guild: discord.Guild) -> None:
+        """One-time v1 (12 colors) -> v2 (20 colors) seed migration.
+
+        Keeps entry ids (posted buttons stay valid) and role links (members
+        keep wearing a color role); donor roles are renamed/recolored to the
+        new palette and missing hues get fresh roles. Runs before the first
+        repaint so the panel never shows the old palette twice.
+        """
+        names = await self._seed_names(guild.id)
+        result = await self.store.migrate_seed_v2(guild.id, names)
+        if result is None:
+            return
+        entries, role_updates = result
+        if self._can_manage_roles(guild):
+            for role_id, label, hex_ in role_updates:
+                role = guild.get_role(role_id)
+                if role is None:
+                    continue
+                try:
+                    await role.edit(
+                        name=label,
+                        colour=discord.Colour(int(hex_.lstrip("#"), 16)),
+                        reason="Color panel seed v2",
+                    )
+                except discord.HTTPException as exc:
+                    log.warning(
+                        "color seed v2 role update failed in %s: %s", guild.id, exc
+                    )
+            fresh = [entry for entry in entries if entry.role_id is None]
+            if fresh:
+                entries = await self._ensure_seed_roles(guild, entries)
+        await self.repaint_panel(self.bot, guild.id)
 
     async def _seed_names(self, guild_id: int) -> dict[str, str]:
         """Slug -> translated label for the pastel seed."""
@@ -278,6 +312,40 @@ class ColorsCog(commands.Cog):
                 return payload
         return await self.build_panel_view(guild_id)
 
+    async def _orphan_ids(self, guild: discord.Guild) -> set[int]:
+        """Channel messages that look like a color panel (panel markers).
+
+        Panels posted before the store recorded their id would otherwise
+        stay on the channel forever; the bot's own messages whose component
+        ids start with ``colors_pick`` (buttons) or ``colors_pick_select``
+        (select) are unambiguous markers. Needs Manage Messages, which any
+        panel-channel setup already has.
+        """
+        channel = await self._panel_channel(guild)
+        if channel is None:
+            return set()
+        me = guild.me
+        if me is None or not channel.permissions_for(me).manage_messages:
+            return set()
+        orphans: set[int] = set()
+        current = await self.store.get_panel(guild.id)
+
+        def has_picker(node: object) -> bool:
+            custom_id = getattr(node, "custom_id", None) or ""
+            if custom_id.startswith("colors_pick"):
+                return True
+            return any(has_picker(child) for child in getattr(node, "children", []) or [])
+
+        try:
+            async for message in channel.history(limit=200):
+                if message.id == current or message.author.id != me.id:
+                    continue
+                if any(has_picker(row) for row in message.components or []):
+                    orphans.add(message.id)
+        except discord.HTTPException:
+            return orphans
+        return orphans
+
     async def _post_panel(
         self,
         guild: discord.Guild,
@@ -288,13 +356,14 @@ class ColorsCog(commands.Cog):
         """Post the panel, sweeping away every earlier panel message.
 
         Deletes the stored ``replace_id`` AND every other recorded panel id
-        (older posts predate the single-panel invariant and would stay on
-        the channel forever, stacked under the fresh one)."""
+        plus history-detected orphans (posts older than the id recording
+        would otherwise stay stacked under the fresh one forever)."""
         from rosemary.core.mentions import allowed_for_ids
 
         stale = set(await self.store.known_panels(guild.id))
         if replace_id is not None:
             stale.add(replace_id)
+        stale |= await self._orphan_ids(guild)
         payload, _picker = await self._panel_payload(guild.id, trace=True)
         message = await channel.send(
             **payload.message_kwargs(),

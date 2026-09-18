@@ -16,10 +16,12 @@ buttons/select, the rendered image and the ``/cores`` listing all consume
 picked); the live role's color wins at render time, so admins recoloring the
 role on Discord see the panel catch up on the next repaint.
 
-Seed: the first time the manager opens, twelve pastel entries (names from
-the catalogs under ``colors.defaults.<slug>``) are created so the panel works
-out of the box; creation only touches this file - role attachment is the
-admin's explicit action.
+Seed: the first open seeds the 20 pastels (names from the catalogs under
+``colors.defaults.<slug>``) AND the cog creates their Discord roles, so the
+panel works out of the box. Guilds seeded by the earlier 12-color palette
+migrate through :meth:`ColorStore.migrate_seed_v2` (version stamp
+``seed_version``), which keeps entry ids and role links alive so posted
+buttons never die.
 """
 
 from __future__ import annotations
@@ -66,6 +68,40 @@ PASTEL_SEEDS: tuple[tuple[str, str], ...] = (
     ("sage_light", "#DEEDDE"),
     ("sage_dark", "#A5C6A5"),
 )
+
+#: The earlier 12-color palette (pre seed-v2): guilds seeded with these hexes
+#: migrate to the 20-color set. Order matches the old PASTEL_SEEDS.
+LEGACY_SEEDS: tuple[tuple[str, str], ...] = (
+    ("rose", "#FFB7C5"),
+    ("salmon", "#FFB3A7"),
+    ("peach", "#FFDAB9"),
+    ("butter", "#FDFD96"),
+    ("mint", "#B5EAD7"),
+    ("sage", "#C1E1C1"),
+    ("sky", "#AEC6CF"),
+    ("lavender", "#C3B1E1"),
+    ("lilac", "#C8A2C8"),
+    ("periwinkle", "#CCCCFF"),
+    ("cotton_candy", "#F7C9DE"),
+    ("sand", "#F5E6D3"),
+)
+
+#: Legacy slug -> v2 slug: each old hue lands on its closest v2 color, so
+#: donor entries (and their live Discord roles) survive the migration.
+LEGACY_MAP: dict[str, str] = {
+    "rose": "rose_light",
+    "salmon": "peach_dark",
+    "peach": "peach_light",
+    "butter": "butter_light",
+    "mint": "mint_light",
+    "sage": "sage_light",
+    "sky": "sky_light",
+    "lavender": "lavender_light",
+    "lilac": "lavender_dark",
+    "periwinkle": "periwinkle_light",
+    "cotton_candy": "cotton_light",
+    "sand": "sand_light",
+}
 
 
 @dataclass(frozen=True)
@@ -279,6 +315,74 @@ class ColorStore:
         await self.set_colors(guild_id, created)
         await self.mark_seeded(guild_id)
         return created
+
+    async def migrate_seed_v2(
+        self, guild_id: int, names: dict[str, str]
+    ) -> tuple[list[ColorEntry], list[tuple[int, str, str]]] | None:
+        """Legacy 12-color seed -> the 20-color set, one-time.
+
+        Detection is by stored hex (the old palette's exact values): a guild
+        whose entries carry at least 8 legacy hexes is a stock v1 seed and
+        gets replaced in place; anything else is admin-customized and left
+        untouched (only stamped so the check never runs again).
+
+        Donor entries keep their id (posted buttons stay valid) and their
+        ``role_id`` (members keep wearing a color role); the role itself is
+        renamed/recolored by the caller via the returned
+        ``(role_id, name, hex)`` updates. New hues get fresh entries whose
+        roles the cog creates. Returns ``None`` when there is nothing to do.
+        """
+        doc = await self._doc(guild_id)
+        if doc.get("seed_version") == 2:
+            return None
+        doc["seed_version"] = 2
+        entries = await self.list_colors(guild_id)
+        if not doc.get("seeded") or not entries:
+            await self._save(guild_id, doc)
+            return None
+        legacy_hex = {hex_.upper() for _slug, hex_ in LEGACY_SEEDS}
+        by_hex: dict[str, ColorEntry] = {}
+        for entry in entries:
+            by_hex.setdefault(entry.color.upper(), entry)
+        matched = sum(1 for hex_ in legacy_hex if hex_ in by_hex)
+        if matched < 8:
+            await self._save(guild_id, doc)
+            return None
+        v2_to_legacy: dict[str, str] = {}
+        for old_slug, new_slug in LEGACY_MAP.items():
+            v2_to_legacy.setdefault(new_slug, old_slug)
+        used: set[str] = set()
+        new_entries: list[ColorEntry] = []
+        role_updates: list[tuple[int, str, str]] = []
+        for slug, hex_ in PASTEL_SEEDS:
+            label = names.get(slug, slug.title())
+            donor: ColorEntry | None = None
+            old_slug = v2_to_legacy.get(slug)
+            if old_slug is not None:
+                old_hex = next((h for s, h in LEGACY_SEEDS if s == old_slug), None)
+                candidate = by_hex.get(old_hex.upper()) if old_hex else None
+                if candidate is not None and candidate.id not in used:
+                    donor = candidate
+            if donor is not None:
+                used.add(donor.id)
+                new_entries.append(
+                    ColorEntry(donor.id, label, hex_, donor.role_id)
+                )
+                if donor.role_id and (
+                    donor.name != label or donor.color.upper() != hex_.upper()
+                ):
+                    role_updates.append((donor.role_id, label, hex_))
+            else:
+                new_entries.append(ColorEntry(new_color_id(), label, hex_))
+        # Admin entries outside the stock palette ride along untouched.
+        new_entries.extend(entry for entry in entries if entry.id not in used)
+        # set_colors re-reads the stored doc; stamp on a fresh read so the
+        # save never clobbers the new list with this method's stale snapshot.
+        await self.set_colors(guild_id, new_entries)
+        doc = await self._doc(guild_id)
+        doc["seed_version"] = 2
+        await self._save(guild_id, doc)
+        return new_entries, role_updates
 
     async def set_panel(self, guild_id: int, message_id: int | None) -> None:
         doc = await self._doc(guild_id)
