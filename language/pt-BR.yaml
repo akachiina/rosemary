@@ -2169,7 +2169,6 @@ card:
       joined_label: "{door} Entrou"
       joined_value: "{joined_at} · {joined_rel}"
       roles_label: "{tag} Cargos"
-      top_role_label: "{crown} Cargo principal"
       boosting_since_label: "{rocket} Boost desde"
       timeout_label: "{mute} Timeout"
       is_bot_label: "{gear} Bot"

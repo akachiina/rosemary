@@ -35,8 +35,9 @@ def _compose(bot, guild_id: int, card_key: str, variables: dict):
 
     ``raw`` formats one catalog key, ``line`` builds one ``**label:** value``
     stat line (an optional ``<name>_value`` template wins over the plain
-    variable), ``optional`` renders the line only when the variable carries
-    content, and ``subtitle`` resolves the card's optional subtitle.
+    variable), ``optional`` renders the line only when its gate variable
+    carries content (defaults to the line's own name), and ``subtitle``
+    resolves the card's optional subtitle.
     """
     from rosemary.core.cards import safe_format
 
@@ -58,8 +59,8 @@ def _compose(bot, guild_id: int, card_key: str, variables: dict):
         value = template if template != full_key else f"{{{name}}}"
         return f"**{label}:** {value}"
 
-    async def optional(name: str):
-        value = variables.get(name)
+    async def optional(name: str, *, gate: str | None = None):
+        value = variables.get(gate or name)
         if isinstance(value, str) and value.strip():
             return await line(name)
         return None
@@ -102,20 +103,21 @@ async def default_userinfo_document(bot, guild_id, **variables) -> dict:
     if sub:
         header_texts.append(sub)
     children = _header_children("utility.userinfo", variables, header_texts)
+    if isinstance(variables.get("banner_url"), str) and variables["banner_url"].strip():
+        # Banner right after the header: V2 renders in document order, so
+        # appending later would drop the image at the card's bottom.
+        children.append({"type": "gallery", "urls": ["{banner_url}"]})
     children.append({"type": "divider"})
     lines = [
         await line("created"),
         await line("joined"),
         await optional("nickname"),
         await line("roles"),
-        await line("top_role"),
         await optional("boosting_since"),
         await line("timeout"),
         await line("is_bot"),
     ]
     children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
-    if isinstance(variables.get("banner_url"), str) and variables["banner_url"].strip():
-        children.append({"type": "gallery", "urls": ["{banner_url}"]})
     children.append({"type": "divider"})
     children.append({"type": "text", "body": "-# {user_id}"})
     return {
@@ -137,7 +139,7 @@ async def default_emojiinfo_document(bot, guild_id, **variables) -> dict:
     # Source lives in the subtitle and the id in the footer: the body only
     # carries the optional created/animated lines (unicode drops both).
     lines = [
-        await optional("created_at"),
+        await optional("created", gate="created_at"),
         await optional("animated"),
     ]
     body = "\n".join(ln for ln in lines if ln)
@@ -309,7 +311,11 @@ class InfoCog(commands.Cog):
             "joined_at": _ts(target.joined_at, "D"),
             "joined_rel": _ts(target.joined_at, "R"),
             "roles": len([r for r in target.roles if r != ctx.guild.default_role]),
-            "top_role": target.top_role.mention,
+            # @everyone has no mention pill (its <@&guild_id> token renders
+            # oddly and duplicates with the subtitle): plain text instead.
+            "top_role": target.top_role.mention
+            if not target.top_role.is_default()
+            else "@everyone",
             "boosting_since": _ts(target.premium_since, "R")
             if target.premium_since
             else "",
@@ -381,8 +387,9 @@ class InfoCog(commands.Cog):
         try:
             return await self.bot.fetch_emoji(partial.id)
         except (discord.Forbidden, discord.HTTPException) as exc:
-            log.warning("Emoji %s not resolvable: %s", partial.id, exc)
-            # Still renderable from the partial alone (name, id, CDN url).
+            # Expected flow for dead emojis: the card renders from the partial
+            # alone ("unknown origin"), so this is info, not a warning.
+            log.info("Emoji %s not resolvable: %s", partial.id, exc)
             return _PartialRef(partial)
 
     async def _respond_emoji(self, ctx, emoji, fetch_origin: bool = True) -> None:
