@@ -432,8 +432,10 @@ async def test_boot_registers_picker_with_real_rows(tmp_path):
     added = []
     bot.add_view = lambda view: added.append(view)
     await cog._restore_guild(MagicMock(id=1))
-    assert len(added) == 1
-    picker = added[0]
+    # Dispatch registers early AND again after the migration step (same
+    # custom_ids overwrite; new entry ids must dispatch too).
+    assert len(added) == 2
+    picker = added[-1]
     indexed = [
         item.custom_id
         for item in picker.walk_children()
@@ -946,10 +948,11 @@ async def test_boot_does_not_resend_panel(tmp_path):
     await bot.cog._restore_guild(bot.guild)
     assert len(sends) == 1  # silent: no re-send, no delete
     assert deleted == []
-    # The picker dispatch is still registered with real rows.
+    # The picker dispatch is still registered with real rows (twice: early
+    # + post-migration pass; the last carries the final entry list).
     assert any(
         getattr(item, "custom_id", "")
-        for item in bot.views[0].walk_children()
+        for item in bot.views[-1].walk_children()
     )
 
 

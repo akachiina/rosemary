@@ -81,20 +81,15 @@ class ColorsCog(commands.Cog):
     async def _restore_guild(self, guild: discord.Guild) -> None:
         if not await self.enabled(guild.id):
             return
+        # Register dispatch FIRST (local reads only): any click that lands
+        # after on_ready starts gets answered, even while the rest of the
+        # restore (seed roles, migration, history sweep) is still in flight.
+        await self._register_dispatchers(guild)
         await self.seed_if_needed(guild.id)
         await self._maybe_migrate_seed(guild)
-        entries = await self.store.list_colors(guild.id)
-        # The registered dispatcher must CARRY the picker rows: py-cord's
-        # view store indexes only real children (walk_children), so an empty
-        # view registers nothing and every click dies as "did not respond".
-        # Visual chunking is irrelevant here: every entry needs its handler.
-        picker = ColorPickerView(self.bot, guild.id, entries)
-        if await self.picker_mode(guild.id) == "select":
-            picker.add_item(await picker.select_row())
-        else:
-            for row in picker.rows_for(entries):
-                picker.add_item(row)
-        self.bot.add_view(picker)
+        # The v1->v2 migration mints NEW entry ids: re-register so those
+        # buttons dispatch too (same custom_ids overwrite the first pass).
+        await self._register_dispatchers(guild)
         # Self-heal before the fingerprint short-circuit: panels orphaned
         # before ids were recorded must die even when the live panel is up
         # to date (one history read, no re-send).
@@ -106,6 +101,23 @@ class ColorsCog(commands.Cog):
         # Repaints only when the fingerprint changed: a quiet boot never
         # re-sends the panel (the ticket-panel contract).
         await self.repaint_panel(self.bot, guild.id)
+
+    async def _register_dispatchers(self, guild: discord.Guild) -> None:
+        """Register the persistent picker dispatch for ``guild``.
+
+        The registered dispatcher must CARRY the picker rows: py-cord's view
+        store indexes only real children (walk_children), so an empty view
+        registers nothing and every click dies as "did not respond".
+        Visual chunking is irrelevant here: every entry needs its handler.
+        """
+        entries = await self.store.list_colors(guild.id)
+        picker = ColorPickerView(self.bot, guild.id, entries)
+        if await self.picker_mode(guild.id) == "select":
+            picker.add_item(await picker.select_row())
+        else:
+            for row in picker.rows_for(entries):
+                picker.add_item(row)
+        self.bot.add_view(picker)
 
     # helpers ====================
 
