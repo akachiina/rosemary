@@ -152,12 +152,16 @@ def _bot(tmp_path, roles=()):
             self._theme_cache = {}
             self.guild = None
             self.cog = None
+            self.views = []
 
         def get_guild(self, guild_id):
             return self.guild
 
         def get_cog(self, name):
             return self.cog
+
+        def add_view(self, view):
+            self.views.append(view)
 
     bot = Bot()
     guild = MagicMock()
@@ -194,39 +198,44 @@ async def test_chunk_containers_files_and_rows(tmp_path):
     entries = [ColorEntry(new_color_id(), f"C{i}", "#123456") for i in range(12)]
     files, documents = chunk_containers(bot, 1, entries, 10)
     assert len(files) == 2
-    # Interleaved: card(chunk 1), its buttons (10 = 2 rows), card(chunk 2),
-    # its buttons.
-    assert [doc["type"] for doc in documents] == [
-        "container", "row", "row", "container", "row",
-    ]
+    # One self-contained card per chunk: that chunk's buttons INSIDE the
+    # container, right under its image (user's layout choice).
+    assert [doc["type"] for doc in documents] == ["container", "container"]
+    numbers = []
     for document in documents:
-        if document["type"] != "container":
-            continue
-        # Image-only containers: picker buttons live OUTSIDE the cards.
-        assert all(child["type"] == "gallery" for child in document["children"])
-    # Each chunk's rows carry that chunk's numbers (5 buttons per row).
-    def _row_numbers(documents_slice):
-        return [
+        kinds = [child["type"] for child in document["children"]]
+        assert kinds[0] == "gallery"
+        assert all(kind == "row" for kind in kinds[1:])
+        numbers.extend(
             int(button["label"])
-            for document in documents_slice
-            for button in document["buttons"]
-        ]
-
-    first_chunk_numbers = _row_numbers(documents[1:3])
-    second_chunk_numbers = _row_numbers(documents[4:5])
-    assert first_chunk_numbers == list(range(1, 11))
-    assert second_chunk_numbers == list(range(11, 13))
+            for child in document["children"][1:]
+            for button in child["buttons"]
+        )
+    # Numbering is continuous across cards (1..12).
+    assert numbers == list(range(1, 13))
     # Every picker button carries its dispatcher custom_id: a url-less,
     # id-less button would render as a link button without a URL and 400 the
     # whole panel send (Discord 50035 "A url is required").
     carried = {
         button["id"]
         for document in documents
-        if document["type"] == "row"
-        for button in document["buttons"]
+        for child in document["children"][1:]
+        for button in child["buttons"]
     }
     expected_ids = {f"colors_pick:{entry.id}" for entry in entries}
     assert carried == expected_ids
+
+
+async def test_chunk_containers_select_mode_has_no_buttons(tmp_path):
+    """Select mode: one picker only - cards carry just the gallery image."""
+    from rosemary.ui.colors_panel import chunk_containers
+
+    bot = _bot(tmp_path)
+    entries = [ColorEntry(new_color_id(), f"C{i}", "#123456") for i in range(12)]
+    files, documents = chunk_containers(bot, 1, entries, 10, "select")
+    assert len(files) == 2
+    for document in documents:
+        assert [child["type"] for child in document["children"]] == ["gallery"]
 
 
 async def test_picker_view_rows_carry_ids_and_handlers(tmp_path):
@@ -623,24 +632,26 @@ async def test_manager_list_stays_under_component_cap(tmp_path):
     assert LIST_ITEMS_PER_PAGE == 4
 
 
-async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
-    """PartialMessage.edit is JSON-only: an image panel must re-post (and
-    remove the stale message) instead of editing files into it."""
+async def test_repaint_edits_in_place_and_quiet_boot_skips(tmp_path):
+    """The repaint contract: an unchanged fingerprint is a no-op (a quiet
+    boot never re-sends, the ticket-panel contract), and a changed one
+    edits the stored message IN PLACE - ``Message.edit`` carries files via
+    multipart and ``attachments=[]`` replaces the old gallery. Re-posting
+    is only the fallback for a deleted message."""
     from rosemary.cogs.colors import ColorsCog
 
     bot = _bot(tmp_path)
     cog = ColorsCog(bot)
     bot.cog = cog
-    await cog.store.set_colors(
-        1, [ColorEntry(new_color_id(), "A", "#111111", role_id=11)]
-    )
+    entry = await cog.store.add_color(1, "A", "#111111", role_id=11)
     await bot.storage.set(1, "colors.enabled", True)
     await bot.storage.set(1, "colors.panel_channel", 55)
 
-    sent = {}
-    sent_ids: list[int] = []
-    deleted = []
+    sent: list = []
+    deleted: list = []
+    edits: list = []
     history: list = []
+    live_messages: dict[int, object] = {}
 
     class FakePartial:
         def __init__(self, message_id):
@@ -649,8 +660,13 @@ async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
         async def delete(self, delay=None):
             deleted.append(self.id)
 
-        async def edit(self, **kw):  # pragma: no cover - must not be called
-            raise AssertionError("partial edit attempted with files")
+    class FakeMessage:
+        def __init__(self, message_id):
+            self.id = message_id
+            self.author = MagicMock()
+            self.author.id = 4242
+            self.components = []
+            self.edit = AsyncMock(side_effect=lambda **kw: edits.append(kw))
 
     class FakeChannel(discord.TextChannel):
         def __init__(self):
@@ -667,48 +683,74 @@ async def test_repaint_with_files_reposts_and_deletes_old(tmp_path):
         def get_partial_message(self, message_id):
             return FakePartial(message_id)
 
+        async def fetch_message(self, message_id):
+            message = live_messages.get(message_id)
+            if message is None:
+                raise discord.NotFound(MagicMock(status=404), {"message": "Unknown Message"})
+            return message
+
         def history(self, limit=50):
             return _history_iter(history)
 
         async def send(self, **kw):
-            sent.update(kw)
-            message = MagicMock()
-            message.id = 777 + len(sent_ids)
-            message.author.id = 4242
-            message.components = []
+            message = FakeMessage(777 + len(sent))
+            sent.append(kw)
             history.append(message)
-            sent_ids.append(message.id)
+            live_messages[message.id] = message
             return message
 
     guild = bot.guild
     guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
+
+    def _payload(files):
+        mock = MagicMock()
+        mock.message_kwargs.return_value = {"view": MagicMock(), "files": files}
+        return (mock, None)
+
     files = [MagicMock()]
     with patch(
-        "rosemary.cogs.colors.ColorsCog._panel_payload"
-    ) as payload_mock:
-        payload = MagicMock()
-        payload.message_kwargs.return_value = {"view": MagicMock(), "files": files}
-        payload_mock.return_value = (payload, None)
+        "rosemary.cogs.colors.ColorsCog._panel_payload", return_value=_payload(files)
+    ):
         await cog.repaint_panel(bot, 1)
-    assert sent.get("files") == files
-    assert deleted == []  # no previous panel id: nothing to replace
+    assert len(sent) == 1 and sent[0].get("files") == files
+    assert deleted == []
     assert await cog.store.get_panel(1) == 777
 
-    # Second repaint with files: deletes the stale panel message.
+    # Unchanged state: the boot repaint is a no-op - zero HTTP calls.
     with patch(
-        "rosemary.cogs.colors.ColorsCog._panel_payload"
-    ) as payload_mock:
-        payload = MagicMock()
-        payload.message_kwargs.return_value = {"view": MagicMock(), "files": files}
-        payload_mock.return_value = (payload, None)
+        "rosemary.cogs.colors.ColorsCog._panel_payload", return_value=_payload(files)
+    ):
         await cog.repaint_panel(bot, 1)
-    assert deleted == [777]  # the first panel is swept on the re-post
-    assert await cog.store.get_panel(1) == 778  # the new message id
+    assert len(sent) == 1 and edits == [] and deleted == []
+
+    # A manager edit changes the fingerprint: in-place edit, no re-send.
+    await cog.store.update_color(1, entry.id, name="B")
+    files2 = [MagicMock()]
+    with patch(
+        "rosemary.cogs.colors.ColorsCog._panel_payload", return_value=_payload(files2)
+    ):
+        await cog.repaint_panel(bot, 1)
+    assert len(sent) == 1  # no re-send
+    assert deleted == []  # the panel message survives
+    assert len(edits) == 1
+    assert edits[0].get("files") == files2
+    assert edits[0].get("attachments") == []  # old gallery replaced
+    assert await cog.store.get_panel(1) == 777
+
+    # Deleted message falls back to a fresh post (which sweeps the stale id).
+    live_messages.clear()
+    with patch(
+        "rosemary.cogs.colors.ColorsCog._panel_payload", return_value=_payload(files)
+    ):
+        await cog.repaint_panel(bot, 1)
+    assert len(sent) == 2
+    assert deleted == [777]
 
 
 async def test_repost_sweeps_orphan_panels(tmp_path):
-    """Panels posted before the single-panel invariant (unknown ids) are
-    swept on the next post: stacked panels self-heal."""
+    """When the stored message is gone, the fallback re-post sweeps every
+    earlier panel (recorded ids plus history-detected orphans): stacked
+    panels self-heal."""
     from rosemary.cogs.colors import ColorsCog
 
     bot = _bot(tmp_path)
@@ -747,6 +789,9 @@ async def test_repost_sweeps_orphan_panels(tmp_path):
 
         def get_partial_message(self, message_id):
             return FakePartial(message_id)
+
+        async def fetch_message(self, message_id):
+            raise discord.NotFound(MagicMock(status=404), {"message": "Unknown Message"})
 
         def history(self, limit=50):
             return _history_iter(history)
@@ -824,6 +869,139 @@ async def test_orphan_scan_finds_picker_messages(tmp_path):
     bot.guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
     orphans = await cog._orphan_ids(bot.guild)
     assert orphans == {201, 202}
+
+
+async def test_boot_does_not_resend_panel(tmp_path):
+    """The user's report: every restart re-posted the panel (image panels
+    could only re-post). Boot #2 with unchanged state registers the picker
+    dispatch and sends NOTHING - the ticket-panel contract."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    await bot.storage.set(1, "colors.enabled", True)
+    await bot.storage.set(1, "colors.panel_channel", 55)
+
+    sends: list = []
+    deleted: list = []
+    history: list = []
+    live: dict[int, object] = {}
+
+    class FakeMessage:
+        def __init__(self, message_id):
+            self.id = message_id
+            self.author = MagicMock()
+            self.author.id = 4242
+            self.components = []
+
+        async def edit(self, **kw):  # pragma: no cover - silence check
+            raise AssertionError("boot #2 must not touch the message")
+
+    class FakeChannel(discord.TextChannel):
+        def __init__(self):
+            self.id = 55
+            self.guild = bot.guild
+            self._state = MagicMock()
+
+        def permissions_for(self, member):
+            return discord.Permissions(
+                manage_messages=True, manage_roles=True, read_messages=True,
+                send_messages=True,
+            )
+
+        def get_partial_message(self, message_id):
+            partial = MagicMock()
+
+            async def _delete(delay=None):
+                deleted.append(message_id)
+
+            partial.delete = _delete
+            return partial
+
+        async def fetch_message(self, message_id):
+            message = live.get(message_id)
+            if message is None:
+                raise discord.NotFound(
+                    MagicMock(status=404), {"message": "Unknown Message"}
+                )
+            return message
+
+        def history(self, limit=50):
+            return _history_iter(history)
+
+        async def send(self, **kw):
+            sends.append(kw)
+            message = FakeMessage(700 + len(sends))
+            history.append(message)
+            live[message.id] = message
+            return message
+
+    bot.guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
+
+    await cog._restore_guild(bot.guild)  # boot 1: seeds and posts
+    assert len(sends) == 1
+
+    bot.cog = ColorsCog(bot)  # boot 2: fresh process, same stored state
+    await bot.cog._restore_guild(bot.guild)
+    assert len(sends) == 1  # silent: no re-send, no delete
+    assert deleted == []
+    # The picker dispatch is still registered with real rows.
+    assert any(
+        getattr(item, "custom_id", "")
+        for item in bot.views[0].walk_children()
+    )
+
+
+async def test_picker_setting_change_repaints_panel(tmp_path):
+    """The user's report: changing "Seletor do Painel" (or the chunk size)
+    never refreshed the panel. Both settings are in the panels-registry
+    fan-out now; the fingerprint makes it a no-op when the value is equal."""
+    from rosemary.cogs.colors import PANEL_SETTING_KEYS, ColorsCog
+    from rosemary.core.panels import on_setting_changed, register
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    cog.repaint_panel = AsyncMock()
+    register("colors", cog.repaint_panel, setting_keys=PANEL_SETTING_KEYS)
+
+    await on_setting_changed(bot, 1, "colors.picker")
+    assert cog.repaint_panel.await_count == 1
+    await on_setting_changed(bot, 1, "colors.per_container")
+    assert cog.repaint_panel.await_count == 2
+    await on_setting_changed(bot, 1, "tickets.category")  # other feature
+    assert cog.repaint_panel.await_count == 2
+
+
+async def test_fit_per_container_budget(tmp_path):
+    """The requested chunking bends before Discord's 40-node ceiling:
+    25 colors at 10/chunk with in-card buttons would emit 45 nodes."""
+    from rosemary.ui.colors_panel import fit_per_container
+
+    assert fit_per_container(20, 10) == 10  # the shipped default fits
+    assert fit_per_container(25, 10) == 13  # grows until it fits
+    assert fit_per_container(25, 10, buttons=False) == 10  # select needs less
+    assert fit_per_container(25, 30) == 30  # never shrinks a request
+
+
+async def test_full_panel_stays_under_component_cap(tmp_path):
+    """Worst case (25 colors, MAX_COLORS) emits at most 40 V2 nodes,
+    nesting included - the same sweep the manager list screen pins."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    for index in range(MAX_COLORS):
+        await cog.store.add_color(1, f"C{index}", "#123456", role_id=100 + index)
+
+    payload, _picker = await cog.build_panel_view(1)
+
+    def total(item):
+        return 1 + sum(total(sub) for sub in getattr(item, "children", []) or [])
+
+    assert sum(total(child) for child in payload.view.children) <= 40
 
 
 async def test_migrate_seed_v2_store(tmp_path):

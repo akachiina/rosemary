@@ -6,10 +6,11 @@ one ``item`` per color into the ``{items}`` slot and rasterizes the result.
 
 Pipeline: WeasyPrint renders the HTML to a single-page PDF (its native
 output), the page width is *measured* against the rendered PDF's own word
-boxes until every column's text fits (font-metric guesses clip long labels
-like "Algodão-Doce Pastel"), PyMuPDF rasterizes the content region at 4x
-with an alpha channel, and the bitmap is cropped to the content's bounding
-box so the transparent margin disappears. The result is a sharp PNG with a
+boxes until every column's text fits AND no label crosses the page's right
+edge (font-metric guesses clip long labels like "Algodão-Doce Escurto"),
+PyMuPDF rasterizes the content region at 4x with an alpha channel, and the
+bitmap is cropped to the content's bounding box so the transparent margin
+disappears. The result is a sharp PNG with a
 truly transparent background - Discord composites it over the chat surface,
 matching a card written for a dark or light theme alike.
 
@@ -43,6 +44,13 @@ _ZOOM = 4
 
 #: Minimum breathing room (pt) between a column's text and the next column.
 _COLUMN_GAP_PT = 6.0
+
+#: Minimum breathing room (pt) between the rightmost label and the page
+#: edge. The column-gap check only sees overflow INTO the next column; a
+#: long label in the LAST column overflows the page itself (WeasyPrint
+#: clips at the page boundary) and needs this second check to trigger
+#: the width growth.
+_PAGE_EDGE_PAD_PT = 8.0
 
 _HEX_RE = re.compile(r"^#?[0-9a-fA-F]{6}$")
 
@@ -126,6 +134,7 @@ class _ImageMeasurer:
         import pymupdf
 
         doc = pymupdf.open(stream=pdf, filetype="pdf")
+        self.page_width: float = doc[0].rect.width
         self.words: list[tuple[float, float]] = [
             (word[0], word[2]) for word in doc[0].get_text("words")
         ]
@@ -179,7 +188,9 @@ def _measured_pdf(
     """Render a page wide enough for the widest label in any column.
 
     The width starts at the default and grows until the rendered PDF's own
-    word boxes show every column fitting (see :meth:`_ImageMeasurer.columns_fit`);
+    word boxes show every column fitting (see :meth:`_ImageMeasurer.columns_fit`)
+    and the rightmost label clearing the page edge (a label in the last
+    column overflows the page itself, which the column check never sees);
     PDF text extraction measures the real glyphs, which font-file guesses
     overestimate and still got clipped. Returns the PDF bytes or ``None``
     when rendering fails.
@@ -207,7 +218,14 @@ def _measured_pdf(
         except Exception:
             log.warning("color panel measurement failed", exc_info=True)
             return pdf
-        if measurer.columns_fit(column_count):
+        # The candidate goes into ``size: Npx`` (CSS px) but word boxes are
+        # page points: compare against the PDF's own page width, never the
+        # candidate (px vs pt mixed once made this check toothless).
+        if (
+            measurer.columns_fit(column_count)
+            and measurer.right_pt
+            <= measurer.page_width - _PAGE_EDGE_PAD_PT
+        ):
             return pdf
         width *= 1.3
     return pdf

@@ -187,6 +187,23 @@ class ColorStore:
         panel = (await self._doc(guild_id)).get("panel_message_id")
         return int(panel) if panel else None
 
+    async def panel_state(self, guild_id: int) -> tuple[int | None, str | None]:
+        """``(posted message id, stored fingerprint)`` in one read.
+
+        The fingerprint is the content hash the cog computes for everything
+        the panel renders (entries, picker mode, chunk size, theme); a
+        repaint whose computed hash matches skips every HTTP call, so boot
+        restores dispatch without re-sending the panel (the ticket-panel
+        contract).
+        """
+        doc = await self._doc(guild_id)
+        panel = doc.get("panel_message_id")
+        fingerprint = doc.get("panel_fingerprint")
+        return (
+            int(panel) if panel else None,
+            str(fingerprint) if fingerprint else None,
+        )
+
     async def add_known_panel(self, guild_id: int, message_id: int) -> None:
         """Record every panel message id ever posted.
 
@@ -384,9 +401,12 @@ class ColorStore:
         await self._save(guild_id, doc)
         return new_entries, role_updates
 
-    async def set_panel(self, guild_id: int, message_id: int | None) -> None:
+    async def set_panel(
+        self, guild_id: int, message_id: int | None, fingerprint: str | None = None
+    ) -> None:
         doc = await self._doc(guild_id)
         doc["panel_message_id"] = message_id
+        doc["panel_fingerprint"] = fingerprint
         if message_id is not None:
             # The live panel is the whole history: the repost swept every
             # older message, so keeping their ids would re-delete later.

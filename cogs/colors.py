@@ -24,8 +24,11 @@ Architecture mirrors tickets:
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import json
 import logging
 from dataclasses import replace
+from typing import Any
 
 import discord
 from discord.ext import commands
@@ -33,9 +36,20 @@ from discord.ext import commands
 from rosemary.core.card_service import CardPayload
 from rosemary.core.colors import PASTEL_SEEDS, ColorStore
 from rosemary.core.settings import get_setting
-from rosemary.ui.colors_panel import ColorPickerView, chunk_containers, chunks_of
+from rosemary.ui.colors_panel import ColorPickerView, chunk_containers
 
 log = logging.getLogger(__name__)
+
+#: Settings that change the posted panel: the panels-registry fan-out and
+#: the fingerprint share this tuple, so a new panel-relevant setting is
+#: added here once (``on_setting_changed`` repaints it; the fingerprint
+#: makes the repaint a no-op unless the value actually changed).
+PANEL_SETTING_KEYS = (
+    "colors.enabled",
+    "colors.panel_channel",
+    "colors.per_container",
+    "colors.picker",
+)
 
 
 class ColorsCog(commands.Cog):
@@ -56,7 +70,7 @@ class ColorsCog(commands.Cog):
         register_panel(
             "colors",
             self.repaint_panel,
-            setting_keys=("colors.enabled", "colors.panel_channel"),
+            setting_keys=PANEL_SETTING_KEYS,
         )
         for guild in self.bot.guilds:
             try:
@@ -73,16 +87,24 @@ class ColorsCog(commands.Cog):
         # The registered dispatcher must CARRY the picker rows: py-cord's
         # view store indexes only real children (walk_children), so an empty
         # view registers nothing and every click dies as "did not respond".
+        # Visual chunking is irrelevant here: every entry needs its handler.
         picker = ColorPickerView(self.bot, guild.id, entries)
-        mode = await self.picker_mode(guild.id)
-        if mode == "select":
+        if await self.picker_mode(guild.id) == "select":
             picker.add_item(await picker.select_row())
         else:
-            per = await self.per_container(guild.id)
-            for chunk in chunks_of(entries, per):
-                for row in picker.rows_for([entry for _n, entry in chunk]):
-                    picker.add_item(row)
+            for row in picker.rows_for(entries):
+                picker.add_item(row)
         self.bot.add_view(picker)
+        # Self-heal before the fingerprint short-circuit: panels orphaned
+        # before ids were recorded must die even when the live panel is up
+        # to date (one history read, no re-send).
+        channel = await self._panel_channel(guild)
+        if channel is not None:
+            for panel_id in await self._orphan_ids(guild):
+                with contextlib.suppress(discord.NotFound, discord.HTTPException):
+                    await channel.get_partial_message(panel_id).delete()
+        # Repaints only when the fingerprint changed: a quiet boot never
+        # re-sends the panel (the ticket-panel contract).
         await self.repaint_panel(self.bot, guild.id)
 
     # helpers ====================
@@ -225,9 +247,12 @@ class ColorsCog(commands.Cog):
                 TextDisplay(await t(guild_id, "colors.panel.text", count=len(entries))),
             )
         )
-        files, documents = chunk_containers(self.bot, guild_id, entries, per)
-        # documents alternates image containers with their picker rows:
-        # each card is followed by its own numbered buttons (Color-Chan).
+        files, documents = chunk_containers(
+            self.bot, guild_id, entries, per, await self.picker_mode(guild_id)
+        )
+        # One self-contained card per chunk: gallery image + that chunk's
+        # numbered buttons inside the container. In select mode the cards
+        # carry only the image; the single select row closes the message.
         for doc in documents:
             try:
                 for item in build_items(theme_for(self.bot, guild_id), {"blocks": [doc]}):
@@ -235,8 +260,7 @@ class ColorsCog(commands.Cog):
             except Exception as exc:
                 log.warning("color panel block skipped in %s: %s", guild_id, exc)
         picker = ColorPickerView(self.bot, guild_id, entries)
-        mode = await self.picker_mode(guild_id)
-        if mode == "select":
+        if await self.picker_mode(guild_id) == "select":
             view.add_item(await picker.select_row())
         return CardPayload(view=view, files=files), picker
 
@@ -255,22 +279,26 @@ class ColorsCog(commands.Cog):
             payload, _allowed = await render_card_message(
                 self.bot, guild_id, "colors.panel"
             )
-            if payload is not None and payload.embed is not None:
+            if payload is not None:
                 entries = await self.store.list_colors(guild_id)
                 picker = ColorPickerView(self.bot, guild_id, entries)
                 mode = await self.picker_mode(guild_id)
-                if mode == "select":
-                    payload.view.add_item(await picker.select_row())
-                else:
-                    for row in picker.classic_rows_all(entries):
-                        payload.view.add_item(row)
-                return payload
-            if payload is not None:
-                # V2 themed frame: splice chunks (each card + its buttons)
-                # onto it.
-                entries = await self.store.list_colors(guild_id)
+                if payload.embed is not None:
+                    if mode == "select":
+                        payload.view.add_item(await picker.select_row())
+                    else:
+                        for row in picker.classic_rows_all(entries):
+                            payload.view.add_item(row)
+                    return payload
+                # V2 themed frame: splice one self-contained card per chunk
+                # (image + buttons inside) onto it; select mode adds the
+                # single select row instead.
                 files, documents = chunk_containers(
-                    self.bot, guild_id, entries, await self.per_container(guild_id)
+                    self.bot,
+                    guild_id,
+                    entries,
+                    await self.per_container(guild_id),
+                    mode,
                 )
                 from rosemary.core.cards import build_items
                 from rosemary.core.themes import theme_for
@@ -283,13 +311,42 @@ class ColorsCog(commands.Cog):
                             payload.view.add_item(item)
                     except Exception as exc:
                         log.warning("color panel block skipped in %s: %s", guild_id, exc)
-                picker = ColorPickerView(self.bot, guild_id, entries)
-                mode = await self.picker_mode(guild_id)
                 if mode == "select":
                     payload.view.add_item(await picker.select_row())
-                payload = CardPayload(view=payload.view, files=files)
-                return payload
+                return CardPayload(view=payload.view, files=files)
+            # No themed override (or invalid): fall through to the default
+            # builder so both trace paths share the exact same layout.
         return await self.build_panel_view(guild_id)
+
+    async def _fingerprint(self, guild_id: int) -> str:
+        """Content hash of everything the posted panel renders.
+
+        Entries (id/name/hex/role link), the picker mode, the chunk size,
+        and the active theme's chunk-card templates. A repaint recomputes
+        this and skips every HTTP call when it matches the stored one: boot
+        restores dispatch without re-sending, and the panels-registry
+        setting fan-out becomes free when nothing actually changed.
+        """
+        from rosemary.core.themes import theme_for
+
+        entries = [
+            [entry.id, entry.name, entry.color, entry.role_id]
+            for entry in await self.store.list_colors(guild_id)
+        ]
+        # The GUILD's active theme (not the global default): a /themes swap
+        # must change the fingerprint, or the repaint short-circuits and the
+        # posted panel keeps the old look forever.
+        templates = getattr(theme_for(self.bot, guild_id), "color_panel", {}) or {}
+        state: dict[str, Any] = {
+            "entries": entries,
+            "picker": await self.picker_mode(guild_id),
+            "per_container": await self.per_container(guild_id),
+            "html": templates.get("html"),
+            "item": templates.get("item"),
+        }
+        return hashlib.sha256(
+            json.dumps(state, sort_keys=True, ensure_ascii=False).encode()
+        ).hexdigest()
 
     async def _orphan_ids(self, guild: discord.Guild) -> set[int]:
         """Channel messages that look like a color panel (panel markers).
@@ -343,6 +400,7 @@ class ColorsCog(commands.Cog):
         if replace_id is not None:
             stale.add(replace_id)
         stale |= await self._orphan_ids(guild)
+        fingerprint = await self._fingerprint(guild.id)
         payload, _picker = await self._panel_payload(guild.id, trace=True)
         message = await channel.send(
             **payload.message_kwargs(),
@@ -352,16 +410,21 @@ class ColorsCog(commands.Cog):
         for panel_id in stale:
             with contextlib.suppress(discord.NotFound, discord.HTTPException):
                 await channel.get_partial_message(panel_id).delete()
-        await self.store.set_panel(guild.id, message.id)
+        await self.store.set_panel(guild.id, message.id, fingerprint)
 
     async def repaint_panel(self, bot, guild_id: int) -> None:
         """Refresh the posted panel (theme/setting/manager changed).
 
-        Imageless panels edit in place; panels carrying generated images
-        re-post, because ``PartialMessage.edit`` is JSON-only and cannot
-        upload files. A deleted or unreachable message always falls back to
-        a fresh post; a disabled feature or missing channel leaves the panel
-        as-is. Registered in :mod:`rosemary.core.panels`.
+        The panel content is fingerprinted (entries, picker mode, chunk
+        size, theme templates): an unchanged hash with a live panel message
+        is a no-op, so a quiet boot never re-sends (the ticket-panel
+        contract) and setting fan-outs are free. A changed fingerprint
+        edits the stored message IN PLACE - ``Message.edit`` accepts
+        ``files=`` via multipart, and ``attachments=[]`` replaces the old
+        gallery so stale images never linger (only the JSON-only
+        ``PartialMessage.edit`` could not carry files). Re-posting is the
+        fallback for a deleted/unreachable message, and it sweeps orphans.
+        Registered in :mod:`rosemary.core.panels`.
         """
         if not await self.enabled(guild_id):
             return
@@ -369,18 +432,39 @@ class ColorsCog(commands.Cog):
         channel = await self._panel_channel(guild) if guild else None
         if guild is None or channel is None:
             return
-        payload, _picker = await self._panel_payload(guild_id)
-        has_files = bool(payload.message_kwargs().get("files"))
-        panel_id = await self.store.get_panel(guild_id)
-        if panel_id is not None and not has_files:
+        fingerprint = await self._fingerprint(guild_id)
+        panel_id, stored = await self.store.panel_state(guild_id)
+        if panel_id is not None and stored == fingerprint:
+            # Content is up to date; just make sure the message still
+            # exists (one GET, no send): a manually deleted panel must
+            # come back on the next boot.
             try:
-                await channel.get_partial_message(panel_id).edit(
-                    **payload.message_kwargs()
-                )
+                await channel.fetch_message(panel_id)
                 return
-            except (discord.NotFound, discord.HTTPException):
-                pass  # message gone - re-post below
-        await self._post_panel(guild, channel, replace_id=panel_id if has_files else None)
+            except discord.NotFound:
+                pass  # deleted: re-post below
+            except discord.HTTPException:
+                return  # transient (rate limit, outage): retry next cycle
+        payload, _picker = await self._panel_payload(guild_id)
+        if panel_id is not None:
+            try:
+                message = await channel.fetch_message(panel_id)
+            except discord.NotFound:
+                message = None
+            if message is not None:
+                try:
+                    kwargs = payload.message_kwargs()
+                    # attachments=[] replaces the old gallery: without it
+                    # Message.edit ADDS the new files on top of the old ones.
+                    kwargs["attachments"] = []
+                    await message.edit(**kwargs)
+                    await self.store.set_panel(guild_id, panel_id, fingerprint)
+                    return
+                except discord.HTTPException as exc:
+                    log.warning(
+                        "color panel in-place edit failed in %s: %s", guild_id, exc
+                    )
+        await self._post_panel(guild, channel, replace_id=panel_id)
 
     async def seed_if_needed(self, guild_id: int) -> list:
         """First open seeds 20 pastels AND creates their Discord roles."""

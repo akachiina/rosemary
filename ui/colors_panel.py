@@ -2,12 +2,13 @@
 
 The panel is one message with:
 
-* a frame (default built here; a theme may override ``colors.panel``);
+* a frame (default built in the cog; a theme may override ``colors.panel``);
 * one V2 container per chunk of ``colors.per_container`` colors, each with
   its own gallery image (``attachment://color_panel_<n>.png``) and that
-  chunk's numbered buttons - the Color-Chan look of several cards, numbered
-  continuously across chunks;
-* in select mode a single string select replaces the button rows.
+  chunk's numbered buttons INSIDE the card - the Color-Chan look of several
+  cards, numbered continuously across chunks;
+* in select mode a single string select replaces the button rows (chunks
+  carry only their gallery image).
 
 Pickers are persistent: the boot path registers a view whose children carry
 the same ``colors_pick:<id>`` custom_ids the posted panel shows (py-cord only
@@ -56,21 +57,29 @@ def chunk_containers(
     guild_id: int,
     entries: list[ColorEntry],
     per_container: int,
-) -> tuple[list[discord.File], list[dict], list[dict]]:
-    """Files and interleaved chunk/button documents for the panel message.
+    picker_mode: str = "buttons",
+) -> tuple[list[discord.File], list[dict]]:
+    """Files and chunk documents for the panel message.
 
-    ``documents`` alternates one image container per chunk with that
-    chunk's picker rows right below it (the Color-Chan layout: each card is
-    followed by its own numbered buttons, outside the container but visually
-    grouped with it)::
+    Each chunk is ONE container: its gallery image followed by that chunk's
+    numbered buttons INSIDE the card (the user's layout choice), numbered
+    continuously across chunks::
 
-        [card: image 1-10] [1][2]..[10] [card: image 11-20] [11]..[20]
+        [card: image 1-10 + buttons 1-10] [card: image 11-20 + buttons]
 
-    A chunk whose render fails (no WeasyPrint/Pango, template error)
-    contributes no gallery - the panel still posts, imageless. Colors
-    without an attached role render with their stored hex but cannot be
-    picked.
+    ``per_container`` may grow (:func:`fit_per_container`): more colors than
+    the requested chunking can hold inside Discord's 40-component budget
+    force fewer, larger cards. In ``select`` mode no buttons are emitted:
+    the caller adds the single select row. A chunk whose render fails (no
+    WeasyPrint/Pango, template error) contributes no gallery - the panel
+    still posts, imageless. Colors without an attached role render with
+    their stored hex but cannot be picked.
     """
+    # Both modes render the cards; the budget differs because select-mode
+    # cards carry no buttons (the single select row rides on the message).
+    per_container = fit_per_container(
+        len(entries), per_container, picker_mode != "select"
+    )
     theme = theme_for(bot, guild_id)
     templates = getattr(theme, "color_panel", {}) or {}
     template = templates.get("html")
@@ -90,19 +99,55 @@ def chunk_containers(
         ]
         png = render_panel(rows, template, item)
         filename = _IMAGE_NAME.format(n=index)
-        if png is not None:
-            files.append(discord.File(io.BytesIO(png), filename=filename))
         children: list[dict] = []
         if png is not None:
+            files.append(discord.File(io.BytesIO(png), filename=filename))
             children.append({"type": "gallery", "urls": [f"attachment://{filename}"]})
-        documents.append({"type": "container", "color": "brand", "children": children})
-        # This chunk's buttons, right under its card (top-level rows).
-        documents.extend(_picker_rows(chunk))
+        if picker_mode != "select":
+            children.extend(_picker_rows(chunk))
+        if children:
+            documents.append(
+                {"type": "container", "color": "brand", "children": children}
+            )
     return files, documents
 
 
+#: Node cost of the static frame (container + two text displays) and the
+#: select row/select pair, for :func:`fit_per_container`.
+_FRAME_NODES = 3
+_SELECT_EXTRA_NODES = 2
+
+
+def fit_per_container(count: int, per: int, buttons: bool = True) -> int:
+    """Smallest ``per >= requested`` whose panel stays under 40 nodes.
+
+    Every V2 node counts toward Discord's per-message ceiling, nesting
+    included: a chunk costs ``container + gallery (+ its button rows and
+    buttons when ``buttons``)``. With many colors the requested chunking
+    can exceed the budget (25 colors at 10/chunk with buttons = 42 nodes);
+    the layout preference then bends - chunks grow so the message still
+    sends instead of 400ing. One chunk always fits (25 colors in a single
+    card = 35 nodes with buttons, 28 without).
+    """
+    per = max(per, 1)
+
+    def nodes(candidate: int) -> int:
+        chunks = -(-count // candidate) if count else 0
+        card = 2 + (
+            (-(-candidate // 5) + candidate) if buttons else 0
+        )
+        return _FRAME_NODES + chunks * card + (
+            _SELECT_EXTRA_NODES if not buttons else 0
+        )
+
+    candidate = per
+    while candidate < count and nodes(candidate) > 40:
+        candidate += 1
+    return candidate
+
+
 def _picker_rows(chunk: list[tuple[int, ColorEntry]]) -> list[dict]:
-    """Top-level button-row documents for one chunk (5 buttons per row)."""
+    """Button-row documents for one chunk, nested in its card (5 per row)."""
     rows: list[dict] = []
     for start in range(0, len(chunk), 5):
         rows.append(
