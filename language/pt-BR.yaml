@@ -52,6 +52,8 @@ themes:
   rejection_codes: 'Problemas encontrados: {codes}'
 general:
   unknown_error: '{error} Ocorreu um erro inesperado.'
+  'yes': 'Sim'
+  'no': 'Não'
 menu:
   owner_only: '{error} Este menu é privado. Somente o autor pode interagir.'
 confirm:
@@ -1092,6 +1094,39 @@ serverinfo:
   roles: '**Cargos:** {value}'
   channels: '**Canais:** {value}'
   created: '**Criado em:** {value}'
+userinfo:
+  command:
+    name: info_usuario
+    description: Mostra informações de um membro
+  timeout_none: nenhuma
+roleinfo:
+  command:
+    name: info_cargo
+    description: Mostra informações de um cargo
+channelinfo:
+  command:
+    name: info_canal
+    description: Mostra informações de um canal
+  types:
+    text: Texto
+    voice: Voz
+    stage_voice: Palco
+    category: Categoria
+    forum: Fórum
+    media: Mídia
+    news: Novidades
+    public_thread: Thread pública
+    private_thread: Thread privada
+    announcement_thread: Thread de novidades
+emojiinfo:
+  command:
+    name: info_emoji
+    description: Mostra informações de um emoji ou sticker
+  error: '{warning} Emoji inválido. Envie um emoji customizado, um emoji unicode ou o ID de um sticker.'
+  not_found: '{error} Não encontrei este emoji ou sticker.'
+  source_guild: Emoji do servidor
+  source_app: Emoji da aplicação
+  source_unknown: Origem desconhecida
 limpar:
   command:
     name: limpar
@@ -1847,6 +1882,105 @@ variables:
   new_avatar:
     label: Avatar novo
     description: URL do avatar atual
+  nickname:
+    label: Apelido
+    description: Apelido do membro neste servidor
+  joined_at:
+    label: Entrou
+    description: Data de entrada do membro no servidor
+  joined_rel:
+    label: Entrou (relativo)
+    description: Tempo relativo desde a entrada do membro
+  top_role:
+    label: Cargo principal
+    description: Cargo mais alto do membro
+  boosting_since:
+    label: Boost desde
+    description: Desde quando o membro dá boost (vazio quando não dá boost)
+  timeout:
+    label: Timeout
+    description: Situação de timeout do membro
+  is_bot:
+    label: Bot
+    description: Se o membro é um bot
+  user_id:
+    label: ID do usuário
+    description: ID do Discord do usuário
+  emoji_name:
+    label: Nome do emoji
+    description: Nome do emoji ou sticker
+  emoji_id:
+    label: ID do emoji
+    description: ID do Discord do emoji
+  animated:
+    label: Animado
+    description: Se o emoji é animado
+  emoji_url:
+    label: Imagem do emoji
+    description: URL da imagem do emoji
+  source:
+    label: Origem
+    description: De onde vem o emoji (servidor ou aplicação)
+  sticker_name:
+    label: Nome do sticker
+    description: Nome do sticker
+  sticker_id:
+    label: ID do sticker
+    description: ID do Discord do sticker
+  sticker_url:
+    label: Imagem do sticker
+    description: URL da imagem do sticker
+  format:
+    label: Formato
+    description: Formato de imagem do sticker
+  tags:
+    label: Tags
+    description: Tags do sticker
+  uploader:
+    label: Enviado por
+    description: Membro que enviou o sticker
+  role_color:
+    label: Cor do cargo
+    description: Cor do cargo em hexadecimal
+  role_icon:
+    label: Ícone do cargo
+    description: Imagem do ícone do cargo
+  role_id:
+    label: ID do cargo
+    description: ID do Discord do cargo
+  mentionable:
+    label: Mencionável
+    description: Se todos podem mencionar o cargo
+  hoist:
+    label: Exibido à parte
+    description: Se o cargo aparece separado na lista de membros
+  channel_name:
+    label: Nome do canal
+    description: Nome do canal
+  channel_type:
+    label: Tipo do canal
+    description: Tipo do canal
+  topic:
+    label: Tópico
+    description: Tópico definido no canal
+  category:
+    label: Categoria
+    description: Categoria à qual o canal pertence
+  nsfw:
+    label: Restrito por idade
+    description: Se o canal é restrito por idade
+  slowmode:
+    label: Modo lento
+    description: Intervalo do modo lento do canal
+  bitrate:
+    label: Bitrate
+    description: Bitrate do áudio (canais de voz)
+  user_limit:
+    label: Limite de usuários
+    description: Limite de usuários simultâneos (canais de voz)
+  channel_id:
+    label: ID do canal
+    description: ID do Discord do canal
   file_url:
     label: Arquivo da purga
     description: Link do .txt com as mensagens apagadas em massa
@@ -2025,6 +2159,60 @@ card:
         medium: Média
         high: Alta
         highest: Muito alta
+    userinfo:
+      title: Card de info do membro
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{banner_url}}, {{nickname}}, {{created_at}}, {{created_rel}}, {{joined_at}}, {{joined_rel}}, {{roles}}, {{top_role}}, {{boosting_since}}, {{timeout}}, {{is_bot}}, {{user_id}}, {{title}}, {{body}}"
+      subtitle: "{crown} {top_role}"
+      nickname_label: "{pencil} Apelido"
+      created_label: "{calendar} Criado em"
+      created_value: "{created_at} · {created_rel}"
+      joined_label: "{door} Entrou"
+      joined_value: "{joined_at} · {joined_rel}"
+      roles_label: "{tag} Cargos"
+      top_role_label: "{crown} Cargo principal"
+      boosting_since_label: "{rocket} Boost desde"
+      timeout_label: "{mute} Timeout"
+      is_bot_label: "{gear} Bot"
+    emojiinfo:
+      title: Card de info do emoji
+      placeholders: "{{emoji}}, {{emoji_name}}, {{emoji_id}}, {{animated}}, {{emoji_url}}, {{source}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      subtitle: "{palette} {source}"
+      created_label: "{calendar} Criado em"
+      created_value: "{created_at} · {created_rel}"
+      animated_label: "{tada} Animado"
+    stickerinfo:
+      title: Card de info do sticker
+      placeholders: "{{sticker_name}}, {{sticker_id}}, {{description}}, {{format}}, {{tags}}, {{uploader}}, {{sticker_url}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      format_label: "{frame} Formato"
+      tags_label: "{tag} Tags"
+      uploader_label: "{user} Enviado por"
+      description_label: "{scroll} Descrição"
+      created_label: "{calendar} Criado em"
+      created_value: "{created_at} · {created_rel}"
+    roleinfo:
+      title: Card de info do cargo
+      placeholders: "{{role}}, {{role_name}}, {{role_color}}, {{members}}, {{position}}, {{mentionable}}, {{hoist}}, {{role_icon}}, {{role_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      subtitle: "{tag} {role_color}"
+      members_label: "{people} Membros"
+      position_label: "{numbers} Posição"
+      role_color_label: "{palette} Cor"
+      mentionable_label: "{speech} Mencionável"
+      hoist_label: "{up} Exibido à parte"
+      created_label: "{calendar} Criado em"
+      created_value: "{created_at} · {created_rel}"
+    channelinfo:
+      title: Card de info do canal
+      placeholders: "{{channel}}, {{channel_name}}, {{channel_type}}, {{topic}}, {{category}}, {{nsfw}}, {{slowmode}}, {{position}}, {{bitrate}}, {{user_limit}}, {{channel_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      channel_type_label: "{speech} Tipo"
+      category_label: "{frame} Categoria"
+      topic_label: "{scroll} Tópico"
+      slowmode_label: "{hourglass} Modo lento"
+      bitrate_label: "{volume} Bitrate"
+      user_limit_label: "{people} Limite de usuários"
+      nsfw_label: "{lock} Restrito por idade"
+      position_label: "{numbers} Posição"
+      created_label: "{calendar} Criado em"
+      created_value: "{created_at} · {created_rel}"
   themes:
     title:
       title: Cabeçalho do menu de temas

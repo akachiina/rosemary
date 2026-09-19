@@ -39,6 +39,9 @@ def test_command_option_raw_types_are_classes() -> None:
     bot.add_cog(DebugCog(bot))
     bot.add_cog(SettingsCog(bot))
     bot.add_cog(ModerationCog(bot))
+    from rosemary.cogs.info import InfoCog
+
+    bot.add_cog(InfoCog(bot))
     from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
     from rosemary.cogs.bump_reminder import BumpReminderCog
 
@@ -66,6 +69,10 @@ def test_command_option_raw_types_are_classes() -> None:
         "test_bump_leaderboard",
         "reset_bump_week",
         "add_test_bumps",
+        "userinfo",
+        "emojiinfo",
+        "roleinfo",
+        "channelinfo",
     } <= {c.qualified_name for c in commands_}
 
     for cmd in commands_:

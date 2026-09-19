@@ -52,6 +52,8 @@ themes:
   rejection_codes: 'Problems found: {codes}'
 general:
   unknown_error: '{error} An unexpected error occurred.'
+  'yes': 'Yes'
+  'no': 'No'
 menu:
   owner_only: '{error} This menu is private. Only the author can interact.'
 confirm:
@@ -1091,6 +1093,39 @@ serverinfo:
   roles: '**Roles:** {value}'
   channels: '**Channels:** {value}'
   created: '**Created:** {value}'
+userinfo:
+  command:
+    name: userinfo
+    description: Show member information
+  timeout_none: none
+roleinfo:
+  command:
+    name: roleinfo
+    description: Show role information
+channelinfo:
+  command:
+    name: channelinfo
+    description: Show channel information
+  types:
+    text: Text
+    voice: Voice
+    stage_voice: Stage
+    category: Category
+    forum: Forum
+    media: Media
+    news: Announcement
+    public_thread: Public thread
+    private_thread: Private thread
+    announcement_thread: Announcement thread
+emojiinfo:
+  command:
+    name: emojiinfo
+    description: Show emoji or sticker information
+  error: '{warning} Invalid emoji. Send a custom emoji, a unicode emoji or a sticker ID.'
+  not_found: '{error} Could not find this emoji or sticker.'
+  source_guild: Server emoji
+  source_app: Application emoji
+  source_unknown: Unknown origin
 limpar:
   command:
     name: limpar
@@ -1845,6 +1880,105 @@ variables:
   new_avatar:
     label: New avatar
     description: URL of the current avatar
+  nickname:
+    label: Nickname
+    description: Member nickname on this server
+  joined_at:
+    label: Joined
+    description: Date the member joined the server
+  joined_rel:
+    label: Joined (relative)
+    description: Relative time since the member joined
+  top_role:
+    label: Top role
+    description: Highest role of the member
+  boosting_since:
+    label: Boosting since
+    description: When the member started boosting (empty when not boosting)
+  timeout:
+    label: Timeout
+    description: Timeout status of the member
+  is_bot:
+    label: Bot
+    description: Whether the member is a bot
+  user_id:
+    label: User ID
+    description: Discord ID of the user
+  emoji_name:
+    label: Emoji name
+    description: Name of the emoji or sticker
+  emoji_id:
+    label: Emoji ID
+    description: Discord ID of the emoji
+  animated:
+    label: Animated
+    description: Whether the emoji is animated
+  emoji_url:
+    label: Emoji image
+    description: Image URL of the emoji
+  source:
+    label: Origin
+    description: Where the emoji comes from (server or application)
+  sticker_name:
+    label: Sticker name
+    description: Name of the sticker
+  sticker_id:
+    label: Sticker ID
+    description: Discord ID of the sticker
+  sticker_url:
+    label: Sticker image
+    description: Image URL of the sticker
+  format:
+    label: Format
+    description: Image format of the sticker
+  tags:
+    label: Tags
+    description: Tags of the sticker
+  uploader:
+    label: Uploader
+    description: Member who uploaded the sticker
+  role_color:
+    label: Role color
+    description: Hex color of the role
+  role_icon:
+    label: Role icon
+    description: Icon image of the role
+  role_id:
+    label: Role ID
+    description: Discord ID of the role
+  mentionable:
+    label: Mentionable
+    description: Whether everyone can mention the role
+  hoist:
+    label: Shown separately
+    description: Whether the role is displayed separately in the member list
+  channel_name:
+    label: Channel name
+    description: Name of the channel
+  channel_type:
+    label: Channel type
+    description: Type of the channel
+  topic:
+    label: Topic
+    description: Topic set for the channel
+  category:
+    label: Category
+    description: Category the channel belongs to
+  nsfw:
+    label: Age restricted
+    description: Whether the channel is age restricted
+  slowmode:
+    label: Slowmode
+    description: Slowmode delay of the channel
+  bitrate:
+    label: Bitrate
+    description: Audio bitrate (voice channels)
+  user_limit:
+    label: User limit
+    description: Maximum simultaneous users (voice channels)
+  channel_id:
+    label: Channel ID
+    description: Discord ID of the channel
   file_url:
     label: Purge file
     description: Link to the .txt with the bulk-deleted messages
@@ -2023,6 +2157,60 @@ card:
         medium: Medium
         high: High
         highest: Very high
+    userinfo:
+      title: Member info card
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{banner_url}}, {{nickname}}, {{created_at}}, {{created_rel}}, {{joined_at}}, {{joined_rel}}, {{roles}}, {{top_role}}, {{boosting_since}}, {{timeout}}, {{is_bot}}, {{user_id}}, {{title}}, {{body}}"
+      subtitle: "{crown} {top_role}"
+      nickname_label: "{pencil} Nickname"
+      created_label: "{calendar} Created"
+      created_value: "{created_at} · {created_rel}"
+      joined_label: "{door} Joined"
+      joined_value: "{joined_at} · {joined_rel}"
+      roles_label: "{tag} Roles"
+      top_role_label: "{crown} Top role"
+      boosting_since_label: "{rocket} Boosting since"
+      timeout_label: "{mute} Timeout"
+      is_bot_label: "{gear} Bot"
+    emojiinfo:
+      title: Emoji info card
+      placeholders: "{{emoji}}, {{emoji_name}}, {{emoji_id}}, {{animated}}, {{emoji_url}}, {{source}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      subtitle: "{palette} {source}"
+      created_label: "{calendar} Created"
+      created_value: "{created_at} · {created_rel}"
+      animated_label: "{tada} Animated"
+    stickerinfo:
+      title: Sticker info card
+      placeholders: "{{sticker_name}}, {{sticker_id}}, {{description}}, {{format}}, {{tags}}, {{uploader}}, {{sticker_url}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      format_label: "{frame} Format"
+      tags_label: "{tag} Tags"
+      uploader_label: "{user} Uploader"
+      description_label: "{scroll} Description"
+      created_label: "{calendar} Created"
+      created_value: "{created_at} · {created_rel}"
+    roleinfo:
+      title: Role info card
+      placeholders: "{{role}}, {{role_name}}, {{role_color}}, {{members}}, {{position}}, {{mentionable}}, {{hoist}}, {{role_icon}}, {{role_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      subtitle: "{tag} {role_color}"
+      members_label: "{people} Members"
+      position_label: "{numbers} Position"
+      role_color_label: "{palette} Color"
+      mentionable_label: "{speech} Mentionable"
+      hoist_label: "{up} Shown separately"
+      created_label: "{calendar} Created"
+      created_value: "{created_at} · {created_rel}"
+    channelinfo:
+      title: Channel info card
+      placeholders: "{{channel}}, {{channel_name}}, {{channel_type}}, {{topic}}, {{category}}, {{nsfw}}, {{slowmode}}, {{position}}, {{bitrate}}, {{user_limit}}, {{channel_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
+      channel_type_label: "{speech} Type"
+      category_label: "{frame} Category"
+      topic_label: "{scroll} Topic"
+      slowmode_label: "{hourglass} Slowmode"
+      bitrate_label: "{volume} Bitrate"
+      user_limit_label: "{people} User limit"
+      nsfw_label: "{lock} Age restricted"
+      position_label: "{numbers} Position"
+      created_label: "{calendar} Created"
+      created_value: "{created_at} · {created_rel}"
   themes:
     title:
       title: Themes menu heading

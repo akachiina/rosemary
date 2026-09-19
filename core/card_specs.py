@@ -176,6 +176,28 @@ CONTENT_CARDS = {
         "boosts", "emojis", "stickers", "verification", "description", "server_icon",
         "banner_url", "created_at", "created_rel", "server_id", "title", "body",
     ),
+    "utility.userinfo": (
+        "user", "user_name", "user_avatar", "banner_url", "nickname", "created_at",
+        "created_rel", "joined_at", "joined_rel", "roles", "top_role", "boosting_since",
+        "timeout", "is_bot", "user_id", "title", "body",
+    ),
+    "utility.emojiinfo": (
+        "emoji", "emoji_name", "emoji_id", "animated", "emoji_url", "source",
+        "created_at", "created_rel", "title", "body",
+    ),
+    "utility.stickerinfo": (
+        "sticker_name", "sticker_id", "description", "format", "tags", "uploader",
+        "sticker_url", "created_at", "created_rel", "title", "body",
+    ),
+    "utility.roleinfo": (
+        "role", "role_name", "role_color", "members", "position", "mentionable", "hoist",
+        "role_icon", "role_id", "created_at", "created_rel", "title", "body",
+    ),
+    "utility.channelinfo": (
+        "channel", "channel_name", "channel_type", "topic", "category", "nsfw", "slowmode",
+        "position", "bitrate", "user_limit", "channel_id", "created_at", "created_rel",
+        "title", "body",
+    ),
     "birthdays.list": ("body",),
     "partnerships.list": ("title", "body"),
     "partnerships.audit": ("title", "body"),
