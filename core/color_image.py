@@ -7,7 +7,7 @@ one ``item`` per color into the ``{items}`` slot and rasterizes the result.
 Pipeline: WeasyPrint renders the HTML to a single-page PDF (its native
 output), the page width is *measured* against the rendered PDF's own word
 boxes until every column's text fits AND no label crosses the page's right
-edge (font-metric guesses clip long labels like "Algodão-Doce Escurto"),
+edge (font-metric guesses clip long labels like "Algodão-Doce Escuro"),
 PyMuPDF rasterizes the content region at 4x with an alpha channel, and the
 bitmap is cropped to the content's bounding box so the transparent margin
 disappears. The result is a sharp PNG with a
