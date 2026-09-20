@@ -113,6 +113,7 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     "settings.title": ("brand", "settings.title", ("{body}",)),
     "themes.title": ("brand", "themes.title", ("{body}",)),
     "debug.title": ("info", "debug.title", ("{body}",)),
+    "cleaner.panel": ("warning", "cleaner.panel_title", ("{body}",)),
     "boost.home": ("brand", "boost.titles.home", ("boost.descriptions.user_panel",)),
 }
 

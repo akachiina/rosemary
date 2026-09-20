@@ -1130,7 +1130,7 @@ emojiinfo:
 limpar:
   command:
     name: limpar
-    description: Apaga mensagens contendo uma palavra
+    description: Apaga mensagens por palavra, regex ou quantidade
 update:
   command:
     name: update
@@ -1303,18 +1303,36 @@ audit:
   bulk_multiple_channels: '{count} canais diferentes'
 cleaner:
   error_disabled: '{error} A limpeza de mensagens está desativada neste servidor.'
-  error_empty: '{error} Me diga uma palavra para apagar.'
-  confirm_title: 'Apagar tudo com “{word}”?'
-  confirm_text: 'Varre todos os canais legíveis. Não pode ser desfeito.'
+  error_no_mode: '{error} Diga uma palavra, um regex ou quantas mensagens apagar (últimas N).'
+  error_conflict: '{error} Use palavra OU regex, não os dois.'
+  error_bad_regex: '{error} Regex inválida: {reason}'
+  error_last_range: '{error} O limite de últimas mensagens deve ser de 1 a 1000.'
+  confirm_text: 'Isso apaga mensagens de forma permanente. Não pode ser desfeito.'
   confirm: Apagar tudo
   cancel: Cancelar
-  progress: 'Apagando “{word}”…'
-  result: '{success} {count} mensagem(ns) com “{word}” apagadas.'
+  stop: Parar
+  panel_title: Limpeza de mensagens
+  progress_criterion: '**Critério:** {criterion}'
+  progress_current: '{loading} Varrendo {channel}…'
+  progress_done: '{scroll} Canais: {done}/{total}'
+  progress_scanned: '{search} Mensagens varridas: {count}'
+  progress_counts: '{trash} Apagadas até agora: {count}'
+  progress_elapsed: '{clock} Tempo decorrido: {elapsed}'
+  result: '{success} {count} mensagem(ns) apagadas. {criterion}'
+  stopped: '{warning} Limpeza interrompida: {count} mensagem(ns) apagadas até aqui.'
   cancelled: Limpeza cancelada.
+  criterion_word: 'com a palavra “{word}”'
+  criterion_regex: 'casa com o regex `{regex}`'
+  criterion_last: 'as últimas {count} mensagem(ns)'
+  criterion_last_word: 'as últimas {count} mensagem(ns) com a palavra “{word}”'
+  criterion_last_regex: 'as últimas {count} mensagem(ns) que casam com `{regex}`'
+  criterion_author: 'do autor {author}'
+  criterion_channel: 'em {channel}'
+  criterion_all: 'em todos os canais'
   logs:
     purged:
       title: '{trash} Mensagens Apagadas'
-      description: '{moderator} apagou {count} mensagem(ns) com “{word}”.'
+      description: '{moderator} apagou {count} mensagem(ns) {criterion}.'
 anti_invite:
   warning: '{warning} {user}, links de convite externos não são permitidos aqui.'
   logs:
@@ -1690,6 +1708,9 @@ variables:
   count:
     label: Contagem
     description: Um número deste card
+  criterion:
+    label: Critério da limpeza
+    description: Frase que descreve o que a limpeza apaga (modo, autor e escopo)
   inviter:
     label: Quem convidou
     description: Menção de quem convidou
@@ -2445,17 +2466,20 @@ card:
           title: 'Log: warn aplicado'
           placeholders: ''
   cleaner:
+    panel:
+      title: Cabeçalho do painel de limpeza
+      placeholders: ''
     confirm:
       title: Texto de confirmação da limpeza
       placeholders: ''
     result:
       title: Texto de resultado da limpeza
-      placeholders: '{{count}}, {{word}}'
+      placeholders: '{{count}}, {{criterion}}'
     logs:
       purged:
         description:
           title: 'Log: mensagens apagadas'
-          placeholders: '{{count}}, {{moderator}}, {{word}}'
+          placeholders: '{{count}}, {{moderator}}, {{criterion}}'
   anti_invite:
     warning:
       title: Texto de aviso do anti-convite

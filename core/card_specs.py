@@ -209,6 +209,7 @@ CONTENT_CARDS = {
     "settings.title": (),
     "themes.title": (),
     "debug.title": (),
+    "cleaner.panel": (),
     "boost.home": (),
 }
 
@@ -259,7 +260,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "invites.server_stats": ("joins", "regular", "bonus", "fake", "left", "title", "body"),
     "invites.invited_by": ("user", "inviter", "code", "when", "status", "title", "body"),
     "cleaner.confirm": (),
-    "cleaner.result": ("count", "word"),
+    "cleaner.result": ("count", "criterion"),
     "anti_invite.warning": ("user",),
     "tickets.panel": (),
     "tickets.created": ("user", "type"),
@@ -323,7 +324,7 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "invites.logs.bonus.description": ("moderator", "user", "amount", "total"),
     "invites.logs.sync.description": ("codes", "moderator"),
     "invites.logs.reset.description": ("moderator",),
-    "cleaner.logs.purged.description": ("moderator", "word", "count"),
+    "cleaner.logs.purged.description": ("moderator", "criterion", "count"),
     "anti_invite.logs.blocked.description": ("user", "channel", "code"),
     "reminders.logs.sent.description": ("moderator", "name", "sent", "failed"),
     "broadcast.logs.started.description": ("moderator", "title", "channel"),

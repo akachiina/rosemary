@@ -1129,7 +1129,7 @@ emojiinfo:
 limpar:
   command:
     name: limpar
-    description: Delete messages containing a word
+    description: Delete messages by word, regex or amount
 update:
   command:
     name: update
@@ -1302,18 +1302,36 @@ audit:
   bulk_multiple_channels: '{count} different channels'
 cleaner:
   error_disabled: '{error} The message cleaner is disabled on this server.'
-  error_empty: '{error} Give me a word to purge.'
-  confirm_title: 'Delete every message with “{word}”?'
-  confirm_text: 'Scans every readable channel. This cannot be undone.'
+  error_no_mode: '{error} Give me a word, a regex or how many messages to purge (last N).'
+  error_conflict: '{error} Use a word OR a regex, not both.'
+  error_bad_regex: '{error} Invalid regex: {reason}'
+  error_last_range: '{error} The last-N limit must be between 1 and 1000.'
+  confirm_text: 'This deletes messages permanently. It cannot be undone.'
   confirm: Delete everything
   cancel: Cancel
-  progress: 'Purging “{word}”…'
-  result: '{success} Deleted {count} message(s) with “{word}”.'
+  stop: Stop
+  panel_title: Message purge
+  progress_criterion: '**Criterion:** {criterion}'
+  progress_current: '{loading} Scanning {channel}…'
+  progress_done: '{scroll} Channels: {done}/{total}'
+  progress_scanned: '{search} Messages scanned: {count}'
+  progress_counts: '{trash} Deleted so far: {count}'
+  progress_elapsed: '{clock} Elapsed: {elapsed}'
+  result: '{success} Deleted {count} message(s). {criterion}'
+  stopped: '{warning} Purge stopped: {count} message(s) deleted so far.'
   cancelled: Purge cancelled.
+  criterion_word: 'with the word “{word}”'
+  criterion_regex: 'matching regex `{regex}`'
+  criterion_last: 'the last {count} message(s)'
+  criterion_last_word: 'the last {count} message(s) with the word “{word}”'
+  criterion_last_regex: 'the last {count} message(s) matching `{regex}`'
+  criterion_author: 'from author {author}'
+  criterion_channel: 'in {channel}'
+  criterion_all: 'in every channel'
   logs:
     purged:
       title: '{trash} Messages Purged'
-      description: '{moderator} purged {count} message(s) with “{word}”.'
+      description: '{moderator} purged {count} message(s) {criterion}.'
 anti_invite:
   warning: '{warning} {user}, external invite links are not allowed here.'
   logs:
@@ -1688,6 +1706,9 @@ variables:
   count:
     label: Count
     description: A number for this card
+  criterion:
+    label: Purge criterion
+    description: Sentence describing what the purge deletes (mode, author and scope)
   inviter:
     label: Inviter
     description: Mention of who invited
@@ -2414,17 +2435,20 @@ card:
       title: Mute DM
       placeholders: '{{duration}}, {{guild}}, {{moderator}}, {{reason}}'
   cleaner:
+    panel:
+      title: Purge panel heading
+      placeholders: ''
     confirm:
       title: Purge confirmation text
       placeholders: ''
     result:
       title: Purge result text
-      placeholders: '{{count}}, {{word}}'
+      placeholders: '{{count}}, {{criterion}}'
     logs:
       purged:
         description:
           title: 'Log: messages purged'
-          placeholders: '{{count}}, {{moderator}}, {{word}}'
+          placeholders: '{{count}}, {{moderator}}, {{criterion}}'
   anti_invite:
     warning:
       title: Anti-invite warning text
