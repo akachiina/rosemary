@@ -1313,11 +1313,11 @@ cleaner:
   stop: Parar
   panel_title: Limpeza de mensagens
   progress_criterion: '**Critério:** {criterion}'
-  progress_current: '{loading} Varrendo {channel}…'
-  progress_done: '{scroll} Canais: {done}/{total}'
-  progress_scanned: '{search} Mensagens varridas: {count}'
-  progress_counts: '{trash} Apagadas: {deleted} de {matched} que bateram'
-  progress_elapsed: '{clock} Tempo decorrido: {elapsed}'
+  progress_current: '**Canal atual:** {channel}'
+  progress_done: '**Canais:** {done}/{total}'
+  progress_scanned: '**Varridas:** {count}'
+  progress_counts: '**Apagadas:** {deleted} de {matched}'
+  progress_elapsed: '**Decorrido:** {elapsed}'
   result: '{success} {count} mensagem(ns) apagadas. {criterion}'
   result_gap: '{warning} {gap} mensagem(ns) que bateram não puderam ser apagadas.'
   stopped: '{warning} Limpeza interrompida: {count} mensagem(ns) apagadas até aqui.'

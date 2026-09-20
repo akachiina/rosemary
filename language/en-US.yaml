@@ -1312,11 +1312,11 @@ cleaner:
   stop: Stop
   panel_title: Message purge
   progress_criterion: '**Criterion:** {criterion}'
-  progress_current: '{loading} Scanning {channel}…'
-  progress_done: '{scroll} Channels: {done}/{total}'
-  progress_scanned: '{search} Messages scanned: {count}'
-  progress_counts: '{trash} Deleted: {deleted} of {matched} matched'
-  progress_elapsed: '{clock} Elapsed: {elapsed}'
+  progress_current: '**Current channel:** {channel}'
+  progress_done: '**Channels:** {done}/{total}'
+  progress_scanned: '**Scanned:** {count}'
+  progress_counts: '**Deleted:** {deleted} of {matched} matched'
+  progress_elapsed: '**Elapsed:** {elapsed}'
   result: '{success} Deleted {count} message(s). {criterion}'
   result_gap: '{warning} {gap} matched message(s) could not be deleted.'
   stopped: '{warning} Purge stopped: {count} message(s) deleted so far.'
