@@ -726,55 +726,55 @@ boost:
   logs:
     register:
       title: '{register} Cargo Boost Registrado'
-      description: "**Cargo:** {role}\n**Dono:** {owner}\n**Registrado por:** {actor}"
+      description: "**{tag} Cargo:** {role}\n**{people} Dono:** {owner}\n**{gear} Registrado por:** {actor}"
     remove:
       title: '{trash} Cargo Boost Removido'
-      description: "**Cargo:** {role}\n**Dono:** {owner}\n**Removido por:** {actor}\n**Cargo excluído:** {deleted}"
+      description: "**{tag} Cargo:** {role}\n**{people} Dono:** {owner}\n**{gear} Removido por:** {actor}\n**{trash} Cargo excluído:** {deleted}"
     transfer:
       title: '{swap} Propriedade Transferida'
-      description: "**Cargo:** {role}\n**Dono anterior:** {old_owner}\n**Novo dono:** {new_owner}\n**Transferido por:** {actor}"
+      description: "**{tag} Cargo:** {role}\n**{people} Dono anterior:** {old_owner}\n**{people} Novo dono:** {new_owner}\n**{gear} Transferido por:** {actor}"
     rename:
       title: '{pencil} Cargo Renomeado'
-      description: "**Cargo:** {role}\n**De:** {old_name}\n**Para:** {new_name}\n**Por:** {actor}"
+      description: "**{tag} Cargo:** {role}\n**{pencil} De:** {old_name}\n**{pencil} Para:** {new_name}\n**{gear} Por:** {actor}"
     color_change:
       title: '{palette} Cor Alterada'
-      description: "**Cargo:** {role}\n**Nova cor:** {new_color}\n**Por:** {actor}"
+      description: "**{tag} Cargo:** {role}\n**{palette} Nova cor:** {new_color}\n**{gear} Por:** {actor}"
     emoji_change:
       title: '{tag} Emoji Alterado'
-      description: "**Cargo:** {role}\n**Novo emoji:** {emoji}\n**Por:** {actor}"
+      description: "**{tag} Cargo:** {role}\n**{frame} Novo emoji:** {emoji}\n**{gear} Por:** {actor}"
     icon:
       title: '{frame} Ícone Alterado'
-      description: "**Cargo:** {role}\nÍcone atualizado por {actor}."
+      description: "**{tag} Cargo:** {role}\n**{frame} Ícone:** atualizado por {actor}."
     member_add:
       title: '{plus} Membro Adicionado'
-      description: "**Cargo:** {role}\n{member} entrou no cargo.\n**Adicionado por:** {actor}"
+      description: "**{tag} Cargo:** {role}\n{member} entrou no cargo.\n**{gear} Adicionado por:** {actor}"
     member_remove:
       title: '{minus} Membro Removido'
-      description: "**Cargo:** {role}\n{member} foi removido do cargo.\n**Removido por:** {actor}"
+      description: "**{tag} Cargo:** {role}\n{member} foi removido do cargo.\n**{gear} Removido por:** {actor}"
     member_left:
       title: '{door} Membro Saiu do Cargo'
-      description: "**Cargo:** {role}\n{member} saiu do cargo.\n**Dono:** {owner}"
+      description: "**{tag} Cargo:** {role}\n{member} saiu do cargo.\n**{people} Dono:** {owner}"
     invite_sent:
       title: '{love_letter} Convite Enviado'
-      description: "**Cargo:** {role}\n**Convidado:** {invitee}\n**Por:** {inviter}\n**Expira:** {expires}"
+      description: "**{tag} Cargo:** {role}\n**{people} Convidado:** {invitee}\n**{people} Por:** {inviter}\n**{clock} Expira:** {expires}"
     invite_cancelled:
       title: '{error} Convite Cancelado'
-      description: "**Cargo:** {role}\nConvite para {invitee} cancelado.\n**Por:** {actor}"
+      description: "**{tag} Cargo:** {role}\nConvite para {invitee} cancelado.\n**{gear} Por:** {actor}"
     invite_accepted:
       title: '{success} Convite Aceito'
-      description: "**Cargo:** {role}\n{member} aceitou o convite.\n**Convidado por:** {inviter}"
+      description: "**{tag} Cargo:** {role}\n{member} aceitou o convite.\n**{people} Convidado por:** {inviter}"
     invite_declined:
       title: '{error} Convite Recusado'
-      description: "**Cargo:** {role}\n{member} recusou o convite.\n**Convidado por:** {inviter}"
+      description: "**{tag} Cargo:** {role}\n{member} recusou o convite.\n**{people} Convidado por:** {inviter}"
     invite_expired:
       title: '{clock} Convite Expirado'
-      description: "**Cargo:** {role}\nConvite para {invitee} expirou.\n**Convidado por:** {inviter}"
+      description: "**{tag} Cargo:** {role}\nConvite para {invitee} expirou.\n**{people} Convidado por:** {inviter}"
     auto_transfer:
       title: '{warning} Transferência Automática de Propriedade'
-      description: "**Cargo:** {role} foi transferido de {old_owner} para {new_owner}."
+      description: "**{tag} Cargo:** {role} foi transferido de {old_owner} para {new_owner}."
     orphan_remove:
       title: '{ban} Cargo Órfão Removido'
-      description: "**Cargo:** {role} de {owner} foi removido do sistema."
+      description: "**{tag} Cargo:** {role} de {owner} foi removido do sistema."
   error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
 colors:
   defaults:
@@ -1312,12 +1312,12 @@ cleaner:
   cancel: Cancelar
   stop: Parar
   panel_title: Limpeza de mensagens
-  progress_criterion: '**Critério:** {criterion}'
-  progress_current: '**Canal atual:** {channel}'
-  progress_done: '**Canais:** {done}/{total}'
-  progress_scanned: '**Varridas:** {count}'
-  progress_counts: '**Apagadas:** {deleted} de {matched}'
-  progress_elapsed: '**Decorrido:** {elapsed}'
+  progress_criterion: '**{search} Critério:** {criterion}'
+  progress_current: '**{speech} Canal atual:** {channel}'
+  progress_done: '**{numbers} Canais:** {done}/{total}'
+  progress_scanned: '**{search} Varridas:** {count}'
+  progress_counts: '**{trash} Apagadas:** {deleted} de {matched}'
+  progress_elapsed: '**{clock} Decorrido:** {elapsed}'
   result: '{success} {count} mensagem(ns) apagadas. {criterion}'
   result_gap: '{warning} {gap} mensagem(ns) que bateram não puderam ser apagadas.'
   stopped: '{warning} Limpeza interrompida: {count} mensagem(ns) apagadas até aqui.'
@@ -1631,10 +1631,10 @@ moderation:
       title: '{mute} Silenciamento'
     warn:
       title: '{pencil} Warn'
-    member: Alvo
-    moderator: Moderador
-    reason: Motivo
-    duration: Duração
+    member: '{people} Alvo'
+    moderator: '{gear} Moderador'
+    reason: '{scroll} Motivo'
+    duration: '{clock} Duração'
   logs:
     ban:
       description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
@@ -2538,27 +2538,27 @@ card:
       title: Membro banido
       body: |
         {user_name} foi banido.{reason}
-        Moderador: {moderator}
+        **{gear} Moderador:** {moderator}
       placeholders: ''
     unban:
       title: Membro desbanido
       body: |
         {user_name} foi desbanido.{reason}
-        Moderador: {moderator}
+        **{gear} Moderador:** {moderator}
       placeholders: ''
     message_delete:
       title: Mensagem deletada
       body: |
-        Autor: {message_author}
-        Canal: {channel}
+        **{people} Autor:** {message_author}
+        **{speech} Canal:** {channel}
 
         {message}
       placeholders: ''
     message_edit:
       title: Mensagem editada
       body: |
-        Autor: {message_author}
-        Canal: {channel}
+        **{people} Autor:** {message_author}
+        **{speech} Canal:** {channel}
 
         Antes:
         {message}
@@ -2569,21 +2569,21 @@ card:
     bulk_delete:
       title: Purga de mensagens
       body: |
-        {count} mensagens apagadas em {channel}.
-        Moderador: {moderator}
+        **{numbers} Apagadas:** {count} em {channel}.
+        **{gear} Moderador:** {moderator}
         {file_url}
       placeholders: ''
     nickname:
       title: Apelido alterado
       body: |
-        Antes: {old_name}
-        Agora: {new_name}
+        **{pencil} Antes:** {old_name}
+        **{pencil} Agora:** {new_name}
       placeholders: ''
     avatar:
       title: Avatar alterado
       body: |
-        Antes: {old_avatar}
-        Agora: {new_avatar}
+        **{frame} Antes:** {old_avatar}
+        **{frame} Agora:** {new_avatar}
       placeholders: ''
     roles:
       title: Cargos alterados
@@ -2593,7 +2593,7 @@ card:
       title: Timeout de membro
       body: |
         {reason}
-        Válido até: {duration}
+        **{clock} Válido até:** {duration}
       placeholders: ''
     voice_join:
       title: Entrou em canal de voz

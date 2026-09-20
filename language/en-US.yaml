@@ -725,55 +725,55 @@ boost:
   logs:
     register:
       title: '{register} Boost Role Registered'
-      description: "**Role:** {role}\n**Owner:** {owner}\n**Registered by:** {actor}"
+      description: "**{tag} Role:** {role}\n**{people} Owner:** {owner}\n**{gear} Registered by:** {actor}"
     remove:
       title: '{trash} Boost Role Removed'
-      description: "**Role:** {role}\n**Owner:** {owner}\n**Removed by:** {actor}\n**Role deleted:** {deleted}"
+      description: "**{tag} Role:** {role}\n**{people} Owner:** {owner}\n**{gear} Removed by:** {actor}\n**{trash} Role deleted:** {deleted}"
     transfer:
       title: '{swap} Ownership Transferred'
-      description: "**Role:** {role}\n**Previous owner:** {old_owner}\n**New owner:** {new_owner}\n**Transferred by:** {actor}"
+      description: "**{tag} Role:** {role}\n**{people} Previous owner:** {old_owner}\n**{people} New owner:** {new_owner}\n**{gear} Transferred by:** {actor}"
     rename:
       title: '{pencil} Role Renamed'
-      description: "**Role:** {role}\n**From:** {old_name}\n**To:** {new_name}\n**By:** {actor}"
+      description: "**{tag} Role:** {role}\n**{pencil} From:** {old_name}\n**{pencil} To:** {new_name}\n**{gear} By:** {actor}"
     color_change:
       title: '{palette} Color Changed'
-      description: "**Role:** {role}\n**New color:** {new_color}\n**By:** {actor}"
+      description: "**{tag} Role:** {role}\n**{palette} New color:** {new_color}\n**{gear} By:** {actor}"
     emoji_change:
       title: '{tag} Emoji Changed'
-      description: "**Role:** {role}\n**New emoji:** {emoji}\n**By:** {actor}"
+      description: "**{tag} Role:** {role}\n**{frame} New emoji:** {emoji}\n**{gear} By:** {actor}"
     icon:
       title: '{frame} Icon Changed'
-      description: "**Role:** {role}\nIcon updated by {actor}."
+      description: "**{tag} Role:** {role}\n**{frame} Icon:** updated by {actor}."
     member_add:
       title: '{plus} Member Added'
-      description: "**Role:** {role}\n{member} joined the role.\n**Added by:** {actor}"
+      description: "**{tag} Role:** {role}\n{member} joined the role.\n**{gear} Added by:** {actor}"
     member_remove:
       title: '{minus} Member Removed'
-      description: "**Role:** {role}\n{member} was removed from the role.\n**Removed by:** {actor}"
+      description: "**{tag} Role:** {role}\n{member} was removed from the role.\n**{gear} Removed by:** {actor}"
     member_left:
       title: '{door} Member Left the Role'
-      description: "**Role:** {role}\n{member} left the role.\n**Owner:** {owner}"
+      description: "**{tag} Role:** {role}\n{member} left the role.\n**{people} Owner:** {owner}"
     invite_sent:
       title: '{love_letter} Invite Sent'
-      description: "**Role:** {role}\n**Invitee:** {invitee}\n**By:** {inviter}\n**Expires:** {expires}"
+      description: "**{tag} Role:** {role}\n**{people} Invitee:** {invitee}\n**{people} By:** {inviter}\n**{clock} Expires:** {expires}"
     invite_cancelled:
       title: '{error} Invite Cancelled'
-      description: "**Role:** {role}\nInvite for {invitee} cancelled.\n**By:** {actor}"
+      description: "**{tag} Role:** {role}\nInvite for {invitee} cancelled.\n**{gear} By:** {actor}"
     invite_accepted:
       title: '{success} Invite Accepted'
-      description: "**Role:** {role}\n{member} accepted the invite.\n**Invited by:** {inviter}"
+      description: "**{tag} Role:** {role}\n{member} accepted the invite.\n**{people} Invited by:** {inviter}"
     invite_declined:
       title: '{error} Invite Declined'
-      description: "**Role:** {role}\n{member} declined the invite.\n**Invited by:** {inviter}"
+      description: "**{tag} Role:** {role}\n{member} declined the invite.\n**{people} Invited by:** {inviter}"
     invite_expired:
       title: '{clock} Invite Expired'
-      description: "**Role:** {role}\nInvite for {invitee} expired.\n**Invited by:** {inviter}"
+      description: "**{tag} Role:** {role}\nInvite for {invitee} expired.\n**{people} Invited by:** {inviter}"
     auto_transfer:
       title: '{warning} Automatic Ownership Transfer'
-      description: "**Role:** {role} was transferred from {old_owner} to {new_owner}."
+      description: "**{tag} Role:** {role} was transferred from {old_owner} to {new_owner}."
     orphan_remove:
       title: '{ban} Orphan Role Removed'
-      description: "**Role:** {role} from {owner} was removed from the system."
+      description: "**{tag} Role:** {role} from {owner} was removed from the system."
   error_disabled: '{error} The boost roles system is disabled in this server.'
 colors:
   defaults:
@@ -1311,12 +1311,12 @@ cleaner:
   cancel: Cancel
   stop: Stop
   panel_title: Message purge
-  progress_criterion: '**Criterion:** {criterion}'
-  progress_current: '**Current channel:** {channel}'
-  progress_done: '**Channels:** {done}/{total}'
-  progress_scanned: '**Scanned:** {count}'
-  progress_counts: '**Deleted:** {deleted} of {matched} matched'
-  progress_elapsed: '**Elapsed:** {elapsed}'
+  progress_criterion: '**{search} Criterion:** {criterion}'
+  progress_current: '**{speech} Current channel:** {channel}'
+  progress_done: '**{numbers} Channels:** {done}/{total}'
+  progress_scanned: '**{search} Scanned:** {count}'
+  progress_counts: '**{trash} Deleted:** {deleted} of {matched} matched'
+  progress_elapsed: '**{clock} Elapsed:** {elapsed}'
   result: '{success} Deleted {count} message(s). {criterion}'
   result_gap: '{warning} {gap} matched message(s) could not be deleted.'
   stopped: '{warning} Purge stopped: {count} message(s) deleted so far.'
@@ -1630,10 +1630,10 @@ moderation:
       title: '{mute} Mute'
     warn:
       title: '{pencil} Warn'
-    member: Target
-    moderator: Moderator
-    reason: Reason
-    duration: Duration
+    member: '{people} Target'
+    moderator: '{gear} Moderator'
+    reason: '{scroll} Reason'
+    duration: '{clock} Duration'
   logs:
     ban:
       description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
@@ -2536,27 +2536,27 @@ card:
       title: Member banned
       body: |
         {user_name} was banned.{reason}
-        Moderator: {moderator}
+        **{gear} Moderator:** {moderator}
       placeholders: ''
     unban:
       title: Member unbanned
       body: |
         {user_name} was unbanned.{reason}
-        Moderator: {moderator}
+        **{gear} Moderator:** {moderator}
       placeholders: ''
     message_delete:
       title: Message deleted
       body: |
-        Author: {message_author}
-        Channel: {channel}
+        **{people} Author:** {message_author}
+        **{speech} Channel:** {channel}
 
         {message}
       placeholders: ''
     message_edit:
       title: Message edited
       body: |
-        Author: {message_author}
-        Channel: {channel}
+        **{people} Author:** {message_author}
+        **{speech} Channel:** {channel}
 
         Before:
         {message}
@@ -2567,21 +2567,21 @@ card:
     bulk_delete:
       title: Message purge
       body: |
-        {count} messages deleted in {channel}.
-        Moderator: {moderator}
+        **{numbers} Deleted:** {count} in {channel}.
+        **{gear} Moderator:** {moderator}
         {file_url}
       placeholders: ''
     nickname:
       title: Nickname changed
       body: |
-        Before: {old_name}
-        Now: {new_name}
+        **{pencil} Before:** {old_name}
+        **{pencil} Now:** {new_name}
       placeholders: ''
     avatar:
       title: Avatar changed
       body: |
-        Before: {old_avatar}
-        Now: {new_avatar}
+        **{frame} Before:** {old_avatar}
+        **{frame} Now:** {new_avatar}
       placeholders: ''
     roles:
       title: Roles changed
@@ -2591,7 +2591,7 @@ card:
       title: Member timed out
       body: |
         {reason}
-        Valid until: {duration}
+        **{clock} Valid until:** {duration}
       placeholders: ''
     voice_join:
       title: Joined voice channel

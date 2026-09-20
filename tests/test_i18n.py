@@ -211,3 +211,58 @@ async def test_invalid_message_multiline_available():
     assert "Disponíveis:" in message
     assert "\n- 🇺🇸 English\n- 🇧🇷 Português do Brasil" in message
     assert message.startswith(theme.emojis["error"])
+
+
+def test_field_lines_carry_theme_emoji_token():
+    """Field-style log bodies and panels use ``**{emoji} Label:**``.
+
+    One meaning = one emoji (the semantic table in AGENTS.md), and the token
+    must exist in the theme, otherwise the line renders with empty braces.
+    Prose bodies (no labels) are intentionally exempt.
+    """
+    theme = load_theme()
+
+    with (LANG_DIR / "pt-BR.yaml").open("r", encoding="utf-8") as fh:
+        pt = yaml.safe_load(fh) or {}
+    with (LANG_DIR / "en-US.yaml").open("r", encoding="utf-8") as fh:
+        en = yaml.safe_load(fh) or {}
+
+    expectations = {
+        # Audit bodies: label fields carry the semantic emoji.
+        ("card", "audit", "message_delete", "body"): ("people", "speech"),
+        ("card", "audit", "message_edit", "body"): ("people", "speech"),
+        ("card", "audit", "bulk_delete", "body"): ("numbers", "gear"),
+        ("card", "audit", "nickname", "body"): ("pencil",),
+        ("card", "audit", "avatar", "body"): ("frame",),
+        # Cleaner panel lines.
+        ("cleaner", "progress_criterion"): ("search",),
+        ("cleaner", "progress_current"): ("speech",),
+        ("cleaner", "progress_done"): ("numbers",),
+        ("cleaner", "progress_scanned"): ("search",),
+        ("cleaner", "progress_counts"): ("trash",),
+        ("cleaner", "progress_elapsed"): ("clock",),
+    }
+    for code, data in (("pt-BR", pt), ("en-US", en)):
+        for path, tokens in expectations.items():
+            node = data
+            for part in path:
+                node = node[part]
+            for token in tokens:
+                assert f"{{{token}}}" in node, f"{code}:{'.'.join(path)} missing {token}"
+                assert theme.emojis.get(token), f"theme emoji {token} missing"
+
+        # Moderation labels flow into **{member_label}:** bodies.
+        for label_key, token in (
+            ("member", "people"),
+            ("moderator", "gear"),
+            ("reason", "scroll"),
+            ("duration", "clock"),
+        ):
+            value = data["moderation"]["log"][label_key]
+            assert f"{{{token}}}" in value, f"{code}:moderation.log.{label_key}"
+
+        # ban/unban bodies keep the prose first line but bold the moderator.
+        for event in ("ban", "unban"):
+            body = data["card"]["audit"][event]["body"]
+            assert "{gear}" in body, f"{code}:card.audit.{event}.body"
+            assert theme.emojis.get("gear")

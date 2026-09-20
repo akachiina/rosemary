@@ -158,8 +158,8 @@ def test_every_log_title_has_theme_emoji():
 
 
 def test_boost_log_fields_are_bold_labeled():
-    """Boost logs use the compact field format: bold labels on data lines."""
-    for lang, first_label in (("pt-BR", "**Cargo:**"), ("en-US", "**Role:**")):
+    """Boost logs use the compact field format: emoji + bold label on data lines."""
+    for lang, first_label in (("pt-BR", "**{tag} Cargo:**"), ("en-US", "**{tag} Role:**")):
         with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         for name, entry in data["boost"]["logs"].items():

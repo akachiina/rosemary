@@ -455,6 +455,9 @@ async def test_panel_states_render_with_real_catalog(tmp_path):
     assert "120" in joined
     assert "7 of 9" in joined
     assert not any("cleaner." in t for t in texts), texts
+    # Field lines carry the semantic theme emoji (resolved, not {token}).
+    trash = view.bot.theme.emojis["trash"]
+    assert trash in joined and "{trash}" not in joined, joined
     labels = [b.label for b in _view_buttons(view)]
     assert any("Stop" in label for label in labels)
 
