@@ -1318,9 +1318,9 @@ cleaner:
   progress_scanned: '**{search} Varridas:** {count}'
   progress_counts: '**{trash} Apagadas:** {deleted} de {matched}'
   progress_elapsed: '**{clock} Decorrido:** {elapsed}'
-  result: '{success} {count} mensagem(ns) apagadas. {criterion}'
+  result: '{success} {count} mensagem(ns) apagadas de {matched} que bateram no critério. {criterion}'
   result_gap: '{warning} {gap} mensagem(ns) que bateram não puderam ser apagadas.'
-  stopped: '{warning} Limpeza interrompida: {count} mensagem(ns) apagadas até aqui.'
+  stopped: '{warning} Limpeza interrompida: {count} mensagem(ns) apagadas de {matched} que bateram. {criterion}'
   cancelled: Limpeza cancelada.
   criterion_word: 'com a palavra “{word}”'
   criterion_regex: 'casa com o regex `{regex}`'
@@ -1333,7 +1333,7 @@ cleaner:
   logs:
     purged:
       title: '{trash} Mensagens Apagadas'
-      description: '{moderator} apagou {deleted} de {count} mensagem(ns) {criterion}.'
+      description: '{moderator} apagou {deleted} de {count} mensagem(ns) que bateram. {criterion}.'
 anti_invite:
   warning: '{warning} {user}, links de convite externos não são permitidos aqui.'
   logs:
@@ -1709,6 +1709,9 @@ variables:
   count:
     label: Contagem
     description: Um número deste card
+  matched:
+    label: Total que bateu
+    description: Mensagens que o critério selecionou (antes da exclusão)
   criterion:
     label: Critério da limpeza
     description: Frase que descreve o que a limpeza apaga (modo, autor e escopo)

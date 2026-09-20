@@ -596,3 +596,67 @@ async def test_panel_reports_matched_vs_deleted_gap(tmp_path):
     joined = "\n".join(container_texts(view))
     assert "could not be deleted" in joined
     assert "3" in joined
+
+
+async def test_panel_timer_refreshes_counters_mid_run(tmp_path):
+    """The timer edits the panel while the engine runs between channels.
+
+    Regression: progress() only fired at channel boundaries, so fast
+    single-channel runs showed zeros until the whole purge ended.
+    """
+    bot, view = _panel(tmp_path)
+
+    async def runner(request, guild, moderator, *, progress, cancel_event):
+        # Simulate the engine counting matches before the channel boundary.
+        await progress(deleted=4, matched=6, scanned=40)
+        return PurgeResult(deleted=4, matched=6)
+
+    view.runner = runner
+    view.purge_guild = MagicMock()
+    view.moderator = MagicMock()
+    view.moderator.mention = "<@9>"
+    view.moderator.id = 9
+
+    import rosemary.cogs.cleaner as cleaner_mod
+
+    original_interval = cleaner_mod.PANEL_EDIT_INTERVAL
+    cleaner_mod.PANEL_EDIT_INTERVAL = 0.05
+    original = cleaner_mod.send_channel_log
+    cleaner_mod.send_channel_log = AsyncMock(return_value=True)
+    try:
+        interaction = MagicMock()
+        interaction.response = MagicMock()
+        interaction.response.is_done = lambda: False
+        interaction.response.defer = AsyncMock()
+        interaction.edit = AsyncMock()
+        interaction.edit_original_response = AsyncMock()
+        await view._confirm(interaction)
+        await view._task
+        if view._timer_task is not None:
+            await view._timer_task
+    finally:
+        cleaner_mod.PANEL_EDIT_INTERVAL = original_interval
+        cleaner_mod.send_channel_log = original
+
+    assert interaction.edit_original_response.await_count >= 1
+
+    # The final state carries the summary, not a stale timer frame.
+    joined = "\n".join(container_texts(view))
+    assert "4 of 6" in joined
+
+
+async def test_final_edit_not_overwritten_by_stray_timer_tick(tmp_path):
+    """A timer tick that wakes up after the run ended must not overwrite
+    the final summary with stale counters."""
+    bot, view = _panel(tmp_path)
+    view.state = "done"
+    view.final_text = "summary text"
+    view.deleted = 4
+    view.matched = 6
+    interaction = MagicMock()
+    interaction.edit_original_response = AsyncMock()
+    view._interaction = interaction
+
+    await view._edit_panel(force=True)
+
+    interaction.edit_original_response.assert_not_awaited()

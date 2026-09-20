@@ -31,13 +31,18 @@ log = logging.getLogger(__name__)
 LAST_MIN = 1
 LAST_MAX = 1000
 
-#: Minimum seconds between live panel edits: long runs must not hammer the
-#: REST API (and the followup token dies at 15 min anyway; the panel freezes,
-#: the run itself always finishes and reports through the audit log card).
+#: The purge engine reports through ``progress()`` at channel boundaries;
+#: channel-level progress alone is too coarse (a single-channel run finishes
+#: before the first channel edit lands). The timer below also edits the panel
+#: with the live counters between channel boundaries.
 PANEL_EDIT_INTERVAL = 2.5
 
 #: Pause between channels so bulk deletes never trip the rate limit.
 CHANNEL_PAUSE_SECONDS = 1.0
+
+#: Consecutive failed timer edits before the panel freezes (token expiry,
+#: rate limit): after that, stop editing and stop warning on every tick.
+PANEL_EDIT_MAX_FAILURES = 4
 
 
 @dataclasses.dataclass
@@ -115,7 +120,9 @@ class CleanerPurgeView(MenuView):
         self.moderator = None
         self._interaction = None  # confirming interaction, for timer edits
         self._last_edit = 0.0
+        self._edit_failures = 0
         self._task: asyncio.Task | None = None
+        self._timer_task: asyncio.Task | None = None
         self.register("cleaner_yes", self._confirm)
         self.register("cleaner_no", self._cancel)
         self.register("cleaner_stop", self._stop)
@@ -246,6 +253,7 @@ class CleanerPurgeView(MenuView):
         self._last_edit = time.monotonic()
         await self.rerender(interaction)
         self._task = asyncio.create_task(self._run())
+        self._timer_task = asyncio.create_task(self._panel_timer())
 
     async def _cancel(self, interaction: discord.Interaction) -> None:
         """Close the panel without deleting anything."""
@@ -258,7 +266,6 @@ class CleanerPurgeView(MenuView):
         """Ask the engine to stop between the current batch and the next."""
         self.cancel_event.set()
         await self.rerender(interaction)
-
     #: engine plumbing -------------------------------------------------------
 
     async def _run(self) -> None:
@@ -275,14 +282,22 @@ class CleanerPurgeView(MenuView):
             )
         except Exception:
             log.exception("purge run failed")
+            self._stop_timer()
             with contextlib.suppress(Exception):
                 await self._edit_panel()
             return
+        self._stop_timer()
         self.deleted = result.deleted
         self.matched = result.matched
         self.state = "done"
         if self.cancel_event.is_set():
-            self.final_text = await t(gid, "cleaner.stopped", count=self.deleted)
+            self.final_text = await t(
+                gid,
+                "cleaner.stopped",
+                count=self.deleted,
+                matched=self.matched,
+                criterion=self.request.criterion,
+            )
         else:
             self.final_text = await text_or(
                 self.bot,
@@ -292,14 +307,42 @@ class CleanerPurgeView(MenuView):
                     gid,
                     "cleaner.result",
                     count=self.deleted,
+                    matched=self.matched,
                     criterion=self.request.criterion,
                 ),
                 count=self.deleted,
+                matched=self.matched,
                 criterion=self.request.criterion,
             )
         await self._edit_panel()
         await self._send_log()
         self.stop()
+
+    #: panel timer -----------------------------------------------------------
+
+    async def _panel_timer(self) -> None:
+        """Edit the panel every ``PANEL_EDIT_INTERVAL`` while the run is active.
+
+        ``progress()`` only fires at channel boundaries, so a single-channel
+        run (the common case) would otherwise show zeros until the whole thing
+        ends. The timer refreshes counters and elapsed time between boundary
+        edits; it dies with the run and never outlives the view.
+        """
+        try:
+            while self.state == "running" and self._task is not None and not self._task.done():
+                await asyncio.sleep(PANEL_EDIT_INTERVAL)
+                if self.state != "running":
+                    break
+                with contextlib.suppress(Exception):
+                    await self._edit_panel(force=True)
+        except asyncio.CancelledError:
+            pass
+
+    def _stop_timer(self) -> None:
+        """Cancel the periodic edit task (run finished or crashed)."""
+        if self._timer_task is not None:
+            self._timer_task.cancel()
+            self._timer_task = None
 
     async def _send_log(self) -> None:
         """One staff-log card for the whole run (attribution via the stamp)."""
@@ -351,24 +394,43 @@ class CleanerPurgeView(MenuView):
         if self._interaction is None or now - self._last_edit < PANEL_EDIT_INTERVAL:
             return
         self._last_edit = now
-        await self._edit_panel()
+        await self._edit_panel(force=True)
 
-    async def _edit_panel(self) -> None:
+    async def _edit_panel(self, *, force: bool = False) -> None:
         """Timer edit of the original response through the interaction webhook.
 
         The response is ephemeral: the channel endpoint cannot see it (404
         Unknown Message), only the interaction's webhook can. After the 15
-        min token expires every edit fails: stop trying (the panel freezes)
-        instead of warning on every tick.
+        min token expires edits fail permanently (Unknown Webhook Token or
+        404): freeze with a backoff instead of warning on every tick.
         """
         if self._interaction is None:
+            return
+        if force and self.state != "running":
+            # A timer/boundary tick that woke up after the run finished must
+            # never overwrite the final summary with stale counters.
             return
         await self.prepare()
         try:
             await self._interaction.edit_original_response(view=self)
-        except discord.HTTPException as exc:
-            log.warning("purge panel edit failed, freezing the panel: %s", exc)
+        except discord.NotFound:
             self._interaction = None
+        except discord.HTTPException as exc:
+            if not force:
+                log.warning("purge panel edit failed, freezing the panel: %s", exc)
+                self._interaction = None
+                return
+            # Timer tick: back off instead of spamming warnings every 2.5s.
+            self._edit_failures += 1
+            if self._edit_failures >= PANEL_EDIT_MAX_FAILURES:
+                log.warning(
+                    "purge panel edit failed %d times, freezing: %s",
+                    self._edit_failures,
+                    exc,
+                )
+                self._interaction = None
+            else:
+                await asyncio.sleep(PANEL_EDIT_INTERVAL * self._edit_failures)
 
 
 class CleanerCog(commands.Cog):

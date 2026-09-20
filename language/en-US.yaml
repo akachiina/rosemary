@@ -1317,9 +1317,9 @@ cleaner:
   progress_scanned: '**{search} Scanned:** {count}'
   progress_counts: '**{trash} Deleted:** {deleted} of {matched} matched'
   progress_elapsed: '**{clock} Elapsed:** {elapsed}'
-  result: '{success} Deleted {count} message(s). {criterion}'
+  result: '{success} Deleted {count} of {matched} matched message(s). {criterion}'
   result_gap: '{warning} {gap} matched message(s) could not be deleted.'
-  stopped: '{warning} Purge stopped: {count} message(s) deleted so far.'
+  stopped: '{warning} Purge stopped: {count} of {matched} matched message(s) deleted. {criterion}'
   cancelled: Purge cancelled.
   criterion_word: 'with the word “{word}”'
   criterion_regex: 'matching regex `{regex}`'
@@ -1332,7 +1332,7 @@ cleaner:
   logs:
     purged:
       title: '{trash} Messages Purged'
-      description: '{moderator} purged {deleted} of {count} message(s) {criterion}.'
+      description: '{moderator} purged {deleted} of {count} matched message(s). {criterion}.'
 anti_invite:
   warning: '{warning} {user}, external invite links are not allowed here.'
   logs:
@@ -1707,6 +1707,9 @@ variables:
   count:
     label: Count
     description: A number for this card
+  matched:
+    label: Matched total
+    description: Messages the criterion selected (before deletion)
   criterion:
     label: Purge criterion
     description: Sentence describing what the purge deletes (mode, author and scope)

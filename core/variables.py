@@ -44,6 +44,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("user_mention", "<@0>", "mention"),
         _v("server", "…"),
         _v("count", 1, "number"),
+        _v("matched", 1, "number"),
         _v("criterion", "com a palavra “spam”"),
         _v("inviter", "<@0>", "mention"),
         _v("inviter_mention", "<@0>", "mention"),
