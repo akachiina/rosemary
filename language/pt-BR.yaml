@@ -1316,9 +1316,10 @@ cleaner:
   progress_current: '{loading} Varrendo {channel}…'
   progress_done: '{scroll} Canais: {done}/{total}'
   progress_scanned: '{search} Mensagens varridas: {count}'
-  progress_counts: '{trash} Apagadas até agora: {count}'
+  progress_counts: '{trash} Apagadas: {deleted} de {matched} que bateram'
   progress_elapsed: '{clock} Tempo decorrido: {elapsed}'
   result: '{success} {count} mensagem(ns) apagadas. {criterion}'
+  result_gap: '{warning} {gap} mensagem(ns) que bateram não puderam ser apagadas.'
   stopped: '{warning} Limpeza interrompida: {count} mensagem(ns) apagadas até aqui.'
   cancelled: Limpeza cancelada.
   criterion_word: 'com a palavra “{word}”'
@@ -1332,7 +1333,7 @@ cleaner:
   logs:
     purged:
       title: '{trash} Mensagens Apagadas'
-      description: '{moderator} apagou {count} mensagem(ns) {criterion}.'
+      description: '{moderator} apagou {deleted} de {count} mensagem(ns) {criterion}.'
 anti_invite:
   warning: '{warning} {user}, links de convite externos não são permitidos aqui.'
   logs:
@@ -2479,7 +2480,7 @@ card:
       purged:
         description:
           title: 'Log: mensagens apagadas'
-          placeholders: '{{count}}, {{moderator}}, {{criterion}}'
+          placeholders: '{{count}}, {{deleted}}, {{moderator}}, {{criterion}}'
   anti_invite:
     warning:
       title: Texto de aviso do anti-convite

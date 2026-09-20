@@ -1315,9 +1315,10 @@ cleaner:
   progress_current: '{loading} Scanning {channel}…'
   progress_done: '{scroll} Channels: {done}/{total}'
   progress_scanned: '{search} Messages scanned: {count}'
-  progress_counts: '{trash} Deleted so far: {count}'
+  progress_counts: '{trash} Deleted: {deleted} of {matched} matched'
   progress_elapsed: '{clock} Elapsed: {elapsed}'
   result: '{success} Deleted {count} message(s). {criterion}'
+  result_gap: '{warning} {gap} matched message(s) could not be deleted.'
   stopped: '{warning} Purge stopped: {count} message(s) deleted so far.'
   cancelled: Purge cancelled.
   criterion_word: 'with the word “{word}”'
@@ -1331,7 +1332,7 @@ cleaner:
   logs:
     purged:
       title: '{trash} Messages Purged'
-      description: '{moderator} purged {count} message(s) {criterion}.'
+      description: '{moderator} purged {deleted} of {count} message(s) {criterion}.'
 anti_invite:
   warning: '{warning} {user}, external invite links are not allowed here.'
   logs:
@@ -2448,7 +2449,7 @@ card:
       purged:
         description:
           title: 'Log: messages purged'
-          placeholders: '{{count}}, {{moderator}}, {{criterion}}'
+          placeholders: '{{count}}, {{deleted}}, {{moderator}}, {{criterion}}'
   anti_invite:
     warning:
       title: Anti-invite warning text

@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 import discord
 
 import rosemary.cogs.cleaner  # noqa: F401  (imports clean, no future import)
-from rosemary.cogs.cleaner import CleanerCog, CleanerPurgeView, PurgeRequest
+from rosemary.cogs.cleaner import CleanerCog, CleanerPurgeView, PurgeRequest, PurgeResult
 from rosemary.core.i18n import Translator
 from rosemary.core.settings import set_setting
 from rosemary.core.storage import GuildStorage
@@ -268,10 +268,11 @@ async def test_engine_word_author_and_cap(tmp_path):
     cancel = asyncio.Event()
     moderator = MagicMock()
     moderator.id = 9
-    deleted = await cog._purge(
+    result = await cog._purge(
         request, guild, moderator, progress=progress, cancel_event=cancel
     )
-    assert deleted == 3
+    assert result.deleted == 3
+    assert result.matched == 3
 
     # Author filter: only member 5's matches.
     guild2 = make_guild(
@@ -286,10 +287,11 @@ async def test_engine_word_author_and_cap(tmp_path):
         ]
     )
     request = make_request(mode="word", word="spam", author_id=5)
-    deleted = await cog._purge(
+    result = await cog._purge(
         request, guild2, moderator, progress=AsyncMock(), cancel_event=asyncio.Event()
     )
-    assert deleted == 1
+    assert result.deleted == 1
+    assert result.matched == 1
 
     # last cap: stops exactly at N (first yielded message wins).
     canal_cap = make_channel(
@@ -301,10 +303,11 @@ async def test_engine_word_author_and_cap(tmp_path):
     )
     guild3 = make_guild([canal_cap])
     request = make_request(mode="last", word="", last=1)
-    deleted = await cog._purge(
+    result = await cog._purge(
         request, guild3, moderator, progress=AsyncMock(), cancel_event=asyncio.Event()
     )
-    assert deleted == 1
+    assert result.deleted == 1
+    assert result.matched == 1
     assert canal_cap.deleted_batches and canal_cap.deleted_batches[0][0].content == "spam novo"
 
 
@@ -329,10 +332,10 @@ async def test_engine_scope_channel_regex_and_14day_rule(tmp_path):
     cog = CleanerCog(make_bot(tmp_path))
     pattern = re.compile(r"^!\w+", re.IGNORECASE)
     request = make_request(mode="regex", word="", pattern=pattern, channel=alvo)
-    deleted = await cog._purge(
+    result = await cog._purge(
         request, guild, MagicMock(), progress=AsyncMock(), cancel_event=asyncio.Event()
     )
-    assert deleted == 2, "scope must be the given channel only"
+    assert result.deleted == 2, "scope must be the given channel only"
     assert alvo.deleted_batches or alvo.deleted_singles
     assert not outro.deleted_batches and not outro.deleted_singles
 
@@ -370,10 +373,10 @@ async def test_engine_cancel_stops_between_messages(tmp_path):
     guild = make_guild([channel])
     cog = CleanerCog(make_bot(tmp_path))
     request = make_request(mode="word", word="spam")
-    deleted = await cog._purge(
+    result = await cog._purge(
         request, guild, MagicMock(), progress=AsyncMock(), cancel_event=cancel
     )
-    assert deleted == 0
+    assert result.deleted == 0
     assert not channel.deleted_batches
 
 
@@ -444,12 +447,13 @@ async def test_panel_states_render_with_real_catalog(tmp_path):
     view.channels_total = 5
     view.scanned = 120
     view.deleted = 7
+    view.matched = 9
     await view.prepare()
     texts = container_texts(view)
     joined = "\n".join(texts)
     assert "2/5" in joined
     assert "120" in joined
-    assert "7" in joined
+    assert "7 of 9" in joined
     assert not any("cleaner." in t for t in texts), texts
     labels = [b.label for b in _view_buttons(view)]
     assert any("Stop" in label for label in labels)
@@ -482,7 +486,7 @@ async def test_panel_stop_sets_event_and_disables(tmp_path):
 
 async def test_panel_completion_reports_and_stamps_final_summary(tmp_path):
     bot, view = _panel(tmp_path)
-    view.runner = AsyncMock(return_value=4)
+    view.runner = AsyncMock(return_value=PurgeResult(deleted=4, matched=5))
     view.purge_guild = MagicMock()
     view.moderator = MagicMock()
     view.moderator.mention = "<@9>"
@@ -503,9 +507,8 @@ async def test_panel_completion_reports_and_stamps_final_summary(tmp_path):
         interaction.response = MagicMock()
         interaction.response.is_done = lambda: False
         interaction.response.defer = AsyncMock()
-        interaction.message = MagicMock()
-        interaction.message.edit = AsyncMock()
         interaction.edit = AsyncMock()
+        interaction.edit_original_response = AsyncMock()
         await view._confirm(interaction)
         await view._task
     finally:
@@ -513,6 +516,7 @@ async def test_panel_completion_reports_and_stamps_final_summary(tmp_path):
 
     assert view.state == "done"
     assert view.deleted == 4
+    assert view.matched == 5
     texts = container_texts(view)
     joined = "\n".join(texts)
     assert "4" in joined
@@ -521,6 +525,9 @@ async def test_panel_completion_reports_and_stamps_final_summary(tmp_path):
     log_kwargs = sent_logs[0][1]
     assert log_kwargs["card_key"] == "cleaner.logs.purged.description"
     assert log_kwargs["mention_user_ids"] == [9]
+    # The audit body reports confirmed deletes against criteria matches
+    # (send_channel_log args: bot, guild_id, title, description).
+    assert "4 of 5" in sent_logs[0][0][3]
 
 
 async def test_panel_stopped_summary_after_cancel(tmp_path):
@@ -528,7 +535,7 @@ async def test_panel_stopped_summary_after_cancel(tmp_path):
 
     async def runner(request, guild, moderator, *, progress, cancel_event):
         cancel_event.set()
-        return 2
+        return PurgeResult(deleted=2, matched=2)
 
     view.runner = runner
     view.purge_guild = MagicMock()
@@ -545,9 +552,8 @@ async def test_panel_stopped_summary_after_cancel(tmp_path):
         interaction.response = MagicMock()
         interaction.response.is_done = lambda: False
         interaction.response.defer = AsyncMock()
-        interaction.message = MagicMock()
-        interaction.message.edit = AsyncMock()
         interaction.edit = AsyncMock()
+        interaction.edit_original_response = AsyncMock()
         await view._confirm(interaction)
         await view._task
     finally:
@@ -557,3 +563,33 @@ async def test_panel_stopped_summary_after_cancel(tmp_path):
     joined = "\n".join(container_texts(view))
     assert "2" in joined
     assert "interrompida" in joined or "stopped" in joined
+
+
+async def test_panel_reports_matched_vs_deleted_gap(tmp_path):
+    """Matches the API could not delete surface on the panel, honestly."""
+    bot, view = _panel(tmp_path)
+    view.runner = AsyncMock(return_value=PurgeResult(deleted=2, matched=5))
+    view.purge_guild = MagicMock()
+    view.moderator = MagicMock()
+    view.moderator.mention = "<@9>"
+    view.moderator.id = 9
+
+    import rosemary.cogs.cleaner as cleaner_mod
+
+    original = cleaner_mod.send_channel_log
+    cleaner_mod.send_channel_log = AsyncMock(return_value=True)
+    try:
+        interaction = MagicMock()
+        interaction.response = MagicMock()
+        interaction.response.is_done = lambda: False
+        interaction.response.defer = AsyncMock()
+        interaction.edit = AsyncMock()
+        interaction.edit_original_response = AsyncMock()
+        await view._confirm(interaction)
+        await view._task
+    finally:
+        cleaner_mod.send_channel_log = original
+
+    joined = "\n".join(container_texts(view))
+    assert "could not be deleted" in joined
+    assert "3" in joined

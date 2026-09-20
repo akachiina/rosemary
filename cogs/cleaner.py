@@ -65,6 +65,19 @@ def _format_elapsed(seconds: float) -> str:
     return f"{total // 60:02d}:{total % 60:02d}"
 
 
+@dataclasses.dataclass
+class PurgeResult:
+    """Outcome of one run: criteria matches apart from API-confirmed deletes.
+
+    ``matched`` counts every message the criteria selected (including ones
+    whose delete call failed or was abandoned); ``deleted`` counts only what
+    Discord confirmed. The gap is honest reporting, not a bug.
+    """
+
+    deleted: int = 0
+    matched: int = 0
+
+
 class CleanerPurgeView(MenuView):
     """Ephemeral purge panel: confirm, live progress with Stop, then summary.
 
@@ -92,6 +105,7 @@ class CleanerPurgeView(MenuView):
         self.channels_total = 0
         self.scanned = 0
         self.deleted = 0
+        self.matched = 0
         self.started_at = 0.0
         self.final_text = ""
         #: The purge engine (``CleanerCog._purge``), injected by the command.
@@ -99,7 +113,7 @@ class CleanerPurgeView(MenuView):
         #: (guild, moderator) passed through to the engine for the audit stamp.
         self.purge_guild = None
         self.moderator = None
-        self._message = None  # original response, for timer edits
+        self._interaction = None  # confirming interaction, for timer edits
         self._last_edit = 0.0
         self._task: asyncio.Task | None = None
         self.register("cleaner_yes", self._confirm)
@@ -159,7 +173,14 @@ class CleanerPurgeView(MenuView):
                 TextDisplay(await t(gid, "cleaner.progress_scanned", count=self.scanned))
             )
             parts.append(
-                TextDisplay(await t(gid, "cleaner.progress_counts", count=self.deleted))
+                TextDisplay(
+                    await t(
+                        gid,
+                        "cleaner.progress_counts",
+                        deleted=self.deleted,
+                        matched=self.matched,
+                    )
+                )
             )
             parts.append(
                 TextDisplay(
@@ -172,6 +193,17 @@ class CleanerPurgeView(MenuView):
             )
         else:
             parts.append(TextDisplay(self.final_text))
+            # Honest reporting: matches the API could not delete.
+            if self.matched != self.deleted:
+                parts.append(
+                    TextDisplay(
+                        await t(
+                            gid,
+                            "cleaner.result_gap",
+                            gap=self.matched - self.deleted,
+                        )
+                    )
+                )
         container = designer_container(self.bot.theme.color("warning"), *parts)
 
         rows: list[discord.ui.ViewItem] = [container]
@@ -208,7 +240,9 @@ class CleanerPurgeView(MenuView):
         """ACK, switch to the running panel and start the engine task."""
         self.state = "running"
         self.started_at = time.monotonic()
-        self._message = getattr(interaction, "message", None)
+        # Timer edits go through the interaction's webhook: the response is
+        # ephemeral, and the channel endpoint 404s (10008) on it.
+        self._interaction = interaction
         self._last_edit = time.monotonic()
         await self.rerender(interaction)
         self._task = asyncio.create_task(self._run())
@@ -232,7 +266,7 @@ class CleanerPurgeView(MenuView):
         t = self.bot.translator.t
         gid = self.guild_id
         try:
-            self.deleted = await self.runner(
+            result = await self.runner(
                 self.request,
                 self.purge_guild,
                 self.moderator,
@@ -244,6 +278,8 @@ class CleanerPurgeView(MenuView):
             with contextlib.suppress(Exception):
                 await self._edit_panel()
             return
+        self.deleted = result.deleted
+        self.matched = result.matched
         self.state = "done"
         if self.cancel_event.is_set():
             self.final_text = await t(gid, "cleaner.stopped", count=self.deleted)
@@ -279,7 +315,8 @@ class CleanerPurgeView(MenuView):
                     gid,
                     "cleaner.logs.purged.description",
                     moderator=self.moderator.mention,
-                    count=self.deleted,
+                    count=self.matched,
+                    deleted=self.deleted,
                     criterion=self.request.criterion,
                 ),
                 color="warning",
@@ -295,6 +332,7 @@ class CleanerPurgeView(MenuView):
         total: int | None = None,
         scanned: int | None = None,
         deleted: int | None = None,
+        matched: int | None = None,
     ) -> None:
         """Engine callback: store counters, edit the panel at most every 2.5s."""
         if current is not None:
@@ -307,26 +345,30 @@ class CleanerPurgeView(MenuView):
             self.scanned = scanned
         if deleted is not None:
             self.deleted = deleted
+        if matched is not None:
+            self.matched = matched
         now = time.monotonic()
-        if self._message is None or now - self._last_edit < PANEL_EDIT_INTERVAL:
+        if self._interaction is None or now - self._last_edit < PANEL_EDIT_INTERVAL:
             return
         self._last_edit = now
         await self._edit_panel()
 
     async def _edit_panel(self) -> None:
-        """Timer edit of the original response (no interaction attached).
+        """Timer edit of the original response through the interaction webhook.
 
-        After the 15 min followup token expires every edit fails: stop trying
-        (the panel freezes) instead of warning on every tick.
+        The response is ephemeral: the channel endpoint cannot see it (404
+        Unknown Message), only the interaction's webhook can. After the 15
+        min token expires every edit fails: stop trying (the panel freezes)
+        instead of warning on every tick.
         """
-        if self._message is None:
+        if self._interaction is None:
             return
         await self.prepare()
         try:
-            await self._message.edit(view=self)
+            await self._interaction.edit_original_response(view=self)
         except discord.HTTPException as exc:
             log.warning("purge panel edit failed, freezing the panel: %s", exc)
-            self._message = None
+            self._interaction = None
 
 
 class CleanerCog(commands.Cog):
@@ -458,20 +500,23 @@ class CleanerCog(commands.Cog):
         progress,
         cancel_event: asyncio.Event,
     ) -> int:
-        """Delete matching messages; returns the deleted count.
+        """Delete matching messages; returns confirmed vs matched counts.
 
         Bulk deletion (batches of 100) under 14 days, single delete above.
         The audit purge stamp is renewed per channel so long runs keep their
         attribution (the stamp otherwise expires after 10 minutes). The
-        ``last`` cap counts enqueued deletions: the guard must fire before the
-        API call, and failures are rare after the permission filter.
+        ``last`` cap counts enqueued matches: the guard must fire before the
+        API call, and failures are rare after the permission filter. Deletions
+        are counted only when the API call succeeds: ``deleted`` is what
+        Discord confirmed, ``matched`` is what the criteria selected.
         """
         channels = (
             [request.channel] if request.channel is not None else list(guild.text_channels)
         )
         channels = [c for c in channels if self._can_purge(c)]
         total = len(channels)
-        deleted = 0
+        deleted = 0  # confirmed by the API
+        matched = 0  # selected by the criteria
         scanned = 0
         done = 0
         cap = request.last
@@ -489,6 +534,7 @@ class CleanerCog(commands.Cog):
                 total=total,
                 scanned=scanned,
                 deleted=deleted,
+                matched=matched,
             )
             if isinstance(audit, AuditCog):
                 audit.note_purge_context(guild, moderator)
@@ -498,7 +544,7 @@ class CleanerCog(commands.Cog):
                     scanned += 1
                     if cancel_event.is_set():
                         break
-                    if cap is not None and deleted >= cap:
+                    if cap is not None and matched >= cap:
                         cap_reached = True
                         break
                     if (
@@ -508,17 +554,16 @@ class CleanerCog(commands.Cog):
                         continue
                     if not self._matches(request, message):
                         continue
-                    if cap is not None and deleted + len(batch) >= cap:
-                        cap_reached = True
-                        break
                     if message.created_at.timestamp() >= cutoff:
                         batch.append(message)
+                        matched += 1
                         if len(batch) >= 100:
                             with _suppress():
                                 await channel.delete_messages(batch)
                                 deleted += len(batch)
                             batch = []
                     else:
+                        matched += 1
                         with _suppress():
                             await message.delete()
                             deleted += 1
@@ -529,10 +574,12 @@ class CleanerCog(commands.Cog):
             except (discord.Forbidden, discord.HTTPException) as exc:
                 log.warning("Purge failed in channel %s: %s", channel.id, exc)
             done += 1
-            await progress(done=done, total=total, scanned=scanned, deleted=deleted)
+            await progress(
+                done=done, total=total, scanned=scanned, deleted=deleted, matched=matched
+            )
             if not (cancel_event.is_set() or cap_reached):
                 await asyncio.sleep(CHANNEL_PAUSE_SECONDS)
-        return deleted
+        return PurgeResult(deleted=deleted, matched=matched)
 
     @staticmethod
     def _matches(request: PurgeRequest, message: discord.Message) -> bool:

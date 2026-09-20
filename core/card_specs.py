@@ -324,7 +324,7 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "invites.logs.bonus.description": ("moderator", "user", "amount", "total"),
     "invites.logs.sync.description": ("codes", "moderator"),
     "invites.logs.reset.description": ("moderator",),
-    "cleaner.logs.purged.description": ("moderator", "criterion", "count"),
+    "cleaner.logs.purged.description": ("moderator", "criterion", "count", "deleted"),
     "anti_invite.logs.blocked.description": ("user", "channel", "code"),
     "reminders.logs.sent.description": ("moderator", "name", "sent", "failed"),
     "broadcast.logs.started.description": ("moderator", "title", "channel"),
