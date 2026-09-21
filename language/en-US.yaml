@@ -372,6 +372,15 @@ settings:
   events.raid_protection:
     label: Raid protection
     description: Delay welcomes when many members join at once.
+  events.welcome_ping_role:
+    label: Receptionist role
+    description: Role pinged with every welcome message.
+  events.leave_ping_role:
+    label: Leave alert role
+    description: Role pinged with every leave message.
+  events.ban_ping_role:
+    label: Ban alert role
+    description: Role pinged with every ban announcement.
   audit.enabled:
     label: Event Log enabled
     description: Enables the server event log (bans, messages, roles, voice).

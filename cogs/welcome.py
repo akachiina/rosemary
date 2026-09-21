@@ -97,6 +97,13 @@ _register_default_builders()
 class WelcomeCog(commands.Cog):
     """Member join / leave / ban announcements."""
 
+    #: Card key -> the guild setting holding that event's alert role.
+    PING_ROLE_KEYS = {
+        "events.welcome": "events.welcome_ping_role",
+        "events.leave": "events.leave_ping_role",
+        "events.ban": "events.ban_ping_role",
+    }
+
     def __init__(self, bot) -> None:
         self.bot = bot
         self._recent_joins: dict[int, deque[float]] = {}
@@ -128,7 +135,7 @@ class WelcomeCog(commands.Cog):
     async def _send_event_card(
         self,
         channel: discord.TextChannel,
-        guild_id: int,
+        guild: discord.Guild,
         key: str,
         title_key: str,
         body_key: str,
@@ -139,7 +146,11 @@ class WelcomeCog(commands.Cog):
         """Send the event card: themed/default document via the shared
         renderer, plain-text theme override as fallback. Pings follow the
         document content (``{user}`` in the text decides), per-card toggle
-        permitting; ``user_id`` only matters for that text-only path."""
+        permitting; ``user_id`` only matters for that text-only path. The
+        event's alert role (``events.<event>_ping_role``) pings first in its
+        own message, best-effort.
+        """
+        guild_id = guild.id
         from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.core.mentions import allowed_for_ids
 
@@ -184,7 +195,42 @@ class WelcomeCog(commands.Cog):
                     self.bot, guild_id, key,
                     user_ids=[user_id] if user_id else [],
                 )
+        await self._send_receptionist_ping(channel, guild, key)
         await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
+
+    async def _send_receptionist_ping(
+        self, channel: discord.TextChannel, guild: discord.Guild, card_key: str
+    ) -> None:
+        """Ping the event's alert role in its own message before the card.
+
+        Off by default (``events.<event>_ping_role``). The card's theme ping
+        toggle gates it too: a guild that muted the card mutes the role. A
+        deleted role or a failed ping is logged and skipped, never blocking
+        the card that follows.
+        """
+        setting_key = self.PING_ROLE_KEYS.get(card_key)
+        if setting_key is None:
+            return
+        role_id = await get_setting(self.bot.storage, guild.id, setting_key)
+        if not role_id:
+            return
+        if guild.get_role(int(role_id)) is None:
+            log.warning(
+                "Alert role %s for %s is gone in guild %s",
+                role_id, card_key, guild.id,
+            )
+            return
+        from rosemary.core.mentions import allowed_for_ids
+
+        allowed = await allowed_for_ids(
+            self.bot, guild.id, card_key, role_ids=[int(role_id)]
+        )
+        if not allowed.roles:
+            return  # card pings muted in the guild's theme
+        try:
+            await channel.send(f"<@&{int(role_id)}>", allowed_mentions=allowed)
+        except discord.HTTPException as exc:
+            log.warning("Alert ping failed for %s: %s", card_key, exc)
 
     async def _inviter_mention(self, member: discord.Member) -> str:
         """Inviter mention for the ``{inviter}`` card placeholder.
@@ -246,7 +292,7 @@ class WelcomeCog(commands.Cog):
             }
             await self._send_event_card(
                 channel,
-                member.guild.id,
+                member.guild,
                 "events.welcome",
                 "events.welcome.title",
                 "events.welcome.body",
@@ -276,7 +322,7 @@ class WelcomeCog(commands.Cog):
             }
             await self._send_event_card(
                 channel,
-                member.guild.id,
+                member.guild,
                 "events.leave",
                 "events.leave.title",
                 "events.leave.body",
@@ -304,7 +350,7 @@ class WelcomeCog(commands.Cog):
             }
             await self._send_event_card(
                 channel,
-                guild.id,
+                guild,
                 "events.ban",
                 "events.ban.title",
                 "events.ban.body",

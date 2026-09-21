@@ -369,6 +369,24 @@ SETTINGS: dict[str, SettingSpec] = {
             None,
         ),
         _spec(
+            "events.welcome_ping_role",
+            SettingCategory.EVENTS,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
+            "events.leave_ping_role",
+            SettingCategory.EVENTS,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
+            "events.ban_ping_role",
+            SettingCategory.EVENTS,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
             "events.raid_protection",
             SettingCategory.EVENTS,
             SettingType.BOOLEAN,

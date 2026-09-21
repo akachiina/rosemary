@@ -373,6 +373,15 @@ settings:
   events.raid_protection:
     label: Proteção anti-raid
     description: Atrasa boas-vindas quando muita gente entra de uma vez.
+  events.welcome_ping_role:
+    label: Cargo de recepcionista
+    description: Cargo pingado junto de cada mensagem de boas-vindas.
+  events.leave_ping_role:
+    label: Cargo de avisos de saída
+    description: Cargo pingado junto de cada mensagem de saída.
+  events.ban_ping_role:
+    label: Cargo de avisos de ban
+    description: Cargo pingado junto de cada anúncio de banimento.
   audit.enabled:
     label: Registro de Eventos ativado
     description: Ativa o registro de eventos do servidor (bans, mensagens, cargos, voz).
