@@ -53,7 +53,10 @@ async def default_event_document(
 
     title = await raw(title_key)
     if not title.startswith("#"):
-        emoji = bot.theme.emojis.get(emoji_token, "")
+        # Catalog titles usually carry their own emoji token; prefixing the
+        # theme emoji on top of an already-decorated title doubles it.
+        already = any(e and e in title for e in bot.theme.emojis.values())
+        emoji = "" if already else bot.theme.emojis.get(emoji_token, "")
         title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
     body = await raw(body_key)
     server = safe_format("{server}", mapping)

@@ -74,6 +74,44 @@ async def test_join_attributes_via_prejoin_cache(tmp_path, monkeypatch):
 #: event document layout -----------------------------------------------------
 
 
+async def test_event_titles_are_not_double_decorated():
+    """Catalog titles that already carry an emoji token must not receive the
+    builder's theme emoji a second time (live bug: '🚫🚫 Membro banido').
+    Dry titles (audit cards) keep getting the theme emoji prefixed."""
+    from rosemary.cogs.audit import default_audit_document
+    from rosemary.cogs.welcome import default_event_document
+
+    bot = MagicMock()
+    bot.theme = load_theme()
+    ban_emoji = bot.theme.emojis["ban"]
+
+    class T:
+        async def raw(self, guild_id, key):
+            return {
+                "events.ban.title": "{ban} Membro banido",
+                "events.ban.body": "{user_name} foi banido.",
+                "card.audit.ban.title": "Membro banido",
+                "card.audit.ban.body": "{user_name} foi banido.",
+                "card.author_footer.text": "por {user} · {timestamp}",
+            }[key]
+
+    bot.translator = T()
+
+    event_doc = await default_event_document(
+        bot, 1, title_key="events.ban.title",
+        body_key="events.ban.body", color="danger", emoji_token="ban",
+    )
+    event_title = event_doc["blocks"][0]["children"][0]["children"][0]["body"]
+    assert event_title.count(ban_emoji) == 1, event_title
+
+    audit_doc = await default_audit_document(
+        bot, 1, title_key="card.audit.ban.title",
+        body_key="card.audit.ban.body", color="danger", emoji_token="ban",
+    )
+    audit_title = audit_doc["blocks"][0]["children"][0]["children"][0]["body"]
+    assert audit_title.count(ban_emoji) == 1, audit_title
+
+
 async def test_event_document_has_avatar_section_and_footer(tmp_path):
     """Default event docs: avatar thumbnail section, emoji title, footer."""
     from rosemary.cogs.welcome import default_event_document
