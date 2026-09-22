@@ -28,10 +28,11 @@ BULK_FLUSH_SECONDS = 3.0
 #: How long a note_purge_context stamp stays valid for attribution.
 PURGE_CONTEXT_SECONDS = 600.0
 
-#: Audit-log action ids for ban / unban / message-delete lookups.
-AUDIT_BAN = 25
-AUDIT_UNBAN = 26
-AUDIT_MESSAGE_DELETE = 72
+#: Audit-log actions for ban / unban / message-delete lookups (py-cord's
+#: ``Guild.audit_logs`` requires the enum itself, not its integer value).
+AUDIT_BAN = discord.AuditLogAction.ban
+AUDIT_UNBAN = discord.AuditLogAction.unban
+AUDIT_MESSAGE_DELETE = discord.AuditLogAction.message_delete
 
 
 def _fence(value: str) -> str:

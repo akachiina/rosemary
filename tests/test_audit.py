@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 
-from rosemary.cogs.audit import AuditCog, _fence
+from rosemary.cogs.audit import AUDIT_BAN, AuditCog, _fence
 from rosemary.core.card_specs import AUDIT_CARDS, VARIABLES_BY_KEY
 from rosemary.core.storage import GuildStorage
 from rosemary.ui.theme import load_theme
@@ -256,6 +256,36 @@ async def test_per_event_toggle_gates_send(tmp_path):
     await set_setting(bot.storage, 1, "audit.unban_enabled", False)
     await cog.on_member_unban(guild, member())
     audit_channel.send.assert_not_awaited()
+
+
+async def test_ban_audit_log_context_uses_enum_action(tmp_path):
+    """py-cord's ``Guild.audit_logs`` calls ``action.value``: passing the raw
+    integer crashed with ``AttributeError: 'int' object has no attribute
+    'value'`` and the whole ban card was lost (live regression)."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+
+    import discord as d
+
+    seen: dict = {}
+
+    def audit_logs(limit=None, action=None):
+        seen["action"] = action
+
+        class _Iter:
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                raise StopAsyncIteration
+
+        return _Iter()
+
+    guild.audit_logs = audit_logs
+    moderator, reason = await cog._audit_log_context(guild, 5, AUDIT_BAN)
+    assert (moderator, reason) == ("", "")
+    assert isinstance(seen["action"], d.AuditLogAction)
+    assert seen["action"] is d.AuditLogAction.ban
 
 
 async def test_ban_sends_card_with_fenced_free_body(tmp_path):

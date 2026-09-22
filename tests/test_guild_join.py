@@ -65,6 +65,34 @@ async def test_guild_join_before_setup_is_noop() -> None:
     assert bot.synced == []
 
 
+async def test_prefix_command_not_found_is_swallowed() -> None:
+    """Plain chat never matches a command (guild prefix or no match at all):
+    py-cord's default handler only prints the traceback ("Ignoring exception
+    in command None: CommandNotFound: Command '!'") and spams the log."""
+    from rosemary.bot import RosemaryBot
+
+    bot = RosemaryBot.__new__(RosemaryBot)
+    recorded: list[str] = []
+
+    class FakeLog:
+        def error(self, *args, **kwargs):
+            recorded.append(str(args))
+
+    import rosemary.bot as bot_module
+
+    original_log = bot_module.log
+    bot_module.log = FakeLog()
+    try:
+        ctx = SimpleNamespace(command=None)
+        await bot.on_command_error(ctx, commands.CommandNotFound())
+        assert recorded == []
+
+        await bot.on_command_error(ctx, RuntimeError("boom"))
+        assert len(recorded) == 1
+    finally:
+        bot_module.log = original_log
+
+
 async def test_reapply_localization_still_syncs_every_guild() -> None:
     bot = _bot("en-US")
     bot._connection = SimpleNamespace(

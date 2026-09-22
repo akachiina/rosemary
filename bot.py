@@ -251,6 +251,13 @@ class RosemaryBot(commands.Bot):
         else:
             log.info("Rosemary online (no guilds yet)")
 
+    async def on_command_error(self, context, exception: Exception) -> None:
+        """Prefix leftovers ("!") must not spam the traceback hook; real
+        prefix-command failures stay logged like application errors."""
+        if isinstance(exception, commands.CommandNotFound):
+            return
+        log.error("Error in command %s: %s", context.command, exception)
+
     async def on_application_command_error(
         self, context: discord.ApplicationContext, exception: Exception
     ) -> None:
