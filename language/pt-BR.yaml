@@ -141,13 +141,13 @@ settings:
     description: 'Hora que o canal abre todo dia (HH:MM, ex: 06:00).'
   bump.schedule.open_message:
     label: Mensagem de Abertura
-    description: Mensagem postada quando o canal abre. Suporta {ping_role}.
+    description: 'Mensagem postada quando o canal abre. Suporta {{ping_role}}.'
   bump.schedule.close_time:
     label: Hora de Fechamento Diária
     description: 'Hora que o canal fecha todo dia (HH:MM, ex: 23:00).'
   bump.schedule.close_message:
     label: Mensagem de Fechamento
-    description: Mensagem postada quando o canal fecha. Suporta {ping_role}.
+    description: 'Mensagem postada quando o canal fecha. Suporta {{ping_role}}.'
   bump.leaderboard.enabled:
     label: Placar Semanal Ativado
     description: Ativa o ranking semanal e o cargo de Bump-MVP.
@@ -332,8 +332,8 @@ settings:
   partnerships.invite_text:
     label: Texto do convite de parceria
     description: >-
-      Texto postado por /enviar_convite_parceria. Placeholders: {rep} e
-      {ping_role}.
+      Texto postado por /enviar_convite_parceria. Placeholders: {{rep}} e
+      {{ping_role}}.
   partnerships.renewal_days:
     label: Prazo de renovação (dias)
     description: Dias até o anúncio expirar (1-90).
