@@ -72,6 +72,10 @@ class SettingSpec:
     max_value: int | None = None
     choices: tuple[str, ...] = ()
     is_duration: bool = False
+    #: STRING only: edit through a paragraph modal (multi-line, 2000 chars)
+    #: instead of the 100-char single-line one. Message-template settings
+    #: (e.g. partnership invite texts) need real newlines and links.
+    multiline: bool = False
     #: CHANNEL_LIST only: a renamed-away scalar setting whose stored value
     #: seeds the list until the menu saves it canonically (see get_setting).
     legacy_single_key: str | None = None
@@ -273,6 +277,13 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.PARTNERSHIPS,
             SettingType.ROLE,
             None,
+        ),
+        _spec(
+            "partnerships.invite_text",
+            SettingCategory.PARTNERSHIPS,
+            SettingType.STRING,
+            "",
+            multiline=True,
         ),
         _spec(
             "partnerships.renewal_days",

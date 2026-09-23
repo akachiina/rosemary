@@ -43,6 +43,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("user_avatar", "https://cdn.discordapp.com/embed/avatars/0.png", "image"),
         _v("user_mention", "<@0>", "mention"),
         _v("server", "…"),
+        _v("rep", "<@0>", "mention"),
         _v("count", 1, "number"),
         _v("matched", 1, "number"),
         _v("criterion", "com a palavra “spam”"),

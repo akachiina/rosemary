@@ -146,24 +146,54 @@ class PartnershipsCog(commands.Cog):
             user=f"<@{rep_id}>", ping=ping,
         )
 
-    async def _post_ad(
-        self, guild: discord.Guild, content: str, attachments: list[str]
-    ):
-        from rosemary.core.mentions import allowed_for_ids
+    async def _invite_text(self, guild: discord.Guild, rep_mention: str) -> str:
+        """The guild's invite template with placeholders resolved.
 
-        channel = await self._channel(guild)
+        A stored ``partnerships.invite_text`` setting always wins over the
+        catalog default (zero migration: customized guilds keep their text;
+        guilds that never touched the setting get the guild-language default).
+        Formatting runs in one ``safe_format`` pass over theme emojis plus the
+        variables: going through ``t()`` would abort on the first unknown
+        placeholder. ``{rep}`` and ``{ping_role}`` are the only contracted
+        placeholders: the template decides whether and where each appears.
+        """
+        from rosemary.core.cards import safe_format
+
+        ping_role_id = await get_setting(self.bot.storage, guild.id, "partnerships.ping_role")
+        variables = {
+            "rep": rep_mention,
+            "ping_role": f"<@&{ping_role_id}>" if ping_role_id else "",
+        }
+        mapping = {**(self.bot.theme.emojis if self.bot.theme else {}), **variables}
+        raw = await self.bot.storage.get(guild.id)
+        if "partnerships.invite_text" in raw:
+            template = await get_setting(self.bot.storage, guild.id, "partnerships.invite_text")
+        else:
+            template = await self.bot.translator.raw(
+                guild.id, "partnerships.invite_text_default"
+            )
+        if not isinstance(template, str):
+            template = str(template)
+        return safe_format(template, mapping)
+
+    async def _post_ad(
+        self,
+        guild: discord.Guild,
+        content: str,
+        attachments: list[str],
+        channel: discord.abc.Messageable | None = None,
+    ):
+        from rosemary.core.mentions import allowed_for_text
+
+        if channel is None:
+            channel = await self._channel(guild)
         if channel is None:
             return None
-        ping_role_id = await get_setting(self.bot.storage, guild.id, "partnerships.ping_role")
-        prefix = f"<@&{ping_role_id}>\n" if ping_role_id else ""
         try:
             return await channel.send(
-                f"{prefix}{content}".strip(),
-                allowed_mentions=await allowed_for_ids(
-                    self.bot,
-                    guild.id,
-                    "partnerships.invite",
-                    role_ids=[ping_role_id] if ping_role_id else [],
+                content.strip(),
+                allowed_mentions=await allowed_for_text(
+                    self.bot, guild.id, "partnerships.invite", content,
                 ),
             )
         except (discord.Forbidden, discord.HTTPException) as exc:
@@ -297,8 +327,21 @@ class PartnershipsCog(commands.Cog):
         default_member_permissions=discord.Permissions(administrator=True),
         contexts={discord.InteractionContextType.guild},
     )
-    async def partnerships_invite(self, ctx: discord.ApplicationContext) -> None:
-        """Post the guild's partnership pitch in the partnerships channel."""
+    async def partnerships_invite(
+        self,
+        ctx: discord.ApplicationContext,
+        channel: discord.Option(
+            discord.TextChannel,
+            description="Channel to post the invite (default: current)",
+            required=False,
+        ) = None,
+        representative: discord.Option(
+            discord.Member,
+            description="Rep mentioned via {rep} (default: you)",
+            required=False,
+        ) = None,
+    ) -> None:
+        """Post the guild's partnership pitch, pinging its invite role."""
         guild = ctx.guild
         if not ctx.response.is_done():
             await ctx.response.defer(ephemeral=True)
@@ -307,16 +350,10 @@ class PartnershipsCog(commands.Cog):
                 await self.bot.translator.t(guild.id, "partnerships.error_disabled"),
                 ephemeral=True,
             )
-        text = await text_or(
-            self.bot,
-            guild.id,
-            "partnerships.invite",
-            await self.bot.translator.t(
-                guild.id, "partnerships.invite_text", server=guild.name
-            ),
-            server=guild.name,
-        )
-        message = await self._post_ad(guild, text, [])
+        target = channel or ctx.channel
+        rep = representative or ctx.author
+        text = await self._invite_text(guild, rep.mention)
+        message = await self._post_ad(guild, text, [], channel=target)
         if message is None:
             return await ctx.respond(
                 await self.bot.translator.t(guild.id, "partnerships.error_no_channel"),

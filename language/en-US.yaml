@@ -328,6 +328,11 @@ settings:
   partnerships.ping_role:
     label: Partnerships ping role
     description: Role pinged on partnership expiry.
+  partnerships.invite_text:
+    label: Partnership invite text
+    description: >-
+      Text posted by /partnerships_invite. Placeholders: {rep} and
+      {ping_role}.
   partnerships.renewal_days:
     label: Renewal period (days)
     description: Days before a partnership ad expires (1-90).
@@ -1203,7 +1208,8 @@ partnerships:
   audit_body: 'Expired: {expired}
 
     Orphaned: {orphans}'
-  invite_text: 'Partner with **{server}**! Talk to the staff to join.'
+  invite_text: 'Partner with us! Talk to the staff to join.'
+  invite_text_default: 'Partner with us! Talk to {rep} to join.'
   dm:
     added: 'Your partnership with **{server}** is live!'
     removed: 'Your partnership with **{server}** has ended.'
@@ -1713,6 +1719,9 @@ variables:
   server:
     label: Server
     description: Name of the server
+  rep:
+    label: Representative
+    description: Mentioned in the invite text (the command user by default)
   count:
     label: Count
     description: A number for this card

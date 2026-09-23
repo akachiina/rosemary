@@ -334,13 +334,18 @@ class SettingsMenuView(MenuView):
         placeholder = description if len(description) <= 100 else f"{description[:97]}..."
         title = await t(self.guild_id, "settings.edit_title", setting=label)
 
+        # Multiline settings (message templates) edit through a paragraph
+        # field: real newlines and up to Discord's message-length cap instead
+        # of the 100-char single-line default.
+        multiline = bool(getattr(spec, "multiline", False))
         field = discord.ui.InputText(
             placeholder=placeholder,
             value=field_value,
             required=True,
             custom_id=f"{spec.key}_value",
             min_length=1,
-            max_length=100,
+            max_length=2000 if multiline else 100,
+            style=discord.InputTextStyle.paragraph if multiline else discord.InputTextStyle.short,
         )
         modal = discord.ui.DesignerModal(title=title, custom_id=f"settings_modal:{spec.key}")
         modal.add_item(discord.ui.Label(label, item=field))

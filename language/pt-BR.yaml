@@ -329,6 +329,11 @@ settings:
   partnerships.ping_role:
     label: Cargo de ping de parcerias
     description: Cargo mencionado na expiração.
+  partnerships.invite_text:
+    label: Texto do convite de parceria
+    description: >-
+      Texto postado por /enviar_convite_parceria. Placeholders: {rep} e
+      {ping_role}.
   partnerships.renewal_days:
     label: Prazo de renovação (dias)
     description: Dias até o anúncio expirar (1-90).
@@ -1204,7 +1209,8 @@ partnerships:
   audit_body: 'Expiradas: {expired}
 
     Órfãs: {orphans}'
-  invite_text: 'Faça parceria com **{server}**! Fale com a staff para participar.'
+  invite_text: 'Faça parceria com a gente! Fale com a staff para participar.'
+  invite_text_default: 'Faça parceria com a gente! Fale com {rep} para participar.'
   dm:
     added: 'Sua parceria com **{server}** está no ar!'
     removed: 'Sua parceria com **{server}** terminou.'
@@ -1715,6 +1721,9 @@ variables:
   server:
     label: Servidor
     description: Nome do servidor
+  rep:
+    label: Representante
+    description: Mencionado no texto do convite (quem usou o comando por padrão)
   count:
     label: Contagem
     description: Um número deste card
