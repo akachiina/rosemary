@@ -133,6 +133,27 @@ async def test_format_value():
     assert timeout.is_default is True
 
 
+def test_format_value_multiline_preview():
+    """Multiline templates preview as one flat escaped line, never a blob.
+
+    A leading '#' in the template became a giant heading and blank lines
+    stretched the settings panel; the preview escapes markdown, collapses
+    newlines and truncates (the edit modal still carries the full text).
+    """
+    spec = SETTINGS["partnerships.invite_text"]
+    raw = "# Bem-vindo!\n\nFale com *{rep}* para participar."
+    formatted = format_value(spec, raw)
+    assert formatted.preview is True
+    assert formatted.translate is False
+    assert "\n" not in formatted.display
+    assert "\\#" in formatted.display and "\\*" in formatted.display
+    assert formatted.display.endswith("para participar.")
+
+    long = "linha " * 80
+    truncated = format_value(spec, long)
+    assert len(truncated.display) <= 205 and truncated.display.endswith("…")
+
+
 async def test_get_and_set_setting(tmp_path):
     store = GuildStorage(tmp_path)
     assert await get_setting(store, 1, "moderation.warn_limit") == 3

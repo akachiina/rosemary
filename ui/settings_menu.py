@@ -509,6 +509,10 @@ class SettingsMenuView(MenuView):
                 if formatted.translate
                 else formatted.display
             )
+            if formatted.preview:
+                value_text = await t(
+                    self.guild_id, "settings.preview_value", value=value_text
+                )
             if formatted.is_default:
                 value_text = await t(
                     self.guild_id, "settings.default_value", value=value_text

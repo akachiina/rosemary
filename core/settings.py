@@ -854,6 +854,9 @@ class FormattedValue:
     display: str
     translate: bool
     is_default: bool
+    #: True when the display shows an escaped/truncated excerpt of a longer
+    #: template instead of the whole value (callers may label it a preview).
+    preview: bool = False
 
 
 def format_value(spec: SettingSpec, value: Any) -> FormattedValue:
@@ -917,6 +920,21 @@ def format_value(spec: SettingSpec, value: Any) -> FormattedValue:
             translate=False,
             is_default=is_default,
         )
+
+    text = str(value)
+    if spec.multiline:
+        # Message templates render as one huge markdown blob inside the menu
+        # entry (a leading "#" becomes a heading, blank lines spread the
+        # panel). Show a flat single-line preview instead: markdown escaped,
+        # newlines collapsed, truncated. The edit modal still carries the
+        # full text, so nothing is lost.
+        escaped = text
+        for char in ("\\", "`", "*", "_", "#", ">", "~", "|"):
+            escaped = escaped.replace(char, f"\\{char}")
+        escaped = " ".join(escaped.split())
+        if len(escaped) > 200:
+            escaped = escaped[:197].rstrip() + "…"
+        return FormattedValue(escaped, translate=False, is_default=is_default, preview=True)
 
     return FormattedValue(str(value), translate=False, is_default=is_default)
 

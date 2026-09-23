@@ -202,6 +202,7 @@ settings:
   saved: '{success} Valor definido para {setting}.'
   invalid_value: '{error} Valor inválido para {setting}.'
   default_value: 'Padrão: {value}'
+  preview_value: 'Prévia: {value}…'
   none: Não definido
   page_indicator: Página {page} de {pages}
   test:

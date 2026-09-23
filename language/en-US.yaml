@@ -201,6 +201,7 @@ settings:
   saved: '{success} Value set for {setting}.'
   invalid_value: '{error} Invalid value for {setting}.'
   default_value: 'Default: {value}'
+  preview_value: 'Preview: {value}…'
   test:
     title: '{rocket} Test Bump System'
     hint: Trigger real bump system actions to validate without waiting for the cooldown.
