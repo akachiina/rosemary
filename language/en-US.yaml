@@ -1200,6 +1200,10 @@ partnerships_clean:
 partnerships:
   error_disabled: '{error} Partnerships are disabled on this server.'
   error_no_channel: '{error} No partnerships channel configured.'
+  modal:
+    title: 'Partnership ad'
+    label: 'Ad text'
+    placeholder: 'Write the ad. Use {{rep}}, {{channel}} and {{ping_role}} anywhere.'
   error_not_found: '{error} No partnership for {user}.'
   error_not_rep: '{error} You do not represent any partnership here.'
   list_empty: 'No partnerships yet.'

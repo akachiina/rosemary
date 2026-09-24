@@ -1201,6 +1201,10 @@ partnerships_clean:
 partnerships:
   error_disabled: '{error} Parcerias estão desativadas neste servidor.'
   error_no_channel: '{error} Nenhum canal de parcerias configurado.'
+  modal:
+    title: 'Anúncio de parceria'
+    label: 'Texto do anúncio'
+    placeholder: 'Escreva o anúncio. Use {{rep}}, {{channel}} e {{ping_role}} onde quiser.'
   error_not_found: '{error} Sem parceria para {user}.'
   error_not_rep: '{error} Você não representa nenhuma parceria aqui.'
   list_empty: 'Sem parcerias ainda.'

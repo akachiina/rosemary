@@ -257,9 +257,11 @@ class PartnershipsCog(commands.Cog):
         self,
         ctx: discord.ApplicationContext,
         member: discord.Option(discord.Member, description="Partner representative"),
-        text: discord.Option(str, description="Partnership ad text"),
     ) -> None:
-        """Advertise a partner and grant them the partner role."""
+        """Open the ad-text modal for a new partnership (submit posts it)."""
+        from rosemary.core.cards import safe_format
+        from rosemary.ui.modals import make_text_modal
+
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "partnerships.enabled"):
             return await ctx.respond(
@@ -271,24 +273,52 @@ class PartnershipsCog(commands.Cog):
                 await self.bot.translator.t(guild.id, "partnerships.error_no_channel"),
                 ephemeral=True,
             )
-        await ctx.response.defer(ephemeral=True)
-        message = await self._post_ad(guild, text, [])
-        await self.store.add(
-            guild.id, member.id, member.id, ctx.author.id,
-            message.id if message else None, text, [],
-        )
-        await self._assign_role(guild, member.id)
-        await self._dm(guild, member.id, "added", server=guild.name)
-        await self._log(
-            guild.id, "added", "success", [member.id, ctx.author.id],
-            user=member.mention, author=ctx.author.mention,
-        )
-        await ctx.respond(
-            await self.bot.translator.t(
-                guild.id, "partnerships.success.added", user=member.mention
+
+        async def submit(interaction: discord.Interaction, raw_text: str) -> None:
+            ad_channel = await self._channel(guild)
+            text = safe_format(
+                raw_text,
+                {
+                    **(self.bot.theme.emojis if self.bot.theme else {}),
+                    "rep": member.mention,
+                    "channel": ad_channel.mention if ad_channel else "",
+                    "ping_role": (
+                        f"<@&{ping_role_id}>" if (ping_role_id := await get_setting(
+                            self.bot.storage, guild.id, "partnerships.ping_role"
+                        )) else ""
+                    ),
+                },
+            )
+            message = await self._post_ad(guild, text, [])
+            await self.store.add(
+                guild.id, member.id, member.id, interaction.user.id,
+                message.id if message else None, text, [],
+            )
+            await self._assign_role(guild, member.id)
+            await self._dm(guild, member.id, "added", server=guild.name)
+            await self._log(
+                guild.id, "added", "success", [member.id, interaction.user.id],
+                user=member.mention, author=interaction.user.mention,
+            )
+            await interaction.response.send_message(
+                await self.bot.translator.t(
+                    guild.id, "partnerships.success.added", user=member.mention
+                ),
+                ephemeral=True,
+            )
+
+        modal = make_text_modal(
+            title=await self.bot.translator.t(guild.id, "partnerships.modal.title"),
+            custom_id="partnerships_ad_modal",
+            label=await self.bot.translator.t(guild.id, "partnerships.modal.label"),
+            placeholder=await self.bot.translator.t(
+                guild.id, "partnerships.modal.placeholder"
             ),
-            ephemeral=True,
+            max_length=2000,
+            style=discord.InputTextStyle.paragraph,
+            on_submit=submit,
         )
+        await ctx.send_modal(modal)
 
     @discord.slash_command(
         name="partnerships_remove",

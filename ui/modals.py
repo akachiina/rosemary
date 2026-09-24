@@ -27,6 +27,7 @@ def make_text_modal(
     value: str = "",
     required: bool = True,
     max_length: int = 100,
+    style: discord.InputTextStyle = discord.InputTextStyle.short,
     on_submit: SubmitHandler,
 ) -> discord.ui.DesignerModal:
     """Build a single-field text modal.
@@ -39,6 +40,7 @@ def make_text_modal(
         value: Pre-filled value (e.g. the current role name).
         required: Whether the field must be filled.
         max_length: Maximum input length.
+        style: Short (single line) or paragraph (multi-line) input.
         on_submit: ``async (interaction, value) -> None`` called on submit.
     """
     field = discord.ui.InputText(
@@ -48,6 +50,7 @@ def make_text_modal(
         custom_id="value",
         min_length=1,
         max_length=max_length,
+        style=style,
     )
     modal = discord.ui.DesignerModal(title=title, custom_id=custom_id)
     modal.add_item(discord.ui.Label(label, item=field))
