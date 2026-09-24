@@ -1216,6 +1216,7 @@ partnerships:
     removed: "# {door} Partnership Ended\n\nHello, {mention}! Your partnership with **{server}** was ended by the staff.\n\n{envelope} If you want to re-establish it, talk to the server staff to start the process again.\n\n-# This is an automated partnership notification."
     warning: "# {clock} Partnership Renewal Required!\n\nHello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.\n\n### How to renew\n> Use the `/partnerships_renew` command on the server before the deadline.\n\n### {warning} Deadline\n> You have **{days} day(s)** to act.\n\n-# When it expires, your partnership ad will be deleted and the partner role will be removed."
     expired: "# {hourglass} Partnership Expired\n\nHello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.\n\n### {refresh} Want to come back?\n> Just talk to the server staff to redo the partnership process.\n\n-# Your ad was deleted and the partner role was removed."
+    expired_admin: "# {hourglass} Partnership Expired\n\nHello, {mention}! The partnership you added with representative {rep} expired without renewal and was removed from **{server}**.\n\n### {calendar} Details\n> **Representative:** {rep}\n> **Last renewed:** {days} day(s) ago\n\n### {refresh} Want to re-establish it?\n> Redo the process normally in the partnerships channel.\n> Invite to share with the representative: {invite}\n\n-# This is an automated notification. No further action was taken beyond removing the partnership."
   invite: '{server} 🤝'
   success:
     added: '{success} Partnership added for {user}.'
@@ -2023,6 +2024,9 @@ variables:
   channel_id:
     label: Channel ID
     description: Discord ID of the channel
+  invite:
+    label: Server invite
+    description: Invite link of this server
   file_url:
     label: Purge file
     description: Link to the .txt with the bulk-deleted messages
@@ -2671,16 +2675,19 @@ card:
     dm:
       added:
         title: 'DM: partnership added'
-        placeholders: '{{server}}'
+        placeholders: '{{server}}, {{mention}}'
       removed:
         title: 'DM: partnership removed'
-        placeholders: '{{server}}'
+        placeholders: '{{server}}, {{mention}}'
       warning:
         title: 'DM: partnership warning'
-        placeholders: '{{days}}, {{server}}'
+        placeholders: '{{days}}, {{server}}, {{mention}}'
       expired:
         title: 'DM: partnership expired'
-        placeholders: '{{server}}'
+        placeholders: '{{server}}, {{mention}}'
+      expired_admin:
+        title: 'DM: partnership expired (adder notice)'
+        placeholders: '{{rep}}, {{server}}, {{days}}, {{invite}}, {{mention}}'
     logs:
       added:
         description:

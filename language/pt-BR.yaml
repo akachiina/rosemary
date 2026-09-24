@@ -1217,6 +1217,7 @@ partnerships:
     removed: "# {door} Parceria Encerrada\n\nOlá, {mention}! Sua parceria com **{server}** foi encerrada pela equipe.\n\n{envelope} Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.\n\n-# Esta é uma notificação automática da parceria."
     warning: "# {clock} Renovação de Parceria Necessária!\n\nOlá, {mention}! Sua parceria com **{server}** está chegando ao fim e precisa ser renovada.\n\n### Como renovar\n> Use o comando `/renovar_parceria` no servidor antes do prazo acabar.\n\n### {warning} Prazo\n> Você tem **{days} dia(s)** para agir.\n\n-# Ao expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido."
     expired: "# {hourglass} Parceria Expirada\n\nOlá, {mention}! A parceria com **{server}** expirou por falta de renovação e foi removida automaticamente.\n\n### {refresh} Quer voltar?\n> Basta falar com a equipe do servidor para refazer o processo de parceria.\n\n-# Seu anúncio foi deletado e o cargo de parceiro foi removido."
+    expired_admin: "# {hourglass} Parceria Expirada\n\nOlá, {mention}! A parceria que você adicionou com o representante {rep} expirou por falta de renovação e foi removida de **{server}**.\n\n### {calendar} Detalhes\n> **Representante:** {rep}\n> **Última renovação:** há {days} dia(s)\n\n### {refresh} Quer restabelecer?\n> Refaça o processo normalmente no canal de parcerias.\n> Convite para repassar ao representante: {invite}\n\n-# Esta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria."
   invite: '{server} 🤝'
   success:
     added: '{success} Parceria adicionada para {user}.'
@@ -2025,6 +2026,9 @@ variables:
   channel_id:
     label: ID do canal
     description: ID do Discord do canal
+  invite:
+    label: Convite do servidor
+    description: Link de convite deste servidor
   file_url:
     label: Arquivo da purga
     description: Link do .txt com as mensagens apagadas em massa
@@ -2673,16 +2677,19 @@ card:
     dm:
       added:
         title: 'DM: parceria adicionada'
-        placeholders: '{{server}}'
+        placeholders: '{{server}}, {{mention}}'
       removed:
         title: 'DM: parceria removida'
-        placeholders: '{{server}}'
+        placeholders: '{{server}}, {{mention}}'
       warning:
         title: 'DM: aviso de parceria'
-        placeholders: '{{days}}, {{server}}'
+        placeholders: '{{days}}, {{server}}, {{mention}}'
       expired:
         title: 'DM: parceria expirada'
-        placeholders: '{{server}}'
+        placeholders: '{{server}}, {{mention}}'
+      expired_admin:
+        title: 'DM: parceria expirada (para quem adicionou)'
+        placeholders: '{{rep}}, {{server}}, {{days}}, {{invite}}, {{mention}}'
     logs:
       added:
         description:

@@ -146,6 +146,7 @@ PARTNERSHIPS_DMS = [
     "removed",
     "warning",
     "expired",
+    "expired_admin",
 ]
 
 PARTNERSHIPS_LOGS = [
@@ -269,6 +270,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "partnerships.dm.removed": ("server", "mention"),
     "partnerships.dm.warning": ("days", "server", "mention"),
     "partnerships.dm.expired": ("server", "mention"),
+    "partnerships.dm.expired_admin": ("rep", "server", "days", "invite", "mention"),
     "updater.confirm": ("target",),
     "about.card": ("version", "channel"),
 }

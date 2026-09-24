@@ -87,6 +87,37 @@ class PartnershipsCog(commands.Cog):
         with contextlib.suppress(discord.Forbidden, discord.HTTPException):
             await member.remove_roles(role, reason="Partnership removed")
 
+    async def _guild_invite(self, guild: discord.Guild) -> str:
+        """A standing invite link for ``guild`` (empty when impossible).
+
+        Reuses the bot's own permanent invite in the partnerships channel
+        when one exists (same pattern as /meuconvite), otherwise creates one.
+        A ``None``/empty result leaves ``{invite}`` blank in templates; the
+        copy must read naturally either way.
+        """
+        channel = await self._channel(guild)
+        if channel is None:
+            for candidate in guild.text_channels:
+                channel = candidate
+                break
+        if channel is None:
+            return ""
+        try:
+            for invite in await channel.invites():
+                if (
+                    invite.inviter is not None
+                    and invite.inviter.id == self.bot.user.id
+                    and not invite.temporary
+                    and (invite.max_age or 0) == 0
+                ):
+                    return invite.url
+            created = await channel.create_invite(
+                max_age=0, max_uses=0, reason="Partnership expiry notice"
+            )
+            return created.url
+        except (discord.Forbidden, discord.HTTPException):
+            return ""
+
     async def _dm(
         self, guild: discord.Guild, user_id: int, key: str, **variables
     ) -> None:
@@ -142,6 +173,17 @@ class PartnershipsCog(commands.Cog):
         await self._strip_role(guild, rep_id)
         await self.store.remove(guild.id, partner_id)
         await self._dm(guild, rep_id, "expired", server=guild.name)
+        adder_id = int(entry.get("adder_id") or 0)
+        if adder_id and adder_id != rep_id:
+            await self._dm(
+                guild,
+                adder_id,
+                "expired_admin",
+                rep=f"<@{rep_id}>",
+                server=guild.name,
+                days=max(0, int(PartnershipStore.days_since(entry.get("last_renewed_at")))),
+                invite=await self._guild_invite(guild),
+            )
         ping_role_id = await get_setting(self.bot.storage, guild.id, "partnerships.ping_role")
         ping = f"<@&{ping_role_id}>" if ping_role_id else ""
         await self._log(

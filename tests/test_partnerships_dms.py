@@ -156,3 +156,106 @@ async def test_dm_mention_always_the_recipient(tmp_path):
     text = guild.get_member.return_value.send.await_args.args[0]
     assert "Olá, <@100>!" in text
     assert "<@999>" not in text
+
+
+async def test_expired_admin_dm_reaches_the_adder(tmp_path):
+    """Expiry DMs the admin who added the partnership, not the rep again."""
+    cog = _cog(tmp_path)
+    guild = _guild()
+    sent: dict[int, str] = {}
+
+    def get_member(user_id):
+        member = _member(user_id)
+        member.send = AsyncMock(
+            side_effect=lambda text: sent.setdefault(user_id, text)
+        )
+        return member
+
+    guild.get_member = get_member
+    await cog._dm(
+        guild, 7, "expired_admin",
+        rep="<@100>", server=guild.name, days=21, invite="https://discord.gg/abc",
+    )
+    assert 7 in sent and 100 not in sent
+    text = sent[7]
+    assert "Olá, <@7>!" in text
+    assert "<@100>" in text
+    assert "há 21 dia(s)" in text
+    assert "https://discord.gg/abc" in text
+
+
+async def test_expired_admin_dm_survives_missing_invite(tmp_path):
+    """An empty {invite} (no channel rights) still renders the whole DM."""
+    cog = _cog(tmp_path)
+    guild = _guild()
+    guild.get_member = MagicMock(return_value=_member(7))
+    await cog._dm(
+        guild, 7, "expired_admin",
+        rep="<@100>", server=guild.name, days=21, invite="",
+    )
+    text = guild.get_member.return_value.send.await_args.args[0]
+    assert "<@100>" in text and "há 21 dia(s)" in text
+
+
+async def test_expired_admin_variable_contract():
+    """The admin DM contracts its five placeholders; invite is registered."""
+    spec = get_card("partnerships.dm.expired_admin")
+    assert spec is not None
+    for name in ("rep", "server", "days", "invite", "mention"):
+        assert name in spec.variables
+    assert "invite" in VARIABLES
+
+
+async def test_expired_admin_labels_in_both_catalogs():
+    """variables.invite carries label + description in both catalogs."""
+    for code in ("pt-BR", "en-US"):
+        with open(ROOT / "language" / f"{code}.yaml", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+        node = (data.get("variables") or {}).get("invite") or {}
+        assert node.get("label"), f"{code}: variables.invite.label missing"
+        assert node.get("description"), f"{code}: variables.invite.description missing"
+
+
+async def test_guild_invite_reuses_the_bots_own_permanent_invite(tmp_path):
+    """A standing bot-made invite in the partnerships channel is reused."""
+    cog = _cog(tmp_path)
+    guild = _guild()
+    standing = MagicMock()
+    standing.inviter.id = 42
+    standing.temporary = False
+    standing.max_age = 0
+    standing.url = "https://discord.gg/standing"
+    other = MagicMock()
+    other.inviter.id = 99
+    channel = MagicMock(spec=discord.TextChannel)
+    channel.invites = AsyncMock(return_value=[other, standing])
+    channel.create_invite = AsyncMock(side_effect=AssertionError("must not create"))
+    guild.text_channels = []
+    cog._channel = AsyncMock(return_value=channel)
+    cog.bot.user.id = 42
+    assert await cog._guild_invite(guild) == "https://discord.gg/standing"
+
+
+async def test_guild_invite_creates_when_none_standing(tmp_path):
+    """Without a reusable invite the bot creates a permanent one."""
+    cog = _cog(tmp_path)
+    guild = _guild()
+    created = MagicMock()
+    created.url = "https://discord.gg/new"
+    channel = MagicMock(spec=discord.TextChannel)
+    channel.invites = AsyncMock(return_value=[])
+    channel.create_invite = AsyncMock(return_value=created)
+    guild.text_channels = []
+    cog._channel = AsyncMock(return_value=channel)
+    assert await cog._guild_invite(guild) == "https://discord.gg/new"
+
+
+async def test_guild_invite_degrades_to_empty(tmp_path):
+    """Forbidden/HTTP errors yield an empty link, never an exception."""
+    cog = _cog(tmp_path)
+    guild = _guild()
+    channel = MagicMock(spec=discord.TextChannel)
+    channel.invites = AsyncMock(side_effect=discord.Forbidden(MagicMock(), "no"))
+    guild.text_channels = []
+    cog._channel = AsyncMock(return_value=channel)
+    assert await cog._guild_invite(guild) == ""
