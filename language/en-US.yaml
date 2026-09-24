@@ -1212,10 +1212,10 @@ partnerships:
   invite_text: 'Partner with us! Talk to the staff to join.'
   invite_text_default: 'Partner with us! Talk to {rep} to join.'
   dm:
-    added: 'Your partnership with **{server}** is live!'
-    removed: 'Your partnership with **{server}** has ended.'
-    warning: 'Your partnership ad with **{server}** expires in {days} day(s). Renew it!'
-    expired: 'Your partnership with **{server}** expired and was removed.'
+    added: "# {crown} New Partnership Established!\n\nHello, {mention}! You have been designated as the **official representative** of the partnership with **{server}**.\n\n### {scroll} Your responsibilities\n> Keep your server safe, active and welcoming\n> Follow the partnership rules of the corresponding channel\n> Represent both communities with respect\n\n{tada} Thank you for being part of this partnership!\n-# Leaving the server or breaking the rules may result in losing the partnership. Questions? Talk to the moderation team!"
+    removed: "# {door} Partnership Ended\n\nHello, {mention}! Your partnership with **{server}** was ended by the staff.\n\n{envelope} If you want to re-establish it, talk to the server staff to start the process again.\n\n-# This is an automated partnership notification."
+    warning: "# {clock} Partnership Renewal Required!\n\nHello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.\n\n### How to renew\n> Use the `/partnerships_renew` command on the server before the deadline.\n\n### {warning} Deadline\n> You have **{days} day(s)** to act.\n\n-# When it expires, your partnership ad will be deleted and the partner role will be removed."
+    expired: "# {hourglass} Partnership Expired\n\nHello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.\n\n### {refresh} Want to come back?\n> Just talk to the server staff to redo the partnership process.\n\n-# Your ad was deleted and the partner role was removed."
   invite: '{server} 🤝'
   success:
     added: '{success} Partnership added for {user}.'

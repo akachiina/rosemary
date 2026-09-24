@@ -1213,10 +1213,10 @@ partnerships:
   invite_text: 'Faça parceria com a gente! Fale com a staff para participar.'
   invite_text_default: 'Faça parceria com a gente! Fale com {rep} para participar.'
   dm:
-    added: 'Sua parceria com **{server}** está no ar!'
-    removed: 'Sua parceria com **{server}** terminou.'
-    warning: 'Seu anúncio com **{server}** expira em {days} dia(s). Renove!'
-    expired: 'Sua parceria com **{server}** expirou e foi removida.'
+    added: "# {crown} Nova Parceria Estabelecida!\n\nOlá, {mention}! Você foi designado(a) como **representante oficial** da parceria com **{server}**.\n\n### {scroll} Suas responsabilidades\n> Manter seu servidor seguro, ativo e acolhedor\n> Seguir as regras de parceria do canal correspondente\n> Representar as duas comunidades com respeito\n\n{tada} Obrigado por fazer parte desta parceria!\n-# Sair do servidor ou descumprir as regras pode resultar na perda da parceria. Dúvidas? Fale com a equipe de moderação!"
+    removed: "# {door} Parceria Encerrada\n\nOlá, {mention}! Sua parceria com **{server}** foi encerrada pela equipe.\n\n{envelope} Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.\n\n-# Esta é uma notificação automática da parceria."
+    warning: "# {clock} Renovação de Parceria Necessária!\n\nOlá, {mention}! Sua parceria com **{server}** está chegando ao fim e precisa ser renovada.\n\n### Como renovar\n> Use o comando `/renovar_parceria` no servidor antes do prazo acabar.\n\n### {warning} Prazo\n> Você tem **{days} dia(s)** para agir.\n\n-# Ao expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido."
+    expired: "# {hourglass} Parceria Expirada\n\nOlá, {mention}! A parceria com **{server}** expirou por falta de renovação e foi removida automaticamente.\n\n### {refresh} Quer voltar?\n> Basta falar com a equipe do servidor para refazer o processo de parceria.\n\n-# Seu anúncio foi deletado e o cargo de parceiro foi removido."
   invite: '{server} 🤝'
   success:
     added: '{success} Parceria adicionada para {user}.'

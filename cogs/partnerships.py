@@ -87,10 +87,13 @@ class PartnershipsCog(commands.Cog):
         with contextlib.suppress(discord.Forbidden, discord.HTTPException):
             await member.remove_roles(role, reason="Partnership removed")
 
-    async def _dm(self, guild: discord.Guild, user_id: int, key: str, **variables) -> None:
+    async def _dm(
+        self, guild: discord.Guild, user_id: int, key: str, **variables
+    ) -> None:
         member = guild.get_member(user_id)
         if member is None:
             return
+        variables["mention"] = f"<@{user_id}>"
         text = await text_or(
             self.bot,
             guild.id,
