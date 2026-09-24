@@ -275,6 +275,9 @@ class PartnershipsCog(commands.Cog):
             )
 
         async def submit(interaction: discord.Interaction, raw_text: str) -> None:
+            # ACK first: posting, storing, role, DM and log are HTTP round
+            # trips; past 3s Discord discards the interaction (404 10062).
+            await interaction.response.defer(ephemeral=True)
             text = safe_format(
                 raw_text,
                 {
@@ -298,7 +301,7 @@ class PartnershipsCog(commands.Cog):
                 guild.id, "added", "success", [member.id, interaction.user.id],
                 user=member.mention, author=interaction.user.mention,
             )
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 await self.bot.translator.t(
                     guild.id, "partnerships.success.added", user=member.mention
                 ),

@@ -156,7 +156,8 @@ async def _submit(cog, ctx, guild, raw: str):
     field.value = raw
     interaction = MagicMock()
     interaction.user = _member()
-    interaction.response.send_message = AsyncMock()
+    interaction.response.defer = AsyncMock()
+    interaction.followup.send = AsyncMock()
     await modal.callback(interaction)
     return interaction
 
@@ -179,8 +180,9 @@ async def test_add_submit_resolves_placeholders_and_stores(tmp_path, monkeypatch
     entry = await cog.store.get(guild.id, 100)
     assert entry is not None and entry["content"] == text
     assert entry["message_id"] == 999
-    assert interaction.response.send_message.await_args.kwargs.get("ephemeral") is True
-    assert "<@100>" in interaction.response.send_message.await_args.args[0]
+    interaction.response.defer.assert_awaited_once_with(ephemeral=True)
+    assert interaction.followup.send.await_args.kwargs.get("ephemeral") is True
+    assert "<@100>" in interaction.followup.send.await_args.args[0]
 
 
 async def test_add_submit_logs_with_submitter_as_author(tmp_path, monkeypatch):
