@@ -275,13 +275,11 @@ class PartnershipsCog(commands.Cog):
             )
 
         async def submit(interaction: discord.Interaction, raw_text: str) -> None:
-            ad_channel = await self._channel(guild)
             text = safe_format(
                 raw_text,
                 {
                     **(self.bot.theme.emojis if self.bot.theme else {}),
                     "rep": member.mention,
-                    "channel": ad_channel.mention if ad_channel else "",
                     "ping_role": (
                         f"<@&{ping_role_id}>" if (ping_role_id := await get_setting(
                             self.bot.storage, guild.id, "partnerships.ping_role"

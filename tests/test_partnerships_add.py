@@ -2,9 +2,9 @@
 
 Locks the redesigned ``/fazer_parceria``: guards answer ephemeral before any
 modal, the modal is a paragraph field with the catalog placeholder hint, and
-the submit resolves ``{rep}``/``{channel}``/``{ping_role}`` (plus theme
-emojis) into the stored and posted text, then runs the same add pipeline as
-before (store, role, DM, log).
+the submit resolves ``{rep}``/``{ping_role}`` (plus theme emojis) into the
+stored and posted text, then runs the same add pipeline as before (store,
+role, DM, log).
 """
 
 from __future__ import annotations
@@ -173,9 +173,9 @@ async def test_add_submit_resolves_placeholders_and_stores(tmp_path, monkeypatch
     monkeypatch.setattr(cog, "_post_ad", fake_post)
     monkeypatch.setattr(partnerships_module, "send_channel_log", AsyncMock())
 
-    interaction = await _submit(cog, ctx, guild, "Fala {rep}! {channel} {ping_role} {plus}")
+    interaction = await _submit(cog, ctx, guild, "Fala {rep}! {ping_role} {plus}")
     text = posted["content"]
-    assert text == "Fala <@100>! <#55> <@&777> ➕"
+    assert text == "Fala <@100>! <@&777> ➕"
     entry = await cog.store.get(guild.id, 100)
     assert entry is not None and entry["content"] == text
     assert entry["message_id"] == 999

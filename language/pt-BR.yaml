@@ -1204,7 +1204,7 @@ partnerships:
   modal:
     title: 'Anúncio de parceria'
     label: 'Texto do anúncio'
-    placeholder: 'Escreva o anúncio. Use {{rep}}, {{channel}} e {{ping_role}} onde quiser.'
+    placeholder: 'Escreva o anúncio. Use {{rep}} e {{ping_role}} onde quiser.'
   error_not_found: '{error} Sem parceria para {user}.'
   error_not_rep: '{error} Você não representa nenhuma parceria aqui.'
   list_empty: 'Sem parcerias ainda.'
