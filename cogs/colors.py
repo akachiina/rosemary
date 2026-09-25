@@ -119,6 +119,25 @@ class ColorsCog(commands.Cog):
                 picker.add_item(row)
         self.bot.add_view(picker)
 
+    async def on_first_setup(self, guild_id: int) -> None:
+        """First-time activation path: seed, roles and panel, right away.
+
+        Called by the settings layer when a panel-relevant ``colors.*``
+        setting flips. Before it, the seed only ran at boot or on opening
+        the manager, so a guild enabling colors mid-session got a panel
+        whose seeds did not exist yet (empty until a re-activation forced
+        another repaint).
+        """
+        if not await self.enabled(guild_id):
+            return
+        guild = self.bot.get_guild(guild_id)
+        if guild is None:
+            return
+        await self.seed_if_needed(guild.id)
+        await self._maybe_migrate_seed(guild)
+        await self._register_dispatchers(guild)
+        await self.repaint_panel(self.bot, guild.id)
+
     # helpers ====================
 
     async def enabled(self, guild_id: int) -> bool:

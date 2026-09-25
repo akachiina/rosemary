@@ -314,6 +314,13 @@ class SettingsMenuView(MenuView):
         from rosemary.core.panels import on_setting_changed
 
         await on_setting_changed(self.bot, self.guild_id, spec.key)
+        # First-time setup hook: enabling colors (or pointing its channel at
+        # a fresh guild) must seed entries + roles and post the panel right
+        # away, not only on the next boot or manager open.
+        if spec.key in ("colors.enabled", "colors.panel_channel"):
+            colors_cog = self.bot.get_cog("ColorsCog")
+            if colors_cog is not None:
+                await colors_cog.on_first_setup(self.guild_id)
         if not stay_in_edit:
             self.editing_key = None
         await self.rerender(interaction)

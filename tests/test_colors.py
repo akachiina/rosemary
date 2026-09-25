@@ -977,6 +977,97 @@ async def test_picker_setting_change_repaints_panel(tmp_path):
     assert cog.repaint_panel.await_count == 2
 
 
+async def test_manager_repaint_uses_the_registered_cog_name(tmp_path):
+    """The manager's panel repaint must find ``ColorsCog`` (regression: it
+    asked the bot for ``ColorCog``, got None and silently swallowed every
+    repaint triggered by a manager mutation)."""
+    from rosemary.cogs.colors import ColorsCog
+    from rosemary.ui.colors_menu import ColorsManagerView
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    cog.repaint_panel = AsyncMock()
+    view = ColorsManagerView(bot, 1, author_id=7)
+    await view._panel_repaint()
+    cog.repaint_panel.assert_awaited_once_with(bot, 1)
+
+
+async def test_first_activation_seeds_and_posts_immediately(tmp_path):
+    """The user's report: enabling colors mid-session posted an EMPTY panel
+    because seeding only ran at boot (or on manager open) and nothing fired
+    on the settings flip. ``on_first_setup`` seeds, creates the roles and
+    posts a populated panel in the very same interaction."""
+    from rosemary.cogs.colors import ColorsCog
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    await bot.storage.set(1, "colors.enabled", True)
+    await bot.storage.set(1, "colors.panel_channel", 55)
+    assert await cog.store.list_colors(1) == []  # never booted with colors on
+
+    sends, history, live = [], [], {}
+
+    class FakeChannel(discord.TextChannel):
+        def __init__(self):
+            self.id = 55
+            self.guild = bot.guild
+            self._state = MagicMock()
+
+        def permissions_for(self, member):
+            return discord.Permissions(
+                manage_messages=True, manage_roles=True, read_messages=True,
+                send_messages=True,
+            )
+
+        def get_partial_message(self, message_id):
+            return MagicMock()
+
+        async def fetch_message(self, message_id):
+            message = live.get(message_id)
+            if message is None:
+                raise discord.NotFound(
+                    MagicMock(status=404), {"message": "Unknown Message"}
+                )
+            return message
+
+        def history(self, limit=50):
+            return _history_iter(history)
+
+        async def send(self, **kw):
+            sends.append(kw)
+            message = MagicMock()
+            message.id = 800 + len(sends)
+            message.author.id = 4242
+            message.components = []
+            history.append(message)
+            live[message.id] = message
+            return message
+
+    bot.guild.get_channel = lambda cid: FakeChannel() if cid == 55 else None
+
+    async def _payload(*_args, **_kwargs):
+        mock = MagicMock()
+        mock.message_kwargs.return_value = {"view": MagicMock(), "files": []}
+        return (mock, None)
+
+    cog._panel_payload = _payload
+
+    await cog.on_first_setup(1)
+
+    assert len(sends) == 1  # the panel went out in the same interaction
+    entries = await cog.store.list_colors(1)
+    assert len(entries) == len(PASTEL_SEEDS)
+    assert all(entry.role_id for entry in entries)
+    assert await cog.store.get_panel(1) is not None
+
+    # A second call (the admin flipping panel_channel again) is a no-op:
+    # the fingerprint is unchanged and the stored panel still exists.
+    await cog.on_first_setup(1)
+    assert len(sends) == 1
+
+
 async def test_fit_per_container_budget(tmp_path):
     """The requested chunking bends before Discord's 40-node ceiling:
     25 colors at 10/chunk with in-card buttons would emit 45 nodes."""

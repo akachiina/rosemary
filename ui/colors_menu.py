@@ -136,7 +136,7 @@ class ColorsManagerView(MenuView):
         }
 
     async def _panel_repaint(self) -> None:
-        cog = self.bot.get_cog("ColorCog")
+        cog = self.bot.get_cog("ColorsCog")
         if cog is not None:
             await cog.repaint_panel(self.bot, self.guild_id)
 
