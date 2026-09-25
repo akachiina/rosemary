@@ -321,6 +321,12 @@ class SettingsMenuView(MenuView):
             colors_cog = self.bot.get_cog("ColorsCog")
             if colors_cog is not None:
                 await colors_cog.on_first_setup(self.guild_id)
+        # The trap notice card lives in the trap channel: enabling the trap
+        # or re-pointing its channel must (re)post the card immediately.
+        if spec.key in ("trap.enabled", "trap.channel", "trap.action"):
+            trap_cog = self.bot.get_cog("TrapCog")
+            if trap_cog is not None:
+                await trap_cog.repaint_notice(self.bot, self.guild_id)
         if not stay_in_edit:
             self.editing_key = None
         await self.rerender(interaction)

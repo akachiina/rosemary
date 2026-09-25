@@ -1391,8 +1391,24 @@ anti_invite:
       description: '{user} postou `{code}` em {channel} (apagado).'
 trap:
   reason: 'Caiu no canal armadilha'
-  dm: 'Você postou no canal armadilha de **{server}** e a mensagem foi removida.\n\n{action}\n\n-# Esta é uma notificação automática. Dúvidas? Fale com a equipe de moderação.'
+  notice:
+    text: "Este canal é uma **armadilha** de moderação do {server}.\n\n### {ban} Não envie mensagens aqui\n> Este canal existe para capturar contas de spam, bots e RAID. Quem enviar mensagem aqui perde a mensagem na hora e sofre uma consequência.\n\n**{gear} Consequência configurada:** {action}\n\n{envelope} Caiu aqui por engano? Fale com a equipe de moderação."
+    action:
+      none: 'A mensagem é apagada.'
+      kick: 'Expulsão do servidor.'
+      softban: 'Expulsão com apagamento das mensagens recentes.'
+      ban: 'Banimento do servidor.'
+  failure:
+    no_ban: 'O bot não tem permissão de banir (ou o cargo da vítima está acima do dele).'
+    no_kick: 'O bot não tem permissão de expulsar.'
+    no_hierarchy: 'O cargo da vítima está acima do cargo do bot.'
+    no_unban: 'O banimento funcionou, mas o desbanimento do softban falhou: a vítima continua banida.'
+  logs:
+    failed:
+      title: '{error} Armadilha Falhou'
+      description: '**{people} Alvo:** {user}\n**{gear} Consequência:** {action}\n**{scroll} Motivo:** {reason}'
   dm:
+    text: "Você postou no canal armadilha de **{server}** e a mensagem foi removida.\n\n{action}\n\n-# Esta é uma notificação automática. Dúvidas? Fale com a equipe de moderação."
     action:
       none: 'Sua mensagem foi apagada.'
       kick: 'Você foi expulso(a) do servidor.'
@@ -1406,6 +1422,9 @@ trap:
       kick: 'Expulsão'
       softban: 'Softban'
       ban: 'Banimento'
+    user_label: 'Alvo'
+    action_label: 'Consequência'
+    reason_label: 'Motivo'
 reminders_save:
   command:
     name: salvar_lembrete
@@ -2183,6 +2202,12 @@ variables:
   duration_label:
     label: Rótulo de duração
     description: Rótulo do campo "Duração" nos registros
+  user_label:
+    label: Rótulo de alvo
+    description: Rótulo do campo "Alvo" nos registros
+  action_label:
+    label: Rótulo de consequência
+    description: Rótulo do campo "Consequência" nos registros
   old_owner:
     label: Dono anterior
     description: Menção do dono anterior
@@ -2569,9 +2594,17 @@ card:
           title: 'Log: convite bloqueado'
           placeholders: '{{channel}}, {{code}}, {{user}}'
   trap:
+    notice:
+      title: 'Aviso do canal armadilha'
+      placeholders: '{{server}}, {{action}}'
     dm:
       title: 'DM: caiu na armadilha'
       placeholders: '{{server}}, {{action}}'
+    logs:
+      failed:
+        description:
+          title: 'Log: armadilha falhou'
+          placeholders: '{{user}}, {{action}}, {{reason}}'
   reminders:
     logs:
       sent:

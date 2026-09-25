@@ -9,7 +9,7 @@ only when ``audit.trap_enabled`` is on.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
@@ -28,6 +28,7 @@ def _bot(tmp_path):
     bot.get_guild = MagicMock(return_value=None)
     bot.translator = MagicMock()
     bot.translator.t = AsyncMock(side_effect=lambda gid, key, **kw: key)
+    bot.translator.raw = AsyncMock(side_effect=lambda gid, key: None)
     # The DM override path resolves the guild theme (catalog fallback here).
     bot.theme = load_theme()
     bot._theme_store = ThemeStore(tmp_path, themes_dir=tmp_path / "themes")
@@ -277,3 +278,141 @@ async def test_trap_fires_the_audit_card_when_enabled(tmp_path):
 def test_delete_windows_cover_every_choice():
     """The choice values and the native seconds map 1:1."""
     assert DELETE_WINDOWS == {"none": 0, "1h": 3600, "24h": 86400, "7d": 604800}
+
+
+# notice card ==============================================================
+
+
+def _notice_channel(tmp_path, guild):
+    """Wire a text channel into the guild + settings and return the mock."""
+    channel = MagicMock(spec=discord.TextChannel)
+    channel.id = 55
+    channel.send = AsyncMock(return_value=MagicMock(spec=discord.Message, id=999))
+    guild.get_channel = MagicMock(return_value=channel)
+    return channel
+
+
+async def test_notice_posts_on_first_setup_and_is_persistent(tmp_path):
+    """repaint_notice posts the card once; a re-fanout with no change is a
+    near-no-op (single in-place edit), the panels-registry contract."""
+    bot = _bot(tmp_path)
+    cog = TrapCog(bot)
+    await cog.start()
+    await bot.storage.set(1, "trap.enabled", True)
+    await bot.storage.set(1, "trap.channel", 55)
+    guild = _guild(tmp_path)
+    bot.get_guild.return_value = guild
+    channel = _notice_channel(tmp_path, guild)
+
+    await cog.repaint_notice(bot, 1)
+    channel.send.assert_awaited_once()
+    assert await cog.store.get_notice(1) == 999
+
+    # Second fan-out (same values): edit in place, never a second post.
+    stored = MagicMock(spec=discord.Message)
+    stored.edit = AsyncMock()
+    channel.fetch_message = AsyncMock(return_value=stored)
+    await cog.repaint_notice(bot, 1)
+    assert channel.send.await_count == 1
+    stored.edit.assert_awaited_once()
+
+
+async def test_notice_is_retired_when_disabled(tmp_path):
+    """Disabling the trap (or fanning out while disabled) removes the card."""
+    bot = _bot(tmp_path)
+    cog = TrapCog(bot)
+    await cog.start()
+    await bot.storage.set(1, "trap.channel", 55)
+    guild = _guild(tmp_path)
+    bot.get_guild.return_value = guild
+    channel = _notice_channel(tmp_path, guild)
+    await cog.store.set_notice(1, 999)
+
+    stale = MagicMock(spec=discord.PartialMessage)
+    stale.delete = AsyncMock()
+    channel.get_partial_message = MagicMock(return_value=stale)
+
+    await cog.repaint_notice(bot, 1)  # disabled: retire
+    stale.delete.assert_awaited_once()
+    assert await cog.store.get_notice(1) is None
+
+
+async def test_notice_reposts_when_message_was_deleted(tmp_path):
+    """Deleted notice card: repost instead of dying on the stale pointer."""
+    bot = _bot(tmp_path)
+    cog = TrapCog(bot)
+    await cog.start()
+    await bot.storage.set(1, "trap.enabled", True)
+    await bot.storage.set(1, "trap.channel", 55)
+    guild = _guild(tmp_path)
+    bot.get_guild.return_value = guild
+    channel = _notice_channel(tmp_path, guild)
+    await cog.store.set_notice(1, 999)
+    channel.fetch_message = AsyncMock(
+        side_effect=discord.NotFound(MagicMock(status=404), {"message": "x"})
+    )
+
+    await cog.repaint_notice(bot, 1)
+    channel.send.assert_awaited_once()
+    assert await cog.store.get_notice(1) == 999
+
+
+def test_notice_templates_use_real_newlines():
+    """Single-quoted YAML kept '\\n' literal (live screenshot bug)."""
+    import yaml
+
+    for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
+        with open(path, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+        texts = [data["trap"]["notice"]["text"], data["trap"]["dm"]["text"]]
+        for text in texts:
+            assert "\\n" not in text, f"{path}: literal backslash-n in trap template"
+            assert "\n" in text, f"{path}: trap template lost its line breaks"
+
+
+async def test_failed_punishment_posts_the_staff_log(tmp_path):
+    """A failed consequence (no permission) still posts the staff log card."""
+    bot = _bot(tmp_path)
+    cog = TrapCog(bot)
+    await bot.storage.set(1, "trap.enabled", True)
+    await bot.storage.set(1, "trap.channel", 55)
+    await bot.storage.set(1, "trap.action", "ban")
+    guild = _guild(tmp_path)
+    bot.get_guild.return_value = guild
+    # No audit cog: the audit card part is skipped, the staff log is not.
+    bot.get_cog = MagicMock(return_value=None)
+    # The failure itself: the bot lacks the ban permission.
+    guild.me.guild_permissions = discord.Permissions(
+        ban_members=False, kick_members=False, manage_messages=True,
+    )
+
+    member = _member()
+    member.guild = guild
+    import rosemary.cogs.trap as trap_mod
+
+    with patch.object(trap_mod, "send_channel_log", new=AsyncMock()) as fake_log:
+        await cog._punish(guild, member)
+    fake_log.assert_awaited_once()
+    kwargs = fake_log.await_args.kwargs
+    assert kwargs["card_key"] == "trap.logs.failed.description"
+    assert kwargs["mention_user_ids"] == [100]
+
+
+async def test_successful_punishment_skips_the_failure_log(tmp_path):
+    """Only failures fire the staff log; a clean ban logs nothing extra."""
+    bot = _bot(tmp_path)
+    cog = TrapCog(bot)
+    await bot.storage.set(1, "trap.enabled", True)
+    await bot.storage.set(1, "trap.channel", 55)
+    await bot.storage.set(1, "trap.action", "ban")
+    guild = _guild(tmp_path)
+    bot.get_guild.return_value = guild
+
+    member = _member()
+    member.guild = guild
+    member.ban = AsyncMock()  # guild.ban works: ban succeeds
+    import rosemary.cogs.trap as trap_mod
+
+    with patch.object(trap_mod, "send_channel_log", new=AsyncMock()) as fake_log:
+        await cog._punish(guild, member)
+    fake_log.assert_not_awaited()

@@ -124,6 +124,8 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("moderator_label", "…"),
         _v("reason_label", "…"),
         _v("duration_label", "…"),
+        _v("user_label", "…"),
+        _v("action_label", "…"),
         _v("old_owner", "<@0>", "mention"),
         _v("new_owner", "<@0>", "mention"),
         _v("old_name", "…"),

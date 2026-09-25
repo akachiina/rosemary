@@ -1390,8 +1390,24 @@ anti_invite:
       description: '{user} posted `{code}` in {channel} (deleted).'
 trap:
   reason: 'Fell into the trap channel'
-  dm: 'You posted in the trap channel of **{server}** and the message was removed.\n\n{action}\n\n-# This is an automated notification. Questions? Talk to the moderation team.'
+  notice:
+    text: "This channel is a **moderation trap** on {server}.\n\n### {ban} Do not send messages here\n> This is a moderation trap channel to catch spam, bot and RAID accounts. Anyone posting here loses the message instantly and faces a consequence.\n\n**{gear} Configured consequence:** {action}\n\n{envelope} Fell here by mistake? Talk to the moderation team."
+    action:
+      none: 'The message is deleted.'
+      kick: 'Kick from the server.'
+      softban: 'Kick with a purge of recent messages.'
+      ban: 'Ban from the server.'
+  failure:
+    no_ban: 'The bot lacks the ban permission (or the victim role is above its own).'
+    no_kick: 'The bot lacks the kick permission.'
+    no_hierarchy: 'The victim role is above the bot role.'
+    no_unban: 'The ban worked but the softban unban failed: the victim stays banned.'
+  logs:
+    failed:
+      title: '{error} Trap Failed'
+      description: '**{people} Target:** {user}\n**{gear} Consequence:** {action}\n**{scroll} Reason:** {reason}'
   dm:
+    text: "You posted in the trap channel of **{server}** and the message was removed.\n\n{action}\n\n-# This is an automated notification. Questions? Talk to the moderation team."
     action:
       none: 'Your message was deleted.'
       kick: 'You were kicked from the server.'
@@ -1405,6 +1421,9 @@ trap:
       kick: 'Kick'
       softban: 'Softban'
       ban: 'Ban'
+    user_label: 'Target'
+    action_label: 'Consequence'
+    reason_label: 'Reason'
 reminders_save:
   command:
     name: reminders_save
@@ -2181,6 +2200,12 @@ variables:
   duration_label:
     label: Duration label
     description: Label of the "Duration" field in logs
+  user_label:
+    label: Target label
+    description: Label of the "Target" field in logs
+  action_label:
+    label: Consequence label
+    description: Label of the "Consequence" field in logs
   old_owner:
     label: Old owner
     description: Mention of the previous owner
@@ -2538,9 +2563,17 @@ card:
           title: 'Log: invite blocked'
           placeholders: '{{channel}}, {{code}}, {{user}}'
   trap:
+    notice:
+      title: 'Trap channel notice'
+      placeholders: '{{server}}, {{action}}'
     dm:
       title: 'DM: fell into the trap'
       placeholders: '{{server}}, {{action}}'
+    logs:
+      failed:
+        description:
+          title: 'Log: trap failed'
+          placeholders: '{{user}}, {{action}}, {{reason}}'
   reminders:
     logs:
       sent:

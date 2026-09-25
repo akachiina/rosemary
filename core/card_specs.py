@@ -123,11 +123,13 @@ MODERATION_EXTRA_CARDS = [
     "cleaner.result",
     "anti_invite.warning",
     "trap.dm",
+    "trap.notice",
 ]
 
 MODERATION_EXTRA_LOGS = [
     "cleaner.logs.purged",
     "anti_invite.logs.blocked",
+    "trap.logs.failed",
 ]
 
 TICKETS_CARDS = [
@@ -266,6 +268,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "cleaner.result": ("count", "matched", "criterion"),
     "anti_invite.warning": ("user",),
     "trap.dm": ("server", "action"),
+    "trap.notice": ("server", "action"),
     "tickets.panel": (),
     "tickets.created": ("user", "type"),
     "partnerships.invite": ("server",),
@@ -337,6 +340,9 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
         "matched",
     ),
     "anti_invite.logs.blocked.description": ("user", "channel", "code"),
+    "trap.logs.failed.description": (
+        "user", "action", "reason", "user_label", "action_label", "reason_label",
+    ),
     "reminders.logs.sent.description": ("moderator", "name", "sent", "failed"),
     "broadcast.logs.started.description": ("moderator", "title", "channel"),
     "broadcast.logs.ended.description": ("moderator", "relayed", "sent", "failed"),
