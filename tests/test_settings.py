@@ -195,6 +195,11 @@ async def test_settings_for_category_ordering():
         "anti_invite.enabled",
         "anti_invite.warn_on_delete",
         "anti_invite.exempt_places",
+        "trap.enabled",
+        "trap.channel",
+        "trap.action",
+        "trap.delete_window",
+        "trap.dm_enabled",
         "moderation.mute_seconds",
     ]
 

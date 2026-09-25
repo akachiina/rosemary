@@ -82,6 +82,7 @@ def test_audit_cards_registered_with_variables():
     assert names == {
         "ban", "unban", "message_delete", "message_edit", "bulk_delete",
         "nickname", "avatar", "roles", "timeout", "voice_join", "voice_leave",
+        "trap",
     }
     for name in names:
         spec = get_card(f"audit.{name}")

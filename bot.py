@@ -84,6 +84,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.starboard import StarboardCog
         from rosemary.cogs.themes import ThemesCog
         from rosemary.cogs.tickets import TicketsCog
+        from rosemary.cogs.trap import TrapCog
         from rosemary.cogs.updater import UpdaterCog
         from rosemary.cogs.utility import UtilityCog
         from rosemary.cogs.welcome import WelcomeCog
@@ -124,6 +125,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(RemindersCog(self))
         self.add_cog(BroadcastCog(self))
         self.add_cog(AntiInviteCog(self))
+        self.add_cog(TrapCog(self))
         self.add_cog(UtilityCog(self))
         self.add_cog(InfoCog(self))
         self.add_cog(UpdaterCog(self))

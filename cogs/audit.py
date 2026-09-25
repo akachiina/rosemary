@@ -138,6 +138,7 @@ _AUDIT_EVENTS = (
     ("timeout", "card.audit.timeout.title", "card.audit.timeout.body", "danger", "mute"),
     ("voice_join", "card.audit.voice_join.title", "card.audit.voice_join.body", "success", "door"),
     ("voice_leave", "card.audit.voice_leave.title", "card.audit.voice_leave.body", "info", "door"),
+    ("trap", "card.audit.trap.title", "card.audit.trap.body", "danger", "lock"),
 )
 
 

@@ -263,6 +263,31 @@ settings:
   anti_invite.exempt_places:
     label: Anti-invite exempt places
     description: Channels and categories where invite links are allowed.
+  trap.enabled:
+    label: Trap channel enabled
+    description: Posting in the trap channel triggers the configured consequence.
+  trap.channel:
+    label: Trap channel
+    description: Channel nobody should post in (members get punished for it).
+  trap.action:
+    label: Trap consequence
+    description: What happens to anyone posting in the trap channel.
+    choices:
+      none: Only delete the message
+      kick: Kick from the server
+      softban: Softban (kick and purge messages)
+      ban: Ban from the server
+  trap.delete_window:
+    label: Message purge window
+    description: Ban and softban purge the member's recent messages (Discord-native).
+    choices:
+      none: Keep message history
+      1h: Last hour
+      24h: Last 24 hours
+      7d: Last 7 days
+  trap.dm_enabled:
+    label: DM the victim
+    description: Sends a DM explaining the consequence (silent in the channel).
   list.empty: No exempt places yet. Use Add to pick channels or categories.
   list.remove: Remove
   list.add: Add
@@ -426,6 +451,9 @@ settings:
   audit.bulk_file_enabled:
     label: Attach a file of the deleted messages
     description: Sends a .txt with the purged messages alongside the summary.
+  audit.trap_enabled:
+    label: Report trap channel punishments
+    description: Logs who fell into the trap and the applied consequence.
   starboard.enabled:
     label: Starboard enabled
     description: Highlight popular messages in the starboard channel.
@@ -1360,6 +1388,23 @@ anti_invite:
     blocked:
       title: '{ban} Invite Blocked'
       description: '{user} posted `{code}` in {channel} (deleted).'
+trap:
+  reason: 'Fell into the trap channel'
+  dm: 'You posted in the trap channel of **{server}** and the message was removed.\n\n{action}\n\n-# This is an automated notification. Questions? Talk to the moderation team.'
+  dm:
+    action:
+      none: 'Your message was deleted.'
+      kick: 'You were kicked from the server.'
+      softban: 'You were kicked and your recent messages were purged. You can come back with a new invite.'
+      ban: 'You were banned from the server and your recent messages were purged.'
+  audit:
+    applied: 'Consequence applied'
+    skipped: 'Failed to apply (permission or hierarchy)'
+    action:
+      none: 'Delete message only'
+      kick: 'Kick'
+      softban: 'Softban'
+      ban: 'Ban'
 reminders_save:
   command:
     name: reminders_save
@@ -2031,6 +2076,9 @@ variables:
   invite:
     label: Server invite
     description: Invite link of this server
+  action:
+    label: Consequence
+    description: Action applied (delete, kick, softban or ban)
   file_url:
     label: Purge file
     description: Link to the .txt with the bulk-deleted messages
@@ -2489,6 +2537,10 @@ card:
         description:
           title: 'Log: invite blocked'
           placeholders: '{{channel}}, {{code}}, {{user}}'
+  trap:
+    dm:
+      title: 'DM: fell into the trap'
+      placeholders: '{{server}}, {{action}}'
   reminders:
     logs:
       sent:
@@ -2630,6 +2682,13 @@ card:
     voice_leave:
       title: Left voice channel
       body: '{user_name} left {channel}.'
+      placeholders: ''
+    trap:
+      title: Fell into the trap
+      body: |
+        **{volume} Channel:** {channel}
+        **{gear} Consequence:** {action}
+        **{check} Result:** {outcome}
       placeholders: ''
   birthdays:
     list:

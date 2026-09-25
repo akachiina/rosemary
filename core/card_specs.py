@@ -89,6 +89,7 @@ AUDIT_CARDS = [
     ("timeout", True),
     ("voice_join", True),
     ("voice_leave", True),
+    ("trap", True),
 ]
 
 #: Placeholder contract for every audit card. The ``body`` of each default is
@@ -121,6 +122,7 @@ MODERATION_EXTRA_CARDS = [
     "cleaner.confirm",
     "cleaner.result",
     "anti_invite.warning",
+    "trap.dm",
 ]
 
 MODERATION_EXTRA_LOGS = [
@@ -263,6 +265,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "cleaner.confirm": (),
     "cleaner.result": ("count", "matched", "criterion"),
     "anti_invite.warning": ("user",),
+    "trap.dm": ("server", "action"),
     "tickets.panel": (),
     "tickets.created": ("user", "type"),
     "partnerships.invite": ("server",),

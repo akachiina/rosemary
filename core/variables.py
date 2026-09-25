@@ -192,6 +192,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("user_limit", "…"),
         _v("channel_id", "123456789012345678"),
         _v("invite", "https://discord.gg/example", "url"),
+        _v("action", "…"),
     ]
 }
 

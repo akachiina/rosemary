@@ -162,6 +162,38 @@ SETTINGS: dict[str, SettingSpec] = {
             legacy_single_key="anti_invite.exempt_channel",
         ),
         _spec(
+            "trap.enabled",
+            SettingCategory.MODERATION,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "trap.channel",
+            SettingCategory.MODERATION,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "trap.action",
+            SettingCategory.MODERATION,
+            SettingType.CHOICE,
+            "none",
+            choices=("none", "kick", "softban", "ban"),
+        ),
+        _spec(
+            "trap.delete_window",
+            SettingCategory.MODERATION,
+            SettingType.CHOICE,
+            "24h",
+            choices=("none", "1h", "24h", "7d"),
+        ),
+        _spec(
+            "trap.dm_enabled",
+            SettingCategory.MODERATION,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
             "reminders.enabled",
             SettingCategory.BROADCAST_REMINDERS,
             SettingType.BOOLEAN,
@@ -480,6 +512,12 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.AUDIT,
             SettingType.BOOLEAN,
             True,
+        ),
+        _spec(
+            "audit.trap_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            False,
         ),
         _spec(
             "starboard.enabled",
