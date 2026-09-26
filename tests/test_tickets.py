@@ -245,4 +245,75 @@ async def test_delete_confirms_before_removing_channel(tmp_path):
     await view._delete(interaction)
     assert ("defer", True) in order
     assert order.index("followup") < order.index("delete")
+
+
+# channel naming + live registration ==========================================
+
+
+def test_slug_keeps_non_ascii_names():
+    """CJK/Cyrillic/fullwidth display names used to collapse to the
+    'ticket' fallback, so the channel lost the user's name entirely."""
+    from rosemary.cogs.tickets import _slug
+
+    assert _slug("団小狼") == "団小狼"
+    assert _slug(".freebuff") == "freebuff"
+    assert _slug("Salada") == "salada"
+    assert _slug("＠ｆｕｌｌｗｉｄｔｈ") == "ｆｕｌｌｗｉｄｔｈ"
+    assert _slug("мир") == "мир"
+    assert _slug("!!!") == "ticket"  # nothing keepable: fallback stands
+    assert _slug("a" * 50) == "a" * 20  # cap
+
+
+def test_channel_name_carries_prefix_and_owner(tmp_path):
+    """The full name is ``<type>-<owner>`` with BOTH slugs non-empty."""
+    from rosemary.cogs.tickets import TICKET_TYPES, _slug
+
+    for ticket_type in TICKET_TYPES:
+        assert _slug(f"tipo-{ticket_type}"), ticket_type
+
+
+async def test_create_ticket_registers_dispatch_view_with_children(tmp_path):
+    """Regression (live: 'O aplicativo não respondeu a tempo'): the view was
+    registered item-less, so py-cord indexed no custom_ids and every click on
+    the fresh ticket's buttons died until the next restart."""
+    from rosemary.cogs.tickets import TicketsCog
+
+    bot = _bot(tmp_path)
+    await bot.storage.set(1, "tickets.enabled", True)
+    await bot.storage.set(1, "tickets.category", 7)
+    cog = TicketsCog(bot)
+
+    guild = MagicMock(spec=discord.Guild)
+    guild.id = 1
+    guild.me = MagicMock()
+    guild.me.guild_permissions = discord.Permissions(manage_channels=True)
+    category = MagicMock(spec=discord.CategoryChannel)
+    guild.get_channel = MagicMock(return_value=category)
+
+    created = {}
+
+    async def fake_create(name, *, category=None, overwrites=None, reason=None):
+        created["name"] = name
+        channel = MagicMock(spec=discord.TextChannel)
+        channel.id = 4242
+        channel.mention = "<#4242>"
+        channel.send = AsyncMock(return_value=MagicMock(id=999))
+        return channel
+
+    guild.create_text_channel = fake_create
+
+    owner = MagicMock(spec=discord.Member)
+    owner.id = 100
+    owner.display_name = "団小狼"
+    owner.mention = "<@100>"
+
+    ok, detail = await cog.create_ticket(guild, owner, "partnership")
+    assert ok is True
+    # The channel kept the owner's name (CJK survived the slug).
+    assert "団小狼" in created["name"]
+    # The dispatch view was registered WITH its action row.
+    assert len(bot.views) == 1
+    ids = _view_custom_ids(bot.views[0])
+    assert "tickets_close:4242" in ids
+    assert "tickets_delete:4242" in ids
     assert await cog.store.get_ticket(1, 10) is None

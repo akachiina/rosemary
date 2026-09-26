@@ -40,7 +40,15 @@ _DELETE_PREFIX = "tickets_delete"
 
 
 def _slug(text: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    r"""Slugify for channel names, keeping non-ASCII letters.
+
+    Discord channel slugs traditionally strip to ``a-z0-9``, which nukes
+    whole names written in other scripts (CJK, Cyrillic, fullwidth): the
+    channel came out as ``parceria-ticket`` instead of carrying the user's
+    name. ``\w`` (unicode-aware) keeps letters and digits from any script,
+    so ``団小狼`` survives as-is and latin names still lowercase cleanly.
+    """
+    slug = re.sub(r"[^\w]+", "-", text.lower(), flags=re.UNICODE).strip("-")
     return slug[:20] or "ticket"
 
 
@@ -263,7 +271,12 @@ class TicketsCog(commands.Cog):
             log.warning("Ticket channel create failed in %s: %s", guild_id, exc)
             return False, "tickets.error_no_perms"
         await self.store.open_ticket(guild_id, channel.id, owner.id, ticket_type)
-        self.bot.add_view(TicketActionsView(self.bot, guild_id, channel.id))
+        # Persistent dispatch matches on item custom_ids: register the view
+        # WITH its action row, or every click dies as "did not respond"
+        # until the next restart re-registers it through _restore_guild.
+        actions_view = TicketActionsView(self.bot, guild_id, channel.id)
+        actions_view.add_item(actions_view.action_row())
+        self.bot.add_view(actions_view)
         await self._post_intro(guild, channel, owner, ticket_type)
         await self._log(
             guild_id,
