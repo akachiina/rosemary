@@ -194,3 +194,36 @@ color_panel:
     <div class="grid">__ITEMS__</div>
   item: |
     <div class="item"><span class="dot" style="background: {color}"></span>{number}. {name}</div>
+
+# Interactions (roleplay) gifs: the DEFAULT gif per action, used to seed a
+# guild's manager the first time it edits its own list. Each entry carries
+# `url` plus optional gender filters `actor`/`target` (male, female,
+# nonbinary, any, unspecified) that pick the right gif for the pair; an
+# entry without filters matches everybody. Replace these placeholders with
+# real gif URLs (the card shows "no gif configured" until you do).
+roleplay:
+  gifs:
+    hug:
+      - url: ""
+    kiss:
+      - url: ""
+    pat:
+      - url: ""
+    slap:
+      - url: ""
+    bite:
+      - url: ""
+    punch:
+      - url: ""
+    attack:
+      - url: ""
+    poke:
+      - url: ""
+    dance:
+      - url: ""
+    highfive:
+      - url: ""
+    stare:
+      - url: ""
+    cuddle:
+      - url: ""

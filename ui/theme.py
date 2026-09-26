@@ -56,6 +56,7 @@ class Theme:
         bump: dict[str, str] | None = None,
         medals: dict[str, str] | None = None,
         star_tier_emoji: dict[Any, str] | None = None,
+        roleplay: dict[str, Any] | None = None,
     ) -> None:
         self.colors = colors
         self.emojis = emojis
@@ -64,6 +65,7 @@ class Theme:
         self.bump = bump or {}
         self.medals = medals or {}
         self.star_tier_emoji = star_tier_emoji or {}
+        self.roleplay = roleplay or {}
 
     def color(self, name: str) -> discord.Colour:
         """Return a ``discord.Colour`` for a named theme color."""
@@ -188,6 +190,40 @@ class Theme:
                 parsed[threshold] = glyph
         return parsed
 
+    #: interactions (roleplay) gifs ------------------------------------------
+
+    def roleplay_gifs(self, action: str) -> list[dict[str, str]]:
+        """The theme's built-in gif list for an interaction action.
+
+        Theme ``roleplay.gifs.<action>:`` is a list of ``{url, actor,
+        target}`` entries; ``actor``/``target`` are gender keys (``male``,
+        ``female``, ``nonbinary``, ``any``, ...) and default to ``any``.
+        Malformed entries are skipped, never raised: a broken theme section
+        must not break a send (the cog degrades to the no-gif error).
+        """
+        raw = getattr(self, "roleplay", None)
+        gifs = raw.get("gifs") if isinstance(raw, dict) else None
+        entries = gifs.get(action) if isinstance(gifs, dict) else None
+        if not isinstance(entries, list):
+            return []
+        parsed: list[dict[str, str]] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            url = str(entry.get("url") or "").strip()
+            if not url:
+                continue
+            from rosemary.core.roleplay import DEFAULT_GENDER, normalize_gender
+
+            parsed.append(
+                {
+                    "url": url,
+                    "actor": normalize_gender(entry.get("actor") or DEFAULT_GENDER),
+                    "target": normalize_gender(entry.get("target") or DEFAULT_GENDER),
+                }
+            )
+        return parsed
+
     def _resolve_style(self, name: str) -> dict[str, str]:
         seen: set[str] = set()
         merged: dict[str, str] = {}
@@ -243,6 +279,7 @@ def load_theme(path: Path | None = None) -> Theme:
     bump: dict[str, str] = {}
     medals: dict[str, str] = {}
     star_tier_emoji: dict[Any, str] = {}
+    roleplay: dict[str, Any] = {}
     if theme_path.exists():
         try:
             with theme_path.open("r", encoding="utf-8") as fh:
@@ -257,12 +294,15 @@ def load_theme(path: Path | None = None) -> Theme:
             bump = {str(k): str(v) for k, v in (data.get("bump") or {}).items()}
             medals = {str(k): str(v) for k, v in (data.get("medals") or {}).items()}
             star_tier_emoji = dict((data.get("star_tier_emoji") or {}).items())
+            roleplay = dict((data.get("roleplay") or {}).items())
         except yaml.YAMLError as exc:
             log.error("Failed to load theme %s: %s", theme_path, exc)
     else:
         log.warning("Theme file not found: %s", theme_path)
     _validate_theme(theme_path, colors, emojis)
-    return Theme(colors, emojis, markdown, styles, bump, medals, star_tier_emoji)
+    return Theme(
+        colors, emojis, markdown, styles, bump, medals, star_tier_emoji, roleplay
+    )
 
 
 def _validate_theme(path: Path, colors: dict[str, str], emojis: dict[str, str]) -> None:

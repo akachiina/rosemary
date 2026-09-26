@@ -269,6 +269,9 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "anti_invite.warning": ("user",),
     "trap.dm": ("server", "action"),
     "trap.notice": ("server", "action"),
+    "interactions.card": (
+        "actor", "target", "action", "gif_url", "footer", "title", "body",
+    ),
     "tickets.panel": (),
     "tickets.created": ("user", "type"),
     "partnerships.invite": ("server",),

@@ -137,6 +137,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("stars", 1, "number"),
         _v("ms", 42, "number"),
         _v("image_url", "https://cdn.discordapp.com/embed/avatars/0.png", "image"),
+        _v("gif_url", "https://media.tenor.com/x.gif", "image"),
         _v("roles", 1, "number"),
         _v("channels", 1, "number"),
         _v("created_at", "<t:1111111111:D>"),
@@ -195,6 +196,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("channel_id", "123456789012345678"),
         _v("invite", "https://discord.gg/example", "url"),
         _v("action", "…"),
+        _v("footer", "…"),
     ]
 }
 

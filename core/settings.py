@@ -58,6 +58,7 @@ class SettingCategory(StrEnum):
     PARTNERSHIPS = "partnerships"
     BROADCAST_REMINDERS = "broadcast_reminders"
     COLORS = "colors"
+    INTERACTIONS = "interactions"
 
 
 @dataclass(frozen=True)
@@ -259,6 +260,12 @@ SETTINGS: dict[str, SettingSpec] = {
             10,
             min_value=3,
             max_value=_COLORS_MAX,
+        ),
+        _spec(
+            "interactions.enabled",
+            SettingCategory.INTERACTIONS,
+            SettingType.BOOLEAN,
+            False,
         ),
         _spec(
             "tickets.enabled",

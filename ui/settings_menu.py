@@ -105,6 +105,7 @@ class SettingsMenuView(MenuView):
         self.register("settings_test_open", self._open_tests)
         self.register("settings_test_close", self._close_tests)
         self.register("settings_colors_manage", self._open_colors)
+        self.register("settings_interactions_manage", self._open_interactions)
 
     #: handlers ----------------------------------------------------------
 
@@ -120,6 +121,19 @@ class SettingsMenuView(MenuView):
         )
         # V2 payloads must be built before the edit (prepare() assembles the
         # components); rerender edits the message in place.
+        await manager.prepare()
+        await interaction.edit(view=manager)
+        self.stop()
+
+    async def _open_interactions(self, interaction: discord.Interaction) -> None:
+        """Swap into the gif manager on the same message (color-manager pattern)."""
+        from rosemary.ui.interactions_menu import InteractionsManagerView
+
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+        manager = InteractionsManagerView(
+            self.bot, self.guild_id, self.author_id or interaction.user.id
+        )
         await manager.prepare()
         await interaction.edit(view=manager)
         self.stop()
@@ -566,6 +580,15 @@ class SettingsMenuView(MenuView):
                     custom_id="settings_colors_manage",
                     label=await t(self.guild_id, "settings.colors.manage"),
                     emoji=theme.emojis.get("palette", ""),
+                    style=discord.ButtonStyle.primary,
+                )
+            )
+        if self.category is SettingCategory.INTERACTIONS:
+            nav.append(
+                self.make_button(
+                    custom_id="settings_interactions_manage",
+                    label=await t(self.guild_id, "settings.interactions.manage"),
+                    emoji=theme.emojis.get("people", ""),
                     style=discord.ButtonStyle.primary,
                 )
             )

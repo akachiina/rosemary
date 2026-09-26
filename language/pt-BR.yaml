@@ -86,7 +86,7 @@ settings:
     partnerships: Parcerias
     broadcast_reminders: Broadcast & Lembretes
     colors: Painel de Cores
-    colors: Painel de Cores
+    interactions: Interações
   colors.enabled:
     label: Painel de Cores Ativado
     description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).
@@ -103,6 +103,10 @@ settings:
     label: Cores por Card
     description: Quantas cores por card do painel (cada card tem a própria imagem e botões).
   colors.manage: Gerenciar cores
+  interactions.enabled:
+    label: Interações ativadas
+    description: Cards de interação com gif (abraçar, beijar e outros).
+  interactions.manage: Gerenciar gifs
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
@@ -1929,6 +1933,12 @@ variables:
   image_url:
     label: URL da imagem
     description: URL de uma imagem anexada
+  gif_url:
+    label: URL do gif
+    description: URL do gif exibido no card de interação
+  footer:
+    label: Rodapé
+    description: Linha pequena no fim do card
   roles:
     label: Cargos
     description: Número de cargos
@@ -2953,3 +2963,104 @@ birthday:
   command:
     name: aniversario
     description: Registre e liste aniversários
+interactions:
+  error_disabled: As interações estão desativadas neste servidor.
+  error_self: Você não pode interagir consigo mesmo... ou pode? Tente mencionar outra pessoa!
+  error_bot: Bots não participam das interações.
+  error_not_target: Só quem recebeu a interação pode retribuir.
+  error_gone: Quem participou desta interação não está mais no servidor.
+  error_no_gif: '{error} Nenhum gif configurado para esta interação ainda. Peça à staff para adicionar um em /configuracoes!'
+  sent: Interação enviada!
+  regive: Retribuir
+  gender_footer: "Defina o seu gênero com /genero para interações melhores!"
+  gender_set: "Seu gênero foi definido como: {gender}"
+  genders:
+    male: Masculino
+    female: Feminino
+    nonbinary: Não binário
+    any: Tanto faz
+    unspecified: Prefiro não informar
+  actions:
+    hug: abraçou
+    kiss: beijou
+    pat: fez cafuné em
+    slap: deu um tapa em
+    bite: mordeu
+    punch: socou
+    attack: atacou
+    poke: cutucou
+    dance: dançou com
+    highfive: tocou as mãos de
+    stare: encarou
+    cuddle: dormiu abraçado com
+  card:
+    title: "Card de interação"
+    placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}, {{footer}}"
+  source: Fonte da imagem
+  manager:
+    title: Gerenciar gifs
+    body: "Ação: **{action}**. Cada gif pode filtrar por gênero de quem age e de quem recebe."
+    empty: Nenhum gif configurado para esta ação.
+    add: Adicionar gif
+    edit_hint: Editar filtros de um gif...
+    remove_hint: Remover um gif...
+    restore: Restaurar do tema
+    restored: Lista restaurada a partir do tema.
+    removed: Gif removido.
+    filters_hint: Ajuste os filtros de gênero do gif selecionado.
+    actor: Quem age
+    target: Quem recebe
+    save: Salvar
+    cancel: Cancelar
+interactions_hug:
+  command:
+    name: abracar
+    description: Manda um card de abraço com gif para alguém
+interactions_kiss:
+  command:
+    name: beijar
+    description: Manda um card de beijo com gif para alguém
+interactions_pat:
+  command:
+    name: cafune
+    description: Manda um card de cafuné com gif para alguém
+interactions_slap:
+  command:
+    name: bofetada
+    description: Manda um card de tapa com gif para alguém
+interactions_bite:
+  command:
+    name: morder
+    description: Manda um card de mordida com gif para alguém
+interactions_punch:
+  command:
+    name: socar
+    description: Manda um card de soco com gif para alguém
+interactions_attack:
+  command:
+    name: atacar
+    description: Manda um card de ataque com gif para alguém
+interactions_poke:
+  command:
+    name: cutucar
+    description: Manda um card de cutucada com gif para alguém
+interactions_dance:
+  command:
+    name: dancar
+    description: Manda um card de dança com gif para alguém
+interactions_highfive:
+  command:
+    name: toque_aqui
+    description: Manda um card de toque aqui (high five) com gif
+interactions_stare:
+  command:
+    name: encarar
+    description: Manda um card de encarada com gif para alguém
+interactions_cuddle:
+  command:
+    name: dormir_junto
+    description: Manda um card de dormir abraçado com gif
+interactions_gender:
+  command:
+    name: genero
+    description: Define o seu gênero para os cards de interação

@@ -86,6 +86,7 @@ settings:
     partnerships: Partnerships
     broadcast_reminders: Broadcast & Reminders
     colors: Color Panel
+    interactions: Interactions
   colors.enabled:
     label: Color Panel Enabled
     description: Enables the color panel (colored roles any member can pick).
@@ -102,6 +103,10 @@ settings:
     label: Colors per Card
     description: How many colors per panel card (each card gets its own image and buttons).
   colors.manage: Manage colors
+  interactions.enabled:
+    label: Interactions enabled
+    description: Gif interaction cards (hug, kiss and friends).
+  interactions.manage: Manage gifs
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.
@@ -1927,6 +1932,12 @@ variables:
   image_url:
     label: Image URL
     description: URL of an attached image
+  gif_url:
+    label: Gif URL
+    description: URL of the gif shown on the interaction card
+  footer:
+    label: Footer
+    description: Small line at the bottom of the card
   roles:
     label: Roles
     description: Number of roles
@@ -2951,3 +2962,104 @@ birthday:
   command:
     name: birthday
     description: Register and list birthdays
+interactions:
+  error_disabled: Interactions are disabled on this server.
+  error_self: You cannot interact with yourself... or can you? Try mentioning someone else!
+  error_bot: Bots do not join the interactions.
+  error_not_target: Only the recipient can give it back.
+  error_gone: A participant of this interaction is no longer on the server.
+  error_no_gif: '{error} No gif is configured for this interaction yet. Ask the staff to add one in /settings!'
+  sent: Interaction sent!
+  regive: Give it back
+  gender_footer: "Set your gender with /gender for better interactions!"
+  gender_set: "Your gender is now: {gender}"
+  genders:
+    male: Male
+    female: Female
+    nonbinary: Non-binary
+    any: Any
+    unspecified: Rather not say
+  actions:
+    hug: hugged
+    kiss: kissed
+    pat: patted
+    slap: slapped
+    bite: bit
+    punch: punched
+    attack: attacked
+    poke: poked
+    dance: danced with
+    highfive: high-fived
+    stare: stared at
+    cuddle: cuddled with
+  card:
+    title: "Interaction card"
+    placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}, {{footer}}"
+  source: Image source
+  manager:
+    title: Manage gifs
+    body: "Action: **{action}**. Each gif can filter by the actor's and the target's gender."
+    empty: No gif configured for this action.
+    add: Add gif
+    edit_hint: Edit a gif's filters...
+    remove_hint: Remove a gif...
+    restore: Restore from theme
+    restored: List restored from the theme.
+    removed: Gif removed.
+    filters_hint: Adjust the gender filters of the selected gif.
+    actor: Actor
+    target: Target
+    save: Save
+    cancel: Cancel
+interactions_hug:
+  command:
+    name: hug
+    description: Send a hug gif card to someone
+interactions_kiss:
+  command:
+    name: kiss
+    description: Send a kiss gif card to someone
+interactions_pat:
+  command:
+    name: pat
+    description: Send a headpat gif card to someone
+interactions_slap:
+  command:
+    name: slap
+    description: Send a slap gif card to someone
+interactions_bite:
+  command:
+    name: bite
+    description: Send a bite gif card to someone
+interactions_punch:
+  command:
+    name: punch
+    description: Send a punch gif card to someone
+interactions_attack:
+  command:
+    name: attack
+    description: Send an attack gif card to someone
+interactions_poke:
+  command:
+    name: poke
+    description: Send a poke gif card to someone
+interactions_dance:
+  command:
+    name: dance
+    description: Send a dance gif card to someone
+interactions_highfive:
+  command:
+    name: highfive
+    description: Send a high-five gif card to someone
+interactions_stare:
+  command:
+    name: stare
+    description: Send a stare gif card at someone
+interactions_cuddle:
+  command:
+    name: cuddle
+    description: Send a cuddle gif card to someone
+interactions_gender:
+  command:
+    name: gender
+    description: Set your gender for the interaction cards
