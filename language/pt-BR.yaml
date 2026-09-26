@@ -1721,18 +1721,19 @@ moderation:
     warn:
       title: '{pencil} Warn'
     member: '{people} Alvo'
+    member_id: '{numbers} ID'
     moderator: '{gear} Moderador'
     reason: '{scroll} Motivo'
     duration: '{clock} Duração'
   logs:
     ban:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
     kick:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
     mute:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{duration_label}:** {duration}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{duration_label}:** {duration}\n**{reason_label}:** {reason}"
     warn:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
 debug:
   command:
     name: debug
@@ -1816,9 +1817,15 @@ variables:
   member:
     label: Membro
     description: Menção do membro
+  member_id:
+    label: ID do membro
+    description: ID do Discord do membro
   member_mention:
     label: Menção de membro
     description: Menção do membro
+  member_id_label:
+    label: Rótulo do ID do membro
+    description: Nome do campo de ID nos cards de log da moderação
   mention:
     label: Menção
     description: Ping deste card
@@ -1837,6 +1844,9 @@ variables:
   actor:
     label: Atuante
     description: Menção de quem agiu
+  actor_avatar:
+    label: Avatar de quem agiu
+    description: URL do avatar de quem agiu (thumbnail do card de interação)
   winner:
     label: Vencedor
     description: Menção do vencedor
@@ -1936,9 +1946,6 @@ variables:
   gif_url:
     label: URL do gif
     description: URL do gif exibido no card de interação
-  footer:
-    label: Rodapé
-    description: Linha pequena no fim do card
   roles:
     label: Cargos
     description: Número de cargos
@@ -2579,6 +2586,10 @@ card:
         description:
           title: 'Log: warn aplicado'
           placeholders: ''
+  interactions:
+    card:
+      title: Card de interação
+      placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}'
   cleaner:
     panel:
       title: Cabeçalho do painel de limpeza
@@ -2651,24 +2662,24 @@ card:
   events:
     welcome:
       title: Mensagem de boas-vindas
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{user_avatar}}'
     leave:
       title: Mensagem de saída
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
     ban:
       title: Mensagem de banimento
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   audit:
     ban:
       title: Membro banido
       body: |
-        {user_name} foi banido.{reason}
+        {user_name} (`{user_id}`) foi banido.{reason}
         **{gear} Moderador:** {moderator}
       placeholders: ''
     unban:
       title: Membro desbanido
       body: |
-        {user_name} foi desbanido.{reason}
+        {user_name} (`{user_id}`) foi desbanido.{reason}
         **{gear} Moderador:** {moderator}
       placeholders: ''
     message_delete:
@@ -2911,7 +2922,7 @@ events:
     body: '{user_name} saiu do servidor. Agora somos {count} membros.'
   ban:
     title: '{ban} Membro banido'
-    body: '{user_name} foi banido do {server}.'
+    body: '{user_name} (`{user_id}`) foi banido do {server}.'
 starboard:
   enabled:
     label: Ativar Starboard
@@ -2969,17 +2980,9 @@ interactions:
   error_bot: Bots não participam das interações.
   error_not_target: Só quem recebeu a interação pode retribuir.
   error_gone: Quem participou desta interação não está mais no servidor.
-  error_no_gif: '{error} Nenhum gif configurado para esta interação ainda. Peça à staff para adicionar um em /configuracoes!'
+  error_no_gif: '{error} Nenhuma fonte de gif disponível para esta interação (API fora do ar e nada configurado).'
   sent: Interação enviada!
   regive: Retribuir
-  gender_footer: "Defina o seu gênero com /genero para interações melhores!"
-  gender_set: "Seu gênero foi definido como: {gender}"
-  genders:
-    male: Masculino
-    female: Feminino
-    nonbinary: Não binário
-    any: Tanto faz
-    unspecified: Prefiro não informar
   actions:
     hug: abraçou
     kiss: beijou
@@ -2995,72 +2998,74 @@ interactions:
     cuddle: dormiu abraçado com
   card:
     title: "Card de interação"
-    placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}, {{footer}}"
+    placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}"
   source: Fonte da imagem
   manager:
     title: Gerenciar gifs
-    body: "Ação: **{action}**. Cada gif pode filtrar por gênero de quem age e de quem recebe."
-    empty: Nenhum gif configurado para esta ação.
+    body: "Ação: **{action}**. `api` = gif aleatório da categoria (nekos.best); `url` = gif fixo."
+    empty: Nenhum gif configurado para esta ação (a API padrão é usada como fallback).
     add: Adicionar gif
-    edit_hint: Editar filtros de um gif...
+    add_hint: Cole a URL do gif (deixe a categoria vazia para usar só a URL).
+    add_api_hint: Categoria da API (ex. hug, kiss). Deixe vazio se preencheu a URL.
+    add_modal_title: Novo gif
+    edit_hint: Remover um gif...
     remove_hint: Remover um gif...
     restore: Restaurar do tema
     restored: Lista restaurada a partir do tema.
     removed: Gif removido.
-    filters_hint: Ajuste os filtros de gênero do gif selecionado.
-    actor: Quem age
-    target: Quem recebe
+    added: Gif adicionado.
+    invalid: '{error} Preencha uma URL válida (http) OU uma categoria da API (letras e números).'
+    api_offline: '{warning} A API nekos.best não respondeu; confira mais tarde ou use uma URL fixa.'
     save: Salvar
     cancel: Cancelar
-interactions_hug:
+    list_title: 'Gifs configurados'
+    mode_api: aleatório (API)
+    mode_url: fixo
+roleplay_hug:
   command:
     name: abracar
     description: Manda um card de abraço com gif para alguém
-interactions_kiss:
+roleplay_kiss:
   command:
     name: beijar
     description: Manda um card de beijo com gif para alguém
-interactions_pat:
+roleplay_pat:
   command:
     name: cafune
     description: Manda um card de cafuné com gif para alguém
-interactions_slap:
+roleplay_slap:
   command:
     name: bofetada
     description: Manda um card de tapa com gif para alguém
-interactions_bite:
+roleplay_bite:
   command:
     name: morder
     description: Manda um card de mordida com gif para alguém
-interactions_punch:
+roleplay_punch:
   command:
     name: socar
     description: Manda um card de soco com gif para alguém
-interactions_attack:
+roleplay_attack:
   command:
     name: atacar
     description: Manda um card de ataque com gif para alguém
-interactions_poke:
+roleplay_poke:
   command:
     name: cutucar
     description: Manda um card de cutucada com gif para alguém
-interactions_dance:
+roleplay_dance:
   command:
     name: dancar
     description: Manda um card de dança com gif para alguém
-interactions_highfive:
+roleplay_highfive:
   command:
     name: toque_aqui
     description: Manda um card de toque aqui (high five) com gif
-interactions_stare:
+roleplay_stare:
   command:
     name: encarar
     description: Manda um card de encarada com gif para alguém
-interactions_cuddle:
+roleplay_cuddle:
   command:
     name: dormir_junto
     description: Manda um card de dormir abraçado com gif
-interactions_gender:
-  command:
-    name: genero
-    description: Define o seu gênero para os cards de interação

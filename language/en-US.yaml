@@ -1721,18 +1721,19 @@ moderation:
     warn:
       title: '{pencil} Warn'
     member: '{people} Target'
+    member_id: '{numbers} ID'
     moderator: '{gear} Moderator'
     reason: '{scroll} Reason'
     duration: '{clock} Duration'
   logs:
     ban:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
     kick:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
     mute:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{duration_label}:** {duration}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{duration_label}:** {duration}\n**{reason_label}:** {reason}"
     warn:
-      description: "**{member_label}:** {member}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
 debug:
   command:
     name: debug
@@ -1815,9 +1816,15 @@ variables:
   member:
     label: Member
     description: Mention of the member
+  member_id:
+    label: Member ID
+    description: Discord ID of the member
   member_mention:
     label: Member mention
     description: Mention of the member
+  member_id_label:
+    label: Member ID label
+    description: Field name of the member ID on the moderation log cards
   mention:
     label: Mention
     description: Ping for this card
@@ -1836,6 +1843,9 @@ variables:
   actor:
     label: Actor
     description: Mention of who acted
+  actor_avatar:
+    label: Actor avatar
+    description: URL of the actor's avatar (interaction card thumbnail)
   winner:
     label: Winner
     description: Mention of the winner
@@ -1935,9 +1945,6 @@ variables:
   gif_url:
     label: Gif URL
     description: URL of the gif shown on the interaction card
-  footer:
-    label: Footer
-    description: Small line at the bottom of the card
   roles:
     label: Roles
     description: Number of roles
@@ -2549,6 +2556,10 @@ card:
     dm:
       title: Mute DM
       placeholders: '{{duration}}, {{guild}}, {{moderator}}, {{reason}}'
+  interactions:
+    card:
+      title: Interaction card
+      placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}'
   cleaner:
     panel:
       title: Purge panel heading
@@ -2650,24 +2661,24 @@ card:
   events:
     welcome:
       title: Welcome message
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{user_avatar}}'
     leave:
       title: Leave message
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
     ban:
       title: Ban message
-      placeholders: '{{user}}, {{user_name}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
+      placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   audit:
     ban:
       title: Member banned
       body: |
-        {user_name} was banned.{reason}
+        {user_name} (`{user_id}`) was banned.{reason}
         **{gear} Moderator:** {moderator}
       placeholders: ''
     unban:
       title: Member unbanned
       body: |
-        {user_name} was unbanned.{reason}
+        {user_name} (`{user_id}`) was unbanned.{reason}
         **{gear} Moderator:** {moderator}
       placeholders: ''
     message_delete:
@@ -2910,7 +2921,7 @@ events:
     body: '{user_name} left the server. We are now {count} members.'
   ban:
     title: '{ban} Member banned'
-    body: '{user_name} has been banned from {server}.'
+    body: '{user_name} (`{user_id}`) has been banned from {server}.'
 starboard:
   enabled:
     label: Enable starboard
@@ -2968,17 +2979,9 @@ interactions:
   error_bot: Bots do not join the interactions.
   error_not_target: Only the recipient can give it back.
   error_gone: A participant of this interaction is no longer on the server.
-  error_no_gif: '{error} No gif is configured for this interaction yet. Ask the staff to add one in /settings!'
+  error_no_gif: '{error} No gif source is available for this interaction (the API is down and nothing is configured).'
   sent: Interaction sent!
   regive: Give it back
-  gender_footer: "Set your gender with /gender for better interactions!"
-  gender_set: "Your gender is now: {gender}"
-  genders:
-    male: Male
-    female: Female
-    nonbinary: Non-binary
-    any: Any
-    unspecified: Rather not say
   actions:
     hug: hugged
     kiss: kissed
@@ -2994,72 +2997,74 @@ interactions:
     cuddle: cuddled with
   card:
     title: "Interaction card"
-    placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}, {{footer}}"
+    placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}"
   source: Image source
   manager:
     title: Manage gifs
-    body: "Action: **{action}**. Each gif can filter by the actor's and the target's gender."
-    empty: No gif configured for this action.
+    body: "Action: **{action}**. `api` = random gif from the category (nekos.best); `url` = fixed gif."
+    empty: No gif configured for this action (the default API is the fallback).
     add: Add gif
-    edit_hint: Edit a gif's filters...
+    add_hint: Paste the gif URL (leave the category empty to use only the URL).
+    add_api_hint: API category (e.g. hug, kiss). Leave empty if you filled the URL.
+    add_modal_title: New gif
+    edit_hint: Remove a gif...
     remove_hint: Remove a gif...
     restore: Restore from theme
     restored: List restored from the theme.
     removed: Gif removed.
-    filters_hint: Adjust the gender filters of the selected gif.
-    actor: Actor
-    target: Target
+    added: Gif added.
+    invalid: '{error} Fill a valid URL (http) OR an API category (letters and numbers).'
+    api_offline: '{warning} The nekos.best API did not answer; check back later or use a fixed URL.'
     save: Save
     cancel: Cancel
-interactions_hug:
+    list_title: 'Configured gifs'
+    mode_api: random (API)
+    mode_url: fixed
+roleplay_hug:
   command:
     name: hug
     description: Send a hug gif card to someone
-interactions_kiss:
+roleplay_kiss:
   command:
     name: kiss
     description: Send a kiss gif card to someone
-interactions_pat:
+roleplay_pat:
   command:
     name: pat
     description: Send a headpat gif card to someone
-interactions_slap:
+roleplay_slap:
   command:
     name: slap
     description: Send a slap gif card to someone
-interactions_bite:
+roleplay_bite:
   command:
     name: bite
     description: Send a bite gif card to someone
-interactions_punch:
+roleplay_punch:
   command:
     name: punch
     description: Send a punch gif card to someone
-interactions_attack:
+roleplay_attack:
   command:
     name: attack
     description: Send an attack gif card to someone
-interactions_poke:
+roleplay_poke:
   command:
     name: poke
     description: Send a poke gif card to someone
-interactions_dance:
+roleplay_dance:
   command:
     name: dance
     description: Send a dance gif card to someone
-interactions_highfive:
+roleplay_highfive:
   command:
     name: highfive
     description: Send a high-five gif card to someone
-interactions_stare:
+roleplay_stare:
   command:
     name: stare
     description: Send a stare gif card at someone
-interactions_cuddle:
+roleplay_cuddle:
   command:
     name: cuddle
     description: Send a cuddle gif card to someone
-interactions_gender:
-  command:
-    name: gender
-    description: Set your gender for the interaction cards

@@ -35,13 +35,15 @@ async def default_event_document(
     body_key: str,
     color: str,
     emoji_token: str,
+    **_variables,
 ) -> dict:
     """Catalog-default event message as an editable block document.
 
     Layout: a section whose accessory is the member's avatar thumbnail, the
-    emoji-decorated ``#`` title and body beside it, a divider and a footer
-    (``-#`` markdown). Placeholders (``{user}``, ``{server}``...) stay
-    literal: this is a template. Theme emoji tokens resolve; unknown
+    emoji-decorated ``#`` title and body beside it, a divider and the
+    server/count/ID footer. Placeholders (``{user}``, ``{server}``,
+    ``{user_id}``...) stay literal: this is a template resolved at render
+    from the send-site variables. Theme emoji tokens resolve; unknown
     placeholders are preserved by :func:`rosemary.core.cards.safe_format`.
     """
     from rosemary.core.cards import safe_format
@@ -72,7 +74,7 @@ async def default_event_document(
                      {"type": "text", "body": body},
                  ]},
                 {"type": "divider"},
-                {"type": "text", "body": f"-# {server} · #{count}"},
+                {"type": "text", "body": f"-# {server} · #{count} · {{user_id}}"},
             ]}
         ],
     }
@@ -288,6 +290,7 @@ class WelcomeCog(commands.Cog):
             variables = {
                 "user": member.mention,
                 "user_name": member.display_name,
+                "user_id": str(member.id),
                 "server": member.guild.name,
                 "count": member.guild.member_count or 0,
                 "user_avatar": member.display_avatar.url,
@@ -318,6 +321,7 @@ class WelcomeCog(commands.Cog):
             variables = {
                 "user": member.mention,
                 "user_name": member.display_name,
+                "user_id": str(member.id),
                 "server": member.guild.name,
                 "count": member.guild.member_count or 0,
                 "inviter": "",
@@ -346,6 +350,7 @@ class WelcomeCog(commands.Cog):
             variables = {
                 "user": user.mention,
                 "user_name": user.name,
+                "user_id": str(user.id),
                 "server": guild.name,
                 "count": guild.member_count or 0,
                 "inviter": "",

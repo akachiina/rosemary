@@ -442,6 +442,14 @@ class ModerationCog(commands.Cog):
 
         if action == "ban":
             await target.ban(reason=reason)
+            # This ban posts its own log card below (with the real moderator);
+            # stamp the audit cog so the gateway's generic card skips it.
+            from rosemary.cogs.audit import AuditCog
+
+            get_cog = getattr(self.bot, "get_cog", None)
+            audit = get_cog("AuditCog") if callable(get_cog) else None
+            if isinstance(audit, AuditCog):
+                audit.note_bot_ban(guild_id, target.id)
         elif action == "kick":
             await target.kick(reason=reason)
         elif action == "mute":
@@ -458,12 +466,14 @@ class ModerationCog(commands.Cog):
             guild_id,
             f"moderation.logs.{action}.description",
             member=target.mention,
+            member_id=str(target.id),
             moderator=moderator.mention,
             reason=reason,
             duration=(
                 TimeParser.format_duration(duration) if duration is not None else "-"
             ),
             member_label=await t(guild_id, "moderation.log.member"),
+            member_id_label=await t(guild_id, "moderation.log.member_id"),
             moderator_label=await t(guild_id, "moderation.log.moderator"),
             reason_label=await t(guild_id, "moderation.log.reason"),
             duration_label=await t(guild_id, "moderation.log.duration"),
@@ -491,6 +501,12 @@ class ModerationCog(commands.Cog):
             ):
                 try:
                     await target.ban(reason=reason)
+                    from rosemary.cogs.audit import AuditCog
+
+                    get_cog = getattr(self.bot, "get_cog", None)
+                    audit = get_cog("AuditCog") if callable(get_cog) else None
+                    if isinstance(audit, AuditCog):
+                        audit.note_bot_ban(guild_id, target.id)
                     result += "\n" + await t(guild_id, "moderation.auto_ban_applied", limit=limit)
                 except (discord.Forbidden, discord.HTTPException) as exc:
                     log.warning("Auto-ban failed for %s: %s", target, exc)

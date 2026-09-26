@@ -47,6 +47,9 @@ def test_command_option_raw_types_are_classes() -> None:
 
     bot.add_cog(BumpReminderCog(bot))
     bot.add_cog(BumpLeaderboardCog(bot))
+    from rosemary.cogs.interactions import InteractionsCog
+
+    bot.add_cog(InteractionsCog(bot))
 
     commands_ = _all_commands(bot)
     assert commands_, "expected the new slash commands to be registered"
@@ -73,6 +76,9 @@ def test_command_option_raw_types_are_classes() -> None:
         "emojiinfo",
         "roleinfo",
         "channelinfo",
+        "roleplay_hug",
+        "roleplay_kiss",
+        "roleplay_cuddle",
     } <= {c.qualified_name for c in commands_}
 
     for cmd in commands_:

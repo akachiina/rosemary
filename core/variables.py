@@ -50,13 +50,16 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("inviter", "<@0>", "mention"),
         _v("inviter_mention", "<@0>", "mention"),
         _v("member", "<@0>", "mention"),
+        _v("member_id", "123456789012345678"),
         _v("member_mention", "<@0>", "mention"),
+        _v("member_id_label", "…"),
         _v("mention", "<@0>", "mention"),
         _v("moderator", "<@0>", "mention"),
         _v("target", "<@0>", "mention"),
         _v("author", "<@0>", "mention"),
         _v("owner", "<@0>", "mention"),
         _v("actor", "<@0>", "mention"),
+        _v("actor_avatar", "https://cdn.discordapp.com/embed/avatars/0.png", "image"),
         _v("winner", "<@0>", "mention"),
         _v("winner_mention", "<@0>", "mention"),
         _v("invitee", "<@0>", "mention"),
@@ -196,7 +199,6 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("channel_id", "123456789012345678"),
         _v("invite", "https://discord.gg/example", "url"),
         _v("action", "…"),
-        _v("footer", "…"),
     ]
 }
 

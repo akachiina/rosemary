@@ -1,13 +1,11 @@
-"""Interactions (roleplay): genders, gif picking and the card flow.
+"""Interactions (roleplay): gif sources, resolution layers and the card flow.
 
-Locks the launch contract: ``/genero`` stores the author's gender (any
-implicit default), ``pick_gif`` matches the (actor, target) pair in layers
-(exact -> partial -> unfiltered), the card fires only when the feature is
-enabled, guards bounce self/bots, the footer prompt appears only while a
-participant lacks a gender, and the regive button is target-only.
+Locks the relaunched contract: gif resolution in layers (guild override ->
+theme -> nekos.best default category), random pick inside a configured
+list, the card fires only when the feature is enabled, guards bounce
+self/bots, the no-source path answers the caller (False) so users get the
+notice, and the regive dispatcher resolves its pair from the message id.
 """
-
-from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -16,10 +14,11 @@ import discord
 
 from rosemary.core.roleplay import (
     ACTIONS,
-    DEFAULT_GENDER,
     RoleplayStore,
-    normalize_gender,
+    category_for,
     pick_gif,
+    resolve_gif,
+    valid_api_category,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +47,7 @@ class FakeTranslator:
 def _bot(tmp_path):
     bot = MagicMock(spec=[
         "storage", "get_cog", "get_guild", "translator", "theme",
+        "add_view", "add_application_command", "pending_application_commands",
     ])
     from rosemary.core.storage import GuildStorage
     from rosemary.core.themes import ThemeStore
@@ -59,47 +59,120 @@ def _bot(tmp_path):
     bot.translator = FakeTranslator()
     bot.theme = load_theme()
     bot._theme_store = ThemeStore(tmp_path, themes_dir=tmp_path / "themes")
+    bot.add_view = MagicMock()
+    bot.add_application_command = MagicMock()
     return bot
 
 
-# store + picker ===============================================================
+# store + resolution ===========================================================
 
 
-async def test_gender_roundtrip_and_normalize(tmp_path):
+async def test_store_gif_roundtrip(tmp_path):
     store = RoleplayStore(tmp_path)
-    assert await store.get_gender(1, 100) == DEFAULT_GENDER
-    assert await store.has_gender(1, 100) is False
-    stored = await store.set_gender(1, 100, "female")
-    assert stored == "female"
-    assert await store.get_gender(1, 100) == "female"
-    assert await store.has_gender(1, 100) is True
-    # Unknown values normalize to the implicit default, never stored raw.
-    assert normalize_gender("FEMALE") == "female"
-    assert normalize_gender("bogus") == DEFAULT_GENDER
+    assert await store.get_gifs(1, "hug") == []
+    await store.set_gifs(1, "hug", [{"url": "https://a.gif"}, {"api": "kiss"}])
+    gifs = await store.get_gifs(1, "hug")
+    assert gifs[0]["url"] == "https://a.gif"
+    assert gifs[1]["api"] == "kiss"
+    overrides = await store.all_overrides(1)
+    assert "hug" in overrides
 
 
-def test_pick_gif_layers():
-    unfiltered = {"url": "u", "actor": "any", "target": "any"}
-    ff = {"url": "ff", "actor": "female", "target": "female"}
-    mf = {"url": "mf", "actor": "male", "target": "female"}
-    # Exact pair beats partial beats unfiltered.
-    assert pick_gif([unfiltered, ff], "female", "female") is ff
-    assert pick_gif([unfiltered, mf], "male", "female") is mf
-    # Partial: one side any, the other exact.
-    partial = {"url": "p", "actor": "any", "target": "female"}
-    assert pick_gif([unfiltered, partial], "male", "female") is partial
-    # No gendered gif at all: unfiltered serves.
-    assert pick_gif([unfiltered], "male", "male") is unfiltered
-    # Nothing matches: None (the cog answers with the no-gif error).
-    assert pick_gif([mf], "female", "female") is None
+def test_pick_gif_random_member_of_list():
+    gifs = [{"url": "a"}, {"url": "b"}]
+    for _ in range(20):
+        assert pick_gif(gifs) in gifs
+    assert pick_gif([]) is None
+    assert pick_gif([{"bogus": 1}]) is None
 
 
-def test_actions_match_the_catalog():
-    import yaml
+def test_default_categories_cover_actions():
+    for action in ACTIONS:
+        assert category_for(action), f"{action} has no default category"
+    # attack has no nekos.best category; kick is the stand-in.
+    assert category_for("attack") == "kick"
+    assert category_for("nope") is None
 
-    catalog = yaml.safe_load((ROOT / "language" / "pt-BR.yaml").read_text())
-    sentences = catalog["interactions"]["actions"]
-    assert set(ACTIONS) == set(sentences), "action <-> catalog mismatch"
+
+def test_api_category_validation_is_shape_only():
+    assert valid_api_category("hug")
+    assert valid_api_category("highfive")
+    assert not valid_api_category("has space")
+    assert not valid_api_category("")
+    assert not valid_api_category("uñ")
+
+
+async def test_resolve_static_url_is_not_api_flagged(tmp_path):
+    url, from_api = await resolve_gif([{"url": "https://a.gif"}], None)
+    assert url == "https://a.gif"
+    assert from_api is False
+
+
+async def test_resolve_api_entry_fetches_category(tmp_path):
+    from unittest.mock import patch
+
+    from rosemary.core import roleplay
+
+    with patch.object(roleplay, "fetch_nekos_gif", return_value="https://n.gif"):
+        url, from_api = await resolve_gif([{"api": "hug"}], None)
+    assert url == "https://n.gif"
+    assert from_api is True
+
+
+async def test_resolve_mixed_list_picks_one_entry(tmp_path):
+    """A mixed list randomly lands on url (static) or api (fetched): the
+    result is always one of the two sources, never a crash."""
+    from unittest.mock import patch
+
+    from rosemary.core import roleplay
+
+    with patch.object(roleplay, "fetch_nekos_gif", return_value="https://n.gif"):
+        url, _ = await resolve_gif([{"url": "https://a.gif"}, {"api": "hug"}], "hug")
+    assert url in ("https://a.gif", "https://n.gif")
+
+
+async def test_resolve_falls_through_to_default_category(tmp_path):
+    """Empty configured list: the action's default nekos.best category is
+    fetched (mocked here); the result is marked as api-driven."""
+    from unittest.mock import patch
+
+    from rosemary.core import roleplay
+
+    # The module imports aiohttp at the top; resolution itself must not need
+    # a session when the fetch is patched out.
+    with patch.object(roleplay, "fetch_nekos_gif", return_value="https://n.gif"):
+        url, from_api = await resolve_gif([], roleplay.category_for("hug"))
+    assert url == "https://n.gif"
+    assert from_api is True
+
+
+async def test_resolve_returns_none_when_everything_fails(tmp_path):
+    from unittest.mock import patch
+
+    from rosemary.core import roleplay
+
+    with patch.object(roleplay, "fetch_nekos_gif", return_value=None):
+        url, from_api = await resolve_gif([], "hug")
+    assert url is None
+    assert from_api is True
+
+
+async def test_resolve_api_entry_failure_falls_to_category(tmp_path):
+    from unittest.mock import patch
+
+    from rosemary.core import roleplay
+
+    calls = []
+
+    async def fake_fetch(category):
+        calls.append(category)
+        return "https://n.gif" if category == "hug" else None
+
+    with patch.object(roleplay, "fetch_nekos_gif", side_effect=fake_fetch):
+        url, from_api = await resolve_gif([{"api": "dead"}], "hug")
+    assert url == "https://n.gif"
+    assert from_api is True
+    assert calls == ["dead", "hug"]
 
 
 # card flow ====================================================================
@@ -142,74 +215,114 @@ def _walk_custom_ids(node) -> list[str | None]:
     return found
 
 
-async def test_card_flow_posts_gallery_and_regive(tmp_path):
-    """Enabled + gif configured: one card with the sentence, gallery and
-    the regive row; both participants may ping; no theme doc -> fallback."""
+async def test_action_commands_registered_at_init(tmp_path):
+    """Commands must be pending BEFORE bot.py snapshots ``_command_base_keys``
+    (add_cog time): registered from __init__, not from the async start() task,
+    or the per-guild localization misses them and every guild gets the raw
+    English ``roleplay_hug`` instead of ``/abracar``."""
+    from rosemary.cogs.interactions import InteractionsCog
+
+    bot = _bot(tmp_path)
+    InteractionsCog(bot)
+    assert bot.add_application_command.call_count == len(ACTIONS)
+
+
+async def test_start_registers_dispatcher_with_real_children(tmp_path):
+    """The persistent dispatcher must carry its action row when registered:
+    py-cord's ViewStore indexes only walk_children() results, so an empty
+    view registers nothing and every click dies as "did not respond" (the
+    colors-panel lesson)."""
     from rosemary.cogs.interactions import InteractionsCog
 
     bot = _bot(tmp_path)
     cog = InteractionsCog(bot)
+    bot.add_view = MagicMock()
+    bot.add_application_command = MagicMock()
+    await cog.start()
+    bot.add_view.assert_called_once()
+    registered = bot.add_view.call_args.args[0]
+    assert list(registered.walk_children()), "dispatcher registered with no children"
+
+
+async def test_card_flow_posts_gallery_and_regive(tmp_path):
+    """Enabled + static gif configured: one card with the sentence, gallery
+    and the regive row; the message id lands in the regive table."""
+    from rosemary.cogs.interactions import _REGIVE_PREFIX, InteractionsCog
+
+    bot = _bot(tmp_path)
+    cog = InteractionsCog(bot)
     await bot.storage.set(1, "interactions.enabled", True)
-    await bot.storage.set(
-        1,
-        "gifs.hug",
-        [{"url": "https://media.tenor.com/hug.gif", "actor": "any", "target": "any"}],
-    )
-    # Store the gif the way the manager does (roleplay.json, not settings).
-    await cog.store.set_gifs(
-        1, "hug", [{"url": "https://media.tenor.com/hug.gif", "actor": "any", "target": "any"}]
-    )
+    await cog.store.set_gifs(1, "hug", [{"url": "https://media.tenor.com/hug.gif"}])
     channel = _channel()
     guild = _guild(channel)
     actor, target = _member(100), _member(200)
 
-    await cog.send_interaction_card(guild, actor, target, "hug", channel=channel)
-
+    sent = await cog.send_interaction_card(guild, actor, target, "hug", channel=channel)
+    assert sent is True
     channel.send.assert_awaited_once()
     kwargs = channel.send.await_args.kwargs
     view = kwargs.get("view")
     assert view is not None
     # The card view carries the regive action row (nested in the container).
-    assert "interactions_regive" in _walk_custom_ids(view)
-    # Only the two participants may ping.
-    allowed = kwargs.get("allowed_mentions")
-    assert allowed is not None
+    assert _REGIVE_PREFIX in _walk_custom_ids(view)
+    # The pair is remembered for the dispatcher.
+    context = await cog.store.get_regive(1, 999)
+    assert context == {"action": "hug", "actor": 100, "target": 200}
 
 
-async def test_card_disabled_is_silent(tmp_path):
+async def test_theme_api_seed_posts_without_configuration(tmp_path):
+    """No guild override: the theme's ``api`` seed fetches a fresh gif (the
+    default theme seeds every action with one)."""
+    from unittest.mock import patch
+
     from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
     cog = InteractionsCog(bot)
     channel = _channel()
     guild = _guild(channel)
 
-    await cog.send_interaction_card(guild, _member(1), _member(2), "hug", channel=channel)
-    # send_interaction_card itself does not check the flag (commands do), so
-    # the no-gif path here simply posts nothing (theme has empty gifs).
-    channel.send.assert_not_awaited()
+    with patch.object(roleplay, "fetch_nekos_gif", return_value="https://n.gif"):
+        sent = await cog.send_interaction_card(
+            guild, _member(1), _member(2), "hug", channel=channel
+        )
+    assert sent is True
+    channel.send.assert_awaited_once()
+    # The resolved gif url IS the source: even an API gif carries the link.
+    sent_view = channel.send.await_args.kwargs.get("view")
+    assert [
+        item for item in sent_view.walk_children() if getattr(item, "url", None)
+    ]
 
 
-async def test_no_gif_configured_posts_nothing_and_returns_false(tmp_path):
-    """Empty theme list + no override: nothing is sent and callers can tell
+async def test_no_source_anywhere_returns_false(tmp_path):
+    """Offline API + nothing configured: nothing is sent and callers can tell
     (False), so they answer with the no-gif notice instead of silence."""
+    from unittest.mock import patch
+
     from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
     cog = InteractionsCog(bot)
     channel = _channel()
     guild = _guild(channel)
 
-    sent = await cog.send_interaction_card(
-        guild, _member(1), _member(2), "hug", channel=channel
-    )
+    with patch.object(roleplay, "fetch_nekos_gif", return_value=None):
+        sent = await cog.send_interaction_card(
+            guild, _member(1), _member(2), "hug", channel=channel
+        )
     assert sent is False
     channel.send.assert_not_awaited()
 
 
 async def test_no_gif_slash_answers_ephemeral_notice(tmp_path):
-    """Slash command without a matching gif: ephemeral error, not silence."""
+    """Slash command without a working gif source: ephemeral error, not silence."""
+    from unittest.mock import patch
+
     from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
     cog = InteractionsCog(bot)
@@ -233,17 +346,21 @@ async def test_no_gif_slash_answers_ephemeral_notice(tmp_path):
     ctx.response = FakeResponse()
     ctx.respond = fake_respond
 
-    await cog._slash_run(ctx, "hug", _member(200), "x")
+    with patch.object(roleplay, "fetch_nekos_gif", return_value=None):
+        await cog._slash_run(ctx, "hug", _member(200), "x")
     responds = [entry for entry in order if entry[0] == "respond"]
     assert len(responds) == 1
     text, kwargs = responds[0][1], responds[0][2]
-    assert "Nenhum gif" in text
+    assert "fonte de gif" in text
     assert kwargs.get("ephemeral") is True
 
 
 async def test_no_gif_prefix_replies_with_notice(tmp_path):
-    """Prefix trigger without a matching gif: the invocation gets a reply."""
+    """Prefix trigger without a working gif source: the invocation gets a reply."""
+    from unittest.mock import patch
+
     from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
     cog = InteractionsCog(bot)
@@ -261,9 +378,32 @@ async def test_no_gif_prefix_replies_with_notice(tmp_path):
     message.channel = channel
     message.reply = AsyncMock()
 
-    await cog.on_message(message)
+    with patch.object(roleplay, "fetch_nekos_gif", return_value=None):
+        await cog.on_message(message)
     message.reply.assert_awaited_once()
-    assert "Nenhum gif" in message.reply.await_args.args[0]
+    assert "fonte de gif" in message.reply.await_args.args[0]
+
+
+async def test_static_gif_adds_source_link(tmp_path):
+    """A fixed gif carries the Fonte link button; an API gif does not."""
+    from rosemary.cogs.interactions import InteractionsCog
+
+    bot = _bot(tmp_path)
+    cog = InteractionsCog(bot)
+    await cog.store.set_gifs(1, "hug", [{"url": "https://media.tenor.com/hug.gif"}])
+    channel = _channel()
+    guild = _guild(channel)
+
+    await cog.send_interaction_card(guild, _member(100), _member(200), "hug", channel=channel)
+    sent_view = channel.send.await_args.kwargs.get("view")
+    custom_ids = _walk_custom_ids(sent_view)
+    assert "interactions_regive" in custom_ids
+    link_buttons = [
+        item
+        for item in sent_view.walk_children()
+        if getattr(item, "url", None) == "https://media.tenor.com/hug.gif"
+    ]
+    assert link_buttons, "static gif must carry a source link button"
 
 
 # gif manager view =============================================================
@@ -312,34 +452,79 @@ async def test_manager_rerender_never_duplicates_custom_ids(tmp_path):
     assert len(second) == len(first)
 
 
-async def test_gender_command_stores_and_confirms(tmp_path):
-    from rosemary.cogs.interactions import InteractionsCog
+async def test_manager_add_modal_validates_and_persists(tmp_path):
+    """The add modal stores url and/or api entries; garbage is rejected."""
+    from rosemary.ui.interactions_menu import InteractionsManagerView
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
-    order = []
+    view = InteractionsManagerView(bot, 1, 100)
 
     class FakeResponse:
         def is_done(self):
             return False
 
-        async def defer(self, *, ephemeral=False):
-            order.append("defer")
+        async def defer(self, *, ephemeral=True):
+            pass
 
-        async def respond(self, text, **kwargs):
-            order.append(("respond", text))
+    async def fake_respond(text, **kwargs):
+        fake_respond.last = (text, kwargs)
 
-    ctx = MagicMock()
-    ctx.guild = _guild(_channel())
-    ctx.author = _member(100)
-    ctx.response = FakeResponse()
-    ctx.respond = ctx.response.respond
+    fake_respond.last = ("", {})
+    interaction = MagicMock()
+    interaction.response = FakeResponse()
+    interaction.response.send_message = fake_respond
+    interaction.edit = AsyncMock()
 
-    await cog.interactions_gender.callback(cog, ctx, "female")
-    assert await cog.store.get_gender(1, 100) == "female"
-    respond = order[-1]
-    assert respond[0] == "respond"
-    assert "Feminino" in respond[1]
+    # Garbage: neither a url nor a category.
+    await view._add_submit(interaction, "nada", "tem espaço")
+    assert "Preencha" in fake_respond.last[0]
+    assert await view.store.get_gifs(1, "hug") == []
+
+    # A url (no category) is stored as a static entry.
+    await view._add_submit(interaction, "https://a.gif", "")
+    gifs = await view.store.get_gifs(1, "hug")
+    assert gifs[-1] == {"url": "https://a.gif"}
+
+    # A category (no url) is stored as an api entry.
+    await view._add_submit(interaction, "", "hug")
+    gifs = await view.store.get_gifs(1, "hug")
+    assert gifs[-1] == {"api": "hug"}
+
+    # Both: one entry carrying the pair.
+    await view._add_submit(interaction, "https://b.gif", "kiss")
+    gifs = await view.store.get_gifs(1, "hug")
+    assert gifs[-1] == {"url": "https://b.gif", "api": "kiss"}
+
+
+async def test_manager_remove_and_restore(tmp_path):
+    from rosemary.ui.interactions_menu import InteractionsManagerView
+
+    bot = _bot(tmp_path)
+    view = InteractionsManagerView(bot, 1, 100)
+    await view.store.set_gifs(1, "hug", [{"url": "https://a.gif"}, {"api": "kiss"}])
+
+    class FakeResponse:
+        def is_done(self):
+            return False
+
+        async def defer(self, *, ephemeral=True):
+            pass
+
+    interaction = MagicMock()
+    interaction.response = FakeResponse()
+    interaction.edit = AsyncMock()
+    interaction.data = {"values": ["0"]}
+    await view._remove(interaction)
+    # Only index 0 went; the api entry stays.
+    assert await view.store.get_gifs(1, "hug") == [{"api": "kiss"}]
+
+    # Restore re-seeds from the theme (api entries in the default theme).
+    interaction2 = MagicMock()
+    interaction2.response = FakeResponse()
+    interaction2.edit = AsyncMock()
+    await view._restore(interaction2)
+    gifs = await view.store.get_gifs(1, "hug")
+    assert {"api": "hug"} in gifs
 
 
 # prefix trigger ===============================================================
@@ -352,7 +537,7 @@ async def test_prefix_command_triggers_card(tmp_path):
     cog = InteractionsCog(bot)
     await bot.storage.set(1, "interactions.enabled", True)
     await cog.store.set_gifs(
-        1, "hug", [{"url": "https://media.tenor.com/hug.gif", "actor": "any", "target": "any"}]
+        1, "hug", [{"url": "https://media.tenor.com/hug.gif"}]
     )
     channel = _channel()
     guild = _guild(channel)

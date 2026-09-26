@@ -96,7 +96,7 @@ AUDIT_CARDS = [
 #: supplied by ``cogs.audit`` default builders from per-event template keys
 #: (``card.audit.<event>.body``); the shared frame carries the identity.
 AUDIT_VARIABLES = (
-    "user", "user_name", "user_avatar", "server", "timestamp",
+    "user", "user_name", "user_id", "user_avatar", "server", "timestamp",
     "moderator", "reason", "message_author", "message_author_name", "message",
     "new_message", "message_link", "channel", "count", "file_url", "old_name",
     "new_name", "old_avatar", "new_avatar", "role", "duration",
@@ -223,9 +223,9 @@ CONTENT_CARDS = {
 #: The editor preview, lint and hint derive from this map; send sites must
 #: pass exactly these (enforced by tests).
 VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
-    "events.welcome": ("user", "user_name", "server", "count", "user_avatar", "inviter"),
-    "events.leave": ("user", "user_name", "server", "count", "inviter", "user_avatar"),
-    "events.ban": ("user", "user_name", "server", "count", "inviter", "user_avatar"),
+    "events.welcome": ("user", "user_name", "user_id", "server", "count", "user_avatar", "inviter"),
+    "events.leave": ("user", "user_name", "user_id", "server", "count", "inviter", "user_avatar"),
+    "events.ban": ("user", "user_name", "user_id", "server", "count", "inviter", "user_avatar"),
     "birthdays.announce": ("user", "server", "count"),
     "boost.dm.registered": ("mention", "role_name", "server_name", "members", "max_members"),
     "boost.dm.transferred": ("mention", "role_name", "server_name", "members", "max_members"),
@@ -270,7 +270,8 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "trap.dm": ("server", "action"),
     "trap.notice": ("server", "action"),
     "interactions.card": (
-        "actor", "target", "action", "gif_url", "footer", "title", "body",
+        "actor", "target", "actor_avatar", "action", "gif_url", "timestamp",
+        "title", "body",
     ),
     "tickets.panel": (),
     "tickets.created": ("user", "type"),
@@ -318,17 +319,20 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "bump.logs.week_reset_manual.description": ("author",),
     "bump.logs.bumps_added.description": ("author", "count", "total", "user"),
     "moderation.logs.ban.description": (
-        "member", "moderator", "reason", "member_label", "moderator_label", "reason_label",
+        "member", "member_id", "moderator", "reason",
+        "member_label", "member_id_label", "moderator_label", "reason_label",
     ),
     "moderation.logs.kick.description": (
-        "member", "moderator", "reason", "member_label", "moderator_label", "reason_label",
+        "member", "member_id", "moderator", "reason",
+        "member_label", "member_id_label", "moderator_label", "reason_label",
     ),
     "moderation.logs.mute.description": (
-        "member", "moderator", "reason", "duration",
-        "member_label", "moderator_label", "reason_label", "duration_label",
+        "member", "member_id", "moderator", "reason", "duration",
+        "member_label", "member_id_label", "moderator_label", "reason_label", "duration_label",
     ),
     "moderation.logs.warn.description": (
-        "member", "moderator", "reason", "member_label", "moderator_label", "reason_label",
+        "member", "member_id", "moderator", "reason",
+        "member_label", "member_id_label", "moderator_label", "reason_label",
     ),
     "invites.logs.join.description": ("user", "code", "inviter", "label", "flags"),
     "invites.logs.leave.description": ("user", "inviter"),
@@ -477,6 +481,15 @@ def _build() -> list[CardSpec]:
     specs += [
         CardSpec(key=key, category="general", rich=True, variables=variables)
         for key, variables in CONTENT_CARDS.items()
+    ]
+    specs += [
+        CardSpec(
+            key="interactions.card",
+            category="interactions",
+            rich=True,
+            variables=VARIABLES_BY_KEY["interactions.card"],
+            mention_default="single",
+        )
     ]
     return specs
 

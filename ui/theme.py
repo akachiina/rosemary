@@ -195,11 +195,11 @@ class Theme:
     def roleplay_gifs(self, action: str) -> list[dict[str, str]]:
         """The theme's built-in gif list for an interaction action.
 
-        Theme ``roleplay.gifs.<action>:`` is a list of ``{url, actor,
-        target}`` entries; ``actor``/``target`` are gender keys (``male``,
-        ``female``, ``nonbinary``, ``any``, ...) and default to ``any``.
-        Malformed entries are skipped, never raised: a broken theme section
-        must not break a send (the cog degrades to the no-gif error).
+        Theme ``roleplay.gifs.<action>:`` is a list of entries: either
+        ``{url: ...}`` (a fixed gif) or ``{api: <category>}`` (a random
+        gif from that nekos.best category at send time). Malformed entries
+        are skipped, never raised: a broken theme section must not break a
+        send (the cog degrades to the no-gif error).
         """
         raw = getattr(self, "roleplay", None)
         gifs = raw.get("gifs") if isinstance(raw, dict) else None
@@ -211,17 +211,11 @@ class Theme:
             if not isinstance(entry, dict):
                 continue
             url = str(entry.get("url") or "").strip()
-            if not url:
-                continue
-            from rosemary.core.roleplay import DEFAULT_GENDER, normalize_gender
-
-            parsed.append(
-                {
-                    "url": url,
-                    "actor": normalize_gender(entry.get("actor") or DEFAULT_GENDER),
-                    "target": normalize_gender(entry.get("target") or DEFAULT_GENDER),
-                }
-            )
+            api = str(entry.get("api") or "").strip().lower()
+            if url:
+                parsed.append({"url": url})
+            elif api:
+                parsed.append({"api": api})
         return parsed
 
     def _resolve_style(self, name: str) -> dict[str, str]:

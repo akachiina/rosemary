@@ -195,35 +195,35 @@ color_panel:
   item: |
     <div class="item"><span class="dot" style="background: {color}"></span>{number}. {name}</div>
 
-# Interactions (roleplay) gifs: the DEFAULT gif per action, used to seed a
-# guild's manager the first time it edits its own list. Each entry carries
-# `url` plus optional gender filters `actor`/`target` (male, female,
-# nonbinary, any, unspecified) that pick the right gif for the pair; an
-# entry without filters matches everybody. Replace these placeholders with
-# real gif URLs (the card shows "no gif configured" until you do).
+# Interactions (roleplay) gifs: the DEFAULT source per action, used when a
+# guild has no own list (the manager seeds it on first edit). Two entry
+# shapes: `api: <category>` fetches a RANDOM gif from that nekos.best
+# category at every send (no keys, free API), and `url: <link>` pins one
+# static gif. A guild that edits its list in /settings replaces this whole
+# section for itself (mix both shapes freely there).
 roleplay:
   gifs:
     hug:
-      - url: ""
+      - api: hug
     kiss:
-      - url: ""
+      - api: kiss
     pat:
-      - url: ""
+      - api: pat
     slap:
-      - url: ""
+      - api: slap
     bite:
-      - url: ""
+      - api: bite
     punch:
-      - url: ""
+      - api: punch
     attack:
-      - url: ""
+      - api: kick
     poke:
-      - url: ""
+      - api: poke
     dance:
-      - url: ""
+      - api: dance
     highfive:
-      - url: ""
+      - api: highfive
     stare:
-      - url: ""
+      - api: stare
     cuddle:
-      - url: ""
+      - api: cuddle

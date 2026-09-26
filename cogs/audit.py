@@ -27,6 +27,8 @@ log = logging.getLogger(__name__)
 BULK_FLUSH_SECONDS = 3.0
 #: How long a note_purge_context stamp stays valid for attribution.
 PURGE_CONTEXT_SECONDS = 600.0
+#: How long a note_bot_ban stamp suppresses the gateway ban card.
+BOT_BAN_WINDOW_SECONDS = 30.0
 
 #: Audit-log actions for ban / unban / message-delete lookups (py-cord's
 #: ``Guild.audit_logs`` requires the enum itself, not its integer value).
@@ -48,6 +50,7 @@ def _variables(user: discord.abc.User, guild: discord.Guild) -> dict:
     return {
         "user": user.mention,
         "user_name": getattr(user, "display_name", None) or user.name,
+        "user_id": str(user.id),
         "user_avatar": user.display_avatar.url,
         "server": guild.name,
         "timestamp": discord.utils.format_dt(
@@ -171,6 +174,10 @@ class AuditCog(commands.Cog):
         self._bulk_task: dict[int, asyncio.Task] = {}
         #: guild_id -> (member_id, monotonic expiry) for /limpar attribution.
         self._purge_context: dict[int, tuple[int, float]] = {}
+        #: guild_id -> {user_id: expiry} for bans executed by this bot's own
+        #: code (/ban, trap): the feature posts its own log with the real
+        #: moderator, so the gateway card would only duplicate it.
+        self._bot_bans: dict[int, dict[int, float]] = {}
 
     #: plumbing ------------------------------------------------------------
 
@@ -239,9 +246,45 @@ class AuditCog(commands.Cog):
 
     #: ban / unban ---------------------------------------------------------
 
+    def note_bot_ban(self, guild_id: int, user_id: int) -> None:
+        """Stamp a ban this bot is about to execute (/ban, trap, auto-ban).
+
+        The feature posts its own log card with the real moderator and
+        reason; the gateway's ``on_member_ban`` sees the stamp and skips the
+        generic duplicate (a short window survives even a slow API call).
+        """
+        self._stamp_bot_action(guild_id, "ban", user_id)
+
+    def note_bot_unban(self, guild_id: int, user_id: int) -> None:
+        """Stamp an unban our code triggers (the softban's own unban step)."""
+        self._stamp_bot_action(guild_id, "unban", user_id)
+
+    def _stamp_bot_action(self, guild_id: int, kind: str, user_id: int) -> None:
+        self._bot_bans.setdefault(guild_id, {}).setdefault(kind, {})[user_id] = (
+            time.monotonic() + BOT_BAN_WINDOW_SECONDS
+        )
+
+    def _consume_bot_ban(self, guild_id: int, user_id: int) -> bool:
+        """Whether this ban/unban was stamped by our own code (and drop it)."""
+        kinds = self._bot_bans.get(guild_id)
+        if not kinds:
+            return False
+        for kind in ("ban", "unban"):
+            stamps = kinds.get(kind)
+            if stamps and user_id in stamps:
+                expiry = stamps.pop(user_id)
+                if not stamps:
+                    kinds.pop(kind, None)
+                if not kinds:
+                    self._bot_bans.pop(guild_id, None)
+                return expiry >= time.monotonic()
+        return False
+
     @commands.Cog.listener()
     async def on_member_ban(self, guild: discord.Guild, user: discord.User) -> None:
         try:
+            if self._consume_bot_ban(guild.id, user.id):
+                return
             channel = await self._channel(guild.id)
             if channel is None or not await self._on(guild.id, "audit.ban_enabled"):
                 return
@@ -258,6 +301,8 @@ class AuditCog(commands.Cog):
     @commands.Cog.listener()
     async def on_member_unban(self, guild: discord.Guild, user: discord.User) -> None:
         try:
+            if self._consume_bot_ban(guild.id, user.id):
+                return
             channel = await self._channel(guild.id)
             if channel is None or not await self._on(guild.id, "audit.unban_enabled"):
                 return

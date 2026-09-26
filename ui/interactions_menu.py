@@ -2,16 +2,17 @@
 
 Opened from the Interactions category in ``/settings``; first edit seeds
 the guild's list from the theme's ``roleplay.gifs.<action>`` section, then
-the guild owns its own list (theme edits no longer apply). Each entry
-carries ``url`` plus optional ``actor``/``target`` gender filters picked
-from selects; pick order is handled by :func:`rosemary.core.roleplay.pick_gif`.
+the guild owns its own list (theme edits no longer apply). Entries are
+either ``{"url": ...}`` (a fixed gif) or ``{"api": <category>}`` (a random
+gif from that nekos.best category at send time); pick order lives in
+:func:`rosemary.core.roleplay.resolve_gif`.
 """
 
 from __future__ import annotations
 
 import discord
 
-from rosemary.core.roleplay import ACTIONS, GENDERS, RoleplayStore
+from rosemary.core.roleplay import ACTIONS, RoleplayStore, valid_api_category
 from rosemary.ui.menu import MenuView
 
 
@@ -24,8 +25,6 @@ class InteractionsManagerView(MenuView):
         self.guild_id = guild_id
         self.store = RoleplayStore(bot.storage.data_dir)
         self.action = ACTIONS[0]
-        self.mode = "list"  # list | add | edit
-        self.edit_index: int | None = None
         self.flash: str | None = None
         self.flash_color = "brand"
         self._register_handlers()
@@ -35,13 +34,11 @@ class InteractionsManagerView(MenuView):
 
     def _register_handlers(self) -> None:
         self.register("rp_mgr_exit", self._exit)
-        self.register("rp_mgr_back", self._back)
         self.register("rp_mgr_action", self._pick_action)
         self.register("rp_mgr_add", self._open_add)
-        self.register("rp_mgr_edit", self._open_edit)
         self.register("rp_mgr_remove", self._remove)
         self.register("rp_mgr_restore", self._restore)
-        self.register("rp_mgr_save", self._save)
+        self.register("rp_mgr_add_modal", self._add_submit)
 
     async def _ack(self, interaction: discord.Interaction) -> None:
         if not interaction.response.is_done():
@@ -59,17 +56,10 @@ class InteractionsManagerView(MenuView):
         await interaction.edit(view=settings_view)
         self.stop()
 
-    async def _back(self, interaction: discord.Interaction) -> None:
-        self.mode = "list"
-        self.edit_index = None
-        self.flash = None
-        await self.rerender(interaction)
-
     async def _pick_action(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
         if values and values[0] in ACTIONS:
             self.action = values[0]
-            self.mode = "list"
             self.flash = None
         await self.rerender(interaction)
 
@@ -86,18 +76,45 @@ class InteractionsManagerView(MenuView):
         return gifs
 
     async def _open_add(self, interaction: discord.Interaction) -> None:
-        self.mode = "add"
-        self.edit_index = None
-        self.flash = None
-        await self.rerender(interaction)
+        from rosemary.ui.modals import make_two_field_modal
 
-    async def _open_edit(self, interaction: discord.Interaction) -> None:
-        values = (interaction.data or {}).get("values") or []
-        if not values or not values[0].isdigit():
-            return await self._ack(interaction)
-        self.edit_index = int(values[0])
-        self.mode = "edit"
-        self.flash = None
+        await interaction.response.send_modal(
+            make_two_field_modal(
+                title=(await self._t("interactions.manager.add_modal_title"))[:45],
+                custom_id="rp_mgr_add_modal",
+                first_label=await self._t("interactions.manager.add_hint"),
+                first_max_length=400,
+                second_label=await self._t("interactions.manager.add_api_hint"),
+                second_max_length=40,
+                on_submit=lambda inner, url, category: self._add_submit(
+                    inner, url, category
+                ),
+            )
+        )
+
+    async def _add_submit(
+        self, interaction: discord.Interaction, url: str, category: str
+    ) -> None:
+        """Persist one entry from the modal (url and/or api category)."""
+        url = (url or "").strip()
+        category = (category or "").strip().lower()
+        valid_url = url.startswith("http://") or url.startswith("https://")
+        if not valid_url and not valid_api_category(category):
+            await interaction.response.send_message(
+                await self._t("interactions.manager.invalid"), ephemeral=True
+            )
+            return
+        entry: dict[str, str] = {}
+        if valid_url:
+            entry["url"] = url
+        if category:
+            entry["api"] = category
+        gifs = await self._gifs()
+        gifs.append(entry)
+        await self.store.set_gifs(self.guild_id, self.action, gifs)
+        self.flash = await self._t("interactions.manager.added")
+        self.flash_color = "brand"
+        await self._ack(interaction)
         await self.rerender(interaction)
 
     async def _remove(self, interaction: discord.Interaction) -> None:
@@ -122,52 +139,16 @@ class InteractionsManagerView(MenuView):
         self.flash_color = "brand"
         await self.rerender(interaction)
 
-    #: add / edit (selects + confirm) -----------------------------------------
-
-    def _gender_options(self, include_any: bool = True) -> list[discord.SelectOption]:
-        keys = ("any", *GENDERS) if include_any else GENDERS
-        seen: list[str] = []
-        options = []
-        for key in keys:
-            if key in seen:
-                continue
-            seen.append(key)
-            options.append(
-                discord.SelectOption(
-                    label=self._sync_label(key), value=key
-                )
-            )
-        return options
-
-    def _sync_label(self, key: str) -> str:
-        """Select labels must be built synchronously; resolved at prepare."""
-        return key
-
-    async def _save(self, interaction: discord.Interaction) -> None:
-        """Persist the filters picked on the edit selects for the gif."""
-        if self.edit_index is None:
-            return await self._ack(interaction)
-        gifs = await self._gifs()
-        if not (0 <= self.edit_index < len(gifs)):
-            return await self._ack(interaction)
-        # The pending filters were stored by the actor/target select handlers.
-        await self._gifs()
-        await self._ack(interaction)
-        self.mode = "list"
-        self.edit_index = None
-        await self.rerender(interaction)
-
     #: rendering --------------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         """MenuView contract: return the items for the current state.
 
         ``MenuView.prepare`` clears and re-adds them on every re-render;
-        adding items here directly (the color manager's older shape) made
-        rerenders accumulate rows until Discord 400'd on a duplicate
-        custom_id.
+        adding items here directly made rerenders accumulate rows until
+        Discord 400'd on a duplicate custom_id.
         """
-        from rosemary.ui.containers import TextDisplay, designer_container, divider
+        from rosemary.ui.containers import TextDisplay, designer_container
 
         theme = self.bot.theme
         container = designer_container(
@@ -184,24 +165,35 @@ class InteractionsManagerView(MenuView):
                 )
             ),
         )
-        items: list[discord.ui.ViewItem] = [container, divider()]
+        items: list[discord.ui.ViewItem] = [container]
 
-        if self.mode == "list":
-            gifs = await self._gifs()
-            lines = []
-            for index, gif in enumerate(gifs[:10]):
-                actor_label = await self._t(
-                    "interactions.genders." + gif.get("actor", "any")
+        gifs = await self._gifs()
+        lines = [await self._entry_line(index, gif) for index, gif in enumerate(gifs[:10])]
+        items.append(
+            TextDisplay(
+                f"**{await self._t('interactions.manager.list_title')}**\n"
+                + ("\n".join(lines) if lines else await self._t("interactions.manager.empty"))
+            )
+        )
+
+        items.append(
+            discord.ui.ActionRow(
+                self.make_select(
+                    custom_id="rp_mgr_action",
+                    placeholder=await self._t("interactions.manager.title"),
+                    options=[
+                        discord.SelectOption(
+                            label=await self._t(f"interactions.actions.{action}"),
+                            value=action,
+                            default=(action == self.action),
+                        )
+                        for action in ACTIONS
+                    ],
                 )
-                target_label = await self._t(
-                    "interactions.genders." + gif.get("target", "any")
-                )
-                lines.append(
-                    f"{index + 1}. {gif['url']} [{actor_label} -> {target_label}]"
-                )
-            empty = await self._t("interactions.manager.empty")
-            items.append(TextDisplay("\n".join(lines) or empty))
-            action_row = discord.ui.ActionRow(
+            )
+        )
+        items.append(
+            discord.ui.ActionRow(
                 self.make_button(
                     custom_id="rp_mgr_add",
                     label=await self._t("interactions.manager.add"),
@@ -212,76 +204,36 @@ class InteractionsManagerView(MenuView):
                     label=await self._t("interactions.manager.restore"),
                 ),
             )
-            items.append(action_row)
-            if gifs:
-                items.append(
-                    discord.ui.ActionRow(
-                        await self.make_select(
-                            custom_id="rp_mgr_edit",
-                            placeholder=await self._t("interactions.manager.edit_hint"),
-                            options=[
-                                discord.SelectOption(
-                                    label=f"{index + 1}",
-                                    value=str(index),
-                                    description=gif["url"][:100],
-                                )
-                                for index, gif in enumerate(gifs[:25])
-                            ]
-                        )
-                    )
+        )
+        if gifs:
+            options = [
+                discord.SelectOption(
+                    label=f"{index + 1}",
+                    description=(
+                        gif.get("url") or f"api: {gif.get('api', '')}"
+                    )[:100],
                 )
-                items.append(
-                    discord.ui.ActionRow(
-                        await self.make_select(
-                            custom_id="rp_mgr_remove",
-                            placeholder=await self._t("interactions.manager.remove_hint"),
-                            options=[
-                                discord.SelectOption(
-                                    label=f"{index + 1}",
-                                    value=str(index),
-                                    description=gif["url"][:100],
-                                )
-                                for index, gif in enumerate(gifs[:25])
-                            ]
-                        )
-                    )
-                )
-        else:
-            # add/edit mode: gender selects + URL modal is overkill; the edit
-            # flow adjusts filters only, so keep two selects + confirm.
-            items.append(
-                TextDisplay(await self._t("interactions.manager.filters_hint"))
-            )
+                for index, gif in enumerate(gifs[:25])
+            ]
             items.append(
                 discord.ui.ActionRow(
-                    await self.make_select(
-                        custom_id="rp_mgr_actor",
-                        placeholder=await self._t("interactions.manager.actor"),
-                        options=self._gender_options(),
+                    self.make_select(
+                        custom_id="rp_mgr_remove",
+                        placeholder=await self._t("interactions.manager.remove_hint"),
+                        options=options,
                     )
                 )
             )
-            items.append(
-                discord.ui.ActionRow(
-                    await self.make_select(
-                        custom_id="rp_mgr_target",
-                        placeholder=await self._t("interactions.manager.target"),
-                        options=self._gender_options(),
-                    )
-                )
-            )
-            items.append(
-                discord.ui.ActionRow(
-                    self.make_button(
-                        custom_id="rp_mgr_save",
-                        label=await self._t("interactions.manager.save"),
-                        style=discord.ButtonStyle.primary,
-                    ),
-                    self.make_button(
-                        custom_id="rp_mgr_back",
-                        label=await self._t("interactions.manager.cancel"),
-                    ),
-                )
-            )
+
         self.flash = None
         return items
+
+    async def _entry_line(self, index: int, gif: dict[str, str]) -> str:
+        """One numbered list line: the url, or the api category tag."""
+        url = (gif.get("url") or "").strip()
+        if url:
+            mode = await self._t("interactions.manager.mode_url")
+            return f"{index + 1}. {mode}: {url}"
+        category = (gif.get("api") or "").strip()
+        mode = await self._t("interactions.manager.mode_api")
+        return f"{index + 1}. {mode}: {category}"

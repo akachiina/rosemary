@@ -242,6 +242,9 @@ class TrapCog(commands.Cog):
 
         acted = False
         failure = ""
+        from rosemary.cogs.audit import AuditCog
+
+        audit = self.bot.get_cog("AuditCog")
         if action == "ban":
             if bot_permissions.ban_members:
                 with contextlib.suppress(discord.Forbidden, discord.HTTPException):
@@ -251,6 +254,10 @@ class TrapCog(commands.Cog):
                         delete_message_seconds=seconds or None,
                     )
                     acted = True
+                if acted and isinstance(audit, AuditCog):
+                    # The audit.trap card below already reports this ban with
+                    # the ID; the gateway card would only duplicate it.
+                    audit.note_bot_ban(guild_id, member.id)
             if not acted:
                 failure = await t(guild_id, "trap.failure.no_ban")
         elif action == "softban":
@@ -265,9 +272,14 @@ class TrapCog(commands.Cog):
                         delete_message_seconds=seconds or None,
                     )
                     banned = True
+                if banned and isinstance(audit, AuditCog):
+                    audit.note_bot_ban(guild_id, member.id)
                 if banned:
                     if await self._unban(guild, member.id):
                         acted = True
+                        if isinstance(audit, AuditCog):
+                            # Our own unban step must not post a generic card.
+                            audit.note_bot_unban(guild_id, member.id)
                     else:
                         failure = await t(guild_id, "trap.failure.no_unban")
                 else:
