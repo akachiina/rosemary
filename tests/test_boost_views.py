@@ -365,3 +365,107 @@ async def test_boost_invite_view_layout_valid(bot):
         decline_label="Decline",
     )
     _assert_valid_layout(view, "boost_invite")
+
+
+#: membership grows only through invites ------------------------------------
+
+
+async def test_invite_view_is_storable(bot):
+    """The DM view must be storable: py-cord's ViewStore skips views with
+    ``store=False`` (both the send-time registration and the startup
+    ``bot.add_view``), so every click would die as "did not respond"."""
+    view = BoostInviteView(
+        bot,
+        guild_id=1,
+        invite_id="10-20-30",
+        accept_label="Accept",
+        decline_label="Decline",
+    )
+    assert view._store is True
+
+
+async def test_members_screen_offers_invite_not_direct_add(bot):
+    """The members screen must route growth through the invite flow: no user
+    select and no by-ID modal button, only the invite button + navigation."""
+    bot = BotWithGuild(bot.storage)
+    await bot.storage.set(1, "boost_roles", {"123": {"owner_id": 1, "members": []}})
+    view = BoostMenuView(bot, 1, owner_id=1)
+    view.screen = _Screen.MEMBERS
+    view.role_id = 123
+    await view.prepare()
+    custom_ids = [
+        item.custom_id for item in view.walk_children() if getattr(item, "custom_id", None)
+    ]
+    assert "boost_add_invite:123" in custom_ids
+    assert not any(cid.startswith("boost_pick_member:") for cid in custom_ids)
+    assert not any(cid.startswith("boost_by_id_member:") for cid in custom_ids)
+    # Selects are only allowed for removal (per-member buttons are not selects).
+    assert not [i for i in view.walk_children() if type(i).__name__ == "UserSelect"]
+
+
+async def test_accept_registers_member_in_store(monkeypatch, bot):
+    """Accepting an invite grants the role AND tracks the membership in the
+    store (ownership transfer, limits and menus read the store, not Discord)."""
+    from datetime import UTC, datetime, timedelta
+
+    import rosemary.ui.boost_dm as boost_dm
+    import rosemary.ui.boost_invite as boost_invite
+
+    added: list[tuple[int, str]] = []
+    granted: list[int] = []
+
+    class FakeMemberObj:
+        id = 555
+        display_avatar = None
+
+        async def add_roles(self, role, reason=None):
+            granted.append(role.id)
+
+    class FakeGuild:
+        id = 1
+
+        def get_role(self, role_id):
+            return RoleWithIcon(True) if role_id == 123 else None
+
+        def get_member(self, member_id):
+            return FakeMemberObj() if member_id == 555 else None
+
+    async def noop_dm(*args, **kwargs):
+        return None
+
+    async def noop_log(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(boost_dm, "send", noop_dm)
+    monkeypatch.setattr(boost_dm, "send_preview", noop_dm)
+    monkeypatch.setattr(boost_invite.BoostInviteView, "_log", noop_log)
+
+    expires = datetime.now(UTC) + timedelta(hours=1)
+    guild_bot = BotWithGuild(bot.storage)
+    guild_bot._guild.member = FakeMemberObj()
+    await guild_bot.storage.set(1, "boost_roles", {"123": {"owner_id": 1, "members": []}})
+    store = boost_invite.BoostRoleStore(guild_bot.storage.data_dir)
+    await store.add_role(1, 123, owner_id=1, created_by=1)
+    await store.add_invite(1, "inv1", 123, inviter_id=1, invitee_id=555, expires_at=expires)
+
+    view = BoostInviteView(
+        guild_bot, guild_id=1, invite_id="inv1", accept_label="A", decline_label="D"
+    )
+    real_add = store.add_member
+
+    async def spy_add_member(guild_id, role_id, member_id, max_members):
+        added.append((role_id, member_id))
+        return await real_add(guild_id, role_id, member_id, max_members)
+
+    monkeypatch.setattr(view.store, "add_member", spy_add_member)
+    interaction = FakeInteraction()
+    interaction.user = FakeUser()
+    interaction.user.id = 555
+
+    await view._accept(interaction)
+
+    assert added == [(123, 555)]
+    assert granted == [123]
+    data = await store.get_role(1, 123)
+    assert 555 in data["members"]
+    assert await store.get_invite(1, "inv1") is None

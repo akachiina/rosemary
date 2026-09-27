@@ -9,10 +9,14 @@ inside the view instead.
 
 Each invite gets unique custom_ids ``boost_invite_accept:{invite_id}`` /
 ``boost_invite_decline:{invite_id}`` so the interaction store never sees two
-components sharing an id. Views have no timeout and are re-registered on startup
-via ``bot.add_view`` so buttons keep working after a restart; the accept/decline
-logic re-reads the invite from the store and re-validates it (expiry, invitee
-identity, role still existing, boost system enabled).
+components sharing an id. The view must be storable (the default ``store=True``):
+py-cord's ViewStore skips views with ``store=False``, so the send-time
+registration AND the startup ``bot.add_view`` would both silently no-op and
+every click would die as "application did not respond". The cog re-registers
+one rebuilt view per pending invite on startup so buttons keep working after
+a restart; the accept/decline logic re-reads the invite from the store and
+re-validates it (expiry, invitee identity, role still existing, boost system
+enabled).
 """
 
 from __future__ import annotations
@@ -65,7 +69,7 @@ class BoostInviteView(discord.ui.DesignerView):
         accept_label: str,
         decline_label: str,
     ) -> None:
-        super().__init__(timeout=None, store=False)
+        super().__init__(timeout=None)
         self.bot = bot
         self.guild_id = guild_id
         self.invite_id = invite_id
@@ -161,6 +165,12 @@ class BoostInviteView(discord.ui.DesignerView):
         except discord.Forbidden:
             return await self._error(interaction, "boost.errors.forbidden_add_role")
         await self.store.remove_invite(self.guild_id, self.invite_id)
+        # Register the membership like every other entry point: members are
+        # tracked in the store so ownership transfer, limits and the menus
+        # see them (the role grant alone is invisible to the feature).
+        max_members = await get_setting(self.bot.storage, self.guild_id, "boost.max_members")
+        with contextlib.suppress(Exception):
+            await self.store.add_member(self.guild_id, role.id, member.id, max_members)
         member_mention = f"<@{invite.get('invitee_id')}>"
         inviter_mention = f"<@{invite.get('inviter_id', 0)}>"
         owner = guild.get_member(invite.get("inviter_id"))

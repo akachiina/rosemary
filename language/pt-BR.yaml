@@ -529,7 +529,7 @@ boost:
     manage_hint: Use os botões abaixo para personalizar seu cargo.
     members_count: '{count}/{max_members} membros'
     manage_members: Gerencie os membros do seu cargo boost (máximo {max_members}).
-    members_empty: Nenhum membro ainda. Use o menu abaixo para adicionar.
+    members_empty: Nenhum membro ainda. Convide alguém pelo botão abaixo.
     owner: Você é o dono deste cargo.
     dm_hint: O membro receberá um convite nas mensagens privadas.
     transfer_hint: Escolha o novo dono. Ele será avisado por mensagem privada.
@@ -565,6 +565,7 @@ boost:
     custom_color: Cor customizada
     add_member: Adicionar
     add_by_id: Por ID
+    invite_member: Convidar Membro
     list_all: Listar todos
     accept_invite: Aceitar
     decline_invite: Recusar

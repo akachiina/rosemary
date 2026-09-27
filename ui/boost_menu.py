@@ -447,8 +447,6 @@ class BoostMenuView(_BaseMenu):
         self.register("boost_leave_confirm_yes", self._leave_role)
         self.register("boost_pick_color", self._pick_color)
         self.register("boost_custom_color", self._open_custom_color)
-        self.register("boost_pick_member", self._add_member)
-        self.register("boost_by_id_member", self._by_id_member)
         self.register("boost_member_remove", self._remove_member)
         self.register("boost_add_invite", self._open_invite_target)
         self.register("boost_pick_invitee", self._send_invite)
@@ -789,82 +787,6 @@ class BoostMenuView(_BaseMenu):
         )
         await self._flash("boost.success.color_changed")
         await interaction.edit(view=self)
-
-    async def _add_member(self, interaction: discord.Interaction) -> None:
-        role_id = int(_suffix(interaction.custom_id, "boost_pick_member"))
-        values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
-        try:
-            member_id = int(values[0])
-        except (TypeError, ValueError):
-            return
-        await self._add_member_by_id(interaction, role_id, member_id)
-
-    async def _by_id_member(self, interaction: discord.Interaction) -> None:
-        role_id = int(_suffix(interaction.custom_id, "boost_by_id_member"))
-        modal = make_by_id_modal(
-            title=await self._t("boost.modals.add_member.title"),
-            custom_id=f"boost_by_id_member_modal:{role_id}:{interaction.id}",
-            label=await self._t("boost.modals.add_member.label"),
-            placeholder=await self._t("boost.modals.add_member.placeholder"),
-            on_submit=self._member_by_id_submit,
-        )
-        await interaction.response.send_modal(modal)
-
-    async def _member_by_id_submit(self, interaction: discord.Interaction, value: str) -> None:
-        try:
-            member_id = int(value.strip())
-        except ValueError:
-            await self._flash("boost.errors.member_not_found", color="danger")
-            return await interaction.edit(view=self)
-        role_id = int(_suffix(interaction.custom_id, "boost_by_id_member_modal").split(":")[0])
-        await self._add_member_by_id(interaction, role_id, member_id)
-
-    async def _add_member_by_id(
-        self, interaction: discord.Interaction, role_id: int, member_id: int
-    ) -> None:
-        await self._ack(interaction)
-        role = self._guild().get_role(role_id) if self._guild() else None
-        member = self._member(member_id)
-        if role is None or member is None:
-            await self._flash("boost.errors.member_not_found", color="danger")
-            return await self.rerender(interaction)
-        data = await self.store.get_role(self.guild_id, role_id)
-        if data is None:
-            await self._flash("boost.errors.role_not_registered", color="danger")
-            return await self.rerender(interaction)
-        if member.id == data.get("owner_id"):
-            await self._flash("boost.errors.member_is_owner", color="danger")
-            return await self.rerender(interaction)
-        if member.id in data.get("members", []):
-            await self._flash("boost.errors.member_already_added", color="danger")
-            return await self.rerender(interaction)
-        max_members = await get_setting(self.bot.storage, self.guild_id, "boost.max_members")
-        if len(data.get("members", [])) >= max_members:
-            await self._flash(
-                "boost.errors.max_members_reached", max_members=max_members, color="danger"
-            )
-            return await self.rerender(interaction)
-        try:
-            await member.add_roles(role, reason="Added to boost role")
-        except discord.Forbidden:
-            await self._flash("boost.errors.forbidden_add_role", color="danger")
-            return await self.rerender(interaction)
-        if not await self.store.add_member(self.guild_id, role_id, member.id, max_members):
-            await self._flash(
-                "boost.errors.max_members_reached", max_members=max_members, color="danger"
-            )
-            return await self.rerender(interaction)
-        await self._log(
-            "member_add",
-            color="success",
-            role=f"<@&{role_id}>",
-            member=member.mention,
-            actor=await self._actor_mention(),
-        )
-        await self._flash("boost.success.member_added", member=member.mention, role=f"@{role.name}")
-        await self.rerender(interaction)
 
     async def _remove_member(self, interaction: discord.Interaction) -> None:
         await self._ack(interaction)
@@ -1529,18 +1451,23 @@ class BoostMenuView(_BaseMenu):
         total_pages = page_count(len(entries), _LIST_PAGE_SIZE)
         items.extend(page_entries)
         items.append(divider())
-        member_select = self.make_user_select(
-            custom_id=f"boost_pick_member:{role.id}",
-            placeholder=await t(self.guild_id, "boost.placeholders.select_member"),
-        )
-        items.append(ActionRow(member_select))
-        nav: list[discord.ui.ViewItem] = [
-            self.make_button(
-                custom_id=f"boost_by_id_member:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.add_by_id"),
-                emoji=theme.emojis.get("numbers", ""),
+        # Membership grows ONLY through invites: this button opens the invite
+        # target screen (the same flow as the invites screen), never a direct
+        # role grant from here.
+        items.append(
+            ActionRow(
+                self.make_button(
+                    custom_id=f"boost_add_invite:{role.id}",
+                    label=await t(self.guild_id, "boost.buttons.invite_member"),
+                    style=discord.ButtonStyle.success,
+                    emoji=theme.emojis.get("plus", ""),
+                ),
+                self.make_button(
+                    custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
+                ),
             )
-        ]
+        )
+        nav: list[discord.ui.ViewItem] = []
         if self.page > 0:
             nav.append(
                 self.make_button(

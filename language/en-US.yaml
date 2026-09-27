@@ -529,7 +529,7 @@ boost:
     manage_hint: Use the buttons below to customize your role.
     members_count: '{count}/{max_members} members'
     manage_members: Manage the members of your boost role (max {max_members}).
-    members_empty: No members yet. Use the menu below to add some.
+    members_empty: No members yet. Invite someone with the button below.
     owner: You are the owner of this role.
     dm_hint: The member will receive an invite in their private messages.
     transfer_hint: Pick the new owner. They will be notified by private message.
@@ -565,6 +565,7 @@ boost:
     custom_color: Custom color
     add_member: Add
     add_by_id: By ID
+    invite_member: Invite Member
     list_all: List all
     accept_invite: Accept
     decline_invite: Decline
