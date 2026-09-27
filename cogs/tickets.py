@@ -20,10 +20,11 @@ import re
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description, maybe_view
+from rosemary.core.cards import log_description, maybe_view, text_or
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import get_setting
 from rosemary.core.tickets import CLOSED, OPEN, TicketStore
+from rosemary.ui.confirm import ConfirmView
 from rosemary.ui.containers import TextDisplay, designer_container
 from rosemary.ui.menu import MenuView
 
@@ -32,7 +33,6 @@ log = logging.getLogger(__name__)
 TICKET_TYPES = ("report", "confidential", "partnership", "boost")
 
 _OPEN_ID = "tickets_open"
-_CONFIRM_PREFIX = "tickets_confirm"
 _CLOSE_PREFIX = "tickets_close"
 _TRANSCRIPT_PREFIX = "tickets_transcript"
 _REOPEN_PREFIX = "tickets_reopen"
@@ -88,9 +88,9 @@ class TicketsCog(commands.Cog):
         panel_view.add_item(await self._panel_select_row(guild.id))
         self.bot.add_view(panel_view)
         for channel_id in await self.store.open_tickets(guild.id):
-            actions_view = TicketActionsView(self.bot, guild.id, channel_id)
-            actions_view.add_item(actions_view.action_row())
-            self.bot.add_view(actions_view)
+            self.bot.add_view(
+                await self._actions_view(guild.id, channel_id)
+            )
         # Freshen the panel in place (theme edits, missed repaints); the
         # callback re-posts it when the stored message no longer exists.
         await self.repaint_panel(self.bot, guild.id)
@@ -120,6 +120,12 @@ class TicketsCog(commands.Cog):
         """The ticket-type picker wrapped for Components V2 sends."""
         picker = TicketPanelView(self.bot, guild_id)
         return discord.ui.ActionRow(await picker.open_row())
+
+    async def _actions_view(self, guild_id: int, channel_id: int):
+        """A per-ticket actions view with its translated row attached."""
+        actions_view = TicketActionsView(self.bot, guild_id, channel_id)
+        actions_view.add_item(await actions_view.action_row())
+        return actions_view
 
     async def _panel_view(self, guild_id: int, *, trace: bool = False):
         """The full panel view: themed card (or catalog default) + picker.
@@ -275,7 +281,7 @@ class TicketsCog(commands.Cog):
         # WITH its action row, or every click dies as "did not respond"
         # until the next restart re-registers it through _restore_guild.
         actions_view = TicketActionsView(self.bot, guild_id, channel.id)
-        actions_view.add_item(actions_view.action_row())
+        actions_view.add_item(await actions_view.action_row())
         self.bot.add_view(actions_view)
         await self._post_intro(guild, channel, owner, ticket_type)
         await self._log(
@@ -307,7 +313,9 @@ class TicketsCog(commands.Cog):
         payload, _allowed = await render_card_message(
             self.bot, guild.id, "tickets.created", variables
         )
-        actions = TicketActionsView(self.bot, guild.id, channel.id).action_row()
+        actions = await TicketActionsView(
+            self.bot, guild.id, channel.id
+        ).action_row()
         if payload is None:
             t = self.bot.translator.t
             payload = CardPayload(
@@ -411,28 +419,20 @@ class TicketsCog(commands.Cog):
         self, guild_id: int, title_key: str, description_key: str, file: discord.File,
         **variables,
     ) -> bool:
-        from rosemary.core.settings import get_setting as _get
-
-        if not await _get(self.bot.storage, guild_id, "logging.enabled"):
-            return False
-        channel_id = await _get(self.bot.storage, guild_id, "logging.channel")
-        channel = self.bot.get_channel(channel_id) if channel_id else None
-        if not isinstance(channel, discord.TextChannel):
-            return False
-        try:
-            description = await log_description(
-                self.bot, guild_id, description_key, **variables
-            )
-            title = await self.bot.translator.t(guild_id, title_key)
-            await channel.send(
-                f"**{title}**\n{description}",
-                file=file,
-                allowed_mentions=discord.AllowedMentions.none(),
-            )
-        except (discord.Forbidden, discord.NotFound, discord.HTTPException) as exc:
-            log.warning("Could not send transcript to %s: %s", channel_id, exc)
-            return False
-        return True
+        """Transcript log via the standard V2 log card (file attached)."""
+        title = await self.bot.translator.t(guild_id, title_key)
+        description = await log_description(
+            self.bot, guild_id, description_key, **variables
+        )
+        return await send_channel_log(
+            self.bot,
+            guild_id,
+            title,
+            description,
+            color="info",
+            card_key=description_key,
+            file=file,
+        )
 
     #: commands ------------------------------------------------------------
 
@@ -517,6 +517,84 @@ async def _themed_panel_has_open_buttons(bot, guild_id: int) -> bool:
     return visit(doc.get("blocks", []))
 
 
+class _TicketConfirmView(ConfirmView):
+    """Standard confirm dialog before a ticket channel is created."""
+
+    def __init__(self, bot, *, guild_id: int, owner_id: int, ticket_type: str) -> None:
+        super().__init__(bot, guild_id=guild_id, owner_id=owner_id, on_confirm=None)
+        self.ticket_type = ticket_type
+
+    async def question_items(self):
+        label = await self._t(f"tickets.types.{self.ticket_type}.label")
+        return [
+            TextDisplay(
+                self.bot.theme.md(
+                    "title", title=await self._t("tickets.confirm_title")
+                )
+            ),
+            TextDisplay(
+                await text_or(
+                    self.bot,
+                    self.guild_id,
+                    "tickets.confirm",
+                    await self._t("tickets.confirm_text", type=label),
+                    type=label,
+                )
+            ),
+        ]
+
+    async def action_rows(self):
+        return [
+            discord.ui.ActionRow(
+                self.make_button(
+                    custom_id="confirm_yes",
+                    label=await self._t("tickets.confirm"),
+                    style=discord.ButtonStyle.success,
+                ),
+                self.make_button(
+                    custom_id="confirm_no",
+                    label=await self._t("tickets.cancel"),
+                    style=discord.ButtonStyle.secondary,
+                ),
+            )
+        ]
+
+    async def _confirm(self, interaction: discord.Interaction) -> None:
+        if self.result is not None:
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
+            return
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
+        cog = self.bot.get_cog("TicketsCog")
+        guild = interaction.guild
+        member = guild.get_member(interaction.user.id) if guild else None
+        if cog is None or guild is None or member is None:
+            self.result = await self._t("confirm.failed")
+            self.result_state = "danger"
+            await self.rerender(interaction)
+            self.stop()
+            return
+        try:
+            ok, detail = await cog.create_ticket(guild, member, self.ticket_type)
+            if ok:
+                channel = guild.get_channel(int(detail))
+                self.result = await self._t(
+                    "tickets.created_confirm",
+                    channel=channel.mention if channel else detail,
+                )
+                self.result_state = "success"
+            else:
+                self.result = await self._t(detail)
+                self.result_state = "danger"
+        except Exception as exc:
+            log.error("Ticket create failed: %s", exc)
+            self.result = await self._t("confirm.failed")
+            self.result_state = "danger"
+        await self.rerender(interaction)
+        self.stop()
+
+
 class TicketPanelView(MenuView):
     """Persistent panel: pick a ticket type to open."""
 
@@ -557,59 +635,22 @@ class TicketPanelView(MenuView):
             if not interaction.response.is_done():
                 await interaction.response.defer(ephemeral=True)
             return
-        ticket_type = values[0]
-        label = await self._t(f"tickets.types.{ticket_type}.label")
-        view = MenuView(author_id=interaction.user.id)
-        view.add_item(
-            TextDisplay(
-                await self._t("tickets.confirm_text", type=label)
-            )
+        cog = self.bot.get_cog("TicketsCog")
+        guild = interaction.guild
+        if cog is None or guild is None:
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
+            return
+        from rosemary.core.card_service import trace_card_path
+
+        view = _TicketConfirmView(
+            self.bot,
+            guild_id=guild.id,
+            owner_id=interaction.user.id,
+            ticket_type=values[0],
         )
-
-        async def confirm(inner: discord.Interaction) -> None:
-            await inner.response.defer(ephemeral=True)
-            cog = self.bot.get_cog("TicketsCog")
-            guild = inner.guild
-            member = guild.get_member(inner.user.id) if guild else None
-            if cog is None or guild is None or member is None:
-                return
-            ok, detail = await cog.create_ticket(guild, member, ticket_type)
-            if ok:
-                channel = guild.get_channel(int(detail))
-                message = await self._t(
-                    "tickets.created_confirm",
-                    channel=channel.mention if channel else detail,
-                )
-            else:
-                message = await self._t(detail)
-            view.clear_items()
-            view.add_item(TextDisplay(message))
-            view.stop()
-            await inner.edit(view=view)
-
-        async def cancel(inner: discord.Interaction) -> None:
-            await inner.response.defer(ephemeral=True)
-            view.clear_items()
-            view.add_item(TextDisplay(await self._t("tickets.cancelled")))
-            view.stop()
-            await inner.edit(view=view)
-
-        view.register(f"{_CONFIRM_PREFIX}:{ticket_type}", confirm)
-        view.register("tickets_cancel", cancel)
-        view.add_item(
-            discord.ui.ActionRow(
-                view.make_button(
-                    custom_id=f"{_CONFIRM_PREFIX}:{ticket_type}",
-                    label=await self._t("tickets.confirm"),
-                    style=discord.ButtonStyle.primary,
-                ),
-                view.make_button(
-                    custom_id="tickets_cancel",
-                    label=await self._t("tickets.cancel"),
-                    style=discord.ButtonStyle.secondary,
-                ),
-            )
-        )
+        await view.prepare()
+        await trace_card_path(self.bot, guild.id, "tickets.confirm")
         await interaction.response.send_message(view=view, ephemeral=True)
 
 
@@ -626,23 +667,32 @@ class TicketActionsView(MenuView):
         self.register(_REOPEN_PREFIX, self._reopen)
         self.register(_DELETE_PREFIX, self._delete)
 
-    def action_row(self):
+    async def action_row(self):
         theme = self.bot.theme
         lock = theme.emoji("lock") if theme else "🔒"
         register = theme.emoji("register") if theme else "📝"
         unlock = theme.emoji("unlock") if theme else "🔓"
         trash = theme.emoji("trash") if theme else "🗑️"
         return discord.ui.ActionRow(
-            self.make_button(custom_id=f"{_CLOSE_PREFIX}:{self.channel_id}", label=lock or "🔒"),
             self.make_button(
-                custom_id=f"{_TRANSCRIPT_PREFIX}:{self.channel_id}", label=register or "📝"
+                custom_id=f"{_CLOSE_PREFIX}:{self.channel_id}",
+                label=await self._t("tickets.close"),
+                emoji=lock or None,
             ),
             self.make_button(
-                custom_id=f"{_REOPEN_PREFIX}:{self.channel_id}", label=unlock or "🔓"
+                custom_id=f"{_TRANSCRIPT_PREFIX}:{self.channel_id}",
+                label=await self._t("tickets.transcript"),
+                emoji=register or None,
+            ),
+            self.make_button(
+                custom_id=f"{_REOPEN_PREFIX}:{self.channel_id}",
+                label=await self._t("tickets.reopen"),
+                emoji=unlock or None,
             ),
             self.make_button(
                 custom_id=f"{_DELETE_PREFIX}:{self.channel_id}",
-                label=trash or "🗑️",
+                label=await self._t("tickets.delete"),
+                emoji=trash or None,
                 style=discord.ButtonStyle.danger,
             ),
         )

@@ -8,7 +8,6 @@ about:
   title: Sobre a Rosemary
   text: A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.
   version: 'Versão: {version} ({channel})'
-  footer: 'Comandos: /sobre, /idioma, /configuracoes, /cargo_boost, /admin_boost, /banir, /warn, /debug'
 language:
   command:
     name: idioma
@@ -229,9 +228,8 @@ settings:
     open: Ações de teste
   log:
     title: '{gear} Configuração Alterada'
-    description: "**{setting}\nCategoria:** {category}\n**De:** {old}\n**Para:** {new}\n**Por:** {author}"
+    description: "**{pencil} {setting}** ({category}): {old} → {new}\n**{people} Por:** {author}"
     language_title: '{gear} Idioma Alterado'
-    language_description: "**De:** {old}\n**Para:** {new}\n**Por:** {author}"
   logs:
     language:
       description: "**De:** {old}\n**Para:** {new}\n**Por:** {author}"
@@ -518,7 +516,7 @@ boost:
     as_member: Você é um membro
     my_roles_empty: Você ainda não é dono nem participa de nenhum cargo boost.
     pending_invites_empty: Você não tem convites pendentes.
-    pending_invite_entry: '{invitee} • expira {expires}'
+    pending_invite_entry: '{invitee} · expira {expires}'
     register: Escolha o cargo que você possui para registrá-lo como cargo boost. Depois você escolherá
       quem será o dono.
     register_owner: Escolha quem será o dono do cargo {role}. Ele receberá uma mensagem privada com as
@@ -540,8 +538,8 @@ boost:
     confirm_removal: Tem certeza que deseja remover {role} do sistema de boost?
     remove_hint: Você pode manter o cargo no Discord ou excluí-lo.
     guide_admin: Registre, transfira ou remova cargos boost abaixo.
-    stats: '{roles} cargo(s) • {members} membro(s)'
-    role_entry: 'Dono: {owner} • Membros: {members}'
+    stats: '{roles} cargo(s) · {members} membro(s)'
+    role_entry: 'Dono: {owner} · Membros: {members}'
     no_roles: Nenhum cargo boost registrado ainda.
   buttons:
     my_roles: Meus cargos
@@ -862,6 +860,8 @@ colors:
     title: Gerenciar Cores
     hint: 'Cores: {count}/{max}. ↑/↓ reordenam (afetam a imagem e os botões); editar muda nome e hexadecimal.'
     no_role: sem cargo
+    move_up: Subir
+    move_down: Descer
     edit: Editar
     remove: Remover
     add: Criar
@@ -1063,6 +1063,7 @@ bump:
     simulated: '{success} Bump simulado com sucesso.'
     reminder_sent: '{success} Lembrete enviado com sucesso.'
   status:
+    card_title: '{rocket} Status do Bump'
     enabled: '**Ativo:** {enabled}'
     channel_locked: '**Canal Bloqueado:** {locked}'
     reminder_sent: '**Lembrete Enviado:** {sent}'
@@ -1188,6 +1189,7 @@ updater:
   error_backup: '{error} Backup dos dados falhou: update abortado.'
   error_reset: '{error} Git reset falhou: veja os logs do bot.'
   up_to_date: '{success} Já está atualizado.'
+  confirm_title: Atualizar o bot?
   confirm: '{warning} Atualizar para **{target}**? Backup, reset e restart?'
   confirm_button: Atualizar e reiniciar
   cancel_button: Cancelar
@@ -1321,8 +1323,13 @@ tickets:
   confirm: Confirmar
   cancel: Cancelar
   cancelled: Cancelado.
+  confirm_title: Abrir um ticket?
   confirm_text: 'Abrir um ticket de **{type}**?'
   created_confirm: '{success} Ticket aberto: {channel}'
+  close: Fechar
+  transcript: Transcrição
+  reopen: Reabrir
+  delete: Excluir
   created:
     title: 'Ticket aberto'
     text: '{user}, descreva seu problema. A staff vai te atender ({type}).'
@@ -1349,8 +1356,8 @@ tickets:
       description: 'Transcrição de {channel} (pedida por {moderator}).'
 audit:
   no_nickname: (sem apelido)
-  roles_gained: 'Ganhou: {role}'
-  roles_lost: 'Perdeu: {role}'
+  roles_gained: '**{plus} Ganhou:** {role}'
+  roles_lost: '**{minus} Perdeu:** {role}'
   timeout_applied: Recebeu timeout até {duration}.
   timeout_removed: O timeout foi removido.
   bulk_multiple_channels: '{count} canais diferentes'
@@ -1450,9 +1457,7 @@ reminders:
   saved: '{success} Lembrete `{name}` salvo.'
   deleted: '{success} Lembrete `{name}` apagado.'
   not_found: '{error} Nenhum lembrete chamado `{name}`.'
-  list_title: 'Lembretes salvos:
-
-    {names}'
+  list_title: Lembretes salvos
   list_empty: 'Nenhum lembrete salvo ainda.'
   done: '{success} Lembrete enviado para {sent} membro(s) ({failed} falharam).'
   logs:
@@ -1554,6 +1559,10 @@ invites:
     missing_member: '{error} Escolha um membro para esta lista.'
     title: 'Blacklist de convites'
     empty: 'Todas as listas estão vazias.'
+    users: Usuários
+    roles: Cargos
+    hidden: Ocultos
+    nobody: nenhum
   reset:
     confirm_title: Resetar todos os stats de convites?
     confirm_text: 'Isso apaga todos os joins e contadores. Não pode ser desfeito.'
@@ -1853,6 +1862,9 @@ variables:
   winner_mention:
     label: Menção do vencedor
     description: Menção do vencedor
+  winner_avatar:
+    label: Avatar do vencedor
+    description: URL da imagem do avatar do vencedor
   invitee:
     label: Convidado
     description: Menção do membro convidado
@@ -2141,6 +2153,9 @@ variables:
   max_members:
     label: Limite de membros
     description: Limite de membros
+  max:
+    label: Máximo
+    description: Limite máximo do recurso
   members:
     label: Membros
     description: Qtd. de membros
@@ -2274,6 +2289,12 @@ card:
     panel:
       title: Card do painel de cores
       placeholders: ''
+    manager:
+      title: Cabeçalho do gerenciador de cores
+      placeholders: "{{count}}, {{max}}"
+    list:
+      title: Lista de cores
+      placeholders: "{{title}}, {{body}}"
   starboard:
     card:
       title: Post do Starboard
@@ -2468,6 +2489,9 @@ card:
     stats:
       title: Estatísticas de bump
       placeholders: '{{title}}, {{body}}'
+    status:
+      title: Card de status do bump
+      placeholders: "{{title}}, {{body}}"
     dm:
       winner_new:
         title: 'DM: novo vencedor MVP'
@@ -2590,6 +2614,9 @@ card:
     card:
       title: Card de interação
       placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}'
+    manager:
+      title: Cabeçalho do gerenciador de gifs
+      placeholders: "{{action}}"
   cleaner:
     panel:
       title: Cabeçalho do painel de limpeza
@@ -2626,12 +2653,6 @@ card:
         description:
           title: 'Log: armadilha falhou'
           placeholders: '{{user}}, {{action}}, {{reason}}'
-  reminders:
-    logs:
-      sent:
-        description:
-          title: 'Log: lembrete enviado'
-          placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
   broadcast:
     logs:
       started:
@@ -2670,17 +2691,18 @@ card:
       title: Mensagem de banimento
       placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   audit:
+    # Fragmentos de linha compostos no send site e injetados como variáveis
+    # ({reason_line}, {moderator_line}...): linha opcional some inteira
+    # quando o campo vem vazio.
+    reason_line: '**{scroll} Motivo:** {reason}'
+    moderator_line: '**{gear} Moderador:** {moderator}'
     ban:
       title: Membro banido
-      body: |
-        {user_name} (`{user_id}`) foi banido.{reason}
-        **{gear} Moderador:** {moderator}
+      body: '{user_name} (`{user_id}`) foi banido.{reason_line}{moderator_line}'
       placeholders: ''
     unban:
       title: Membro desbanido
-      body: |
-        {user_name} (`{user_id}`) foi desbanido.{reason}
-        **{gear} Moderador:** {moderator}
+      body: '{user_name} (`{user_id}`) foi desbanido.{reason_line}{moderator_line}'
       placeholders: ''
     message_delete:
       title: Mensagem deletada
@@ -2696,18 +2718,18 @@ card:
         **{people} Autor:** {message_author}
         **{speech} Canal:** {channel}
 
-        Antes:
+        **{pencil} Antes:**
         {message}
 
-        Depois:
+        **{pencil} Depois:**
         {new_message}
       placeholders: ''
     bulk_delete:
       title: Purga de mensagens
       body: |
         **{numbers} Apagadas:** {count} em {channel}.
-        **{gear} Moderador:** {moderator}
-        {file_url}
+        {moderator_line}{file_line}
+      file_line: '**{scroll} Transcrição completa:** [abrir arquivo]({file_url})'
       placeholders: ''
     nickname:
       title: Apelido alterado
@@ -2718,8 +2740,8 @@ card:
     avatar:
       title: Avatar alterado
       body: |
-        **{frame} Antes:** {old_avatar}
-        **{frame} Agora:** {new_avatar}
+        **{frame} Antes:** [ver avatar]({old_avatar})
+        **{frame} Agora:** [ver avatar]({new_avatar})
       placeholders: ''
     roles:
       title: Cargos alterados
@@ -2727,9 +2749,8 @@ card:
       placeholders: ''
     timeout:
       title: Timeout de membro
-      body: |
-        {reason}
-        **{clock} Válido até:** {duration}
+      body: '{reason}{duration_line}'
+      until_line: '**{clock} Válido até:** {duration}'
       placeholders: ''
     voice_join:
       title: Entrou em canal de voz
@@ -2840,6 +2861,12 @@ card:
     leaderboard:
       title: Ranking de convidadores
       placeholders: '{{title}}, {{body}}'
+    codes:
+      title: Lista de códigos de convite
+      placeholders: "{{title}}, {{body}}"
+    blacklist:
+      title: Card da blacklist de convites
+      placeholders: "{{title}}, {{body}}"
     stats:
       title: Card de stats de convites
       placeholders: '{{user}}, {{total}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{rank}}, {{title}}, {{body}}'
@@ -2889,6 +2916,15 @@ card:
         description:
           title: 'Log: idioma alterado'
           placeholders: '{{author}}, {{new}}, {{old}}'
+  reminders:
+    list:
+      title: Lista de lembretes
+      placeholders: "{{title}}, {{body}}"
+    logs:
+      sent:
+        description:
+          title: 'Log: lembrete enviado'
+          placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
   debug:
     title:
       title: Cabeçalho do painel de debug
@@ -2981,7 +3017,6 @@ interactions:
   error_not_target: Só quem recebeu a interação pode retribuir.
   error_gone: Quem participou desta interação não está mais no servidor.
   error_no_gif: '{error} Nenhuma fonte de gif disponível para esta interação (API fora do ar e nada configurado).'
-  sent: Interação enviada!
   regive: Retribuir
   actions:
     hug: abraçou

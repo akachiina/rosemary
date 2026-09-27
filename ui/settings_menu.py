@@ -404,27 +404,27 @@ class SettingsMenuView(MenuView):
             if reminder_cog is None:
                 return await self._test_flash(interaction, "error")
             await reminder_cog.send_thank_you(self.guild_id, interaction.user.id)
-            await self._test_flash(interaction, "thank_you")
+            await self._test_flash(interaction, "thank_you_done")
         elif action == "reminder":
             if reminder_cog is None:
                 return await self._test_flash(interaction, "error")
             await reminder_cog.send_reminder(self.guild_id)
-            await self._test_flash(interaction, "reminder")
+            await self._test_flash(interaction, "reminder_done")
         elif action == "lock":
             if reminder_cog is None:
                 return await self._test_flash(interaction, "error")
             await reminder_cog.lock_channel(self.guild_id)
-            await self._test_flash(interaction, "lock")
+            await self._test_flash(interaction, "lock_done")
         elif action == "unlock":
             if reminder_cog is None:
                 return await self._test_flash(interaction, "error")
             await reminder_cog.unlock_channel(self.guild_id)
-            await self._test_flash(interaction, "unlock")
+            await self._test_flash(interaction, "unlock_done")
         elif action == "leaderboard":
             if leaderboard_cog is None:
                 return await self._test_flash(interaction, "error")
             posted = await leaderboard_cog.post_current_leaderboard(self.guild_id)
-            await self._test_flash(interaction, "leaderboard" if posted else "no_data")
+            await self._test_flash(interaction, "leaderboard_done" if posted else "no_data")
         elif action == "reset":
             if leaderboard_cog is None:
                 return await self._test_flash(interaction, "error")
@@ -442,7 +442,7 @@ class SettingsMenuView(MenuView):
                 card_key="bump.logs.week_reset_manual.description",
                 mention_user_ids=[interaction.user.id],
             )
-            await self._test_flash(interaction, "reset")
+            await self._test_flash(interaction, "reset_done")
 
     async def _open_tests(self, interaction: discord.Interaction) -> None:
         """Open the dedicated test-actions sub-screen (keeps pages under 40)."""
@@ -459,7 +459,7 @@ class SettingsMenuView(MenuView):
         self.flash = await self.bot.translator.t(
             self.guild_id, f"settings.test.{key}"
         )
-        self.flash_color = "success" if key != "error" else "danger"
+        self.flash_color = "danger" if key == "error" else "success"
         await self.rerender(interaction)
 
     #: rendering ---------------------------------------------------------

@@ -69,12 +69,14 @@ async def send_channel_log(
     card_key: str | None = None,
     mention_user_ids: tuple[int, ...] | list[int] = (),
     mention_role_ids: tuple[int, ...] | list[int] = (),
+    file: discord.File | None = None,
 ) -> bool:
     """Send a Components V2 log message to the guild's configured log channel.
 
     No-ops when logging is disabled or no channel is configured. ``title`` and
     ``description`` must already be translated. Returns whether a message was
-    actually sent.
+    actually sent. ``file`` attaches one document (e.g. a transcript) to the
+    same card, keeping every staff log on the standard V2 shape.
 
     Mentions inside ``description`` never ping unless the guild opted that log
     card into pings in /customize: ``card_key`` selects the per-card policy
@@ -118,7 +120,7 @@ async def send_channel_log(
             )
         else:
             allowed = discord.AllowedMentions.none()
-        await channel.send(view=view, allowed_mentions=allowed)
+        await channel.send(view=view, file=file, allowed_mentions=allowed)
     except (discord.Forbidden, discord.NotFound, discord.HTTPException) as exc:
         log.warning("Could not send log to channel %s: %s", channel_id, exc)
         return False

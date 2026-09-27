@@ -88,20 +88,38 @@ class RemindersCog(commands.Cog):
         contexts={discord.InteractionContextType.guild},
     )
     async def reminders_list(self, ctx: discord.ApplicationContext) -> None:
-        """List saved reminder names."""
+        """List saved reminder names as a themed card."""
         if not await self._guard(ctx.guild_id):
             return await ctx.respond(
                 await self.bot.translator.t(ctx.guild_id, "reminders.error_disabled"),
                 ephemeral=True,
             )
         names = sorted((await self.store.all(ctx.guild_id)).keys())
-        key = "reminders.list_empty" if not names else "reminders.list_title"
-        await ctx.respond(
-            await self.bot.translator.t(
-                ctx.guild_id, key, names="\n".join(f"- {name}" for name in names)
-            ),
-            ephemeral=True,
+        if not names:
+            return await ctx.respond(
+                await self.bot.translator.t(ctx.guild_id, "reminders.list_empty"),
+                ephemeral=True,
+            )
+        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+
+        t = self.bot.translator.t
+        title = await t(ctx.guild_id, "reminders.list_title")
+        body = "\n".join(f"- {name}" for name in names)
+        payload, _allowed = await render_card_message(
+            self.bot, ctx.guild_id, "reminders.list", {"title": title, "body": body}
         )
+        if payload is None:
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color("info"),
+                    TextDisplay(self.bot.theme.md("title", title=title)),
+                    TextDisplay(body),
+                )
+            )
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
         name="reminders_send",

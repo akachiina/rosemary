@@ -8,7 +8,6 @@ about:
   title: About Rosemary
   text: Rosemary is a minimal, multilingual Discord bot built with py-cord.
   version: 'Version: {version} ({channel})'
-  footer: 'Commands: /about, /language, /settings, /boost, /boost_admin, /ban, /warn, /debug'
 language:
   command:
     name: language
@@ -229,9 +228,8 @@ settings:
   page_indicator: Page {page} of {pages}
   log:
     title: '{gear} Setting Changed'
-    description: "**{setting}\nCategory:** {category}\n**From:** {old}\n**To:** {new}\n**By:** {author}"
+    description: "**{pencil} {setting}** ({category}): {old} → {new}\n**{people} By:** {author}"
     language_title: '{gear} Language Changed'
-    language_description: "**From:** {old}\n**To:** {new}\n**By:** {author}"
   logs:
     language:
       description: "**From:** {old}\n**To:** {new}\n**By:** {author}"
@@ -518,7 +516,7 @@ boost:
     as_member: You are a member
     my_roles_empty: You do not own or belong to any boost role yet.
     pending_invites_empty: You have no pending invites.
-    pending_invite_entry: '{invitee} • expires {expires}'
+    pending_invite_entry: '{invitee} · expires {expires}'
     register: Pick the role you own to register it as your boost role. Then you will choose who becomes
       the owner.
     register_owner: Pick who will be the owner of the role {role}. They will receive a private message
@@ -540,8 +538,8 @@ boost:
     confirm_removal: Are you sure you want to remove {role} from the boost system?
     remove_hint: You can keep the Discord role or delete it.
     guide_admin: Register, transfer or remove boost roles below.
-    stats: '{roles} role(s) • {members} member(s)'
-    role_entry: 'Owner: {owner} • Members: {members}'
+    stats: '{roles} role(s) · {members} member(s)'
+    role_entry: 'Owner: {owner} · Members: {members}'
     no_roles: No boost roles registered yet.
   buttons:
     my_roles: My roles
@@ -862,6 +860,8 @@ colors:
     title: Manage Colors
     hint: 'Colors: {count}/{max}. Up/Down reorders (affects the image and buttons); edit changes name and hex.'
     no_role: no role
+    move_up: Up
+    move_down: Down
     edit: Edit
     remove: Remove
     add: Create
@@ -1063,6 +1063,7 @@ bump:
     simulated: '{success} Bump simulated successfully.'
     reminder_sent: '{success} Reminder sent successfully.'
   status:
+    card_title: '{rocket} Bump Status'
     enabled: '**Enabled:** {enabled}'
     channel_locked: '**Channel Locked:** {locked}'
     reminder_sent: '**Reminder Sent:** {sent}'
@@ -1188,6 +1189,7 @@ updater:
   error_backup: '{error} Data backup failed: update aborted.'
   error_reset: '{error} Git reset failed: check the bot logs.'
   up_to_date: '{success} Already up to date.'
+  confirm_title: Update the bot?
   confirm: '{warning} Update to **{target}**? Back up data, reset and restart?'
   confirm_button: Update and restart
   cancel_button: Cancel
@@ -1321,8 +1323,13 @@ tickets:
   confirm: Confirm
   cancel: Cancel
   cancelled: Cancelled.
+  confirm_title: Open a ticket?
   confirm_text: 'Open a **{type}** ticket?'
   created_confirm: '{success} Ticket opened: {channel}'
+  close: Close
+  transcript: Transcript
+  reopen: Reopen
+  delete: Delete
   created:
     title: 'Ticket opened'
     text: '{user}, describe your issue. Staff will assist you soon ({type}).'
@@ -1349,8 +1356,8 @@ tickets:
       description: 'Transcript of {channel} (requested by {moderator}).'
 audit:
   no_nickname: (no nickname)
-  roles_gained: 'Gained: {role}'
-  roles_lost: 'Lost: {role}'
+  roles_gained: '**{plus} Gained:** {role}'
+  roles_lost: '**{minus} Lost:** {role}'
   timeout_applied: Timed out until {duration}.
   timeout_removed: The timeout was removed.
   bulk_multiple_channels: '{count} different channels'
@@ -1450,9 +1457,7 @@ reminders:
   saved: '{success} Reminder `{name}` saved.'
   deleted: '{success} Reminder `{name}` deleted.'
   not_found: '{error} No reminder named `{name}`.'
-  list_title: 'Saved reminders:
-
-    {names}'
+  list_title: Saved reminders
   list_empty: 'No reminders saved yet.'
   done: '{success} Reminder sent to {sent} member(s) ({failed} failed).'
   logs:
@@ -1554,6 +1559,10 @@ invites:
     missing_member: '{error} Pick a member for this list.'
     title: 'Invite blacklist'
     empty: 'All blacklist lists are empty.'
+    users: Users
+    roles: Roles
+    hidden: Hidden
+    nobody: none
   reset:
     confirm_title: Reset all invite stats?
     confirm_text: 'This erases every tracked join and counter. This cannot be undone.'
@@ -1852,6 +1861,9 @@ variables:
   winner_mention:
     label: Winner mention
     description: Mention of the winner
+  winner_avatar:
+    label: Winner avatar
+    description: URL of the winner's avatar image
   invitee:
     label: Invitee
     description: Mention of the invited member
@@ -2140,6 +2152,9 @@ variables:
   max_members:
     label: Max members
     description: Member limit
+  max:
+    label: Maximum
+    description: Resource hard limit
   members:
     label: Members
     description: Member count
@@ -2273,6 +2288,12 @@ card:
     panel:
       title: Color panel card
       placeholders: ''
+    manager:
+      title: Color manager heading
+      placeholders: "{{count}}, {{max}}"
+    list:
+      title: Color list
+      placeholders: "{{title}}, {{body}}"
   starboard:
     card:
       title: Starboard post
@@ -2467,6 +2488,9 @@ card:
     stats:
       title: Bump statistics
       placeholders: '{{title}}, {{body}}'
+    status:
+      title: Bump status card
+      placeholders: "{{title}}, {{body}}"
     dm:
       winner_new:
         title: 'DM: new MVP winner'
@@ -2560,6 +2584,9 @@ card:
     card:
       title: Interaction card
       placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}'
+    manager:
+      title: Gif manager heading
+      placeholders: "{{action}}"
   cleaner:
     panel:
       title: Purge panel heading
@@ -2596,12 +2623,6 @@ card:
         description:
           title: 'Log: trap failed'
           placeholders: '{{user}}, {{action}}, {{reason}}'
-  reminders:
-    logs:
-      sent:
-        description:
-          title: 'Log: reminder sent'
-          placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
   broadcast:
     logs:
       started:
@@ -2669,17 +2690,18 @@ card:
       title: Ban message
       placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   audit:
+    # Line fragments composed at the send site and injected as variables
+    # ({reason_line}, {moderator_line}...): an optional line disappears
+    # entirely when its field comes in empty.
+    reason_line: '**{scroll} Reason:** {reason}'
+    moderator_line: '**{gear} Moderator:** {moderator}'
     ban:
       title: Member banned
-      body: |
-        {user_name} (`{user_id}`) was banned.{reason}
-        **{gear} Moderator:** {moderator}
+      body: '{user_name} (`{user_id}`) was banned.{reason_line}{moderator_line}'
       placeholders: ''
     unban:
       title: Member unbanned
-      body: |
-        {user_name} (`{user_id}`) was unbanned.{reason}
-        **{gear} Moderator:** {moderator}
+      body: '{user_name} (`{user_id}`) was unbanned.{reason_line}{moderator_line}'
       placeholders: ''
     message_delete:
       title: Message deleted
@@ -2695,18 +2717,18 @@ card:
         **{people} Author:** {message_author}
         **{speech} Channel:** {channel}
 
-        Before:
+        **{pencil} Before:**
         {message}
 
-        After:
+        **{pencil} After:**
         {new_message}
       placeholders: ''
     bulk_delete:
       title: Message purge
       body: |
         **{numbers} Deleted:** {count} in {channel}.
-        **{gear} Moderator:** {moderator}
-        {file_url}
+        {moderator_line}{file_line}
+      file_line: '**{scroll} Full transcript:** [open file]({file_url})'
       placeholders: ''
     nickname:
       title: Nickname changed
@@ -2717,8 +2739,8 @@ card:
     avatar:
       title: Avatar changed
       body: |
-        **{frame} Before:** {old_avatar}
-        **{frame} Now:** {new_avatar}
+        **{frame} Before:** [view avatar]({old_avatar})
+        **{frame} Now:** [view avatar]({new_avatar})
       placeholders: ''
     roles:
       title: Roles changed
@@ -2726,9 +2748,8 @@ card:
       placeholders: ''
     timeout:
       title: Member timed out
-      body: |
-        {reason}
-        **{clock} Valid until:** {duration}
+      body: '{reason}{duration_line}'
+      until_line: '**{clock} Valid until:** {duration}'
       placeholders: ''
     voice_join:
       title: Joined voice channel
@@ -2839,6 +2860,12 @@ card:
     leaderboard:
       title: Top inviters ranking
       placeholders: '{{title}}, {{body}}'
+    codes:
+      title: Invite code list
+      placeholders: "{{title}}, {{body}}"
+    blacklist:
+      title: Invite blacklist card
+      placeholders: "{{title}}, {{body}}"
     stats:
       title: Invite stats card
       placeholders: '{{user}}, {{total}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{rank}}, {{title}}, {{body}}'
@@ -2888,6 +2915,15 @@ card:
         description:
           title: 'Log: language changed'
           placeholders: '{{author}}, {{new}}, {{old}}'
+  reminders:
+    list:
+      title: Reminder list
+      placeholders: "{{title}}, {{body}}"
+    logs:
+      sent:
+        description:
+          title: 'Log: reminder sent'
+          placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
   debug:
     title:
       title: Debug panel heading
@@ -2980,7 +3016,6 @@ interactions:
   error_not_target: Only the recipient can give it back.
   error_gone: A participant of this interaction is no longer on the server.
   error_no_gif: '{error} No gif source is available for this interaction (the API is down and nothing is configured).'
-  sent: Interaction sent!
   regive: Give it back
   actions:
     hug: hugged

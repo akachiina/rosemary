@@ -280,9 +280,11 @@ class InvitesCog(commands.Cog):
         """Show invite stats for yourself or another member."""
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "invites.enabled"):
-            return await ctx.respond(
+            from rosemary.ui.responses import respond_notice
+
+            return await respond_notice(
+                ctx, self.bot, guild_id,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
-                ephemeral=True,
             )
         target = member or ctx.author
         stats = await self.store.get_stats(guild_id, target.id)
@@ -372,9 +374,11 @@ class InvitesCog(commands.Cog):
         """Post the top inviters ranking in the current channel."""
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "invites.enabled"):
-            return await ctx.respond(
+            from rosemary.ui.responses import respond_notice
+
+            return await respond_notice(
+                ctx, self.bot, guild_id,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
-                ephemeral=True,
             )
         if not await get_setting(self.bot.storage, guild_id, "invites.leaderboard_enabled"):
             return await ctx.respond(
@@ -459,9 +463,11 @@ class InvitesCog(commands.Cog):
         """Show who invited a member."""
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "invites.enabled"):
-            return await ctx.respond(
+            from rosemary.ui.responses import respond_notice
+
+            return await respond_notice(
+                ctx, self.bot, guild_id,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
-                ephemeral=True,
             )
         record = await self.store.invited_by(guild_id, member.id)
         if not record:
@@ -523,9 +529,11 @@ class InvitesCog(commands.Cog):
         """List the latest members someone invited."""
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "invites.enabled"):
-            return await ctx.respond(
+            from rosemary.ui.responses import respond_notice
+
+            return await respond_notice(
+                ctx, self.bot, guild_id,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
-                ephemeral=True,
             )
         target = member or ctx.author
         rows = await self.store.invited_list(guild_id, target.id)
@@ -574,9 +582,11 @@ class InvitesCog(commands.Cog):
         """Create (or reuse) a permanent invite and show personal stats."""
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "invites.enabled"):
-            return await ctx.respond(
+            from rosemary.ui.responses import respond_notice
+
+            return await respond_notice(
+                ctx, self.bot, guild_id,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
-                ephemeral=True,
             )
         channel = None
         if isinstance(ctx.channel, discord.TextChannel):
@@ -647,9 +657,11 @@ class InvitesCog(commands.Cog):
         """Show server-wide invite statistics."""
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "invites.enabled"):
-            return await ctx.respond(
+            from rosemary.ui.responses import respond_notice
+
+            return await respond_notice(
+                ctx, self.bot, guild_id,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
-                ephemeral=True,
             )
         totals = await self.store.server_totals(guild_id)
         rows = await self.store.leaderboard(guild_id)
@@ -812,17 +824,11 @@ class InvitesCog(commands.Cog):
                 )
             )
         title = await self.bot.translator.t(ctx.guild_id, "invites.codes.title")
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay("\n".join(lines)),
-            )
+        body = "\n".join(lines)
+        payload = await self._card_view(
+            ctx.guild_id, "invites.codes", title, body, {"title": title, "body": body}
         )
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @staticmethod
     def _format_id_list(name: str, ids: list[int]) -> str:
@@ -859,26 +865,22 @@ class InvitesCog(commands.Cog):
                     await self.bot.translator.t(guild_id, "invites.blacklist.empty"),
                     ephemeral=True,
                 )
+            t = self.bot.translator.t
+            nobody = await t(guild_id, "invites.blacklist.nobody")
             body = "\n".join(
-                f"**{name}:** {self._format_id_list(name, ids) or '-'}"
+                f"**{await t(guild_id, f'invites.blacklist.{name}')}:** "
+                f"{self._format_id_list(name, ids) or nobody}"
                 for name, ids in (
                     ("users", doc_users),
                     ("roles", doc_roles),
                     ("hidden", doc_hidden),
                 )
             )
-            title = await self.bot.translator.t(guild_id, "invites.blacklist.title")
-            from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    self.bot.theme.color("info"),
-                    TextDisplay(self.bot.theme.md("title", title=title)),
-                    TextDisplay(body),
-                )
+            title = await t(guild_id, "invites.blacklist.title")
+            payload = await self._card_view(
+                guild_id, "invites.blacklist", title, body, {"title": title, "body": body}
             )
-            return await ctx.respond(view=view, ephemeral=True)
+            return await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
         target_id = None
         target_label = None
@@ -918,18 +920,44 @@ class InvitesCog(commands.Cog):
     )
     async def invites_reset(self, ctx: discord.ApplicationContext) -> None:
         """Reset every tracked join and counter (with confirmation)."""
-        from rosemary.ui.containers import TextDisplay, designer_container
-        from rosemary.ui.menu import MenuView
+        from rosemary.ui.confirm import ConfirmView
 
-        view = MenuView(author_id=ctx.author.id)
         t = self.bot.translator.t
         guild_id = ctx.guild_id
         store = self.store
         bot = self.bot
 
-        async def confirm(interaction: discord.Interaction) -> None:
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=True)
+        class _ResetConfirmView(ConfirmView):
+            """The invites-reset confirm dialog (standard confirm pattern)."""
+
+            async def question_items(self) -> list[discord.ui.ViewItem]:
+                return [
+                    TextDisplay(
+                        bot.theme.md(
+                            "title",
+                            title=await t(guild_id, "invites.reset.confirm_title"),
+                        )
+                    ),
+                    TextDisplay(await t(guild_id, "invites.reset.confirm_text")),
+                ]
+
+            async def action_rows(self) -> list[discord.ui.ViewItem]:
+                return [
+                    discord.ui.ActionRow(
+                        self.make_button(
+                            custom_id="confirm_yes",
+                            label=await t(guild_id, "invites.reset.confirm"),
+                            style=discord.ButtonStyle.danger,
+                        ),
+                        self.make_button(
+                            custom_id="confirm_no",
+                            label=await t(guild_id, "invites.reset.cancel"),
+                            style=discord.ButtonStyle.secondary,
+                        ),
+                    )
+                ]
+
+        async def reset_all() -> str:
             await store.reset(guild_id)
             await send_channel_log(
                 bot,
@@ -939,52 +967,23 @@ class InvitesCog(commands.Cog):
                     bot,
                     guild_id,
                     "invites.logs.reset.description",
-                    moderator=interaction.user.mention,
+                    moderator=ctx.author.mention,
                 ),
                 color="warning",
                 card_key="invites.logs.reset.description",
-                mention_user_ids=[interaction.user.id],
+                mention_user_ids=[ctx.author.id],
             )
-            view.clear_items()
-            view.add_item(TextDisplay(await t(guild_id, "invites.reset.success")))
-            view.stop()
-            await interaction.edit(view=view)
+            return await t(guild_id, "invites.reset.success")
 
-        async def cancel(interaction: discord.Interaction) -> None:
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=True)
-            view.clear_items()
-            view.add_item(TextDisplay(await t(guild_id, "invites.reset.cancelled")))
-            view.stop()
-            await interaction.edit(view=view)
+        from rosemary.ui.containers import TextDisplay
 
-        view.register("invites_reset_yes", confirm)
-        view.register("invites_reset_no", cancel)
-        container = designer_container(
-            self.bot.theme.color("warning"),
-            TextDisplay(
-                self.bot.theme.md(
-                    "title",
-                    title=await t(guild_id, "invites.reset.confirm_title"),
-                )
-            ),
-            TextDisplay(await t(guild_id, "invites.reset.confirm_text")),
+        view = _ResetConfirmView(
+            bot,
+            guild_id=guild_id,
+            owner_id=ctx.author.id,
+            on_confirm=reset_all,
         )
-        view.add_item(container)
-        view.add_item(
-            discord.ui.ActionRow(
-                view.make_button(
-                    custom_id="invites_reset_yes",
-                    label=await t(guild_id, "invites.reset.confirm"),
-                    style=discord.ButtonStyle.danger,
-                ),
-                view.make_button(
-                    custom_id="invites_reset_no",
-                    label=await t(guild_id, "invites.reset.cancel"),
-                    style=discord.ButtonStyle.secondary,
-                ),
-            )
-        )
+        await view.prepare()
         await ctx.respond(view=view, ephemeral=True)
 
     @discord.slash_command(

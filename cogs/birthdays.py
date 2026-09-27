@@ -110,6 +110,12 @@ class BirthdayCog(commands.Cog):
                 "user": f"<@{user_id}>",
                 "server": guild.name,
                 "count": len(celebrants),
+                "user_avatar": (
+                    member.display_avatar.url
+                    if member and getattr(member, "display_avatar", None)
+                    else ""
+                ),
+                "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
             }
             from rosemary.core.card_service import CardPayload, render_card_message
 
@@ -289,9 +295,13 @@ def asyncio_exception_guard(what: str):
 
 
 
-async def default_announce_document(bot, guild_id: int, **_variables) -> dict:
-    """Catalog-default birthday announcement as an editable block document."""
-    from rosemary.core.cards import safe_format
+async def default_announce_document(bot, guild_id: int, **variables) -> dict:
+    """Catalog-default birthday announcement as an editable block document.
+
+    The celebrant's avatar rides the title section (``{user_avatar}``,
+    self-dropping when empty) and the standard author footer attributes the
+    card to them (``{user}`` + ``{timestamp}``, resolved at render)."""
+    from rosemary.core.cards import author_footer_blocks, safe_format
 
     mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
     title = safe_format(
@@ -300,13 +310,20 @@ async def default_announce_document(bot, guild_id: int, **_variables) -> dict:
     body = safe_format(
         await bot.translator.raw(guild_id, "birthdays.announce.body"), mapping
     )
+    avatar = str(variables.get("user_avatar") or "")
+    children: list[dict] = [
+        {
+            "type": "section",
+            **({"accessory": {"type": "thumbnail", "url": avatar}} if avatar else {}),
+            "children": [{"type": "text", "body": f"# {title}"}],
+        },
+        {"type": "text", "body": body},
+    ]
+    children.extend(await author_footer_blocks(bot, guild_id))
     return {
         "v": 1,
         "blocks": [
-            {"type": "container", "color": "warning", "children": [
-                {"type": "text", "body": f"# {title}"},
-                {"type": "text", "body": body},
-            ]}
+            {"type": "container", "color": "warning", "children": children}
         ],
     }
 

@@ -158,7 +158,7 @@ async def test_starboard_card_resolves_via_builder_not_seed():
             "user_name": "Ana",
             "user_avatar": "https://a.b/c.png",
             "stars": 3,
-            "title": "⭐ 3 • #geral",
+            "title": "⭐ 3 · #geral",
             "body": "mensagem estrelada",
             "image_url": "https://a.b/img.png",
             "timestamp": "<t:1:R>",

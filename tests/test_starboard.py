@@ -249,7 +249,7 @@ async def test_default_document_is_full_rich_layout(tmp_path):
             "user": "<@7>",
             "user_avatar": "https://a.b/x.png",
             "stars": 3,
-            "title": "⭐ 3 • #geral",
+            "title": "⭐ 3 · #geral",
             "body": "miau",
             "image_url": "https://a.b/cat.png",
             "timestamp": "<t:1:R>",
@@ -262,7 +262,7 @@ async def test_default_document_is_full_rich_layout(tmp_path):
         for item in view.walk_children()
         if isinstance(item, discord.ui.TextDisplay)
     ]
-    assert any("⭐ 3 • #geral" in text for text in texts), texts
+    assert any("⭐ 3 · #geral" in text for text in texts), texts
     assert any("-# by <@7>" in text for text in texts), texts
     galleries = [i for i in view.walk_children() if isinstance(i, discord.ui.MediaGallery)]
     assert len(galleries) == 1
@@ -281,7 +281,7 @@ async def test_default_document_skips_gallery_without_image(tmp_path):
             "user": "<@7>",
             "user_avatar": "https://a.b/x.png",
             "stars": 2,
-            "title": "⭐ 2 • #geral",
+            "title": "⭐ 2 · #geral",
             "body": "só texto",
             "image_url": "",
             "timestamp": "<t:1:R>",

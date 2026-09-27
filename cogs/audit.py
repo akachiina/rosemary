@@ -59,6 +59,16 @@ def _variables(user: discord.abc.User, guild: discord.Guild) -> dict:
     }
 
 
+async def _line(bot, guild_id: int, key: str, **variables) -> str:
+    """One optional composed line (``card.audit.<key>``), or ``""`` when the
+    template is missing (it still carries its own ``{variables}``, resolved
+    later at render: the caller only composes the prefix)."""
+    template = await bot.translator.raw(guild_id, f"card.audit.{key}")
+    if not isinstance(template, str) or not template.strip() or template == f"card.audit.{key}":
+        return ""
+    return template
+
+
 def _timeout_until(member):
     """Timeout expiry, tolerant to the discord.py vs py-cord attribute name."""
     return getattr(member, "communication_disabled_until", getattr(member, "timed_out_until", None))
@@ -192,6 +202,20 @@ class AuditCog(commands.Cog):
     async def _on(self, guild_id: int, toggle_key: str) -> bool:
         return await get_setting(self.bot.storage, guild_id, toggle_key)
 
+    async def _reason_line(self, guild_id: int, reason: str) -> str:
+        """``card.audit.reason_line`` prefixed with a space, or empty."""
+        if not reason:
+            return ""
+        template = await _line(self.bot, guild_id, "reason_line")
+        return f" {template}" if template else ""
+
+    async def _moderator_line(self, guild_id: int, moderator: str) -> str:
+        """``card.audit.moderator_line`` prefixed with a newline, or empty."""
+        if not moderator:
+            return ""
+        template = await _line(self.bot, guild_id, "moderator_line")
+        return f"\n{template}" if template else ""
+
     async def _send(self, channel, guild_id: int, key: str, variables: dict) -> None:
         """Render ``audit.<event>`` through the shared pipeline and send it."""
         from rosemary.core.card_service import CardPayload, render_card_message, send_card
@@ -293,7 +317,13 @@ class AuditCog(commands.Cog):
                 channel,
                 guild.id,
                 "ban",
-                {**_variables(user, guild), "moderator": moderator, "reason": reason},
+                {
+                    **_variables(user, guild),
+                    "moderator": moderator,
+                    "reason": reason,
+                    "reason_line": await self._reason_line(guild.id, reason),
+                    "moderator_line": await self._moderator_line(guild.id, moderator),
+                },
             )
         except Exception:
             log.exception("on_member_ban audit failed")
@@ -311,7 +341,13 @@ class AuditCog(commands.Cog):
                 channel,
                 guild.id,
                 "unban",
-                {**_variables(user, guild), "moderator": moderator, "reason": reason},
+                {
+                    **_variables(user, guild),
+                    "moderator": moderator,
+                    "reason": reason,
+                    "reason_line": await self._reason_line(guild.id, reason),
+                    "moderator_line": await self._moderator_line(guild.id, moderator),
+                },
             )
         except Exception:
             log.exception("on_member_unban audit failed")
@@ -426,8 +462,13 @@ class AuditCog(commands.Cog):
                 channel_label = await t(guild_id, "audit.bulk_multiple_channels",
                                         count=len({m.channel.id for m in bucket}))
             file_url = ""
+            file_line = ""
             if await self._on(guild_id, "audit.bulk_file_enabled"):
                 file_url = await self._bulk_file(channel, bucket)
+                if file_url:
+                    file_line = await _line(self.bot, guild_id, "bulk_delete.file_line")
+                    if file_line:
+                        file_line = "\n" + file_line
             await self._send(
                 channel,
                 guild_id,
@@ -437,7 +478,9 @@ class AuditCog(commands.Cog):
                     "count": count,
                     "channel": channel_label,
                     "file_url": file_url,
+                    "file_line": file_line,
                     "moderator": moderator,
+                    "moderator_line": await self._moderator_line(guild_id, moderator),
                 },
             )
         except asyncio.CancelledError:
@@ -561,14 +604,22 @@ class AuditCog(commands.Cog):
                     if new_to is not None:
                         duration = f"<t:{int(new_to.timestamp())}:f>"
                         state = await t(guild.id, "audit.timeout_applied", duration=duration)
+                        until = await _line(self.bot, guild.id, "timeout.until_line")
+                        duration_line = f"\n{until}" if until else ""
                     else:
                         duration = ""
                         state = await t(guild.id, "audit.timeout_removed")
+                        duration_line = ""
                     await self._send(
                         channel,
                         guild.id,
                         "timeout",
-                        {**_variables(after, guild), "duration": duration, "reason": state},
+                        {
+                            **_variables(after, guild),
+                            "duration": duration,
+                            "duration_line": duration_line,
+                            "reason": state,
+                        },
                     )
         except Exception:
             log.exception("on_member_update audit failed")

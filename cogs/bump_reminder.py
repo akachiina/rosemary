@@ -680,6 +680,7 @@ class BumpReminderCog(commands.Cog):
 
         from rosemary.core.card_service import CardPayload, render_card_message
 
+        member = guild.get_member(user_id)
         payload, _allowed = await render_card_message(
             self.bot,
             guild_id,
@@ -688,6 +689,13 @@ class BumpReminderCog(commands.Cog):
                 "mention": f"<@{user_id}>",
                 "cooldown": cooldown_display,
                 "next_bump_timestamp": int(next_bump_time.timestamp()),
+                "user_avatar": (
+                    member.display_avatar.url
+                    if member and member.display_avatar
+                    else ""
+                ),
+                "user": f"<@{user_id}>",
+                "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
             },
         )
         if payload is None:
@@ -981,5 +989,23 @@ class BumpReminderCog(commands.Cog):
             await t(guild_id, "bump.status.next_reminder", next=next_bump),
         ]
 
-        await ctx.respond("\n".join(lines), ephemeral=True)
+        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+
+        title = await t(guild_id, "bump.status.card_title")
+        body = "\n".join(lines)
+        payload, _allowed = await render_card_message(
+            self.bot, guild_id, "bump.status", {"title": title, "body": body}
+        )
+        if payload is None:
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color("info"),
+                    TextDisplay(self.bot.theme.md("title", title=title)),
+                    TextDisplay(body),
+                )
+            )
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 

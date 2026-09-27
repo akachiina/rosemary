@@ -290,6 +290,14 @@ class BumpLeaderboardCog(commands.Cog):
         context = await self._leaderboard_context(
             guild, sorted_lb, winner_id, winner_count, role_name
         )
+        winner_member = guild.get_member(winner_id)
+        context["winner_avatar"] = (
+            winner_member.display_avatar.url
+            if winner_member and getattr(winner_member, "display_avatar", None)
+            else ""
+        )
+        context["user"] = f"<@{winner_id}>"
+        context["timestamp"] = discord.utils.format_dt(discord.utils.utcnow(), style="R")
         view = await maybe_view(self.bot, guild.id, "bump.leaderboard", context)
         if view is None:
             view = await self._build_leaderboard_view(

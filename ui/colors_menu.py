@@ -155,14 +155,19 @@ class ColorsManagerView(MenuView):
         entries = await self._entries()
         guild = self.bot.get_guild(self.guild_id)
         live = await self._role_colors(guild) if guild else {}
+        from rosemary.core.card_service import menu_heading_items
         from rosemary.ui.colors_panel import entry_number
 
-        parts = [
+        parts = await menu_heading_items(self.bot, self.guild_id, "colors.manager") or [
             TextDisplay(theme.md("title", title=await self._t("colors.manager.title"))),
-            TextDisplay(await self._t("colors.manager.hint", count=len(entries), max=MAX_COLORS)),
+            TextDisplay(
+                await self._t("colors.manager.hint", count=len(entries), max=MAX_COLORS)
+            ),
         ]
         self._flash_in(parts)
-        container = designer_container(theme.color("brand"), *parts)
+        container = designer_container(theme.color(self.flash_color or "brand"), *parts)
+        self.flash = None
+        self.flash_color = "brand"
 
         items: list[discord.ui.ViewItem] = [container, divider()]
         window, total_pages = self._page_window(entries)
@@ -177,12 +182,14 @@ class ColorsManagerView(MenuView):
             row = discord.ui.ActionRow(
                 self.make_button(
                     custom_id=f"colors_mgr_up:{entry.id}",
-                    label="↑",
+                    label=await self._t("colors.manager.move_up"),
+                    emoji=theme.emojis.get("up", ""),
                     disabled=position == 1,
                 ),
                 self.make_button(
                     custom_id=f"colors_mgr_down:{entry.id}",
-                    label="↓",
+                    label=await self._t("colors.manager.move_down"),
+                    emoji=theme.emojis.get("down", ""),
                     disabled=position == len(entries),
                 ),
                 self.make_button(
@@ -273,7 +280,7 @@ class ColorsManagerView(MenuView):
                 )
             )
         self._flash_in(parts)
-        container = designer_container(theme.color("brand"), *parts)
+        container = designer_container(theme.color(self.flash_color or "brand"), *parts)
         select = discord.ui.Select(
             select_type=discord.ComponentType.role_select,
             custom_id="colors_mgr_pick",

@@ -61,11 +61,10 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
         "bump.messages.thank_you_title",
         ("bump.messages.thank_you_description",),
     ),
-    "bump.leaderboard": (
-        "warning",
-        "bump.messages.leaderboard_title",
-        ("bump.messages.leaderboard_description",),
-    ),
+    # bump.leaderboard and bump.thank_you own a registered default builder
+    # (core/bump_cards.py: winner/user avatar + author footer). No seed here:
+    # a seed would shadow the builder and strip the avatar (the exact bug
+    # that once stripped the starboard card's gallery).
     "bump.no_bumps": (
         "info",
         "bump.messages.no_bumps_title",
@@ -108,6 +107,11 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     "partnerships.audit": ("warning", "partnerships.audit_title", ("{body}",)),
     "moderation.warnings": ("brand", None, ("{title}", "{body}")),
     "bump.stats": (None, None, ("{title}", "{body}")),
+    "bump.status": ("info", None, ("{title}", "{body}")),
+    "colors.list": ("info", None, ("{title}", "{body}")),
+    "invites.codes": ("info", None, ("{title}", "{body}")),
+    "invites.blacklist": ("info", None, ("{title}", "{body}")),
+    "reminders.list": ("info", None, ("{title}", "{body}")),
     # Interactive menus: only the heading block is theme-customizable --
     # selects/buttons are code (Discord needs registered callbacks).
     "settings.title": ("brand", "settings.title", ("{body}",)),
@@ -115,6 +119,11 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     "debug.title": ("info", "debug.title", ("{body}",)),
     "cleaner.panel": ("warning", "cleaner.panel_title", ("{body}",)),
     "boost.home": ("brand", "boost.titles.home", ("boost.descriptions.user_panel",)),
+    "interactions.manager": (
+        "brand",
+        "interactions.manager.title",
+        ("{body}",),
+    ),
 }
 
 

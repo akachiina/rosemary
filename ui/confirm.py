@@ -15,6 +15,7 @@ invites reset, cleaner, updater) are equivalent and need no migration.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import discord
@@ -23,6 +24,24 @@ from rosemary.ui.containers import TextDisplay, designer_container
 from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ConfirmResult:
+    """One confirmed-action outcome: text plus the container color token.
+
+    ``on_confirm`` may return a plain string (rendered with the default
+    ``success`` color) or a :class:`ConfirmResult` to steer the terminal
+    state's color (e.g. ``warning`` for a cancelled-by-feature flow)."""
+
+    text: str
+    state: str = "success"
+
+    @classmethod
+    def wrap(cls, value: Any, *, default_state: str = "success") -> ConfirmResult:
+        if isinstance(value, ConfirmResult):
+            return value
+        return cls(text=str(value), state=default_state)
 
 
 class ConfirmView(MenuView):
@@ -97,8 +116,11 @@ class ConfirmView(MenuView):
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=True)
         try:
-            self.result = await self.on_confirm(interaction)
-            self.result_state = "success"
+            outcome = ConfirmResult.wrap(
+                await self.on_confirm(interaction), default_state="success"
+            )
+            self.result = outcome.text
+            self.result_state = outcome.state
         except Exception as exc:
             log.error("Confirmed action failed: %s", exc)
             self.result = await self._t(self.failure_key)

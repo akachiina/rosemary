@@ -151,7 +151,12 @@ class RegiveView(MenuView):
         items = [
             self.make_button(
                 custom_id=_REGIVE_PREFIX,
-                label=label or "Retribuir",
+                label=label,
+                emoji=(
+                    self.bot.theme.emoji("love_letter")
+                    if getattr(self.bot, "theme", None)
+                    else "💌"
+                ),
                 style=discord.ButtonStyle.primary,
             )
         ]

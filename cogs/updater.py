@@ -34,7 +34,6 @@ from rosemary.core.updater import (
     should_notify_failure,
 )
 from rosemary.ui.containers import TextDisplay
-from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
 
@@ -319,25 +318,57 @@ class UpdaterCog(commands.Cog):
                 await t(guild_id, "updater.error_dirty", ahead=ahead), ephemeral=True
             )
 
-        view = MenuView(author_id=ctx.author.id)
+        from rosemary.core.card_service import trace_card_path
+        from rosemary.ui.confirm import ConfirmResult, ConfirmView
+
         cog = self
 
-        async def confirm(interaction: discord.Interaction) -> None:
-            await interaction.response.defer(ephemeral=True)
+        class _UpdaterConfirmView(ConfirmView):
+            """The updater's confirm dialog (standard confirm pattern)."""
+
+            async def question_items(self) -> list[discord.ui.ViewItem]:
+                themed_text = await text_or(
+                    cog.bot,
+                    guild_id,
+                    "updater.confirm",
+                    await t(guild_id, "updater.confirm", target=target_label),
+                    target=target_label,
+                )
+                return [
+                    TextDisplay(
+                        cog.bot.theme.md(
+                            "title",
+                            title=await t(guild_id, "updater.confirm_title"),
+                        )
+                    ),
+                    TextDisplay(themed_text),
+                ]
+
+            async def action_rows(self) -> list[discord.ui.ViewItem]:
+                return [
+                    discord.ui.ActionRow(
+                        self.make_button(
+                            custom_id="confirm_yes",
+                            label=await t(guild_id, "updater.confirm_button"),
+                            style=discord.ButtonStyle.danger,
+                        ),
+                        self.make_button(
+                            custom_id="confirm_no",
+                            label=await t(guild_id, "updater.cancel_button"),
+                            style=discord.ButtonStyle.secondary,
+                        ),
+                    )
+                ]
+
+        async def apply_update():
             try:
                 backup = backup_data(cog._data_dir, cog._backup_root)
                 prune_backups(cog._backup_root)
             except OSError as exc:
                 log.error("Update backup failed: %s", exc)
-                view.clear_items()
-                view.add_item(TextDisplay(await t(guild_id, "updater.error_backup")))
-                view.stop()
-                return await interaction.edit(view=view)
+                return ConfirmResult(await t(guild_id, "updater.error_backup"), "danger")
             if target is None or not await reset_hard(cog._repo, target):
-                view.clear_items()
-                view.add_item(TextDisplay(await t(guild_id, "updater.error_reset")))
-                view.stop()
-                return await interaction.edit(view=view)
+                return ConfirmResult(await t(guild_id, "updater.error_reset"), "danger")
             await cog._notify_all(
                 moderator=ctx.author.mention,
                 target=target_label,
@@ -355,40 +386,15 @@ class UpdaterCog(commands.Cog):
                 sys.executable, [sys.executable, str(cog._repo / "bot.py")]
             )
 
-        async def cancel(interaction: discord.Interaction) -> None:
-            await interaction.response.defer(ephemeral=True)
-            view.clear_items()
-            view.add_item(TextDisplay(await t(guild_id, "updater.cancelled")))
-            view.stop()
-            await interaction.edit(view=view)
-
-        view.register("updater_yes", confirm)
-        view.register("updater_no", cancel)
-        from rosemary.core.card_service import trace_card_path
-
-        themed_text = await text_or(
+        view = _UpdaterConfirmView(
             self.bot,
-            guild_id,
-            "updater.confirm",
-            await t(guild_id, "updater.confirm", target=target_label),
-            target=target_label,
+            guild_id=guild_id,
+            owner_id=ctx.author.id,
+            on_confirm=apply_update,
         )
+        view.question_color = "warning"
+        await view.prepare()
         await trace_card_path(self.bot, guild_id, "updater.confirm")
-        view.add_item(TextDisplay(themed_text))
-        view.add_item(
-            discord.ui.ActionRow(
-                view.make_button(
-                    custom_id="updater_yes",
-                    label=await t(guild_id, "updater.confirm_button"),
-                    style=discord.ButtonStyle.danger,
-                ),
-                view.make_button(
-                    custom_id="updater_no",
-                    label=await t(guild_id, "updater.cancel_button"),
-                    style=discord.ButtonStyle.secondary,
-                ),
-            )
-        )
         await ctx.respond(view=view, ephemeral=True)
 
     async def _notify_all(self, **variables) -> None:

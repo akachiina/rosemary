@@ -56,6 +56,31 @@ def test_no_boolean_keys():
         walk(data, code)
 
 
+def test_no_duplicate_yaml_keys():
+    """PyYAML silently keeps the LAST duplicate key, dropping the earlier
+    subtree: a duplicated ``card.audit`` block once discarded the shared
+    reason/moderator line fragments (live cards rendered without them)."""
+
+    class DupCheckLoader(yaml.SafeLoader):
+        pass
+
+    def construct(loader, node):
+        seen = set()
+        for key_node, _ in node.value:
+            key = loader.construct_object(key_node, deep=True)
+            assert key not in seen, f"{code}: duplicate YAML key {key!r}"
+            seen.add(key)
+        return yaml.SafeLoader.construct_mapping(loader, node, deep=True)
+
+    DupCheckLoader.add_constructor(
+        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct
+    )
+
+    for code in ("en-US", "pt-BR"):
+        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
+            yaml.load(fh, Loader=DupCheckLoader)
+
+
 def test_settings_descriptions_fit_modal_placeholder():
     """Discord modal placeholders cap at 100 chars, so every settings
     description must stay within the limit (bump.detection_text regression)."""
@@ -231,7 +256,10 @@ def test_field_lines_carry_theme_emoji_token():
         # Audit bodies: label fields carry the semantic emoji.
         ("card", "audit", "message_delete", "body"): ("people", "speech"),
         ("card", "audit", "message_edit", "body"): ("people", "speech"),
-        ("card", "audit", "bulk_delete", "body"): ("numbers", "gear"),
+        # bulk_delete's moderator arrives via the optional {moderator_line}
+        # fragment (pre-resolved at the send site), so the body guarantees
+        # only the fixed lines' tokens.
+        ("card", "audit", "bulk_delete", "body"): ("numbers",),
         ("card", "audit", "nickname", "body"): ("pencil",),
         ("card", "audit", "avatar", "body"): ("frame",),
         # Cleaner panel lines.
@@ -261,8 +289,11 @@ def test_field_lines_carry_theme_emoji_token():
             value = data["moderation"]["log"][label_key]
             assert f"{{{token}}}" in value, f"{code}:moderation.log.{label_key}"
 
-        # ban/unban bodies keep the prose first line but bold the moderator.
+        # ban/unban bodies keep the prose first line; the moderator rides in
+        # the optional {moderator_line} fragment, which carries {gear}.
         for event in ("ban", "unban"):
             body = data["card"]["audit"][event]["body"]
-            assert "{gear}" in body, f"{code}:card.audit.{event}.body"
-            assert theme.emojis.get("gear")
+            assert "{moderator_line}" in body, f"{code}:card.audit.{event}.body"
+        fragment = data["card"]["audit"]["moderator_line"]
+        assert "{gear}" in fragment, "card.audit.moderator_line"
+        assert theme.emojis.get("gear")

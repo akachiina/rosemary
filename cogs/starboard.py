@@ -84,7 +84,7 @@ class StarboardCog(commands.Cog):
         theme = self.bot.theme
         star = theme.emoji("star")
         channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
-        title = f"{star} {stars} • {channel_mention}"
+        title = f"{star} {stars} · {channel_mention}"
         body = message.content or no_content_label
         image_url = next(
             (
@@ -125,17 +125,18 @@ class StarboardCog(commands.Cog):
         stars: int,
         jump_label: str,
         no_content_label: str,
-    ) -> discord.ui.DesignerView:
+    ) -> tuple[discord.ui.DesignerView, discord.AllowedMentions]:
         """Themed ``starboard.card`` when defined, else the code-built default.
 
         Routed like every other card so a theme can restyle the mural post;
         the default builder stays in code because the layout reacts to the
-        star tier (accent color) and the original attachments."""
+        star tier (accent color) and the original attachments. Returns the
+        payload plus its mention policy: pings are content, never global."""
         from rosemary.core.card_service import render_card_message
 
         star = _ramp_emoji(self.bot.theme, stars)
         channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
-        title = f"{star} {stars} • {channel_mention}"
+        title = f"{star} {stars} · {channel_mention}"
         body = message.content or no_content_label
         image_url = next(
             (
@@ -145,7 +146,7 @@ class StarboardCog(commands.Cog):
             ),
             None,
         )
-        payload, _allowed = await render_card_message(
+        payload, allowed = await render_card_message(
             self.bot,
             guild_id,
             "starboard.card",
@@ -161,16 +162,29 @@ class StarboardCog(commands.Cog):
             },
         )
         if payload is not None:
-            return payload
+            return payload, allowed
         from rosemary.core.card_service import CardPayload
+        from rosemary.core.mentions import allowed_for_text
 
         footer_text = await self._footer_text(
             guild_id,
             message.author.mention,
             discord.utils.format_dt(message.created_at, style="R"),
         )
-        return CardPayload(
-            view=self._build_card(message, stars, jump_label, no_content_label, footer_text)
+        allowed = await allowed_for_text(
+            self.bot,
+            guild_id,
+            "starboard.card",
+            body,
+            user_ids=[message.author.id],
+        )
+        return (
+            CardPayload(
+                view=self._build_card(
+                    message, stars, jump_label, no_content_label, footer_text
+                )
+            ),
+            allowed,
         )
 
     async def _footer_text(self, guild_id: int, user_mention: str, timestamp: str) -> str:
@@ -210,22 +224,21 @@ class StarboardCog(commands.Cog):
                 except discord.NotFound:
                     entry = None
                 else:
-                    card = await self._card_view(
+                    card, allowed = await self._card_view(
                         channel.guild.id, message, stars, jump_label, no_content_label
                     )
-                    await post.edit(**card.message_kwargs(),
-                                    allowed_mentions=discord.AllowedMentions.none())
+                    await post.edit(**card.message_kwargs(), allowed_mentions=allowed)
                     self._last_edit[message.id] = time.monotonic()
                     await self.store.update_stars(channel.guild.id, message.id, stars)
                     return
 
             if stars >= config["threshold"]:
-                card = await self._card_view(
+                card, allowed = await self._card_view(
                     channel.guild.id, message, stars, jump_label, no_content_label
                 )
                 post = await board.send(
                     **card.message_kwargs(),
-                    allowed_mentions=discord.AllowedMentions.none(),
+                    allowed_mentions=allowed,
                 )
                 await self.store.upsert(
                     channel.guild.id,

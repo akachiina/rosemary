@@ -226,7 +226,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "events.welcome": ("user", "user_name", "user_id", "server", "count", "user_avatar", "inviter"),
     "events.leave": ("user", "user_name", "user_id", "server", "count", "inviter", "user_avatar"),
     "events.ban": ("user", "user_name", "user_id", "server", "count", "inviter", "user_avatar"),
-    "birthdays.announce": ("user", "server", "count"),
+    "birthdays.announce": ("user", "server", "count", "user_avatar", "timestamp"),
     "boost.dm.registered": ("mention", "role_name", "server_name", "members", "max_members"),
     "boost.dm.transferred": ("mention", "role_name", "server_name", "members", "max_members"),
     "boost.dm.auto_transferred": ("mention", "role_name", "server_name"),
@@ -242,12 +242,15 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "boost.dm.error": ("body",),
     "boost.preview": ("role_name", "owner", "count", "max_members"),
     "bump.leaderboard": (
-        "winner_mention", "winner_count", "role_name", "leaderboard_list",
-        "start_timestamp", "end_timestamp", "next_reset_timestamp",
+        "winner_mention", "winner_count", "winner_avatar", "role_name",
+        "leaderboard_list", "start_timestamp", "end_timestamp", "next_reset_timestamp",
+        "user", "timestamp",
     ),
     "bump.no_bumps": (),
     "bump.reminder": ("cooldown",),
-    "bump.thank_you": ("mention", "cooldown", "next_bump_timestamp"),
+    "bump.thank_you": (
+        "mention", "cooldown", "next_bump_timestamp", "user_avatar", "user", "timestamp",
+    ),
     "bump.anti_camping": (),
     "bump.schedule.open": ("ping_role",),
     "bump.schedule.close": ("ping_role",),
@@ -283,6 +286,15 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "partnerships.dm.expired_admin": ("rep", "server", "days", "invite", "mention"),
     "updater.confirm": ("target",),
     "about.card": ("version", "channel"),
+    # List/manager cards promoted during the UI audit: the send site passes
+    # the rendered title/body plus card-specific variables (title/body seed).
+    "colors.list": ("title", "body"),
+    "colors.manager": ("count", "max"),
+    "invites.codes": ("title", "body"),
+    "invites.blacklist": ("title", "body"),
+    "bump.status": ("title", "body"),
+    "reminders.list": ("title", "body"),
+    "interactions.manager": ("action",),
 }
 
 for _name, _rich in AUDIT_CARDS:
@@ -475,6 +487,13 @@ def _build() -> list[CardSpec]:
         _spec(f"updater.logs.{name}.description", "general")
         for name in ("updating", "updated", "auto_failed")
     ]
+    # Cards promoted during the UI audit (title/body seeds + card variables).
+    specs += [_spec("colors.list", "colors", rich=True)]
+    specs += [_spec("colors.manager", "colors")]
+    specs += [_spec("invites.codes", "invites", rich=True)]
+    specs += [_spec("invites.blacklist", "invites", rich=True)]
+    specs += [_spec("bump.status", "bump", rich=True)]
+    specs += [_spec("reminders.list", "general", rich=True)]
     specs += [_spec("about.card", "general", rich=True)]
     specs += [_spec("settings.logs.language.description", "general")]
     specs += [_spec("debug.logs.test.description", "general")]
@@ -491,6 +510,7 @@ def _build() -> list[CardSpec]:
             mention_default="single",
         )
     ]
+    specs += [_spec("interactions.manager", "interactions")]
     return specs
 
 

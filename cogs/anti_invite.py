@@ -51,6 +51,8 @@ class AntiInviteCog(commands.Cog):
             with _suppress():
                 await message.delete()
             if await get_setting(self.bot.storage, guild_id, "anti_invite.warn_on_delete"):
+                from rosemary.core.mentions import allowed_for_text
+
                 warning = await text_or(
                     self.bot,
                     guild_id,
@@ -61,7 +63,14 @@ class AntiInviteCog(commands.Cog):
                     user=message.author.mention,
                 )
                 await message.channel.send(
-                    warning, allowed_mentions=discord.AllowedMentions.none()
+                    warning,
+                    allowed_mentions=await allowed_for_text(
+                        self.bot,
+                        guild_id,
+                        "anti_invite.warning",
+                        warning,
+                        user_ids=[message.author.id],
+                    ),
                 )
             await send_channel_log(
                 self.bot,

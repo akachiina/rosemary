@@ -148,22 +148,26 @@ class InteractionsManagerView(MenuView):
         adding items here directly made rerenders accumulate rows until
         Discord 400'd on a duplicate custom_id.
         """
+        from rosemary.core.card_service import menu_heading_items
         from rosemary.ui.containers import TextDisplay, designer_container
 
         theme = self.bot.theme
-        container = designer_container(
-            theme.color(self.flash_color or "brand") if theme else discord.Colour.blurple(),
+        action = await self._t(f"interactions.actions.{self.action}")
+        parts = await menu_heading_items(self.bot, self.guild_id, "interactions.manager") or [
             TextDisplay(
                 theme.md("title", title=await self._t("interactions.manager.title"))
                 if theme
                 else await self._t("interactions.manager.title")
             ),
             TextDisplay(
-                await self._t(
-                    "interactions.manager.body",
-                    action=await self._t(f"interactions.actions.{self.action}"),
-                )
+                await self._t("interactions.manager.body", action=action)
             ),
+        ]
+        if self.flash:
+            parts.append(TextDisplay(self.flash))
+        container = designer_container(
+            theme.color(self.flash_color or "brand") if theme else discord.Colour.blurple(),
+            *parts,
         )
         items: list[discord.ui.ViewItem] = [container]
 
@@ -226,6 +230,7 @@ class InteractionsManagerView(MenuView):
             )
 
         self.flash = None
+        self.flash_color = "brand"
         return items
 
     async def _entry_line(self, index: int, gif: dict[str, str]) -> str:

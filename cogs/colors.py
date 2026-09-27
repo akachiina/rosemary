@@ -567,20 +567,23 @@ class ColorsCog(commands.Cog):
             if entry.role_id and entry.role_id in wearing:
                 mark = await self.bot.translator.t(guild_id, "colors.list_current")
             lines.append(f"**{position}.** {entry.name}{mark}")
-        theme = self.bot.theme
+        from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                theme.color("info"),
-                TextDisplay(
-                    theme.md(
-                        "title",
-                        title=await self.bot.translator.t(guild_id, "colors.list_title"),
-                    )
-                ),
-                TextDisplay("\n".join(lines)),
-            )
+        title = await self.bot.translator.t(guild_id, "colors.list_title")
+        body = "\n".join(lines)
+        payload, _allowed = await render_card_message(
+            self.bot, guild_id, "colors.list", {"title": title, "body": body}
         )
-        await ctx.respond(view=view, ephemeral=True)
+        if payload is None:
+            theme = self.bot.theme
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    theme.color("info"),
+                    TextDisplay(theme.md("title", title=title)),
+                    TextDisplay(body),
+                )
+            )
+            payload = CardPayload(view=view)
+        await ctx.respond(**payload.message_kwargs(), ephemeral=True)
