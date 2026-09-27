@@ -135,7 +135,7 @@ SETTINGS: dict[str, SettingSpec] = {
             "moderation.auto_ban_enabled",
             SettingCategory.MODERATION,
             SettingType.BOOLEAN,
-            False,
+            True,
         ),
         _spec(
             "cleaner.enabled",
