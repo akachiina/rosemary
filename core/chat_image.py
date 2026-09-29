@@ -383,7 +383,7 @@ def render_snapshot(
     callers degrade to a text-only card. Content-less bubbles render an
     em-space so the bubble frame still shows (a message can be image-only).
     ``edited_marker`` is the localized ``(editado)`` text for bubbles flagged
-    ``edited`` (empty disables the marker).
+    ``edited`` (empty disables the marker entirely).
     """
     if not infos:
         return None
@@ -438,11 +438,15 @@ def render_snapshot(
     return rasterize_pdf(pdf, full_width=True, max_side=_MAX_PNG_SIDE)
 
 
-async def render_message_snapshot(bot, message, *, before=None) -> bytes | None:
+async def render_message_snapshot(
+    bot, message, *, before=None, edited_marker: str = ""
+) -> bytes | None:
     """Full async pipeline for one message (or edit pair): PNG or ``None``.
 
     Wraps :func:`build_snapshot_message` + :func:`render_snapshot`; any
     unexpected error logs at warning and returns ``None`` (text-only card).
+    ``edited_marker`` is caller-provided user-facing text (the cog resolves
+    it from the catalogs; this module stays i18n-free like color_image).
     """
     try:
         theme = bot.theme
@@ -451,35 +455,23 @@ async def render_message_snapshot(bot, message, *, before=None) -> bytes | None:
 
         theme = theme_for(bot, getattr(message, "guild_id", None))
         templates = getattr(theme, "snapshot", None) or {}
-        guild_id = getattr(message, "guild_id", None)
-        marker = "(edited)"  # Discord's own English marker on catalog misses
-        try:
-            raw_marker = await bot.translator.raw(guild_id, "audit.edited_marker")
-            # A missing key comes back as the key itself (i18n fallback).
-            if (
-                isinstance(raw_marker, str)
-                and 0 < len(raw_marker) <= 30
-                and raw_marker != "audit.edited_marker"
-            ):
-                marker = raw_marker
-        except Exception:
-            pass
         info = await build_snapshot_message(bot, message, before=before)
         infos = [info]
         if before is not None and (before.content or "") != (message.content or ""):
             after = await build_snapshot_message(bot, message)
             infos = [info, after]
-        # The edit documents the BEFORE state: its bubble carries the marker
-        # (the after bubble is the new content, nothing edited about it).
-        if before is not None:
-            infos[0] = replace(infos[0], edited=True)
+        # Discord marks the CURRENT message state: the bottom (after) bubble
+        # is the content that now carries the (editado) marker; the top one
+        # is the untouched previous text.
+        if before is not None and edited_marker:
+            infos[-1] = replace(infos[-1], edited=True)
         return render_snapshot(
             infos,
             templates.get("page"),
             templates.get("bubble"),
             templates.get("image"),
             getattr(theme, "emojis", {}) or {},
-            edited_marker=marker,
+            edited_marker=edited_marker,
         )
     except Exception:
         log.warning("chat snapshot render failed", exc_info=True)

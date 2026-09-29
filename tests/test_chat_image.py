@@ -325,9 +325,9 @@ def test_edited_marker_renders_only_on_flagged_bubbles():
     assert "<b>x</b>" not in evil and "&lt;b&gt;x&lt;/b&gt;" in evil
 
 
-async def test_edit_pair_flags_only_the_before_bubble():
-    """The snapshot documents the edit's BEFORE state: only its bubble gets
-    the marker, resolved from the guild's catalog (pt or en)."""
+async def test_edit_pair_flags_only_the_after_bubble():
+    """Discord marks the CURRENT state: the bottom (after) bubble carries the
+    marker; the caller resolves the text (the core stays i18n-free)."""
     from unittest.mock import MagicMock
 
     import rosemary.core.chat_image as chat_image
@@ -347,25 +347,19 @@ async def test_edit_pair_flags_only_the_before_bubble():
     before = MagicMock(content="antes")
     after = MagicMock(content="depois")
     after.guild_id = 1
-    translator = MagicMock()
-
-    async def raw(guild_id, key):
-        return {"audit.edited_marker": "(editado)"}.get(key, key)
-
-    translator.raw = raw
-    bot = MagicMock(translator=translator)
+    bot = MagicMock()
     bot.theme = MagicMock()
 
-    captured: dict = {}
+    captured: list = []
 
     def fake_render(infos, *args, **kwargs):
-        captured["flags"] = [i.edited for i in infos]
-        captured["marker"] = kwargs.get("edited_marker")
+        captured.append(
+            ([i.edited for i in infos], kwargs.get("edited_marker"))
+        )
         return b"\x89PNG\r\n\x1a\n"
 
     original_build = chat_image.build_snapshot_message
     original_render = chat_image.render_snapshot
-    original_theme_for = chat_image.theme_for if hasattr(chat_image, "theme_for") else None
     import rosemary.core.themes as themes_mod
 
     original_theme_for = themes_mod.theme_for
@@ -373,13 +367,17 @@ async def test_edit_pair_flags_only_the_before_bubble():
     chat_image.render_snapshot = fake_render
     themes_mod.theme_for = lambda bot_, gid: MagicMock(snapshot={}, emojis={})
     try:
+        await chat_image.render_message_snapshot(
+            bot, after, before=before, edited_marker="(editado)"
+        )
+        # No marker from the caller (delete, or catalog miss): nothing flagged.
         await chat_image.render_message_snapshot(bot, after, before=before)
     finally:
         chat_image.build_snapshot_message = original_build
         chat_image.render_snapshot = original_render
         themes_mod.theme_for = original_theme_for
-    assert captured["flags"] == [True, False]
-    assert captured["marker"] == "(editado)"
+    assert captured[0] == ([False, True], "(editado)")
+    assert captured[1] == ([False, False], "")
 
 
 def _png_bytes(size: int, rgba: bytes) -> bytes:

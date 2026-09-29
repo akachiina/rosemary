@@ -355,11 +355,20 @@ class AuditCog(commands.Cog):
             return {}
         from rosemary.core.chat_image import render_message_snapshot
 
+        # The (editado) marker is user-facing text: the cog resolves it from
+        # the guild's catalog (same pattern as _reason_line); a missing key
+        # degrades to no marker, never hardcoded text.
+        edited_marker = ""
+        if before is not None:
+            raw_marker = await _line(self.bot, guild_id, "edited_marker")
+            if raw_marker:
+                edited_marker = raw_marker.strip()[:30]
         try:
             png = await render_message_snapshot(
                 self.bot,
                 message,
                 before=before,
+                edited_marker=edited_marker,
             )
         except Exception:
             # render_message_snapshot already swallows everything internally;

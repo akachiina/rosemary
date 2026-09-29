@@ -644,15 +644,19 @@ async def test_message_edit_snapshot_receives_before_for_pair(tmp_path):
 
     seen: dict = {}
 
-    async def fake_render(bot_, message, *, before=None):
+    async def fake_render(bot_, message, *, before=None, edited_marker=""):
         seen["before"] = before
         seen["message"] = message
+        seen["marker"] = edited_marker
         return b"\x89PNG\r\n\x1a\nfake"
 
     with patch("rosemary.core.chat_image.render_message_snapshot", new=fake_render):
         await cog.on_message_edit(before, after)
     assert seen["before"] is before
     assert seen["message"] is after
+    # FakeTranslator.raw returns the key itself: a missing catalog key must
+    # degrade to NO marker (never hardcoded text).
+    assert seen["marker"] == ""
     files = audit_channel.send.await_args.kwargs["files"]
     assert [f.filename for f in files] == ["mensagem_987654321000000000.png"]
 
