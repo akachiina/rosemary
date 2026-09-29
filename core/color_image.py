@@ -234,20 +234,26 @@ def _measured_pdf(
 def _crop_bbox(
     samples: bytes, width: int, height: int, n: int, stride: int
 ) -> tuple[int, int, int, int] | None:
-    """Bounding box of non-transparent pixels, or ``None`` for a blank image."""
+    """Bounding box of non-transparent pixels, or ``None`` for a blank image.
+
+    A row-level alpha pre-scan (C-speed ``any()`` over the alpha slice) keeps
+    tall pages cheap: only rows with visible pixels get the per-pixel walk.
+    """
     min_x, min_y, max_x, max_y = width, height, -1, -1
     for y in range(height):
         row = samples[y * stride : (y + 1) * stride]
+        if not any(row[3::n]):
+            continue
         for x in range(width):
             if row[x * n + 3]:
                 if x < min_x:
                     min_x = x
                 if x > max_x:
                     max_x = x
-                if y < min_y:
-                    min_y = y
-                if y > max_y:
-                    max_y = y
+        if y < min_y:
+            min_y = y
+        if y > max_y:
+            max_y = y
     if max_x < 0:
         return None
     return min_x, min_y, max_x + 1, max_y + 1
@@ -255,15 +261,18 @@ def _crop_bbox(
 
 #: Shared rasterizer (also used by core/chat_image.py): PDF bytes -> cropped
 #: transparent PNG at :data:`_ZOOM`, capped at :data:`_MAX_SIDE`.
-def rasterize_pdf(pdf: bytes) -> bytes | None:
+def rasterize_pdf(
+    pdf: bytes, *, full_width: bool = False, max_side: int = _MAX_SIDE
+) -> bytes | None:
     """PDF bytes to a cropped transparent PNG (``None`` when blank/failed).
 
     The probe pass renders the whole page at :data:`_ZOOM` and locates the
     content's bounding box **in probe pixels**; converted to page points it
     becomes the clip rect of the final pass (a module-version Pixmap cannot
-    crop an alpha pixmap in place). The final zoom stays at :data:`_ZOOM`
-    unless the crop would exceed :data:`_MAX_SIDE`, which downscales instead
-    of shipping a huge upload.
+    crop an alpha pixmap in place). ``full_width`` keeps the whole page
+    width (vertical-only crop: fixed-width consumers need every PNG at the
+    same scale) and ``max_side`` overrides the downscale cap. The final zoom
+    stays at :data:`_ZOOM` unless the crop would exceed the cap.
     """
     try:
         import pymupdf
@@ -277,18 +286,20 @@ def rasterize_pdf(pdf: bytes) -> bytes | None:
         if bbox is None:
             return None
         x0, y0, x1, y1 = bbox
-        # Probe pixels -> page points (the probe rasterized at _ZOOM).
-        rect = pymupdf.Rect(
-            x0 / _ZOOM, y0 / _ZOOM, x1 / _ZOOM, y1 / _ZOOM
-        )
+        if full_width:
+            x0, x1 = 0.0, page.rect.width
+        else:
+            # Probe pixels -> page points (the probe rasterized at _ZOOM).
+            x0, x1 = x0 / _ZOOM, x1 / _ZOOM
+        rect = pymupdf.Rect(x0, y0 / _ZOOM, x1, y1 / _ZOOM)
         zoom = float(_ZOOM)
         if (
-            rect.width * zoom > _MAX_SIDE
-            or rect.height * zoom > _MAX_SIDE
+            rect.width * zoom > max_side
+            or rect.height * zoom > max_side
         ):
             zoom = min(
-                _MAX_SIDE / max(rect.width, 1e-6),
-                _MAX_SIDE / max(rect.height, 1e-6),
+                max_side / max(rect.width, 1e-6),
+                max_side / max(rect.height, 1e-6),
                 _ZOOM,
             )
         pix = page.get_pixmap(

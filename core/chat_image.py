@@ -51,6 +51,10 @@ _MAX_IMAGE_BYTES = 4_000_000
 _AVATAR_TIMEOUT = 8.0
 _AVATAR_CACHE_SIZE = 128
 
+#: PNG width cap before downscaling (Discord scales wide images down in
+#: cards; 960 = the fixed 480px page at the 4x raster zoom).
+_MAX_PNG_SIDE = 960
+
 #: Fallback templates (the theme file ships the same content). WeasyPrint's
 #: CSS subset: no flexbox/grid; tables and inline-block work. No ``overflow``
 #: rule: WeasyPrint truncates overflow:hidden text silently.
@@ -64,25 +68,26 @@ DEFAULT_BUBBLE = (
     '<table class="bubble" style="background: #32353b; border-radius: 8px; '
     'margin: 0 0 12px 0; padding: 0; border-collapse: collapse; '
     'border-spacing: 0;"><tr>\n'
-    '<td class="avatar" style="vertical-align: middle; padding: 14px 0 14px 16px;">'
+    '<td class="avatar" style="vertical-align: top; padding: 12px 0 12px 14px;">'
     '<img src="{author_avatar}" '
-    'style="width: 48px; height: 48px; border-radius: 50%; display: block;" />'
+    'style="width: 40px; height: 40px; border-radius: 50%; display: block;" />'
     '</td>\n'
-    '<td class="body" style="padding: 12px 16px 12px 12px;">\n'
+    '<td class="body" style="padding: 10px 14px 12px 12px;">\n'
     '  <div class="header" style="font-family: \'Segoe UI\', \'Ubuntu\', '
-    '\'Noto Sans\', sans-serif; font-size: 16px; font-weight: 600; '
+    '\'Noto Sans\', sans-serif; font-size: 15px; font-weight: 600; '
     'color: #ffffff;">{author_name}{bot}'
     '<span class="time" style="font-size: 12px; font-weight: 400; '
     'color: #949ba4; margin-left: 8px;">{time}</span></div>\n'
     '  <div class="content" style="font-family: \'Segoe UI\', \'Ubuntu\', '
-    '\'Noto Sans\', sans-serif; font-size: 15px; color: #dcddde; '
-    'white-space: pre-wrap; overflow-wrap: break-word;">{content}</div>\n'
+    '\'Noto Sans\', sans-serif; font-size: 15px; line-height: 1.3; '
+    'color: #dcddde; white-space: pre-wrap; overflow-wrap: break-word;">'
+    '{content}</div>\n'
     '  {image}\n</td>\n</tr></table>'
 )
 
 DEFAULT_BUBBLE_IMAGE = (
     '<img class="attachment" src="{image}" style="border-radius: 4px; '
-    'margin-top: 6px; max-width: 320px;" />'
+    'margin-top: 8px; width: 320px;" />'
 )
 
 _SVG_AVATAR = (
@@ -167,6 +172,41 @@ def _extension_to_mime(url: str) -> str:
     }.get(ext[1] if len(ext) == 2 else "", "image/png")
 
 
+def _looks_like_image(url: str) -> bool:
+    """Whether the URL's path extension is a raster image Discord serves."""
+    ext = url.split("?")[0].lower().rsplit(".", 1)
+    return len(ext) == 2 and ext[1] in {"png", "jpg", "jpeg", "gif", "webp"}
+
+
+def _normalize_image(data: bytes, mime: str, label: str) -> str:
+    """Bytes to a PNG data URI WeasyPrint can decode, ``""`` when it cannot.
+
+    Discord CDN images are webp/png/jpg/gif; WeasyPrint's webp support
+    depends on the local Pillow build, and a broken file would silently
+    render as an empty reserved box (the live bug). Re-encoding through
+    Pillow to PNG guarantees a decodable data URI: a failed decode returns
+    ``""`` so the bubble drops the image entirely instead of reserving a
+    blank rectangle. The first frame of an animated gif is fine for a
+    screenshot-style log.
+    """
+    import base64
+
+    try:
+        import io
+
+        from PIL import Image
+
+        with Image.open(io.BytesIO(data)) as img:
+            img.seek(0)
+            scratch = io.BytesIO()
+            img.convert("RGBA").save(scratch, format="PNG")
+            png_bytes = scratch.getvalue()
+    except Exception as exc:
+        log.info("snapshot image decode failed for %s: %s", label, exc)
+        return ""
+    return f"data:image/png;base64,{base64.b64encode(png_bytes).decode('ascii')}"
+
+
 async def _avatar_data_uri(bot, author) -> str:
     """The author's avatar as a data URI, SVG fallback when unavailable."""
     url = getattr(getattr(author, "display_avatar", None), "url", "") or ""
@@ -180,8 +220,6 @@ async def _avatar_data_uri(bot, author) -> str:
     def _fetch() -> bytes | None:
         return _download_bytes(url, timeout=_AVATAR_TIMEOUT, max_bytes=1_000_000)
 
-    import base64
-
     try:
         data = await asyncio.wait_for(loop.run_in_executor(None, _fetch), _AVATAR_TIMEOUT + 2)
     except Exception as exc:
@@ -189,8 +227,9 @@ async def _avatar_data_uri(bot, author) -> str:
         return _avatar_fallback(getattr(author, "display_name", None) or "?")
     if not data:
         return _avatar_fallback(getattr(author, "display_name", None) or "?")
-    mime = _extension_to_mime(url)
-    data_uri = f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+    data_uri = _normalize_image(data, _extension_to_mime(url), f"avatar {url}")
+    if not data_uri:
+        return _avatar_fallback(getattr(author, "display_name", None) or "?")
     if len(_avatar_cache) >= _AVATAR_CACHE_SIZE:
         _avatar_cache.clear()  # crude LRU: one flush, cheap and bounded
     _avatar_cache[url] = data_uri
@@ -198,11 +237,15 @@ async def _avatar_data_uri(bot, author) -> str:
 
 
 async def _image_data_uri(message) -> str:
-    """First embeddable image (image attachment / non-lottie sticker), or ``""``."""
+    """First embeddable image (image attachment / non-lottie sticker), or ``""``.
+
+    The extension decides (Discord often serves ``content_type: ""`` on
+    re-uploads): a webp/jpg/png/gif attachment is embedded, everything else
+    (video, audio, archives) stays as a card link only.
+    """
     for att in getattr(message, "attachments", None) or []:
-        content_type = (getattr(att, "content_type", "") or "").lower()
         url = getattr(att, "url", "") or ""
-        if not content_type.startswith("image/") or not url:
+        if not url or not _looks_like_image(url):
             continue
         loop = asyncio.get_running_loop()
 
@@ -216,10 +259,9 @@ async def _image_data_uri(message) -> str:
             continue
         if not data:
             continue
-        import base64
-
-        mime = _extension_to_mime(url)
-        return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+        uri = _normalize_image(data, _extension_to_mime(url), f"attachment {url}")
+        if uri:
+            return uri
     for item in getattr(message, "stickers", None) or []:
         if getattr(item.format, "name", "") == "lottie":
             continue
@@ -238,10 +280,9 @@ async def _image_data_uri(message) -> str:
             continue
         if not data:
             continue
-        import base64
-
-        mime = _extension_to_mime(url)
-        return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}"
+        uri = _normalize_image(data, _extension_to_mime(url), f"sticker {url}")
+        if uri:
+            return uri
     return ""
 
 
@@ -345,17 +386,20 @@ def render_snapshot(
         return _bubble_markup(filled, base_bubble, image_template, emojis)
 
     items = "".join(render_one(info) for info in infos)
-    # Two bubbles max (delete: one; edit: before/after) at ~90px each plus
-    # margins; the PNG is cropped to content anyway, page height only anchors
-    # the PDF page (px -> pt at 96dpi like the color panel).
-    height_px = max(160, 120 * len(infos) + 40)
+    # Fixed-width page (480 CSS px): the PNG keeps every snapshot at the
+    # same scale, so Discord renders them all at the same visual size no
+    # matter the message (the variable-width crop made each card a
+    # different zoom). Height anchors the PDF page only; the rasterizer
+    # crops the bottom to content.
+    width_px = 480
+    height_px = 220 * len(infos) + 60
     from weasyprint import HTML
 
     try:
         pdf = (
             HTML(
                 string=base_template.replace("__ITEMS__", items)
-                .replace("__PAGE_W__", "480")
+                .replace("__PAGE_W__", str(width_px))
                 .replace("__PAGE_H__", str(height_px))
             )
             .write_pdf()
@@ -363,7 +407,7 @@ def render_snapshot(
     except Exception:
         log.warning("chat snapshot HTML render failed", exc_info=True)
         return None
-    return rasterize_pdf(pdf)
+    return rasterize_pdf(pdf, full_width=True, max_side=_MAX_PNG_SIDE)
 
 
 async def render_message_snapshot(bot, message, *, before=None) -> bytes | None:

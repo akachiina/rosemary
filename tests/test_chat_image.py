@@ -98,6 +98,9 @@ async def test_build_snapshot_message_uses_before_for_edit():
 
 async def test_build_snapshot_message_embeds_image_attachment():
     import base64
+    import io
+
+    from PIL import Image
 
     msg = _message()
     att = MagicMock()
@@ -105,12 +108,16 @@ async def test_build_snapshot_message_embeds_image_attachment():
     att.content_type = "image/png"
     msg.attachments = [att]
 
+    scratch = io.BytesIO()
+    Image.new("RGBA", (12, 12), (10, 200, 30, 255)).save(scratch, format="PNG")
+    real_png = scratch.getvalue()
+
     import rosemary.core.chat_image as chat_image
 
     original = chat_image._download_bytes
 
     def fake_download(url, *, timeout, max_bytes):
-        return b"fakepng"
+        return real_png
 
     chat_image._download_bytes = fake_download
     try:
@@ -118,7 +125,9 @@ async def test_build_snapshot_message_embeds_image_attachment():
     finally:
         chat_image._download_bytes = original
     assert info.image_data_uri.startswith("data:image/png;base64,")
-    assert base64.b64decode(info.image_data_uri.split(",", 1)[1]) == b"fakepng"
+    # Re-encoded through Pillow: the decoded image matches the source.
+    decoded = Image.open(io.BytesIO(base64.b64decode(info.image_data_uri.split(",", 1)[1])))
+    assert decoded.size == (12, 12)
 
 
 async def test_build_snapshot_message_skips_lottie_stickers():
@@ -128,6 +137,58 @@ async def test_build_snapshot_message_skips_lottie_stickers():
     sticker.url = "https://cdn.discordapp.com/stickers/1.json"
     msg.stickers = [sticker]
     info = await build_snapshot_message(MagicMock(), msg)
+    assert info.image_data_uri == ""
+
+
+async def test_build_snapshot_message_embeds_webp_by_extension():
+    """Live regression: the webp attachment came with empty content_type and
+    was skipped, so the deleted-image message rendered text-only."""
+    msg = _message()
+    att = MagicMock()
+    att.url = "https://cdn.discordapp.com/attachments/1/2/jacket_s_647.webp"
+    att.content_type = ""  # what Discord actually served
+    msg.attachments = [att]
+
+    import rosemary.core.chat_image as chat_image
+
+    captured: dict = {}
+
+    def fake_download(url, *, timeout, max_bytes):
+        captured["url"] = url
+        return b"fakebytes"
+
+    def fake_normalize(data, mime, label):
+        return "data:image/png;base64,QUJD"
+
+    original_download = chat_image._download_bytes
+    original_normalize = chat_image._normalize_image
+    chat_image._download_bytes = fake_download
+    chat_image._normalize_image = fake_normalize
+    try:
+        info = await build_snapshot_message(MagicMock(), msg)
+    finally:
+        chat_image._download_bytes = original_download
+        chat_image._normalize_image = original_normalize
+    assert captured["url"].endswith(".webp")
+    assert info.image_data_uri == "data:image/png;base64,QUJD"
+
+
+async def test_build_snapshot_message_skips_undecodable_attachment():
+    """A fetchable but undecodable file drops out (no blank reserved box)."""
+    msg = _message()
+    att = MagicMock()
+    att.url = "https://cdn.discordapp.com/attachments/1/2/arquivo.png"
+    att.content_type = "image/png"
+    msg.attachments = [att]
+
+    import rosemary.core.chat_image as chat_image
+
+    original_download = chat_image._download_bytes
+    chat_image._download_bytes = lambda url, *, timeout, max_bytes: b"garbage"
+    try:
+        info = await build_snapshot_message(MagicMock(), msg)
+    finally:
+        chat_image._download_bytes = original_download
     assert info.image_data_uri == ""
 
 
@@ -212,8 +273,8 @@ def test_avatar_renders_at_css_size():
     ]
     assert rects, "avatar image missing from the rendered PDF"
     width_css_px = rects[0].width / 0.75
-    assert 44 <= width_css_px <= 52, (
-        f"avatar rendered at {width_css_px:.0f} CSS px, expected ~48"
+    assert 36 <= width_css_px <= 44, (
+        f"avatar rendered at {width_css_px:.0f} CSS px, expected ~40"
     )
 
 
@@ -232,3 +293,76 @@ def test_render_snapshot_edit_pair_renders_two_bubbles():
     two = render_snapshot([_info("antes"), _info("depois")])
     assert one is not None and two is not None
     assert len(two) > len(one), "two bubbles rasterize more content"
+
+
+def _png_bytes(size: int, rgba: bytes) -> bytes:
+    import struct
+    import zlib
+
+    def chunk(tag, data):
+        head = struct.pack(">I", len(data)) + tag + data
+        return head + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    ihdr = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
+    raw = b"".join(b"\x00" + rgba * size for _ in range(size))
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+
+
+def test_normalize_image_reencodes_and_rejects_garbage():
+    """Any decodable input re-encodes to PNG; garbage degrades to ``""``.
+
+    A file WeasyPrint cannot decode used to reserve a blank rectangle in the
+    bubble (live webp bug): the contract is drop, never blank space.
+    """
+    import base64
+    import io
+
+    from PIL import Image
+
+    from rosemary.core.chat_image import _normalize_image
+
+    scratch = io.BytesIO()
+    Image.new("RGBA", (30, 30), (200, 60, 60, 255)).save(scratch, format="PNG")
+    good = scratch.getvalue()
+    out = _normalize_image(good, "image/png", "test")
+    assert out.startswith("data:image/png;base64,")
+    roundtrip = Image.open(io.BytesIO(base64.b64decode(out.split(",", 1)[1])))
+    assert roundtrip.size == (30, 30)
+
+    assert _normalize_image(b"not an image at all", "image/webp", "test") == ""
+    assert _normalize_image(b"", "image/png", "test") == ""
+
+
+def test_looks_like_image_by_extension():
+    from rosemary.core.chat_image import _looks_like_image
+
+    assert _looks_like_image("https://cdn.discordapp.com/a/b/jacket_s_647.webp?x=1")
+    assert _looks_like_image("https://x/y.PNG")
+    assert not _looks_like_image("https://x/y.mp4")
+    assert not _looks_like_image("https://x/y")
+    assert not _looks_like_image("")
+
+
+def test_render_snapshot_fixed_width_regardless_of_content():
+    """Every snapshot PNG ships at the same width (fixed-page full-width crop).
+
+    The variable-width crop made each card render at a different scale on
+    Discord (tiny one-word bubbles, huge multi-line ones): inconsistent with
+    the bot's visual standard.
+    """
+    import struct
+
+    short = render_snapshot([_info("a")])
+    long = render_snapshot([_info("palavra " * 80)])
+    assert short is not None and long is not None
+    # IHDR pixel width (pymupdf's rect mixes dpi into the number).
+    w_short = struct.unpack(">II", short[16:24])[0]
+    w_long = struct.unpack(">II", long[16:24])[0]
+    assert w_short == w_long, f"{w_short} != {w_long}: width must be constant"
+    # 360pt page (480 CSS px) at the 960-side cap: zoom clamps to 960/360.
+    assert w_short == 960

@@ -66,12 +66,11 @@ def _media(message: discord.Message) -> tuple[list[str], str]:
         lines.append(f"[{name}]({url})")
         if image_url:
             continue
-        content_type = (getattr(att, "content_type", "") or "").lower()
-        extension = url.split("?")[0].lower().rsplit(".", 1)
-        looks_image = len(extension) == 2 and extension[1] in {
-            "png", "jpg", "jpeg", "gif", "webp"
-        }
-        if content_type.startswith("image/") or (not content_type and looks_image):
+        # The extension decides: Discord often serves re-uploaded files with
+        # an empty content_type (live: a .webp came through with none).
+        from rosemary.core.chat_image import _looks_like_image
+
+        if _looks_like_image(url):
             image_url = url
     for item in getattr(message, "stickers", None) or []:
         if getattr(item.format, "name", "") == "lottie":
