@@ -33,7 +33,7 @@ import asyncio
 import html as _html
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from rosemary.core.color_image import rasterize_pdf
 
@@ -81,7 +81,7 @@ DEFAULT_BUBBLE = (
     '  <div class="content" style="font-family: \'Segoe UI\', \'Ubuntu\', '
     '\'Noto Sans\', sans-serif; font-size: 15px; line-height: 1.3; '
     'color: #dcddde; white-space: pre-wrap; overflow-wrap: break-word;">'
-    '{content}</div>\n'
+    '{content}{edited}</div>\n'
     '  {image}\n</td>\n</tr></table>'
 )
 
@@ -108,6 +108,13 @@ _BOT_BADGE = (
     'vertical-align: 2px;">APP</span>'
 )
 
+#: The Discord-style ``(editado)`` suffix after the content (one meaning, one
+#: emoji rule does not apply: this is a marker, not a labeled field).
+_EDITED_BADGE = (
+    '<span style="font-family: \'Segoe UI\', \'Ubuntu\', \'Noto Sans\', sans-serif; '
+    'font-size: 10px; color: #949ba4;"> {marker}</span>'
+)
+
 
 @dataclass(frozen=True)
 class SnapshotMessage:
@@ -120,6 +127,7 @@ class SnapshotMessage:
     timestamp: float
     content: str  # already HTML-escaped with <br>, capped
     image_data_uri: str  # "" when there is nothing visual to embed
+    edited: bool = False  # renders the localized ``(editado)`` marker
 
 
 _avatar_cache: dict[str, str] = {}
@@ -333,6 +341,7 @@ def _bubble_markup(
     bubble_template: str,
     image_template: str,
     emojis: dict[str, str],
+    edited_marker: str = "",
 ) -> str:
     """One bubble's HTML from the resolved values (``{name}`` placeholders)."""
     from rosemary.core.cards import safe_format
@@ -349,6 +358,11 @@ def _bubble_markup(
             if info.image_data_uri
             else ""
         ),
+        "edited": (
+            _EDITED_BADGE.format(marker=_html.escape(edited_marker, quote=True))
+            if info.edited and edited_marker
+            else ""
+        ),
         **emojis,
     }
     return safe_format(bubble_template, mapping)
@@ -360,6 +374,7 @@ def render_snapshot(
     bubble: str | None = None,
     image: str | None = None,
     emojis: dict[str, str] | None = None,
+    edited_marker: str = "",
 ) -> bytes | None:
     """Rasterize the chat snapshot for the resolved bubbles (or ``None``).
 
@@ -367,6 +382,8 @@ def render_snapshot(
     bytes or ``None`` (no content, missing renderer, broken template) and
     callers degrade to a text-only card. Content-less bubbles render an
     em-space so the bubble frame still shows (a message can be image-only).
+    ``edited_marker`` is the localized ``(editado)`` text for bubbles flagged
+    ``edited`` (empty disables the marker).
     """
     if not infos:
         return None
@@ -387,8 +404,11 @@ def render_snapshot(
                 timestamp=info.timestamp,
                 content="&#8203;",  # zero-width space keeps the frame visible
                 image_data_uri=info.image_data_uri,
+                edited=info.edited,
             )
-        return _bubble_markup(filled, base_bubble, image_template, emojis)
+        return _bubble_markup(
+            filled, base_bubble, image_template, emojis, edited_marker
+        )
 
     items = "".join(render_one(info) for info in infos)
     # Fixed-width page (480 CSS px): the PNG keeps every snapshot at the
@@ -431,17 +451,35 @@ async def render_message_snapshot(bot, message, *, before=None) -> bytes | None:
 
         theme = theme_for(bot, getattr(message, "guild_id", None))
         templates = getattr(theme, "snapshot", None) or {}
+        guild_id = getattr(message, "guild_id", None)
+        marker = "(edited)"  # Discord's own English marker on catalog misses
+        try:
+            raw_marker = await bot.translator.raw(guild_id, "audit.edited_marker")
+            # A missing key comes back as the key itself (i18n fallback).
+            if (
+                isinstance(raw_marker, str)
+                and 0 < len(raw_marker) <= 30
+                and raw_marker != "audit.edited_marker"
+            ):
+                marker = raw_marker
+        except Exception:
+            pass
         info = await build_snapshot_message(bot, message, before=before)
         infos = [info]
         if before is not None and (before.content or "") != (message.content or ""):
             after = await build_snapshot_message(bot, message)
             infos = [info, after]
+        # The edit documents the BEFORE state: its bubble carries the marker
+        # (the after bubble is the new content, nothing edited about it).
+        if before is not None:
+            infos[0] = replace(infos[0], edited=True)
         return render_snapshot(
             infos,
             templates.get("page"),
             templates.get("bubble"),
             templates.get("image"),
             getattr(theme, "emojis", {}) or {},
+            edited_marker=marker,
         )
     except Exception:
         log.warning("chat snapshot render failed", exc_info=True)

@@ -1361,6 +1361,7 @@ tickets:
       description: 'Transcrição de {channel} (pedida por {moderator}).'
 audit:
   no_nickname: (sem apelido)
+  edited_marker: (editado)
   roles_gained: '**{plus} Ganhou:** {role}'
   roles_lost: '**{minus} Perdeu:** {role}'
   timeout_applied: Recebeu timeout até {duration}.

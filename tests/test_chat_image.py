@@ -295,6 +295,93 @@ def test_render_snapshot_edit_pair_renders_two_bubbles():
     assert len(two) > len(one), "two bubbles rasterize more content"
 
 
+def test_edited_marker_renders_only_on_flagged_bubbles():
+    """The localized marker rides the content only when ``edited`` is set."""
+    plain = _info("Teste")
+    marked = SnapshotMessage(
+        author_name="Limao",
+        author_color="#e74c3c",
+        author_avatar=_avatar_fallback("Limao"),
+        is_bot=False,
+        timestamp=1700000000.0,
+        content="Teste",
+        image_data_uri="",
+        edited=True,
+    )
+    png = render_snapshot([plain, marked], edited_marker="(editado)")
+    assert png is not None
+    # PNG pixels cannot be text-scanned; assert on the markup layer instead.
+    from rosemary.core.chat_image import _bubble_markup, default_templates
+
+    page_t, bubble_t = default_templates()
+    plain_html = _bubble_markup(plain, bubble_t, "<img src=\"{image}\" />", {}, "(editado)")
+    marked_html = _bubble_markup(marked, bubble_t, "<img src=\"{image}\" />", {}, "(editado)")
+    assert "(editado)" not in plain_html
+    assert "(editado)" in marked_html
+    # The marker is escape-safe (a marker containing HTML stays literal).
+    evil = _bubble_markup(
+        marked, bubble_t, "<img src=\"{image}\" />", {}, "<b>x</b>"
+    )
+    assert "<b>x</b>" not in evil and "&lt;b&gt;x&lt;/b&gt;" in evil
+
+
+async def test_edit_pair_flags_only_the_before_bubble():
+    """The snapshot documents the edit's BEFORE state: only its bubble gets
+    the marker, resolved from the guild's catalog (pt or en)."""
+    from unittest.mock import MagicMock
+
+    import rosemary.core.chat_image as chat_image
+
+    async def fake_build(bot_, message, *, before=None):
+        source = before if before is not None else message
+        return SnapshotMessage(
+            author_name="Limao",
+            author_color="#e74c3c",
+            author_avatar=_avatar_fallback("Limao"),
+            is_bot=False,
+            timestamp=1700000000.0,
+            content=source.content,
+            image_data_uri="",
+        )
+
+    before = MagicMock(content="antes")
+    after = MagicMock(content="depois")
+    after.guild_id = 1
+    translator = MagicMock()
+
+    async def raw(guild_id, key):
+        return {"audit.edited_marker": "(editado)"}.get(key, key)
+
+    translator.raw = raw
+    bot = MagicMock(translator=translator)
+    bot.theme = MagicMock()
+
+    captured: dict = {}
+
+    def fake_render(infos, *args, **kwargs):
+        captured["flags"] = [i.edited for i in infos]
+        captured["marker"] = kwargs.get("edited_marker")
+        return b"\x89PNG\r\n\x1a\n"
+
+    original_build = chat_image.build_snapshot_message
+    original_render = chat_image.render_snapshot
+    original_theme_for = chat_image.theme_for if hasattr(chat_image, "theme_for") else None
+    import rosemary.core.themes as themes_mod
+
+    original_theme_for = themes_mod.theme_for
+    chat_image.build_snapshot_message = fake_build
+    chat_image.render_snapshot = fake_render
+    themes_mod.theme_for = lambda bot_, gid: MagicMock(snapshot={}, emojis={})
+    try:
+        await chat_image.render_message_snapshot(bot, after, before=before)
+    finally:
+        chat_image.build_snapshot_message = original_build
+        chat_image.render_snapshot = original_render
+        themes_mod.theme_for = original_theme_for
+    assert captured["flags"] == [True, False]
+    assert captured["marker"] == "(editado)"
+
+
 def _png_bytes(size: int, rgba: bytes) -> bytes:
     import struct
     import zlib

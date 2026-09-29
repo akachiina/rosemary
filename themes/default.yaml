@@ -202,8 +202,9 @@ color_panel:
 # `bubble` is one message; `image` wraps an embedded attachment. Bubble
 # placeholders: {author_name}, {author_color} (#rrggbb top-role color),
 # {author_avatar} (data URI), {bot} (APP badge or empty), {time}
-# (dd/mm/yyyy hh:mm:ss), {content} (HTML-escaped, newlines as <br>, capped)
-# and {image}. Layout notes: WeasyPrint speaks a CSS subset - tables +
+# (dd/mm/yyyy hh:mm:ss), {content} (HTML-escaped, newlines as <br>, capped),
+# {edited} (the localized (editado) marker on edited-state bubbles) and
+# {image}. Layout notes: WeasyPrint speaks a CSS subset - tables +
 # inline-block render faithfully; flexbox/grid do not; HTML width/height
 # attributes on <img> are IGNORED (size images with CSS width/height only);
 # word-break: break-word is rejected (use overflow-wrap). Keep the image
@@ -223,7 +224,7 @@ snapshot:
     <td class="avatar" style="vertical-align: top; padding: 12px 0 12px 14px;"><img src="{author_avatar}" style="width: 40px; height: 40px; border-radius: 50%; display: block;" /></td>
     <td class="body" style="padding: 10px 14px 12px 12px;">
       <div class="header" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; font-weight: 600; color: #ffffff;">{author_name}{bot}<span class="time" style="font-size: 12px; font-weight: 400; color: #949ba4; margin-left: 8px;">{time}</span></div>
-      <div class="content" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; line-height: 1.3; color: #dcddde; white-space: pre-wrap; overflow-wrap: break-word;">{content}</div>
+      <div class="content" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; line-height: 1.3; color: #dcddde; white-space: pre-wrap; overflow-wrap: break-word;">{content}{edited}</div>
       {image}
     </td>
     </tr></table>
