@@ -641,3 +641,115 @@ async def test_roleplay_sentence_is_body_not_title_and_pings_both(tmp_path):
     )
     pinged = {obj.id for obj in (allowed.users or [])}
     assert pinged == {100, 200}, allowed
+
+
+def test_pick_gif_excludes_recent_urls():
+    """No-repeat memory: excluded urls are skipped while anything else stays."""
+    from rosemary.core.roleplay import pick_gif
+
+    gifs = [{"url": "a"}, {"url": "b"}]
+    for _ in range(20):
+        assert pick_gif(gifs, ["a"]) == {"url": "b"}
+    # Exhausted list repeats instead of sending nothing.
+    assert pick_gif([{"url": "a"}], ["a"]) == {"url": "a"}
+    # `api` entries carry no url yet: always eligible.
+    assert pick_gif([{"api": "hug"}], ["a"]) == {"api": "hug"}
+    assert pick_gif(gifs) in gifs
+
+
+async def test_recent_memory_roundtrip_and_cap(tmp_path):
+    """Recent urls persist per action, re-records rotate, oldest fall off."""
+    from rosemary.core.roleplay import RECENT_HISTORY, RoleplayStore
+
+    store = RoleplayStore(tmp_path)
+    assert await store.get_recent(1, "hug") == []
+    await store.remember_gif(1, "hug", "a")
+    await store.remember_gif(1, "hug", "b")
+    assert await store.get_recent(1, "hug") == ["a", "b"]
+    await store.remember_gif(1, "hug", "a")
+    assert await store.get_recent(1, "hug") == ["b", "a"]
+    assert await store.get_recent(1, "kiss") == []
+    for i in range(RECENT_HISTORY + 5):
+        await store.remember_gif(1, "hug", f"u{i}")
+    recent = await store.get_recent(1, "hug")
+    assert len(recent) == RECENT_HISTORY
+    assert recent[-1] == f"u{RECENT_HISTORY + 4}"
+
+
+async def test_fetch_fresh_retries_then_accepts_repeat():
+    """API collisions retry a few times; a stubborn repeat still sends."""
+    from unittest.mock import patch
+
+    from rosemary.core import roleplay
+
+    with patch.object(
+        roleplay, "fetch_nekos_gif", side_effect=["old", "old", "new"]
+    ) as fetch:
+        assert await roleplay._fetch_fresh("hug", {"old"}) == "new"
+        assert fetch.await_count == 3
+    with patch.object(roleplay, "fetch_nekos_gif", return_value="old"):
+        assert await roleplay._fetch_fresh("hug", {"old"}) == "old"
+    with patch.object(roleplay, "fetch_nekos_gif", return_value=None):
+        assert await roleplay._fetch_fresh("hug", {"old"}) is None
+
+
+async def test_send_with_no_repeat_avoids_last_gif(tmp_path):
+    """Setting on: the just-used gif is skipped and the new one remembered."""
+    from rosemary.cogs.roleplay import RoleplayCog
+
+    bot = _bot(tmp_path)
+    cog = RoleplayCog(bot)
+    await bot.storage.set(1, "roleplay.enabled", True)
+    await bot.storage.set(1, "roleplay.no_repeat_gifs", True)
+    await cog.store.set_gifs(
+        1, "hug", [{"url": "https://gifs/a.gif"}, {"url": "https://gifs/b.gif"}]
+    )
+    await cog.store.remember_gif(1, "hug", "https://gifs/a.gif")
+    channel = _channel()
+    guild = _guild(channel)
+
+    sent = await cog.send_interaction_card(
+        guild, _member(100), _member(200), "hug", channel=channel
+    )
+    assert sent is True
+    kwargs = channel.send.await_args.kwargs
+    gallery_urls = [
+        gallery.items[0].media.url
+        for gallery in kwargs["view"].walk_children()
+        if isinstance(gallery, discord.ui.MediaGallery)
+    ]
+    assert gallery_urls == ["https://gifs/b.gif"], gallery_urls
+    assert await cog.store.get_recent(1, "hug") == [
+        "https://gifs/a.gif",
+        "https://gifs/b.gif",
+    ]
+
+
+async def test_default_card_has_no_avatar(tmp_path):
+    """The default roleplay card shows no user image (thumbnail dropped)."""
+    from rosemary.cogs.roleplay import default_interaction_document
+
+    bot = _bot(tmp_path)
+    doc = await default_interaction_document(
+        bot,
+        1,
+        actor="<@100>",
+        target="<@200>",
+        actor_avatar="https://a.b/x.png",
+        action="abraçou",
+        gif_url="https://media.tenor.com/hug.gif",
+        timestamp="<t:1:R>",
+    )
+
+    def walk(node):
+        if isinstance(node, dict):
+            yield node
+            for value in node.values():
+                yield from walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                yield from walk(item)
+
+    blocks = list(walk(doc["blocks"]))
+    assert not [b for b in blocks if b.get("type") == "thumbnail"], blocks
+    assert not any("actor_avatar" in str(b) for b in blocks), blocks

@@ -134,11 +134,11 @@ async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
     """Catalog-default roleplay card (``roleplay.card``).
 
     Layout: the heading names only the action (the theme's ``title``
-    markdown template, ``# ...``, beside the actor's avatar thumbnail);
-    the action sentence itself is a body line, never the title. Both
-    members ping through ``{@actor}``/``{@target}`` content mentions. The
-    gif gallery self-drops when ``{gif_url}`` resolves empty; a divider
-    and the relative-timestamp footer close the card. Placeholders stay
+    markdown template, ``# ...``); the action sentence itself is a body
+    line, never the title. Both members ping through ``{@actor}``/``{@target}``
+    content mentions. No avatar: the card shows no user image. The gif
+    gallery self-drops when ``{gif_url}`` resolves empty; a divider and
+    the relative-timestamp footer close the card. Placeholders stay
     literal: this is a template resolved at render.
     """
     from rosemary.core.cards import safe_format
@@ -153,16 +153,11 @@ async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
     action_title = raw("{love_letter} {action}")
     heading = theme.md("title", title=action_title) if theme else f"# {action_title}"
     sentence = raw("{love_letter} {@actor} {action} {@target}")
-    avatar = str(variables.get("actor_avatar") or "{actor_avatar}")
     return {
         "v": 1,
         "blocks": [
             {"type": "container", "color": "brand", "children": [
-                {"type": "section",
-                 "accessory": {"type": "thumbnail", "url": avatar},
-                 "children": [
-                     {"type": "text", "body": heading},
-                 ]},
+                {"type": "text", "body": heading},
                 {"type": "text", "body": sentence},
                 {"type": "gallery", "urls": ["{gif_url}"]},
                 {"type": "divider"},
@@ -336,11 +331,20 @@ class RoleplayCog(commands.Cog):
         """
         guild_id = guild.id
         configured = await self.gifs_for(guild_id, action)
-        gif_url, from_api = await resolve_gif(configured, category_for(action))
+        no_repeat = bool(
+            await get_setting(self.bot.storage, guild_id, "roleplay.no_repeat_gifs")
+        )
+        recent = await self.store.get_recent(guild_id, action) if no_repeat else []
+        gif_url, from_api = await resolve_gif(
+            configured, category_for(action), recent
+        )
         if gif_url is None:
             return False
         if channel is None:
             return False
+        if no_repeat:
+            with contextlib.suppress(Exception):
+                await self.store.remember_gif(guild_id, action, gif_url)
         t = self.bot.translator.t
         action_text = await t(guild_id, _sentence_key(action))
         variables = {

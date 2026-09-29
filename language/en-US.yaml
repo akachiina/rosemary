@@ -106,6 +106,9 @@ settings:
     label: Roleplay enabled
     description: Gif roleplay cards (hug, kiss and friends).
   roleplay.manage: Manage gifs
+  roleplay.no_repeat_gifs:
+    label: Avoid repeated gifs
+    description: Never repeats the most recently used gifs of each action.
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.

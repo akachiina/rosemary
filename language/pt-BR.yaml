@@ -106,6 +106,9 @@ settings:
     label: Roleplay ativado
     description: Cards de roleplay com gif (abraçar, beijar e outros).
   roleplay.manage: Gerenciar gifs
+  roleplay.no_repeat_gifs:
+    label: Evitar gifs repetidos
+    description: Não repete os gifs usados recentemente em cada ação.
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.

@@ -268,6 +268,12 @@ SETTINGS: dict[str, SettingSpec] = {
             False,
         ),
         _spec(
+            "roleplay.no_repeat_gifs",
+            SettingCategory.ROLEPLAY,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
             "tickets.enabled",
             SettingCategory.TICKETS,
             SettingType.BOOLEAN,

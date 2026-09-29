@@ -62,6 +62,11 @@ DEFAULT_CATEGORIES["attack"] = "kick"
 #: a convenience, not an archive.
 REGIVE_HISTORY = 500
 
+#: Recent gif urls remembered per guild+action when the no-repeat setting is
+#: on (oldest dropped). Small on purpose: a static list shorter than this
+#: still repeats, but only after every other gif had its turn.
+RECENT_HISTORY = 10
+
 
 class RoleplayStore:
     """Per-guild gif overrides and regive contexts in ``roleplay.json``."""
@@ -128,10 +133,60 @@ class RoleplayStore:
         entry = table.get(str(message_id)) if isinstance(table, dict) else None
         return dict(entry) if isinstance(entry, dict) and entry.get("action") else None
 
+    #: recent gifs (no-repeat memory, one bounded list per action) -------------
 
-def pick_gif(gifs: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """One usable entry out of a configured list (random, url wins over api)."""
+    async def get_recent(self, guild_id: int, action: str) -> list[str]:
+        """Gif urls recently sent for ``action`` (oldest first, empty: unknown)."""
+        doc = await self._doc(guild_id)
+        recent = doc.get("recent")
+        entries = recent.get(action) if isinstance(recent, dict) else None
+        if not isinstance(entries, list):
+            return []
+        return [str(url) for url in entries if url]
+
+    async def remember_gif(self, guild_id: int, action: str, url: str) -> None:
+        """Record ``url`` as recently used for ``action`` (bounded, deduped).
+
+        Re-recording moves the url to the newest slot, so a repeat caused by
+        an exhausted list still rotates instead of pinning one entry.
+        """
+        url = str(url or "").strip()
+        if not url:
+            return
+        doc = await self._doc(guild_id)
+        table = doc.setdefault("recent", {})
+        entries = table.get(action)
+        if not isinstance(entries, list):
+            entries = []
+            table[action] = entries
+        entries = [kept for kept in entries if kept != url]
+        entries.append(url)
+        table[action] = entries[-RECENT_HISTORY:]
+        await self._save(guild_id, doc)
+
+
+def pick_gif(
+    gifs: list[dict[str, Any]], exclude: list[str] | None = None
+) -> dict[str, Any] | None:
+    """One usable entry out of a configured list (random, url wins over api).
+
+    ``exclude`` holds recently used urls (no-repeat memory): entries resolving
+    to one of them are skipped, unless that would leave nothing to send, in
+    which case the full list applies (a repeat beats silence).
+    """
     usable = [g for g in gifs if isinstance(g, dict) and (g.get("url") or g.get("api"))]
+    if exclude:
+        excluded = set(exclude)
+        # ``api`` entries carry no url yet, so they always survive the filter
+        # (their fetched gif is checked separately in resolve_gif).
+        fresh = [
+            g
+            for g in usable
+            if not str(g.get("url") or "").strip()
+            or str(g.get("url") or "").strip() not in excluded
+        ]
+        if fresh:
+            return random.choice(fresh)
     return random.choice(usable) if usable else None
 
 
@@ -165,30 +220,57 @@ async def fetch_nekos_gif(
     return None
 
 
+#: Fetch attempts per api entry before accepting a repeat (the API is
+#: random per call; a couple of retries usually find a fresh gif).
+API_RETRY_ATTEMPTS = 3
+
+
+async def _fetch_fresh(category: str, exclude: set[str]) -> str | None:
+    """A fetched gif url not in ``exclude`` (bounded retries, else ``None``).
+
+    Returns the repeat itself when every attempt collides: callers fall back
+    to the next layer instead of failing the send over a repeat.
+    """
+    last: str | None = None
+    for _ in range(API_RETRY_ATTEMPTS):
+        fetched = await fetch_nekos_gif(category)
+        if fetched is None:
+            return None
+        if fetched not in exclude:
+            return fetched
+        last = fetched
+    return last
+
+
 async def resolve_gif(
-    gifs: list[dict[str, Any]], fallback_category: str | None
+    gifs: list[dict[str, Any]],
+    fallback_category: str | None,
+    exclude: list[str] | None = None,
 ) -> tuple[str | None, bool]:
     """Effective ``(gif_url, from_api)`` for one action.
 
     ``gifs`` is the guild override list (or the theme's): a random entry
     wins; a static ``url`` is used as-is, an ``api`` entry fetches a fresh
-    gif. Empty list or unusable entries fall through to the built-in
+    gif. ``exclude`` holds recently used urls (no-repeat memory): static
+    urls in it are skipped by ``pick_gif``, fetched ones are retried a few
+    times. Empty list or unusable entries fall through to the built-in
     category. ``(None, True)`` is only returned when every layer fails
     (nothing configured or the API unreachable); ``from_api`` tells callers
     whether the url is ephemeral (no source link on the card).
     """
-    entry = pick_gif(gifs)
+    excluded = set(exclude or [])
+    entry = pick_gif(gifs, exclude)
     if entry is not None:
         url = str(entry.get("url") or "").strip()
         if url:
             return url, False
         category = str(entry.get("api") or "").strip()
         if category:
-            fetched = await fetch_nekos_gif(category)
+            fetched = await _fetch_fresh(category, excluded)
             if fetched:
                 return fetched, True
     if fallback_category:
-        fetched = await fetch_nekos_gif(fallback_category)
+        fetched = await _fetch_fresh(fallback_category, excluded)
         if fetched:
             return fetched, True
     return None, True
