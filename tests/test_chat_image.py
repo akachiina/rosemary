@@ -212,8 +212,8 @@ def test_avatar_renders_at_css_size():
     ]
     assert rects, "avatar image missing from the rendered PDF"
     width_css_px = rects[0].width / 0.75
-    assert 36 <= width_css_px <= 44, (
-        f"avatar rendered at {width_css_px:.0f} CSS px, expected ~40"
+    assert 44 <= width_css_px <= 52, (
+        f"avatar rendered at {width_css_px:.0f} CSS px, expected ~48"
     )
 
 

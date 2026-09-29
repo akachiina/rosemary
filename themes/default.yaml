@@ -201,11 +201,12 @@ color_panel:
 # __PAGE_W__/__PAGE_H__ anchor the PDF page; the PNG is cropped to content).
 # `bubble` is one message; `image` wraps an embedded attachment. Bubble
 # placeholders: {author_name}, {author_color} (#rrggbb top-role color),
-# {author_avatar} (data URI), {bot} (APP badge or empty), {time} (HH:MM),
-# {content} (HTML-escaped, newlines as <br>, capped) and {image}. Layout
-# notes: WeasyPrint speaks a CSS subset - tables + inline-block render
-# faithfully; flexbox/grid do not, and HTML width/height attributes on <img>
-# are IGNORED: size images with CSS width/height only. No overflow rule:
+# {author_avatar} (data URI), {bot} (APP badge or empty), {time}
+# (dd/mm/yyyy hh:mm:ss), {content} (HTML-escaped, newlines as <br>, capped)
+# and {image}. Layout notes: WeasyPrint speaks a CSS subset - tables +
+# inline-block render faithfully; flexbox/grid do not; HTML width/height
+# attributes on <img> are IGNORED (size images with CSS width/height only);
+# word-break: break-word is rejected (use overflow-wrap). No overflow rule:
 # text is pre-capped.
 snapshot:
   page: |
@@ -215,11 +216,11 @@ snapshot:
     </style>
     <div class="page">__ITEMS__</div>
   bubble: |
-    <table class="bubble" style="background: #2b2d31; border-left: 4px solid {author_color}; border-radius: 8px; margin: 0 0 12px 0; padding: 0; border-collapse: collapse; border-spacing: 0;"><tr>
-    <td class="avatar" style="vertical-align: top; padding: 12px 0 12px 12px;"><img src="{author_avatar}" style="width: 40px; height: 40px; border-radius: 50%; display: block;" /></td>
-    <td class="body" style="padding: 10px 16px 12px 12px;">
-      <div class="header" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; font-weight: 600; color: {author_color};">{author_name}{bot}<span class="time" style="font-size: 11px; font-weight: 400; color: #949ba4; margin-left: 6px;">{time}</span></div>
-      <div class="content" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; color: #dbdee1; white-space: pre-wrap; word-break: break-word;">{content}</div>
+    <table class="bubble" style="background: #32353b; border-radius: 8px; margin: 0 0 12px 0; padding: 0; border-collapse: collapse; border-spacing: 0;"><tr>
+    <td class="avatar" style="vertical-align: middle; padding: 14px 0 14px 16px;"><img src="{author_avatar}" style="width: 48px; height: 48px; border-radius: 50%; display: block;" /></td>
+    <td class="body" style="padding: 12px 16px 12px 12px;">
+      <div class="header" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 16px; font-weight: 600; color: #ffffff;">{author_name}{bot}<span class="time" style="font-size: 12px; font-weight: 400; color: #949ba4; margin-left: 8px;">{time}</span></div>
+      <div class="content" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; color: #dcddde; white-space: pre-wrap; overflow-wrap: break-word;">{content}</div>
       {image}
     </td>
     </tr></table>

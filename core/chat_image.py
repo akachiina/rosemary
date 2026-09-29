@@ -13,9 +13,11 @@ caller before this module sees the template):
 
 * page: ``{items}`` (the concatenated bubbles) and ``{guild_name}``;
 * bubble: ``{author_name}``, ``{author_color}`` (``#rrggbb``, the author's
-  top role color), ``{author_avatar}`` (data URI or an SVG fallback with the
-  author's initial), ``{bot}`` (``APP`` badge markup or ``""``), ``{time}``
-  (``HH:MM``), ``{content}`` (HTML-escaped, newlines as ``<br>``, capped at
+  top role color; available to theme templates, the default bubble renders
+  the name white like Discord does), ``{author_avatar}`` (data URI or an
+  SVG fallback with the author's initial), ``{bot}`` (``APP`` badge markup
+  or ``""``), ``{time}`` (``dd/mm/yyyy hh:mm:ss``, the bot host's local
+  time), ``{content}`` (HTML-escaped, newlines as ``<br>``, capped at
   :data:`_MAX_CONTENT` chars) and ``{image}`` (data URI of the first image
   attachment or non-lottie sticker, or ``""``).
 
@@ -59,22 +61,22 @@ html, body { margin: 0; padding: 0; background: transparent; }
 <div class="page">__ITEMS__</div>"""
 
 DEFAULT_BUBBLE = (
-    '<table class="bubble" style="background: #2b2d31; border-left: 4px solid '
-    '{author_color}; border-radius: 8px; margin: 0 0 12px 0; padding: 0; '
-    'border-collapse: collapse; border-spacing: 0;"><tr>\n'
-    '<td class="avatar" style="vertical-align: top; padding: 12px 0 12px 12px;">'
+    '<table class="bubble" style="background: #32353b; border-radius: 8px; '
+    'margin: 0 0 12px 0; padding: 0; border-collapse: collapse; '
+    'border-spacing: 0;"><tr>\n'
+    '<td class="avatar" style="vertical-align: middle; padding: 14px 0 14px 16px;">'
     '<img src="{author_avatar}" '
-    'style="width: 40px; height: 40px; border-radius: 50%; display: block;" />'
+    'style="width: 48px; height: 48px; border-radius: 50%; display: block;" />'
     '</td>\n'
-    '<td class="body" style="padding: 10px 16px 12px 12px;">\n'
+    '<td class="body" style="padding: 12px 16px 12px 12px;">\n'
     '  <div class="header" style="font-family: \'Segoe UI\', \'Ubuntu\', '
-    '\'Noto Sans\', sans-serif; font-size: 15px; font-weight: 600; '
-    'color: {author_color};">{author_name}{bot}'
-    '<span class="time" style="font-size: 11px; font-weight: 400; '
-    'color: #949ba4; margin-left: 6px;">{time}</span></div>\n'
+    '\'Noto Sans\', sans-serif; font-size: 16px; font-weight: 600; '
+    'color: #ffffff;">{author_name}{bot}'
+    '<span class="time" style="font-size: 12px; font-weight: 400; '
+    'color: #949ba4; margin-left: 8px;">{time}</span></div>\n'
     '  <div class="content" style="font-family: \'Segoe UI\', \'Ubuntu\', '
-    '\'Noto Sans\', sans-serif; font-size: 15px; color: #dbdee1; '
-    'white-space: pre-wrap; word-break: break-word;">{content}</div>\n'
+    '\'Noto Sans\', sans-serif; font-size: 15px; color: #dcddde; '
+    'white-space: pre-wrap; overflow-wrap: break-word;">{content}</div>\n'
     '  {image}\n</td>\n</tr></table>'
 )
 
@@ -85,9 +87,9 @@ DEFAULT_BUBBLE_IMAGE = (
 
 _SVG_AVATAR = (
     "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' "
-    "width='40' height='40'><rect width='40' height='40' rx='20' "
-    "fill='%235865F2'/><text x='20' y='27' font-family='sans-serif' "
-    "font-size='18' fill='white' text-anchor='middle'>{initial}</text></svg>"
+    "width='48' height='48'><rect width='48' height='48' rx='24' "
+    "fill='%235865F2'/><text x='24' y='32' font-family='sans-serif' "
+    "font-size='21' fill='white' text-anchor='middle'>{initial}</text></svg>"
 )
 
 _BOT_BADGE = (
@@ -264,6 +266,8 @@ async def build_snapshot_message(
                 color_value = f"{value:06x}"
     moment = getattr(source, "created_at", None)
     stamp = moment.timestamp() if moment is not None else time.time()
+    # True epoch: the bubble renders it in the bot host's local wall clock
+    # (a chat screenshot shows local time, like Discord's own tooltips).
     content = _capped(_escape(source.content or ""))
     image_uri = await _image_data_uri(message)
     avatar_uri = await _avatar_data_uri(bot, author)
@@ -292,7 +296,7 @@ def _bubble_markup(
         "author_color": info.author_color,
         "author_avatar": info.author_avatar,
         "bot": _BOT_BADGE if info.is_bot else "",
-        "time": time.strftime("%H:%M", time.gmtime(info.timestamp)),
+        "time": time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(info.timestamp)),
         "content": info.content,
         "image": (
             image_template.format(image=info.image_data_uri)
