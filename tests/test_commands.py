@@ -25,7 +25,17 @@ class _Bot(commands.Bot):
 
 
 def _all_commands(bot: _Bot) -> list:
-    return list(bot.pending_application_commands)
+    """Top-level commands plus every nested group subcommand."""
+    found = []
+
+    def walk(cmd) -> None:
+        found.append(cmd)
+        for sub in getattr(cmd, "subcommands", None) or []:
+            walk(sub)
+
+    for cmd in bot.pending_application_commands:
+        walk(cmd)
+    return found
 
 
 def test_command_option_raw_types_are_classes() -> None:
@@ -47,9 +57,15 @@ def test_command_option_raw_types_are_classes() -> None:
 
     bot.add_cog(BumpReminderCog(bot))
     bot.add_cog(BumpLeaderboardCog(bot))
-    from rosemary.cogs.interactions import InteractionsCog
+    # Mirror production: the shared `/bump` group is registered explicitly.
+    from rosemary.bot import rebind_shared_group_commands
+    from rosemary.cogs.bump_leaderboard import bump_group
 
-    bot.add_cog(InteractionsCog(bot))
+    bot.add_application_command(bump_group)
+    rebind_shared_group_commands(bot)
+    from rosemary.cogs.roleplay import RoleplayCog
+
+    bot.add_cog(RoleplayCog(bot))
 
     commands_ = _all_commands(bot)
     assert commands_, "expected the new slash commands to be registered"
@@ -63,26 +79,26 @@ def test_command_option_raw_types_are_classes() -> None:
         "settings",
         "debug",
         "boost",
-        "boost_admin",
-        "bump_leaderboard",
-        "bump_stats",
-        "test_bump",
-        "test_bump_reminder",
-        "bump_status",
-        "test_bump_leaderboard",
-        "reset_bump_week",
-        "add_test_bumps",
+        "boost admin",
+        "bump leaderboard",
+        "bump stats",
+        "bump test",
+        "bump test_reminder",
+        "bump status",
+        "bump test_leaderboard",
+        "bump reset_week",
+        "bump add_test",
         "userinfo",
         "emojiinfo",
         "roleinfo",
         "channelinfo",
-        "roleplay_hug",
-        "roleplay_kiss",
-        "roleplay_cuddle",
+        "roleplay hug",
+        "roleplay kiss",
+        "roleplay cuddle",
     } <= {c.qualified_name for c in commands_}
 
     for cmd in commands_:
-        for option in cmd.options:
+        for option in getattr(cmd, "options", []):
             raw = option._raw_type
             assert not isinstance(raw, str), (
                 f"command {cmd.qualified_name!r} option {option.name!r} has a "

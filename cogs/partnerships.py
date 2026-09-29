@@ -24,6 +24,12 @@ log = logging.getLogger(__name__)
 class PartnershipsCog(commands.Cog):
     """Server partnership ads and renewal."""
 
+    partnerships_group = discord.SlashCommandGroup(
+        "partnerships",
+        description="Manage server partnerships",
+        contexts={discord.InteractionContextType.guild},
+    )
+
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = PartnershipStore(bot.storage.data_dir)
@@ -247,11 +253,10 @@ class PartnershipsCog(commands.Cog):
 
     #: commands ------------------------------------------------------------------
 
-    @discord.slash_command(
-        name="partnerships_add",
+    @partnerships_group.command(
+        name="add",
         description="[ADMIN] Add a partnership",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def partnerships_add(
         self,
@@ -321,11 +326,10 @@ class PartnershipsCog(commands.Cog):
         )
         await ctx.send_modal(modal)
 
-    @discord.slash_command(
-        name="partnerships_remove",
+    @partnerships_group.command(
+        name="remove",
         description="[ADMIN] Remove a partnership",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def partnerships_remove(
         self,
@@ -363,10 +367,9 @@ class PartnershipsCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="partnerships_renew",
+    @partnerships_group.command(
+        name="renew",
         description="Renew your partnership ad",
-        contexts={discord.InteractionContextType.guild},
     )
     async def partnerships_renew(self, ctx: discord.ApplicationContext) -> None:
         """Re-post your own partnership ad and reset its renewal clock."""
@@ -397,11 +400,10 @@ class PartnershipsCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="partnerships_invite",
+    @partnerships_group.command(
+        name="invite",
         description="[ADMIN] Post the partnership invite text",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def partnerships_invite(
         self,
@@ -444,11 +446,10 @@ class PartnershipsCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="partnerships_list",
+    @partnerships_group.command(
+        name="list",
         description="[ADMIN] List partnerships",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def partnerships_list(self, ctx: discord.ApplicationContext) -> None:
         """List partnerships with days left until renewal."""
@@ -500,11 +501,10 @@ class PartnershipsCog(commands.Cog):
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
-        name="partnerships_audit",
+    @partnerships_group.command(
+        name="audit",
         description="[ADMIN] Audit partnerships without acting",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def partnerships_audit(self, ctx: discord.ApplicationContext) -> None:
         """Report expired and orphan partnerships (read-only)."""
@@ -559,11 +559,10 @@ class PartnershipsCog(commands.Cog):
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
-        name="partnerships_clean",
+    @partnerships_group.command(
+        name="clean",
         description="[ADMIN] Remove orphan partnerships",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def partnerships_clean(self, ctx: discord.ApplicationContext) -> None:
         """Delete records (and ads) whose representative left the server."""

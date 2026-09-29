@@ -105,7 +105,7 @@ class SettingsMenuView(MenuView):
         self.register("settings_test_open", self._open_tests)
         self.register("settings_test_close", self._close_tests)
         self.register("settings_colors_manage", self._open_colors)
-        self.register("settings_interactions_manage", self._open_interactions)
+        self.register("settings_roleplay_manage", self._open_roleplay)
 
     #: handlers ----------------------------------------------------------
 
@@ -125,13 +125,13 @@ class SettingsMenuView(MenuView):
         await interaction.edit(view=manager)
         self.stop()
 
-    async def _open_interactions(self, interaction: discord.Interaction) -> None:
+    async def _open_roleplay(self, interaction: discord.Interaction) -> None:
         """Swap into the gif manager on the same message (color-manager pattern)."""
-        from rosemary.ui.interactions_menu import InteractionsManagerView
+        from rosemary.ui.roleplay_menu import RoleplayManagerView
 
         if not interaction.response.is_done():
             await interaction.response.defer()
-        manager = InteractionsManagerView(
+        manager = RoleplayManagerView(
             self.bot, self.guild_id, self.author_id or interaction.user.id
         )
         await manager.prepare()
@@ -583,11 +583,11 @@ class SettingsMenuView(MenuView):
                     style=discord.ButtonStyle.primary,
                 )
             )
-        if self.category is SettingCategory.INTERACTIONS:
+        if self.category is SettingCategory.ROLEPLAY:
             nav.append(
                 self.make_button(
-                    custom_id="settings_interactions_manage",
-                    label=await t(self.guild_id, "settings.interactions.manage"),
+                    custom_id="settings_roleplay_manage",
+                    label=await t(self.guild_id, "settings.roleplay.manage"),
                     emoji=theme.emojis.get("people", ""),
                     style=discord.ButtonStyle.primary,
                 )

@@ -93,3 +93,55 @@ async def test_post_current_leaderboard_missing_channel_returns_false(tmp_path):
     posted = await cog.post_current_leaderboard(1)
 
     assert posted is False
+
+
+async def test_weekly_post_mentions_winner(tmp_path):
+    """The weekly post must visibly mention the winner AND allow the ping:
+    the description resolves `{@winner_mention}` and allowed covers the id."""
+    from datetime import UTC, datetime
+    from pathlib import Path
+    from unittest.mock import patch
+
+    import rosemary.core.card_specs  # noqa: F401 (fills the card registry)
+    from rosemary.core.i18n import Translator
+    from rosemary.core.mentions import allowed_for_ids
+
+    async def resolver(gid):
+        return "pt-BR"
+
+    theme = load_theme()
+    translator = Translator(
+        Path(__file__).resolve().parents[1] / "language",
+        resolver=resolver,
+        default_placeholders=theme.emojis,
+    )
+    storage = GuildStorage(tmp_path)
+    bot = MagicMock()
+    bot.translator = translator
+    bot.theme = theme
+    bot.storage = storage
+
+    cog = object.__new__(BumpLeaderboardCog)
+    cog.bot = bot
+    cog.bump_store = MagicMock(
+        get_week_start=AsyncMock(return_value=datetime.now(UTC))
+    )
+    channel = AsyncMock(spec=discord.TextChannel)
+    guild = MagicMock()
+    guild.id = 1
+    guild.get_member = MagicMock(return_value=None)
+
+    with patch("rosemary.core.themes.card_document", AsyncMock(return_value=None)):
+        await cog._post_leaderboard(guild, channel, [(111, 5), (222, 3)], 111, 5, "MVP")
+
+    kwargs = channel.send.await_args.kwargs
+    texts = [
+        item.content
+        for item in kwargs["view"].walk_children()
+        if isinstance(item, discord.ui.TextDisplay)
+    ]
+    assert any("<@111>" in text for text in texts), texts
+    allowed = await allowed_for_ids(
+        bot, 1, "bump.leaderboard", user_ids=[111]
+    )
+    assert {obj.id for obj in (allowed.users or [])} == {111}, allowed

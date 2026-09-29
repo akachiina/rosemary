@@ -174,7 +174,8 @@ SHARED_EXTRA_LOGS = [
 #: ("everything the bot sends is theme-customizable", user mandate).
 CONTENT_CARDS = {
     "starboard.card": (
-        "user", "user_name", "user_avatar", "stars", "title", "body", "image_url", "timestamp",
+        "user", "user_name", "user_avatar", "stars", "title", "body", "image_url",
+        "message_link", "timestamp",
     ),
     "utility.ping": ("ms",),
     "utility.serverinfo": (
@@ -273,7 +274,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "anti_invite.warning": ("user",),
     "trap.dm": ("server", "action"),
     "trap.notice": ("server", "action"),
-    "interactions.card": (
+    "roleplay.card": (
         "actor", "target", "actor_avatar", "action", "gif_url", "timestamp",
         "title", "body",
     ),
@@ -295,7 +296,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "invites.blacklist": ("title", "body"),
     "bump.status": ("title", "body"),
     "reminders.list": ("title", "body"),
-    "interactions.manager": ("action",),
+    "roleplay.manager": ("action",),
 }
 
 for _name, _rich in AUDIT_CARDS:
@@ -504,14 +505,14 @@ def _build() -> list[CardSpec]:
     ]
     specs += [
         CardSpec(
-            key="interactions.card",
-            category="interactions",
+            key="roleplay.card",
+            category="roleplay",
             rich=True,
-            variables=VARIABLES_BY_KEY["interactions.card"],
+            variables=VARIABLES_BY_KEY["roleplay.card"],
             mention_default="single",
         )
     ]
-    specs += [_spec("interactions.manager", "interactions")]
+    specs += [_spec("roleplay.manager", "roleplay")]
     return specs
 
 

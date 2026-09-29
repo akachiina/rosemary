@@ -210,6 +210,12 @@ def _register_all(bot: commands.Bot) -> None:
         WelcomeCog,
     ):
         bot.add_cog(cog_class(bot))
+    # Mirror production: the shared `/bump` group is registered explicitly.
+    from rosemary.bot import rebind_shared_group_commands
+    from rosemary.cogs.bump_leaderboard import bump_group
+
+    bot.add_application_command(bump_group)
+    rebind_shared_group_commands(bot)
 
 
 def _resolver(language: str):
@@ -238,12 +244,86 @@ async def test_every_command_localizes_to_valid_discord_name(language: str) -> N
         LANG_DIR, resolver=_resolver(language), default_placeholders=theme.emojis
     )
     invalid: list[str] = []
+
+    async def resolve(key: str) -> str:
+        return await translator.t(1, f"{key}.command.name")
+
     for cmd in bot.pending_application_commands:
-        name = await translator.t(1, f"{cmd.name}.command.name")
+        name = await resolve(cmd.name)
         if (
             not _COMMAND_NAME_RE.match(name)
             or name != name.lower()
             or name == f"{cmd.name}.command.name"
         ):
             invalid.append(f"{cmd.name!r} -> {name!r}")
+        # Group subcommands resolve like production (`_localize_subcommand`):
+        # `{group}_{sub}.command` first, then the bare `{sub}.command`.
+        stack = list(getattr(cmd, "subcommands", None) or [])
+        while stack:
+            sub = stack.pop()
+            stack.extend(getattr(sub, "subcommands", None) or [])
+            key = None
+            for candidate in (f"{cmd.name}_{sub.name}", sub.name):
+                if await resolve(candidate) != f"{candidate}.command.name":
+                    key = candidate
+                    break
+            if key is None:
+                continue
+            sub_name = await resolve(key)
+            if (
+                not _COMMAND_NAME_RE.match(sub_name)
+                or sub_name != sub_name.lower()
+            ):
+                invalid.append(f"{key!r} -> {sub_name!r}")
     assert invalid == []
+
+
+@pytest.mark.parametrize(
+    "language,group_name,sub_name",
+    [("pt-BR", "roleplay", "beijar"), ("en-US", "roleplay", "kiss")],
+)
+async def test_group_subcommands_localize_per_guild(
+    language: str, group_name: str, sub_name: str
+) -> None:
+    """The reported bug: PT guilds must see `/roleplay beijar`, not bare
+    `/beijar`. Restores every mutated name/description: the group object
+    is shared module state."""
+    from rosemary.bot import _walk_subcommands
+    from rosemary.cogs.roleplay import roleplay_group
+
+    bot = RosemaryBot.__new__(RosemaryBot)
+    theme = load_theme()
+    translator = Translator(
+        LANG_DIR,
+        resolver=_resolver(language),
+        default_placeholders=theme.emojis,
+    )
+    bot.translator = translator
+    bot._command_base_keys = {"roleplay": roleplay_group}
+    bot._subcommand_base_keys = {
+        id(sub): sub.name for sub in _walk_subcommands(roleplay_group)
+    }
+    synced: list = []
+
+    async def sync_commands(*, guild_ids=None, **kwargs):
+        synced.append(list(guild_ids or []))
+
+    bot.sync_commands = sync_commands  # type: ignore[method-assign]
+
+    saved = [
+        (cmd, cmd.name, cmd.description)
+        for cmd in (roleplay_group, *_walk_subcommands(roleplay_group))
+    ]
+    try:
+        await bot._sync_guild_commands(SimpleNamespace(id=1))
+        assert roleplay_group.name == group_name
+        kiss = next(
+            s
+            for s in roleplay_group.subcommands
+            if "kiss" in (s.name, bot._subcommand_base_keys.get(id(s), ""))
+        )
+        assert kiss.name == sub_name, kiss.name
+    finally:
+        for cmd, name, description in saved:
+            cmd.name = name
+            cmd.description = description

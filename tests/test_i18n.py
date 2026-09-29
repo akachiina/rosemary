@@ -164,21 +164,30 @@ async def test_theme_emojis_are_auto_injected():
 
 async def test_leaderboard_week_end_timestamp_renders():
     """The 'week ends in' line renders a relative timestamp in both catalogs."""
+    from rosemary.core.cards import safe_format_mentions
+
     theme = load_theme()
     pt = Translator(LANG_DIR, resolver=_resolver("pt-BR"), default_placeholders=theme.emojis)
-    desc = await pt.t(
-        1,
-        "bump.messages.leaderboard_description",
-        start_timestamp=111,
-        end_timestamp=222,
-        next_reset_timestamp=333,
-        winner_mention="<@1>",
-        winner_count=1,
-        role_name="Bump-MVP",
-        leaderboard_list="- x",
+    # The winner line is a `{@winner_mention}` content mention: resolved with
+    # safe_format_mentions, never t() (str.format chokes on the marker).
+    template = await pt.raw(1, "bump.messages.leaderboard_description")
+    desc, mentions = safe_format_mentions(
+        template,
+        {
+            **theme.emojis,
+            "start_timestamp": 111,
+            "end_timestamp": 222,
+            "next_reset_timestamp": 333,
+            "winner_mention": "<@1>",
+            "winner_count": 1,
+            "role_name": "Bump-MVP",
+            "leaderboard_list": "- x",
+        },
     )
     assert "<t:333:R>" in desc
     assert "⏳" in desc
+    assert "<@1>" in desc
+    assert mentions.get("winner_mention") == ("user", 1)
     assert await pt.t(1, "bump.stats.week_end", next_reset_ts=444) == (
         "⏳ A semana termina em: <t:444:R>"
     )

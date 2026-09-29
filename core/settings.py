@@ -24,7 +24,7 @@ from rosemary.core.time_parser import TimeParser
 log = logging.getLogger(__name__)
 
 #: Default idle timeout (seconds) for interactive menus. Discord rejects
-#: message-component interactions after 15 minutes, so 900 is the hard cap.
+#: message-component clicks stop working after 15 minutes, so 900 is the hard cap.
 MENU_TIMEOUT = 900
 
 
@@ -58,7 +58,7 @@ class SettingCategory(StrEnum):
     PARTNERSHIPS = "partnerships"
     BROADCAST_REMINDERS = "broadcast_reminders"
     COLORS = "colors"
-    INTERACTIONS = "interactions"
+    ROLEPLAY = "roleplay"
 
 
 @dataclass(frozen=True)
@@ -262,8 +262,8 @@ SETTINGS: dict[str, SettingSpec] = {
             max_value=_COLORS_MAX,
         ),
         _spec(
-            "interactions.enabled",
-            SettingCategory.INTERACTIONS,
+            "roleplay.enabled",
+            SettingCategory.ROLEPLAY,
             SettingType.BOOLEAN,
             False,
         ),
@@ -990,10 +990,20 @@ def format_value(spec: SettingSpec, value: Any) -> FormattedValue:
     return FormattedValue(str(value), translate=False, is_default=is_default)
 
 
+#: Renamed setting keys and the legacy key each reads through (lazy
+#: migration: guilds that saved the old key keep its value until the next
+#: menu save persists it canonically; the old key is never written again).
+_RENAMED_KEYS: dict[str, str] = {
+    "roleplay.enabled": "interactions.enabled",
+}
+
+
 async def get_setting(storage: GuildStorage, guild_id: int, key: str) -> Any:
     """Return the effective value for a setting, falling back to its default."""
     spec = SETTINGS[key]
     data = await storage.get(guild_id)
+    if key not in data and key in _RENAMED_KEYS and _RENAMED_KEYS[key] in data:
+        data = {**data, key: data[_RENAMED_KEYS[key]]}
     ok, value = coerce_value(spec, data.get(key, spec.default))
     if ok:
         if spec.value_type is SettingType.CHANNEL_LIST:

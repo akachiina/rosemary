@@ -1,4 +1,4 @@
-"""Interactions (roleplay): gif sources, resolution layers and the card flow.
+"""Roleplay (roleplay): gif sources, resolution layers and the card flow.
 
 Locks the relaunched contract: gif resolution in layers (guild override ->
 theme -> nekos.best default category), random pick inside a configured
@@ -215,16 +215,25 @@ def _walk_custom_ids(node) -> list[str | None]:
     return found
 
 
-async def test_action_commands_registered_at_init(tmp_path):
-    """Commands must be pending BEFORE bot.py snapshots ``_command_base_keys``
-    (add_cog time): registered from __init__, not from the async start() task,
-    or the per-guild localization misses them and every guild gets the raw
-    English ``roleplay_hug`` instead of ``/abracar``."""
-    from rosemary.cogs.interactions import InteractionsCog
+async def test_action_subcommands_attached_to_group(tmp_path):
+    """One subcommand per action rides on the shared group, attached at import
+    (py-cord copies the group at class-definition time, so anything attached
+    later would never reach the registered copy)."""
+    from discord.ext import commands
 
-    bot = _bot(tmp_path)
-    InteractionsCog(bot)
-    assert bot.add_application_command.call_count == len(ACTIONS)
+    from rosemary.cogs.roleplay import RoleplayCog, roleplay_group
+    from rosemary.core.storage import GuildStorage
+    from rosemary.ui.theme import load_theme
+
+    bot = commands.Bot(command_prefix=None)
+    bot.storage = GuildStorage(tmp_path)
+    bot.theme = load_theme()
+    bot.add_cog(RoleplayCog(bot))
+    by_name = {c.name: c for c in roleplay_group.subcommands}
+    assert set(ACTIONS) <= set(by_name)
+    registered = {c.name for c in bot.pending_application_commands}
+    assert "roleplay" in registered
+    assert not (set(ACTIONS) & registered), "subcommands must not be top-level"
 
 
 async def test_start_registers_dispatcher_with_real_children(tmp_path):
@@ -232,10 +241,10 @@ async def test_start_registers_dispatcher_with_real_children(tmp_path):
     py-cord's ViewStore indexes only walk_children() results, so an empty
     view registers nothing and every click dies as "did not respond" (the
     colors-panel lesson)."""
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
+    cog = RoleplayCog(bot)
     bot.add_view = MagicMock()
     bot.add_application_command = MagicMock()
     await cog.start()
@@ -247,11 +256,11 @@ async def test_start_registers_dispatcher_with_real_children(tmp_path):
 async def test_card_flow_posts_gallery_and_regive(tmp_path):
     """Enabled + static gif configured: one card with the sentence, gallery
     and the regive row; the message id lands in the regive table."""
-    from rosemary.cogs.interactions import _REGIVE_PREFIX, InteractionsCog
+    from rosemary.cogs.roleplay import _REGIVE_PREFIX, RoleplayCog
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
-    await bot.storage.set(1, "interactions.enabled", True)
+    cog = RoleplayCog(bot)
+    await bot.storage.set(1, "roleplay.enabled", True)
     await cog.store.set_gifs(1, "hug", [{"url": "https://media.tenor.com/hug.gif"}])
     channel = _channel()
     guild = _guild(channel)
@@ -275,11 +284,11 @@ async def test_theme_api_seed_posts_without_configuration(tmp_path):
     default theme seeds every action with one)."""
     from unittest.mock import patch
 
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
     from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
+    cog = RoleplayCog(bot)
     channel = _channel()
     guild = _guild(channel)
 
@@ -301,11 +310,11 @@ async def test_no_source_anywhere_returns_false(tmp_path):
     (False), so they answer with the no-gif notice instead of silence."""
     from unittest.mock import patch
 
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
     from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
+    cog = RoleplayCog(bot)
     channel = _channel()
     guild = _guild(channel)
 
@@ -321,12 +330,12 @@ async def test_no_gif_slash_answers_ephemeral_notice(tmp_path):
     """Slash command without a working gif source: ephemeral error, not silence."""
     from unittest.mock import patch
 
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
     from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
-    await bot.storage.set(1, "interactions.enabled", True)
+    cog = RoleplayCog(bot)
+    await bot.storage.set(1, "roleplay.enabled", True)
     order = []
 
     class FakeResponse:
@@ -347,7 +356,7 @@ async def test_no_gif_slash_answers_ephemeral_notice(tmp_path):
     ctx.respond = fake_respond
 
     with patch.object(roleplay, "fetch_nekos_gif", return_value=None):
-        await cog._slash_run(ctx, "hug", _member(200), "x")
+        await cog._slash_run(ctx, "hug", _member(200))
     responds = [entry for entry in order if entry[0] == "respond"]
     assert len(responds) == 1
     text, kwargs = responds[0][1], responds[0][2]
@@ -359,12 +368,12 @@ async def test_no_gif_prefix_replies_with_notice(tmp_path):
     """Prefix trigger without a working gif source: the invocation gets a reply."""
     from unittest.mock import patch
 
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
     from rosemary.core import roleplay
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
-    await bot.storage.set(1, "interactions.enabled", True)
+    cog = RoleplayCog(bot)
+    await bot.storage.set(1, "roleplay.enabled", True)
     await bot.storage.set(1, "general.prefix", "!")
     channel = _channel()
     guild = _guild(channel)
@@ -386,10 +395,10 @@ async def test_no_gif_prefix_replies_with_notice(tmp_path):
 
 async def test_static_gif_adds_source_link(tmp_path):
     """A fixed gif carries the Fonte link button; an API gif does not."""
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
+    cog = RoleplayCog(bot)
     await cog.store.set_gifs(1, "hug", [{"url": "https://media.tenor.com/hug.gif"}])
     channel = _channel()
     guild = _guild(channel)
@@ -397,7 +406,7 @@ async def test_static_gif_adds_source_link(tmp_path):
     await cog.send_interaction_card(guild, _member(100), _member(200), "hug", channel=channel)
     sent_view = channel.send.await_args.kwargs.get("view")
     custom_ids = _walk_custom_ids(sent_view)
-    assert "interactions_regive" in custom_ids
+    assert "roleplay_regive" in custom_ids
     link_buttons = [
         item
         for item in sent_view.walk_children()
@@ -414,10 +423,10 @@ async def test_manager_rerender_never_duplicates_custom_ids(tmp_path):
     manager added its rows directly in prepare(), so every rerender stacked a
     second copy of each row and Discord rejected the edit. The MenuView
     contract (build_items returning a fresh list) must keep the ids unique."""
-    from rosemary.ui.interactions_menu import InteractionsManagerView
+    from rosemary.ui.roleplay_menu import RoleplayManagerView
 
     bot = _bot(tmp_path)
-    view = InteractionsManagerView(bot, 1, 100)
+    view = RoleplayManagerView(bot, 1, 100)
 
     def collect(view_):
         found = []
@@ -454,10 +463,10 @@ async def test_manager_rerender_never_duplicates_custom_ids(tmp_path):
 
 async def test_manager_add_modal_validates_and_persists(tmp_path):
     """The add modal stores url and/or api entries; garbage is rejected."""
-    from rosemary.ui.interactions_menu import InteractionsManagerView
+    from rosemary.ui.roleplay_menu import RoleplayManagerView
 
     bot = _bot(tmp_path)
-    view = InteractionsManagerView(bot, 1, 100)
+    view = RoleplayManagerView(bot, 1, 100)
 
     class FakeResponse:
         def is_done(self):
@@ -497,10 +506,10 @@ async def test_manager_add_modal_validates_and_persists(tmp_path):
 
 
 async def test_manager_remove_and_restore(tmp_path):
-    from rosemary.ui.interactions_menu import InteractionsManagerView
+    from rosemary.ui.roleplay_menu import RoleplayManagerView
 
     bot = _bot(tmp_path)
-    view = InteractionsManagerView(bot, 1, 100)
+    view = RoleplayManagerView(bot, 1, 100)
     await view.store.set_gifs(1, "hug", [{"url": "https://a.gif"}, {"api": "kiss"}])
 
     class FakeResponse:
@@ -531,11 +540,11 @@ async def test_manager_remove_and_restore(tmp_path):
 
 
 async def test_prefix_command_triggers_card(tmp_path):
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
-    await bot.storage.set(1, "interactions.enabled", True)
+    cog = RoleplayCog(bot)
+    await bot.storage.set(1, "roleplay.enabled", True)
     await cog.store.set_gifs(
         1, "hug", [{"url": "https://media.tenor.com/hug.gif"}]
     )
@@ -560,11 +569,11 @@ async def test_prefix_command_triggers_card(tmp_path):
 
 
 async def test_prefix_command_ignores_self_and_unknown_verbs(tmp_path):
-    from rosemary.cogs.interactions import InteractionsCog
+    from rosemary.cogs.roleplay import RoleplayCog
 
     bot = _bot(tmp_path)
-    cog = InteractionsCog(bot)
-    await bot.storage.set(1, "interactions.enabled", True)
+    cog = RoleplayCog(bot)
+    await bot.storage.set(1, "roleplay.enabled", True)
     await bot.storage.set(1, "general.prefix", "!")
     channel = _channel()
     guild = _guild(channel)
@@ -590,3 +599,45 @@ async def test_prefix_command_ignores_self_and_unknown_verbs(tmp_path):
     await cog.on_message(message2)
     message2.reply.assert_not_awaited()
     channel.send.assert_not_awaited()
+
+
+async def test_roleplay_sentence_is_body_not_title_and_pings_both(tmp_path):
+    """The action sentence must not be the title, and both members ping."""
+    import rosemary.core.card_specs  # noqa: F401 (fills the card registry)
+    from rosemary.cogs.roleplay import default_interaction_document
+    from rosemary.core.card_service import render_card_message
+
+    bot = _bot(tmp_path)
+    variables = {
+        "actor": "<@100>",
+        "target": "<@200>",
+        "actor_avatar": "https://a.b/x.png",
+        "action": "abraçou",
+        "gif_url": "https://media.tenor.com/hug.gif",
+        "timestamp": "<t:1:R>",
+    }
+    doc = await default_interaction_document(bot, 1, **variables)
+    bodies: list[str] = []
+
+    def collect(node) -> None:
+        if isinstance(node, dict):
+            if isinstance(node.get("body"), str):
+                bodies.append(node["body"])
+            for value in node.values():
+                collect(value)
+        elif isinstance(node, list):
+            for item in node:
+                collect(item)
+
+    collect(doc["blocks"])
+    heading = bodies[0]
+    assert "{@actor}" not in heading and "{@target}" not in heading
+    assert "<@100>" not in heading and "<@200>" not in heading
+    sentence = next(b for b in bodies if "{@actor}" in b)
+    assert "{@target}" in sentence
+
+    _payload, allowed = await render_card_message(
+        bot, 1, "roleplay.card", variables
+    )
+    pinged = {obj.id for obj in (allowed.users or [])}
+    assert pinged == {100, 200}, allowed

@@ -34,15 +34,20 @@ class _Session:
 class BroadcastCog(commands.Cog):
     """Live mass-DM relay sessions."""
 
+
+    broadcast_group = discord.SlashCommandGroup(
+        "broadcast",
+        description="Live broadcast sessions",
+        contexts={discord.InteractionContextType.guild},
+    )
     def __init__(self, bot) -> None:
         self.bot = bot
         self._sessions: dict[int, _Session] = {}
 
-    @discord.slash_command(
-        name="broadcast_start",
+    @broadcast_group.command(
+        name="start",
         description="[ADMIN] Start a live broadcast from this channel",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def broadcast_start(
         self,
@@ -92,11 +97,10 @@ class BroadcastCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="broadcast_stop",
+    @broadcast_group.command(
+        name="stop",
         description="[ADMIN] Stop the live broadcast",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def broadcast_stop(self, ctx: discord.ApplicationContext) -> None:
         """End the running session and report stats."""

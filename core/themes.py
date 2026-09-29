@@ -46,6 +46,14 @@ THEMES_DIR = Path(__file__).resolve().parent.parent / "themes"
 _NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 _MAX_THEME_BYTES = 64 * 1024
 
+#: Renamed card keys and the legacy override key each still reads (theme
+#: compat: a guild theme customized as ``cards: interactions.card`` before
+#: the rename keeps applying to ``roleplay.card``).
+_RENAMED_CARDS: dict[str, str] = {
+    "roleplay.card": "interactions.card",
+    "roleplay.manager": "interactions.manager",
+}
+
 
 class RosemaryTheme(Theme):
     """A loadable theme file: look & feel plus card overrides and pings."""
@@ -471,6 +479,12 @@ async def card_document(bot, guild_id: int | None, key: str) -> dict[str, Any] |
     theme = await store.effective_theme(bot, guild_id)
     cards = getattr(theme, "cards", None)
     doc = cards.get(key) if isinstance(cards, dict) else None
+    if doc is None and isinstance(cards, dict):
+        # Renamed cards keep reading the legacy override (interactions ->
+        # roleplay): guild themes customized before the rename keep working.
+        legacy = _RENAMED_CARDS.get(key)
+        if legacy is not None:
+            doc = cards.get(legacy)
     if doc is None:
         return None
     if is_embed_document(doc):

@@ -43,6 +43,61 @@ _COMMAND_NAME_RE = re.compile(r"^[\w-]{1,32}$")
 _NO_PREFIX = "__rosemary_no_prefix__"
 
 
+def _walk_subcommands(cmd):
+    """Yield every nested subcommand of a group (depth-first)."""
+    for sub in getattr(cmd, "subcommands", None) or []:
+        yield sub
+        yield from _walk_subcommands(sub)
+
+
+#: Group name -> {subcommand base name -> owning cog class name}, for groups
+#: whose subcommands are defined across two cogs (``rebind_...``). Every
+#: subcommand of a shared group needs an entry: the live group object is
+#: registered explicitly, so py-cord never ran ``_set_cog`` on it.
+_SHARED_SUBCOMMAND_OWNERS: dict[str, dict[str, str]] = {
+    "bump": {
+        "leaderboard": "BumpLeaderboardCog",
+        "stats": "BumpLeaderboardCog",
+        "test_leaderboard": "BumpLeaderboardCog",
+        "reset_week": "BumpLeaderboardCog",
+        "add_test": "BumpLeaderboardCog",
+        "test": "BumpReminderCog",
+        "test_reminder": "BumpReminderCog",
+        "status": "BumpReminderCog",
+    },
+}
+
+
+def rebind_shared_group_commands(bot) -> None:
+    """Bind every shared-group subcommand to its owning cog instance.
+
+    Shared groups are registered explicitly (never as a class attribute), so
+    py-cord never ran ``_set_cog`` on them and every subcommand's ``.cog``
+    is unset. Besides routing invocation (``callback(cog, ctx, ...)``), the
+    assignment re-runs py-cord's option validation, which finally skips the
+    leading ``self``/``ctx`` params: unbound, every subcommand would sync a
+    bogus ``ctx`` option (stringified under ``from __future__ import
+    annotations``) and break on ``issubclass`` at invocation.
+    """
+    by_cog = {type(cog).__name__: cog for cog in bot.cogs.values()}
+    snapshot = getattr(bot, "_subcommand_base_keys", None) or {}
+    for cmd in bot.pending_application_commands:
+        owners = _SHARED_SUBCOMMAND_OWNERS.get(cmd.name)
+        if not owners:
+            continue
+        for sub in _walk_subcommands(cmd):
+            base = snapshot.get(id(sub), sub.name)
+            owner = by_cog.get(owners.get(base, ""))
+            if owner is not None and sub.cog is not owner:
+                sub.cog = owner
+                log.info(
+                    "Subcommand %s %s bound to %s",
+                    cmd.name,
+                    base,
+                    type(owner).__name__,
+                )
+
+
 class RosemaryBot(commands.Bot):
     """Minimal multilingual bot built on py-cord."""
 
@@ -57,6 +112,7 @@ class RosemaryBot(commands.Bot):
         self.translator: Translator | None = None
         self.theme: Theme | None = None
         self._command_base_keys: dict[str, ApplicationCommand] = {}
+        self._subcommand_base_keys: dict[int, str] = {}
         self._setup_done = False
         self.start_time: float | None = None
 
@@ -69,18 +125,18 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.birthdays import BirthdayCog
         from rosemary.cogs.boost_roles import BoostRolesCog
         from rosemary.cogs.broadcast import BroadcastCog
-        from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
+        from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog, bump_group
         from rosemary.cogs.bump_reminder import BumpReminderCog
         from rosemary.cogs.cleaner import CleanerCog
         from rosemary.cogs.colors import ColorsCog
         from rosemary.cogs.debug import DebugCog
         from rosemary.cogs.info import InfoCog
-        from rosemary.cogs.interactions import InteractionsCog
         from rosemary.cogs.invites import InvitesCog
         from rosemary.cogs.language import LanguageCog
         from rosemary.cogs.moderation import ModerationCog
         from rosemary.cogs.partnerships import PartnershipsCog
         from rosemary.cogs.reminders import RemindersCog
+        from rosemary.cogs.roleplay import RoleplayCog
         from rosemary.cogs.settings import SettingsCog
         from rosemary.cogs.starboard import StarboardCog
         from rosemary.cogs.themes import ThemesCog
@@ -127,7 +183,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(BroadcastCog(self))
         self.add_cog(AntiInviteCog(self))
         self.add_cog(TrapCog(self))
-        self.add_cog(InteractionsCog(self))
+        self.add_cog(RoleplayCog(self))
         self.add_cog(UtilityCog(self))
         self.add_cog(InfoCog(self))
         self.add_cog(UpdaterCog(self))
@@ -142,6 +198,10 @@ class RosemaryBot(commands.Bot):
         self.add_cog(TicketsCog(self))
         self.add_cog(ColorsCog(self))
         self.add_cog(BirthdayCog(self))
+        # The shared `/bump` group is registered explicitly (never as a class
+        # attribute: py-cord would copy and freeze it per cog). Subcommand
+        # -> cog binding happens in _rebind_shared_group_commands below.
+        self.add_application_command(bump_group)
         # py-cord's sync add_cog never calls cog_load (and cog listeners added
         # here only fire on the *next* ready dispatch), so background work must
         # be started explicitly. Cogs define an async ``start()`` hook.
@@ -176,8 +236,16 @@ class RosemaryBot(commands.Bot):
         # Snapshot the decorator-registered names (English) before any localization
         # mutates them, so per-guild re-syncs can look up the right catalog keys.
         self._command_base_keys = {cmd.name: cmd for cmd in self.pending_application_commands}
+        for cmd in self.pending_application_commands:
+            for sub in _walk_subcommands(cmd):
+                self._subcommand_base_keys.setdefault(id(sub), sub.name)
+        self._rebind_shared_group_commands()
         self._setup_done = True
         log.info("Rosemary loaded: cogs registered")
+
+    def _rebind_shared_group_commands(self) -> None:
+        """Point shared-group subcommands at their owning cog instance."""
+        rebind_shared_group_commands(self)
 
     async def _get_prefix(self, bot, message) -> str:
         """Resolve the guild-scoped command prefix for a message."""
@@ -191,19 +259,64 @@ class RosemaryBot(commands.Bot):
         t = self.translator.t
         for base_name, cmd in self._command_base_keys.items():
             key = f"{base_name}.command"
-            name = await t(guild.id, f"{key}.name")
-            if not _COMMAND_NAME_RE.match(name) or name != name.lower():
-                log.warning(
-                    "Invalid localized name %r for %s in guild %s; keeping %r",
-                    name,
-                    base_name,
-                    guild.id,
-                    base_name,
+            if isinstance(cmd, discord.SlashCommandGroup):
+                # Groups localize exactly like top-level commands (name +
+                # description); a fixed name in both catalogs (``roleplay``)
+                # simply never changes. Subcommand keys always derive from
+                # the decorator BASE names, never the localized ones.
+                cmd.name = await self._localized_name(
+                    guild.id, key, base_name, base_name
                 )
-                name = base_name
-            cmd.name = name
+                desc = await t(guild.id, f"{key}.description")
+                if desc != f"{key}.description":
+                    cmd.description = desc
+                for sub in _walk_subcommands(cmd):
+                    await self._localize_subcommand(guild.id, base_name, sub)
+                continue
+            cmd.name = await self._localized_name(guild.id, key, base_name, base_name)
             cmd.description = await t(guild.id, f"{key}.description")
         await self.sync_commands(guild_ids=[guild.id])
+
+    async def _localized_name(
+        self, guild_id: int, key: str, base_name: str, label: str
+    ) -> str:
+        """Resolve ``{key}.name`` for a guild, falling back to ``base_name``."""
+        name = await self.translator.t(guild_id, f"{key}.name")
+        if not _COMMAND_NAME_RE.match(name) or name != name.lower():
+            log.warning(
+                "Invalid localized name %r for %s in guild %s; keeping %r",
+                name,
+                label,
+                guild_id,
+                base_name,
+            )
+            name = base_name
+        return name
+
+    async def _localize_subcommand(
+        self, guild_id: int, group_base: str, sub
+    ) -> None:
+        """Localize one group subcommand for a guild.
+
+        Key lookup: ``{group}_{sub}.command`` first (the legacy flat key for
+        prefixed commands: ``roleplay_hug``, ``invites_leaderboard``), then
+        the bare ``{sub}.command`` (``who_invited``). Missing keys keep the
+        decorator base name instead of leaking the raw key; an invalid
+        localized name falls back the same way a top-level one does.
+        """
+        t = self.translator.t
+        sub_base = self._subcommand_base_keys.get(id(sub), sub.name)
+        key = None
+        for candidate in (f"{group_base}_{sub_base}.command", f"{sub_base}.command"):
+            if await t(guild_id, f"{candidate}.name") != f"{candidate}.name":
+                key = candidate
+                break
+        if key is None:
+            return
+        sub.name = await self._localized_name(guild_id, key, sub_base, key)
+        desc = await t(guild_id, f"{key}.description")
+        if desc != f"{key}.description":
+            sub.description = desc
 
     async def reapply_command_localization(self) -> None:
         """Re-register slash commands with names/descriptions in each guild's

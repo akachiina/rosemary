@@ -55,6 +55,12 @@ def _slug(text: str) -> str:
 class TicketsCog(commands.Cog):
     """Panel-driven ticket channels."""
 
+
+    tickets_group = discord.SlashCommandGroup(
+        "tickets",
+        description="Ticket panels",
+        contexts={discord.InteractionContextType.guild},
+    )
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = TicketStore(bot.storage.data_dir)
@@ -436,11 +442,10 @@ class TicketsCog(commands.Cog):
 
     #: commands ------------------------------------------------------------
 
-    @discord.slash_command(
-        name="tickets_panel",
+    @tickets_group.command(
+        name="panel",
         description="[ADMIN] Post the ticket panel",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def tickets_panel(self, ctx: discord.ApplicationContext) -> None:
         """Post (or refresh) the ticket panel in the configured channel."""

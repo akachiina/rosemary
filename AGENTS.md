@@ -1,123 +1,142 @@
 # AGENTS.md
 
-Rosemary: modular, multilingual Discord bot for multiple servers, built on **py-cord 2.8.1**. User-facing strings are Portuguese (pt-BR) or English (en-US) via i18n keys. Built-in visual is Components V2 everywhere; classic embeds exist only as a **per-card theme alternative**.
+Rosemary: modular, multilingual Discord bot (multi-server) on **py-cord 2.8.1**.
+User-facing strings are pt-BR / en-US via i18n keys. Built-in visual is
+Components V2 everywhere; classic embeds exist only as a per-card theme alternative.
 
 ## Setup / run
 
-- This directory is its own git repo (`main`), split out of the old single-guild bot: **ignore the parent repo's `cogs/`, `utils/`, `config/`, `bot.py`** (legacy).
-- `requirements.txt` = runtime deps only. `rosemary/venv` is runtime-only (no pytest/ruff); dev tools live in the parent `.venv`.
+- This directory is its own git repo (`main`). **Ignore the parent repo's
+  `cogs/`, `utils/`, `config/`, `bot.py`** (legacy single-guild bot).
+- `requirements.txt` = runtime deps only. `rosemary/venv` is runtime-only
+  (no pytest/ruff); dev tools live in the parent `.venv`.
 - `pyproject.toml` (ruff + pytest config) lives in the **parent** repo, not here.
-- Token from `.env` (copy `.env.example`); `.env`, `data/`, `venv/`, `*.log` are git-ignored.
-- Run: `python bot.py` from inside this directory, or `python -m rosemary` from the parent. Both bootstrap `sys.path` with the repo root (`# noqa: E402` on imports after: keep that pattern). Paths to `data/`, `language/`, `.env`, `theme.yaml` resolve from `__file__`, never CWD.
-- **No AI attribution footer in commit messages**: do not add `Generated with...` / `Co-Authored-By` trailers.
+- Token from `.env` (copy `.env.example`); never echo or commit it.
+  `.env`, `data/`, `venv/`, `*.log` are git-ignored.
+- Run `python bot.py` from inside this dir, or `python -m rosemary` from the parent.
+  Both bootstrap `sys.path` with the repo root (`# noqa: E402` imports after: keep).
+  Paths to `data/`, `language/`, `.env`, themes resolve from `__file__`, never CWD.
+- No AI attribution footer in commit messages.
 
 ## Verify
 
-- Tests **must run from inside this dir** (`../.venv/bin/python -m pytest tests`): several test files read `language/...` via CWD-relative paths and fail from the parent.
-- Lint **must run from the parent** (`./.venv/bin/ruff check rosemary`): config is in parent `pyproject.toml` (line-length 100, py311, E/F/W/I/UP/B/SIM, ignores B008).
-- `asyncio_mode = "auto"`: async tests need no decorator. `tests/conftest.py` is sys.path bootstrap only; each test file builds its own fakes.
+- Tests **must run from inside this dir** (`../.venv/bin/python -m pytest tests`):
+  several files read `language/...` via CWD-relative paths and fail from the parent.
+- Single test: `../.venv/bin/python -m pytest tests/test_<name>.py -q` (same dir).
+- Lint **must run from the parent** (`./.venv/bin/ruff check rosemary`):
+  config is in parent `pyproject.toml` (line-length 100, py311, E/F/W/I/UP/B/SIM).
+- `asyncio_mode = "auto"`: async tests need no decorator.
+  `tests/conftest.py` is sys.path bootstrap only; each test file builds its own fakes.
 
 ## Architecture
 
-- `bot.py` = `RosemaryBot` + `main()`. `_setup()` runs once in `on_ready`: registers cogs, loads `language/*.yaml` + `themes/default.yaml` (the single theme file, see Themes), snapshots `_command_base_keys` for per-guild re-localization.
-- Cogs registered explicitly in `_setup()` via `add_cog(Class(bot))`: no auto-discovery, no `def setup(bot)` hooks. Commands sync **per guild, never globally**; `on_guild_join()` syncs newly joined servers.
-- i18n (`core/i18n.py`): YAML sections flatten to dotted keys. `language_meta` is metadata for `/language` choices, not a translation key. **en↔pt key parity enforced by `test_i18n.py`**: add new keys to both catalogs.
-- **PT-BR wording**: keep Discord pt-BR community terms untranslated (`Starboard`, `Card`, `Bump`, `Cooldown`, `Boost`, `Warn`, `Ticket`, `Embed`, `Leaderboard`). Say `servidor`, never `guilda`. Mirror vocabulary already in `pt-BR.yaml`.
-- **List-valued catalog keys (e.g. `time_parser.*`) must use `translator.raw()`, never `t()`**: `t()` calls `.format()` and crashes on lists.
-- **Quote YAML `on`/`off`/`yes`/`no`/`true`/`false` keys**: unquoted they parse as booleans and `t()` falls back to the raw key. Swept by `test_no_boolean_keys`.
-- **Emojis never hardcoded**: `t()` auto-injects every `emojis:` entry from `themes/default.yaml` as a format placeholder; colors via `theme.color("<name>")`. Component `emoji=` must be RGI-valid or Discord 400s the whole payload (swept by `test_every_theme_emoji_is_discord_valid`).
-- Per-guild command localization mutates shared `cmd.name`/`cmd.description` from `<cmd>.command.name`/`.description`, validated against `_COMMAND_NAME_RE` with fallback to the base name (a missing/invalid key would 400 the whole bulk sync; swept by `test_guild_join.py`).
-- Persistence: one JSON file per guild, `data/<guild_id>/<filename>` via `GuildStorage`. Defaults merged on read (`use_defaults=False` skips the `language` default). Writes are atomic (temp + rename).
-- Channel logs go through `core/debug.send_channel_log(...)` (no-ops unless `logging.enabled` + channel configured).
-- Boot order in `_setup()` matters: `ThemeStore` -> `preload_themes(bot)` (snapshot for sync `theme_for`) -> `card_actions.sync_all_guilds(bot)` -> `panels.repaint_all(bot)` (needs cogs' stores ready).
+- `bot.py` = `RosemaryBot` + `main()`. `_setup()` runs once in `on_ready`:
+  registers cogs, loads `language/*.yaml` + `themes/default.yaml`, snapshots
+  `_command_base_keys` for per-guild re-localization.
+- Cogs registered explicitly in `_setup()` via `add_cog(Class(bot))`: no
+  auto-discovery, no `def setup(bot)` hooks. Cogs needing background work define
+  async `start()` (called explicitly; py-cord never calls `cog_load` here).
+- Commands sync **per guild, never globally**; `on_guild_join()` syncs new servers.
+  Localized `cmd.name` must match `_COMMAND_NAME_RE` (lowercase); invalid falls back
+  to the base name or the whole bulk sync 400s (swept by `test_guild_join.py`).
+- Slash commands live in `SlashCommandGroup`s (`/roleplay beijar`), never flat
+  with underscores. Single-cog groups are class attributes (birthday pattern);
+  the cross-cog `bump` group is module-level, held by NEITHER cog, registered
+  explicitly in `_setup()` + bound per subcommand via `rebind_shared_group_commands`
+  (py-cord copies class-attr groups at class-def time, freezing later attachments,
+  and only the `.cog` assignment re-runs option validation, which is what skips
+  the leading `self`/`ctx` params).
+- Subcommand localization reuses keys: `{group}_{sub}.command` (legacy flat key)
+  then bare `{sub}.command`; group names localize like top-level names. New group
+  = group `command.name`/`.description` in BOTH catalogs + snapshot in
+  `_subcommand_base_keys` (automatic). Renamed setting/card keys need lazy
+  migration (`_RENAMED_KEYS` in settings, `_RENAMED_CARDS`/`_RENAMED_PINGS` for themes).
+- Persistence: one JSON file per guild, `data/<guild_id>/<filename>` via
+  `GuildStorage`. Defaults merged on read (`use_defaults=False` skips even the
+  `language` default). Writes are atomic (temp + rename).
+- `SETTINGS` registry (`core/settings.py`) drives `/settings`; no per-setting UI
+  code. New setting = `SettingSpec` + `settings.<key>.label`/`.description`
+  (+ `.choices.*`) in BOTH catalogs. **No test enforces label parity**: resolve
+  every label or the UI renders raw keys. Duration settings store seconds.
+- Channel logs go through `core/debug.send_channel_log(...)` (no-op unless
+  `logging.enabled` + channel configured).
 
-## Mentions (`core/mentions.py`)
+## i18n (`core/i18n.py`, `language/en-US.yaml` + `pt-BR.yaml`)
 
-- **Mentions are content**: ping position is wherever `{@name}` appears in card text. The renderer collects `<@id>`/`<@&id>` tokens from resolved text and builds `AllowedMentions`: never pass `allowed_mentions` by hand for card sends.
-- Per-card pings toggle in the theme file (`pings:` section; missing key = spec's `mention_default != "none"`). Entry points: `allowed_for_ids`, `allowed_for_text`, `allowed_for_document`, `render_card_message` (view + allowed in one call). `silent=True` forces no ping.
-- `send_channel_log(..., card_key=..., mention_user_ids=[...])`: log cards default to off; calls without `card_key` never ping.
-- New customizable card = `CardSpec` in `core/card_specs.py` + `card.<key>.title` in BOTH catalogs + `mention_default` + exact `variables` contract in `VARIABLES_BY_KEY` (**enforced by `test_variables.py`**). Labels in `variables.<name>.label/.description` (both catalogs); samples in `core/variables.py`. No in-Discord editor: customization is via theme files.
+- Sections flatten to dotted keys. `language_meta` is `/language` choice metadata,
+  not a translation key. **en↔pt key parity enforced by `test_i18n.py`**: every new
+  key goes in both catalogs.
+- List-valued keys (e.g. `time_parser.*`) must use `translator.raw()`, never `t()`
+  (`t()` calls `.format()` and crashes on lists).
+- Quote YAML `on`/`off`/`yes`/`no`/`true`/`false` keys: unquoted they parse as
+  booleans and `t()` falls back to the raw key (swept by `test_no_boolean_keys`).
+- Multi-line templates must use **double quotes**: single-quoted YAML keeps `\n`
+  literal (regression: `test_log_templates_use_real_newlines`).
+- PT-BR wording: keep Discord community terms untranslated (`Starboard`, `Card`,
+  `Bump`, `Cooldown`, `Boost`, `Warn`, `Ticket`, `Embed`, `Leaderboard`).
+  Say `servidor`, never `guilda`. Mirror vocabulary already in `pt-BR.yaml`.
 
-## Themes (`core/themes.py` + `cogs/themes.py`)
+## Cards, themes, mentions
 
-- **One theme file**: `themes/default.yaml` feeds BOTH the built-in fallback (`bot.theme`, loaded by `bot.py` and `ui/theme.load_theme()`) and the selectable "default" in `/themes`. `ui/theme.yaml` is gone; `THEMES_DIR` (`core/themes.py`) resolves from the package root (`parent.parent`, same trick as `language/`). A theme = one YAML with `colors`/`emojis`/`markdown`/`styles` + optional `cards:`, `pings:`, `color_panel:` (HTML templates for the color-panel image). Locations: `themes/` (global) + `data/<id>/themes/` (per-guild imports) + `themes.json` selection. Active theme resolves via sync `theme_for(bot, guild_id)` (boot snapshot; falls back to built-in `bot.theme`).
-- YAML 1.1 parses bare numeric keys as ints (`medals: 1:`): theme loaders coerce keys with `str()`; do not reject otherwise-valid files over key type.
-- **`cards:` values are raw Components V2 JSON** converted at load by `core/v2_convert.py`; Discord limits validated at load (40 components, depth 5, 4000 chars). Invalid themed card logs and falls back to the built-in default: never breaks a send.
-- **Embed form is a per-card alternative** (`core/embed_convert.py`): a `cards:` entry as `embed: {...}` + optional sibling `buttons:` (link + `cardact:` both work). Same placeholder/ping behavior; invalid embeds degrade at load, never at send. Send sites use `CardPayload.message_kwargs()` and never branch on the card form.
-- Card keys are dotted paths; resolution: themed override -> registered default builder (`set_default_builder`) -> catalog seed.
-- **Never add a seed-map entry for a card that has a default builder**: the seed wins over nothing but shadows nothing either; still, its existence keeps `default_document` from the builder when the builder registration is skipped (import order), and it makes tests pass green while exercising the wrong path. The starboard card lost its author/avatar/gallery this way (regression: `test_content_cards.py::test_starboard_card_resolves_via_builder_not_seed`, which also pins `starboard.card` out of `SEED_PARTS_BY_KEY`; same pin for `utility.serverinfo`, whose rich builder renders the stat columns/banner/footer).
-- **Every `CardSpec` render must trace its path** via `render_card_message` (or explicit `trace_card_path` for hand-built views). Interactive menus trace their heading too (`settings.title`, `themes.title`, `debug.title`, `boost.home`). Stay silent for: internal panel repaints, DMs, `bump.leaderboard` (uses `allowed_for_ids(user_ids=[winner_id])` to avoid over-pinging the top-10).
-- **Menus expose only their heading** to themes (`card_service.menu_heading_items`); a themed doc containing a container is rejected (nesting 400s), falling back to the built-in heading. Interactive components stay in code (need registered callbacks).
-- **`cardact:` buttons** (`ACTIONS` in `core/card_actions.py`): custom ids are deterministic hashes of content: stable across restarts so dispatch views match posted messages; divergence = silent dead clicks (regression: `test_panels.py`).
-- **Panel repaint registry** (`core/panels.py`): panels register repaint callback + setting keys of interest. `on_theme_changed` repaints panels and re-syncs dispatch; `on_setting_changed` repaints only interested panels; `repaint_all` at boot. Repaint = `get_partial_message().edit()` with repost fallback.
-- **Every code path editing theme files must call `ThemeStore.invalidate_guild`** (or write through the store): themes cache per `(guild_id, name)` and selection returns stale objects otherwise. `/themes` exposes this as reload.
+- **One theme file**: `themes/default.yaml` feeds BOTH the built-in fallback
+  (`bot.theme`) and the selectable "default" in `/themes`. A theme = one YAML with
+  `colors`/`emojis`/`markdown`/`styles` + optional `cards:`/`pings:`/`color_panel:`.
+  Active theme resolves via sync `theme_for(bot, guild_id)` (boot snapshot).
+- New customizable card = `CardSpec` in `core/card_specs.py` + `card.<key>.title`
+  in BOTH catalogs + `mention_default` + exact `variables` contract in
+  `VARIABLES_BY_KEY` (enforced by `test_variables.py`). Labels in
+  `variables.<name>.label`/`.description` (both catalogs); samples in `core/variables.py`.
+- **`cards:` values are raw Components V2 JSON** validated at load (40 components,
+  depth 5, 4000 chars); invalid cards log and fall back to the built-in default,
+  never break a send. `embed: {...}` + optional `buttons:` is the per-card classic
+  alternative. Send sites use `CardPayload.message_kwargs()` and never branch on form.
+- **Never add a seed-map entry for a card that has a default builder**: the seed
+  shadows the builder when registration order slips, and tests pass green on the
+  wrong path (regression: starboard author/avatar/gallery).
+- **Every registered builder must accept `**variables`**: live sends forward
+  send-site variables and a closed signature degrades to raw-key fallback
+  (swept by `test_audit.py::test_all_builders_signatures_accept_variables`).
+  Builder stat labels (`card.<key>.<name>_label`) must exist verbatim in both
+  catalogs; a name mismatch leaks raw keys into live cards.
+- **Mentions are content**: ping position is wherever `{@name}` appears in card
+  text. The renderer collects `<@id>`/`<@&id>` tokens and builds `AllowedMentions`:
+  never pass `allowed_mentions` by hand for card sends. Per-card toggles live in
+  the theme `pings:` section. Every `CardSpec` render must go through
+  `render_card_message` (or explicit `trace_card_path`).
+- **Emojis never hardcoded**: `t()` auto-injects every `emojis:` theme entry as a
+  format placeholder (explicit variables win, so never name an emoji token like a
+  variable). Colors via `theme.color("<name>")`. Component `emoji=` must be
+  RGI-valid or Discord 400s the whole payload.
+- Panels (`core/panels.py`): panels register repaint callback + setting keys of
+  interest; `on_theme_changed` repaints + re-syncs dispatch, `repaint_all` at boot.
+  Every code path editing theme files must call `ThemeStore.invalidate_guild`
+  (themes cache per `(guild_id, name)`).
+- `cardact:` button ids (`core/card_actions.py`) are deterministic content hashes:
+  stable across restarts so dispatch views match posted messages.
 
-## Settings (`core/settings.py`)
+## Interaction / py-cord gotchas
 
-- `SETTINGS` registry drives `/settings`; no per-setting UI code. Adding a setting = `SettingSpec` + `settings.<key>.label`/`.description` (and `.choices.*`) in BOTH catalogs. **No test enforces label parity**: resolve every label or the UI renders raw keys.
-- **Duration settings** (`is_duration=True`) store **seconds**, edited/displayed via `TimeParser` (`"2h"`, `"90m"`). Keep `coerce_value()`/`format_value()` consistent.
-- `ITEMS_PER_PAGE = 7` (Discord 40-component cap, enforced by test); registry order = display order, essentials first. Nav row is always `[Close, Prev?, Next?]`, Close at index 0.
-- **`CHANNEL_LIST`** = ordered channel/category ids on a dedicated screen (per-row Remove, batch Add via multi-select `max_values=25`, Clear all, 10/page). The select only collects into `_pending_adds`; Confirm persists via `_apply_value(..., stay_in_edit=True)`. Scalar renames set `legacy_single_key`: `get_setting` lazily seeds the list until first save. Regression: `tests/test_channel_list.py`.
-
-## Event Log (`cogs/audit.py`)
-
-- One master channel (`audit.channel`, `audit.enabled` default **off**) + per-event BOOLEAN toggles. Never add per-event channels. All listeners wrap in try/except + `log.exception`.
-- Events: ban, unban, message_delete, message_edit, bulk_delete, nickname, avatar (best-effort), roles, timeout, voice_join/voice_leave (one toggle for the pair).
-- Message content travels already fenced via `_fence()` at the send site: never re-fence in catalogs. Bots and the bot's own deletes are skipped.
-- Bulk deletes coalesce (`BULK_FLUSH_SECONDS`, re-arming) into ONE card + `.txt` transcript (`audit.bulk_file_enabled`). `/limpar` stamps `note_purge_context()` for attribution and single-delete suppression, and long runs renew the stamp per channel (the 600s TTL would otherwise drop attribution mid-run). Ban/unban moderator+reason come from one best-effort audit-log lookup. Regression: `tests/test_audit.py`.
-
-## Color Panel (`cogs/colors.py` + `core/colors.py` + `core/color_image.py`)
-
-- Color-Chan style: members pick color roles from a posted panel; picking again removes (toggle), picking another switches (drops the previous color role). `/my_colors` lists entries; `/colors_panel` (admin) posts the panel.
-- Settings category `colors` (`colors.enabled` default **off**, `colors.panel_channel`, `colors.picker` = `buttons`/`select`, `colors.per_container` 3 to 25, default 10). Manager screen opens from the category page button (pattern: anti-invite's batch attach + tickets' manager): reorder up/down, edit name/hex modals, batch role attach, create role from scratch, delete confirm. Every mutation repaints the posted panel via the `core/panels.py` registry.
-- Persistence: `ColorStore` (`data/<id>/colors.json`), ordered entry list (order = image and button order), `MAX_COLORS = 25` (Discord hard cap: 5 rows of 5 buttons, 25 select options). Entries link to roles by `role_id` (None = renders but cannot be picked). The live role color wins over stored hex at render time.
-- First manager open seeds 20 pastels, alternating light/dark per hue (names from `colors.defaults.<slug>` in both catalogs), AND creates their Discord roles below the bot (missing Manage Roles leaves entries role-less; manager attach can retry). Guilds seeded by the old 12-color palette migrate once via `ColorStore.migrate_seed_v2` (hex-matched, `seed_version: 2` stamp): donor entries keep id + role_id (buttons/members survive), donor roles are renamed/recolored, fresh hues get created roles; customized guilds (fewer than 8 legacy hexes) are stamped but untouched.
-- Panel layout: themed frame card `colors.panel` + one SELF-CONTAINED V2 container per `per_container` chunk: gallery image + that chunk's numbered button rows INSIDE the card (numbering continuous across chunks). In `select` mode the cards carry only the image and a single select row closes the message (one picker, never buttons + select). `fit_per_container` grows the chunk size before Discord's 40-node ceiling (nested nodes count; 25 colors at 10/chunk with buttons = 42). Picker views are persistent (`colors_pick:<id>` with real children: py-cord's ViewStore indexes only `walk_children()` results, an empty dispatcher view registers nothing and every click dies as "did not respond"); embed-form themes get classic rows instead (embeds cannot host V2 galleries). Boot registration happens TWICE in `_restore_guild`: first thing (local reads only, BEFORE seed/migration Discord calls, so clicks landing right after on_ready are answered) and again after the migration, which mints new entry ids whose buttons must dispatch too (same custom_ids overwrite).
-- Panel image: theme `color_panel.html`/`item` HTML templates (placeholders `{number}`/`{name}`/`{color}`) rendered by `core/color_image.render_panel` (WeasyPrint to PDF, PyMuPDF raster at 4x for sharpness, cropped to content, transparent background). Page width is MEASURED from the rendered PDF's word boxes (`_measured_pdf` + `_ImageMeasurer.columns_fit`): with `column-count: 2` a long label clips at the column edge AND a last-column label overflows the page itself, so grow the page until every column's text clears the next column's start and the rightmost glyph clears the page edge (`_PAGE_EDGE_PAD_PT`). The page-edge check compares against the PDF's own `page_width`, never the requested CSS-px candidate: px-vs-pt mixing (0.75) once made it toothless. The rasterize crop MUST convert the probe bbox with the probe zoom (`x / _ZOOM`): dividing by a downscaled final zoom pushed the clip rect past the page and silently dropped text bands. No `overflow` rule in the templates: WeasyPrint truncates overflow:hidden text silently. Optional deps: a missing renderer or a broken template posts the panel imageless (warning only, never breaks sends). Galleries reference files via `attachment://name.png`; `CardPayload(files=...)` carries the `discord.File` list and `message_kwargs()` forwards it on send. `PartialMessage.edit` is JSON-only, but full `Message.edit` (via `fetch_message`) accepts `files=` multipart and `attachments=` to control replacement: image panels edit in place, `PartialMessage` never can.
-- Repaint contract (fingerprint, like tickets): every panel-affecting value (entries, `colors.picker`, `colors.per_container`, the guild theme's `color_panel` templates) hashes into `panel_fingerprint`; `repaint_panel` with an unchanged hash and an existing message is a near-no-op (one existence GET). A changed hash edits the stored message IN PLACE via `fetch_message` + `Message.edit` (multipart, accepts `files=`; `attachments=[]` replaces the old gallery - without it py-cord ADDS files on top). Re-posting is only the fallback for a deleted message; every post sweeps stored ids AND history-scanned orphans (`_orphan_ids`: bot messages whose component tree carries a `colors_pick` custom_id), then `set_panel` collapses the history. All four `colors.*` settings are in the panels-registry `setting_keys`, so a setting flip actually repaints (the fingerprint makes equal-value fan-outs free). Boot: `_restore_guild` registers dispatch first, self-heals orphans BEFORE the fingerprint short-circuit, then repaints; a quiet boot never re-sends (pinned by `test_boot_does_not_resend_panel`). "Did not respond" on a click with NO Component error in the log means the dispatch missed (or the process was mid-restart: unhandled custom_ids die silently in py-cord); a stable-process click that misses is a real dispatch bug.
-- Regression: `tests/test_colors.py` (store, image bytes, chunk numbering, pick/toggle flows, catalog parity).
-
-## Boost + Bump (Disboard)
-
-- `core/boost_roles.py` (`BoostRoleStore`), `core/bump.py` (`BumpStore`). **Only Disboard is supported** (hardcoded bot ID; mention it in copy). Stores use `GuildStorage(use_defaults=False)` with their own filename.
-- `bump.schedule.*`: fixed daily open/close (overnight ranges OK). Lock ownership (`schedule` vs `camping`) lives in the store: schedule wins; enforcement is transition-only via a minute loop.
-- Outage resilience is layered (`tests/test_bump_outage.py`): transient send failures (OSError/TimeoutError) retry `SEND_RETRY_ATTEMPTS` times; `on_connect` debounced recovery; minute-loop `_sweep_guild` as floor. HTTP errors never retried; a live task always wins over recovery (no doubles).
-
-## Ported features
-
-- `invites.py`: attribution diffs pre-join `self._cache` BEFORE overwriting it: refreshing first made every join `unknown` (regression: `test_ui_polish.py`). Counters: `total = regular - left - fake + bonus`.
-- `tickets.py`: 4 fixed types, close/transcript/reopen/delete (views re-registered in `start()`), must close before delete. Panel posts via `core/panels.py`; type select hidden when the theme renders `open_ticket` buttons.
-- `partnerships.py`: ads, hourly renewal loop (warn then remove), rep self-renew with repost, read-only audit + orphan cleanup.
-- Small: `utility.py` (`/ping`, `/serverinfo` with a registered rich builder: server-name heading, icon accessory, stat columns, banner gallery skipped when absent, `-# ID` footer), `anti_invite.py`, `reminders.py` + `broadcast.py` (admin, **disabled by default**), `updater.py` (`stable` follows latest `vX.Y.Z` tag, `git` follows `origin/<branch>`; manual use always admin-allowed, `enabled` gates only the auto loop).
-- `cleaner.py` (`/limpar`): optional criteria (`palavra` substring | `regex` compiled with the `re.error` detail surfaced; conflict = error) + orthogonal `canal`/`autor` filters + `last` (1..1000) as a matches cap checked BEFORE the API call. `last` alone scopes to the CURRENT channel (the casual case must not sweep the guild); combined with a content criterion the scope stays global. The criterion sentence (mode + author + scope) is composed at the send site (`cleaner.criterion_*`) and must appear verbatim on the confirmation panel: no implicit scope on a destructive command. Live panel is a 3-state `MenuView` (`confirm`/`running`/`done`, heading seed `cleaner.panel`): counters update via timer edits throttled to 2.5s on the original response; after the 15 min followup token dies the panel freezes (edit fails once, then gives up) while the run always finishes and posts the audit card. Stop button sets an `asyncio.Event` checked per message. Engine: bulk of 100 under 14 days, single above, 1s pause between channels, stamp renewal per channel. Regression: `tests/test_cleaner.py`.
-- `info.py`: `/userinfo`, `/emojiinfo`, `/roleinfo`, `/channelinfo` as five rich-builder CardSpecs (`utility.userinfo`/`emojiinfo`/`stickerinfo`/`roleinfo`/`channelinfo`). Emoji input dispatches custom `<:name:id>` (cascade bot cache -> guild -> application, then a `_PartialRef` fallback card for dead emojis: expected flow, logged at info, never warning), numeric input is a sticker ID (lottie leaves `sticker_url` empty so the gallery drops itself; a sticker miss falls back to the app-emoji lookup), anything else renders as a unicode glyph (no id/origin, `created`/`animated` lines drop). Optional stat lines gate on their variable (banner, nickname, boost, color, topic, bitrate drop when empty). Regression: `tests/test_info.py`.
-- Rule for every port: settings in registry + i18n in BOTH catalogs + `CardSpec` with `mention_default` + `allowed_mentions` on public sends + `send_channel_log(card_key=...)` + tests with real catalogs and `caplog` asserting zero format warnings.
-
-## Visual standards
-
-- Log bodies use compact fields (`**Alvo:** @x`, one line per field), never the old double-line shape. Unknown fields render a translated placeholder, never bare `-`. Titles carry a theme emoji token.
-- **Field lines carry a semantic theme emoji**: `**{emoji} Label:** value` (emoji inside the bold; cards of info already do this). One meaning = one emoji, everywhere: person/member `{people}`, moderator/agent `{gear}`, reason/text `{scroll}`, channel `{speech}`, voice `{volume}`, deleted `{trash}`, edit/text `{pencil}`, date `{calendar}`, entry/exit `{door}`, roles `{tag}`, time/duration `{clock}`, timeout `{mute}`, counts `{numbers}`, invite `{envelope}`, boost `{rocket}`, avatar `{frame}`, rename `{swap}`, search `{search}`, ok/error `{check}`/`{error}`. **Emoji tokens must never collide with send-site variable names** (`user`, `member`, `channel`, `author`, `reason`, `role`, `count`, ...): variables win over theme emojis at resolution, so a colliding name silently renders the variable. Prose bodies (no labels: invites, partnerships, tickets, DMs) and event cards (own layout) stay without line emojis.
-- **YAML quoting**: single-quoted strings keep `\n` literal: multi-line templates must use **double quotes**. Regression: `test_log_templates_use_real_newlines`.
-- Event cards (welcome/leave/ban): container -> section with member avatar thumbnail (`{user_avatar}`), emoji `#` title, body, divider, `-# {server} · #{count}` footer. Built by `cogs/welcome.py:default_event_document`; sends via `render_card_message`. Per-event alert roles (`events.welcome_ping_role`/`leave_ping_role`/`ban_ping_role`, ROLE settings, off by default) ping in their OWN message before the card (V2 forbids out-of-card content, so no `content=` pairing): gated by the card's theme ping toggle (muted card mutes the role), role-resolved via `guild.get_role` (deleted = warn + skip), best-effort (`discord.HTTPException` never blocks the card).
-- **Author footer is the standard attribution line** for cards that point at a person (starboard, audit): divider + small (`-#`) `card.author_footer.text` (`by {user} · {timestamp}`, both catalogs). Single source of truth: `core/cards.py` (`author_footer_template`/`author_footer_text`/`author_footer_blocks`): never inline the template string elsewhere. V2 has no native footer and its thumbnail is always right-side; an embed footer (`footer.icon_url`, left side) exists only in theme-written `embed:` cards. Welcome/leave/ban keep their own server/count footer. The `{timestamp}` variable formats as a Discord relative timestamp at the send site.
-- **Starboard color is a continuous ramp** (`ui/theme.py`: `Theme.star_ramp`/`star_ramp_config`/`star_title_emoji`): theme `styles.star_ramp` (`from_color`/`to_color`/`limit`, token names or hex) blends the accent per star until `limit` then holds: the legacy weak-yellow-to-strong feel, not discrete tiers. Title emoji climbs theme `star_tier_emoji:` milestones (highest threshold wins; plain `star` below the first). Guild themes without a ramp fall back to the `star_tier_*` styles; ramp config must carry hex-resolvable colors or the fallback kicks in. Documents receive `#rrggbb` strings (schema contract): never a `Colour` object. Live updates recolor on star changes via the edit path (2s debounce).
-- Default builders may receive send-site variables: `default_document(bot, guild_id, key, variables)` forwards `**variables`, so builders must take `**kwargs` and can react to content (starboard skips the gallery when `{image_url}` resolves empty: `_build_gallery` drops galleries whose urls all resolve empty). Seeded previews without variables still work.
-- **Every registered builder must accept `**variables`**: a closed signature crashes on live sends (`default_document` swallows the TypeError, the card degrades to raw-key fallback). Regression: `test_audit.py::test_all_builders_signatures_accept_variables` sweeps `_DEFAULT_BUILDERS`; `default_document` additionally filters kwargs by signature (`_bind_builder_kwargs`) so legacy builders degrade instead of crashing. The audit/welcome/birthdays builders broke exactly this way (live: `audit.message_delete` posted raw `audit.message_delete.title` keys).
-- **Builder stat labels must exist verbatim in both catalogs**: rich builders compose `**label:** value` lines from `card.<key>.<name>_label` (plus an optional `<name>_value` template); a name mismatch between the builder's `line("<name>")` lookup and the catalog leaks the raw key into live cards, and `test_variables.py` sweeps variable names only, not label lookups (the emojiinfo `created_at_label` vs `created_label` regression; `test_info.py` pins no `card.utility.` substring in rendered texts).
-- **V2 renders in document order, nothing reorders**: put a gallery where it must appear (info cards place the banner right after the header section); appending it at the end drops the image to the card bottom. `Role.mention` of the default role emits `<@&guild_id>`, an invalid token that renders oddly and duplicates in subtitles: gate with `is_default()` and render plain `@everyone` text.
-
-## Gotchas
-
-- **Dashes are banned as prose punctuation in every tracked file**: em dashes (U+2014) and the double-hyphen stand-in `--`. Rewrite the sentence with real punctuation (comma, colon, parentheses or a period). Hyphens stay only inside words ("multi-file") and as list bullets ("- item"). Grep for `\x{2014}` and for spaced `: ` over `*.py`/`*.yaml`/`*.md` must stay empty.
-- **py-cord vs discord.py attribute names**: py-cord `Member` uses `communication_disabled_until`; discord.py uses `timed_out_until`. Always resolve via `cogs/audit.py:_timeout_until` (getattr fallback), never direct attribute access: direct access crashed every `on_member_update` live while offline mocks with `spec` hid it.
-- `MagicMock(spec=discord.Member)` hides missing attributes: accessing a non-existent py-cord attribute raises `AttributeError`, but manually assigning a discord.py name creates a phantom that passes offline and crashes live. Regression tests assert the live shape.
-- ACK every interaction (`defer()`/`send_message`/modal) before slow work: past 3s Discord shows "application did not respond". Guard with `if not interaction.response.is_done()`.
-- py-cord `BaseView.on_error` only prints to stderr; `RosemaryBot.on_view_error` logs + ACKs `general.unknown_error`. Never swallow `discord.HTTPException` around `interaction.edit()` with bare `return`: a 400 looks like "click does nothing".
-- Offline menu repros can pass while live fails: Discord rejects bad payloads only on the HTTP call. When a click "does nothing", check `bot.log` first. Common causes: raw `Select`/`Button` without bound callback (use `MenuView.make_*` factories); `cardact:` id divergence.
-- Pre-restart ephemeral panels look alive but their view is gone (silent no-op). Re-send or repaint on boot. `add_view` only indexes real view children: dispatch-only fallback views need stub components.
-- Never `disable_all_items()` before `rerender()`: `prepare()` rebuilds everything, wiping flags. Model terminal states in `build_items()`; reuse `ui/confirm.py:ConfirmView`.
-- Stale-content symptoms (old theme, missing inviter) usually mean a cache was refreshed before its consumer read it. Prove with an offline repro before patching.
-- **Cogs whose slash commands take `discord.Option` annotations must omit `from __future__ import annotations`** (`moderation.py`, `invites.py`, `info.py`): py-cord inspects annotations via `inspect.signature` and stringified annotations break option parsing. Note a cog docstring merely *mentioning* the import fools `grep -l`: the raw-type sweep in `tests/test_commands.py` is the real guard. Moderation durations are `timedelta | None` (ban/kick/warn pass `None`); never call `TimeParser.format_duration` unguarded outside mute branches.
-- `/settings` menu type mapping: ROLE -> role-select, CHANNEL -> channel-select, CATEGORY -> channel-select filtered to `ChannelType.category`, BOOLEAN -> buttons, INTEGER/STRING -> modal, CHOICE -> select.
-- Boost invite DMs are three messages: plain text, buttons-only `DesignerView` (unique `custom_id`; never send with `content=`, V2 forbids it), role-preview card. Bot code never builds embeds; embeds come only from theme `cards:` entries.
-- Never echo or commit the token.
+- ACK every interaction (`defer()`/`send_message`/modal) before slow work; past 3s
+  Discord shows "application did not respond". Guard with
+  `if not interaction.response.is_done()`.
+- py-cord `BaseView.on_error` only prints to stderr; `RosemaryBot.on_view_error`
+  logs + ACKs `general.unknown_error`. Never swallow `discord.HTTPException`
+  around `interaction.edit()` with bare `return`: a 400 looks like "click does nothing".
+- When a click "does nothing" offline-green, check `bot.log` first: raw
+  `Select`/`Button` without bound callback (use `MenuView.make_*` factories),
+  `cardact:` id divergence, or dispatch views with no real children (py-cord's
+  ViewStore indexes only `walk_children()` results).
+- Never `disable_all_items()` before `rerender()`: `prepare()` rebuilds
+  everything, wiping flags. Model terminal states in `build_items()`.
+- Cogs whose slash commands take `discord.Option` annotations must omit
+  `from __future__ import annotations` (`moderation.py`, `invites.py`, `info.py`):
+  py-cord inspects annotations via `inspect.signature` and strings break option
+  parsing (swept by `tests/test_commands.py`).
+- py-cord `Member` uses `communication_disabled_until` (discord.py:
+  `timed_out_until`). Always resolve via `cogs/audit.py:_timeout_until`
+  (getattr fallback), never direct access. `MagicMock(spec=discord.Member)` hides
+  this: assigning a discord.py name creates a phantom that passes offline and
+  crashes live. Regression tests assert the live shape.
+- Dashes are banned as prose punctuation in tracked files: em dashes (U+2014) and
+  `--`. Rewrite with comma, colon, parentheses or period. Hyphens stay inside
+  words and as list bullets.

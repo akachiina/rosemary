@@ -271,6 +271,56 @@ async def test_serverinfo_builder_degrades_without_banner_and_icon():
     assert not any("servidor de testes" in text for text in texts)
 
 
+async def test_serverinfo_send_does_not_ping_owner(tmp_path):
+    """The owner mention rendered in the card must not ping: the send uses
+    the card's own AllowedMentions (no `{@owner}` in the default doc)."""
+    from pathlib import Path
+    from unittest.mock import AsyncMock
+
+    import rosemary.cogs.utility  # noqa: F401  (registers the builder)
+    from rosemary.cogs.utility import UtilityCog
+    from rosemary.core.i18n import Translator
+    from rosemary.core.themes import ThemeStore
+
+    bot = make_bot()
+    bot.translator = Translator(Path("language"))
+    bot._theme_store = ThemeStore(tmp_path, themes_dir=tmp_path / "themes")
+    from rosemary.core.storage import GuildStorage
+
+    bot.storage = GuildStorage(tmp_path)
+    cog = UtilityCog(bot)
+
+    guild = MagicMock(spec=discord.Guild)
+    guild.id = 1
+    guild.name = "Serv"
+    guild.owner_id = 42
+    guild.member_count = 10
+    guild.roles = []
+    guild.text_channels = []
+    guild.voice_channels = []
+    guild.premium_subscription_count = 0
+    guild.emojis = []
+    guild.stickers = []
+    guild.description = None
+    guild.icon = None
+    guild.banner = None
+    guild.created_at = None
+    guild.verification_level = MagicMock()
+    guild.verification_level.name = "low"
+
+    ctx = MagicMock()
+    ctx.guild = guild
+    ctx.guild_id = 1
+    ctx.respond = AsyncMock()
+
+    await cog.serverinfo.callback(cog, ctx)
+
+    kwargs = ctx.respond.await_args.kwargs
+    allowed = kwargs.get("allowed_mentions")
+    assert allowed is not None, "serverinfo must pass explicit AllowedMentions"
+    assert not (allowed.users or []), allowed
+
+
 #: menu heading splice -------------------------------------------------------
 
 

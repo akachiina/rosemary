@@ -5,7 +5,7 @@ Two menus share the same ``BoostRoleStore``:
 * :class:`BoostMenuView`, the member-facing panel (/boost). It lets owners
   manage their roles (rename, color, emoji, icon, members, invites, transfer,
   remove) and members see/leave the roles they belong to.
-* :class:`AdminBoostMenuView`, the moderation panel (/boost_admin). It lists
+* :class:`AdminBoostMenuView`, the moderation panel (/boost admin). It lists
   every registered role and can register, transfer or remove any of them.
 
 State is kept in plain attributes and screens rebuild through

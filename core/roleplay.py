@@ -1,4 +1,4 @@
-"""Interactions (roleplay) persistence: per-guild gif overrides.
+"""Roleplay persistence: per-guild gif overrides.
 
 ``data/<guild_id>/roleplay.json`` holds ``gifs``: per-action lists that
 REPLACE the theme's built-in list once seeded. Each entry is either

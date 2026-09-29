@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 import discord
 from discord.ext import commands, tasks
 
+from rosemary.cogs.bump_leaderboard import bump_group
 from rosemary.core.bump import LOCK_CAMPING, LOCK_SCHEDULE, BumpStore, schedule_open
 from rosemary.core.cards import log_description, text_or
 from rosemary.core.debug import send_channel_log
@@ -894,11 +895,10 @@ class BumpReminderCog(commands.Cog):
 
     #: Commands ------------------------------------------------------------
 
-    @discord.slash_command(
-        name="test_bump",
+    @bump_group.command(
+        name="test",
         description="[ADMIN] Simulate a bump to test the system",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def test_bump(self, ctx: discord.ApplicationContext) -> None:
         """Simulate a bump."""
@@ -925,11 +925,10 @@ class BumpReminderCog(commands.Cog):
             await self.bot.translator.t(guild_id, "bump.test.simulated"), ephemeral=True
         )
 
-    @discord.slash_command(
-        name="test_bump_reminder",
+    @bump_group.command(
+        name="test_reminder",
         description="[ADMIN] Send the bump reminder immediately",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def test_bump_reminder(self, ctx: discord.ApplicationContext) -> None:
         """Send the reminder immediately."""
@@ -952,11 +951,10 @@ class BumpReminderCog(commands.Cog):
             await self.bot.translator.t(guild_id, "bump.test.reminder_sent"), ephemeral=True
         )
 
-    @discord.slash_command(
-        name="bump_status",
+    @bump_group.command(
+        name="status",
         description="[ADMIN] Show the bump system status",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def bump_status(self, ctx: discord.ApplicationContext) -> None:
         """Show bump system status."""

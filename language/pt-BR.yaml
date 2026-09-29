@@ -85,7 +85,7 @@ settings:
     partnerships: Parcerias
     broadcast_reminders: Broadcast & Lembretes
     colors: Painel de Cores
-    interactions: Interações
+    roleplay: Roleplay
   colors.enabled:
     label: Painel de Cores Ativado
     description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).
@@ -102,10 +102,10 @@ settings:
     label: Cores por Card
     description: Quantas cores por card do painel (cada card tem a própria imagem e botões).
   colors.manage: Gerenciar cores
-  interactions.enabled:
-    label: Interações ativadas
-    description: Cards de interação com gif (abraçar, beijar e outros).
-  interactions.manage: Gerenciar gifs
+  roleplay.enabled:
+    label: Roleplay ativado
+    description: Cards de roleplay com gif (abraçar, beijar e outros).
+  roleplay.manage: Gerenciar gifs
   bump.enabled:
     label: Disboard Bump Ativado
     description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
@@ -825,7 +825,14 @@ boost:
       title: '{ban} Cargo Órfão Removido'
       description: "**{tag} Cargo:** {role} de {owner} foi removido do sistema."
   error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
+boost_panel:
+  command:
+    name: painel
+    description: Painel de cargos boost
 colors:
+  command:
+    name: cores
+    description: Painel de cores
   defaults:
     rose_light: Rosa Claro
     rose_dark: Rosa Escuro
@@ -897,11 +904,14 @@ colors_panel:
   command:
     name: painel_cores
     description: '[ADMIN] Posta o painel de cores'
-my_colors:
+colors_my:
   command:
     name: minhas_cores
     description: Lista as cores disponíveis no painel
 bump:
+  command:
+    name: bump
+    description: Placar de bump do Disboard
   messages:
     anti_camping: 🔒 **|** O canal foi bloqueado temporariamente. O bump estará disponível em instantes!
     thank_you_title: '{tada} Bump Registrado!'
@@ -932,7 +942,7 @@ bump:
 
       **{hourglass} A semana termina em:** <t:{next_reset_timestamp}:R>
 
-      **{crown} Vencedor:** {winner_mention} com **{winner_count}** bumps!
+      **{crown} Vencedor:** {@winner_mention} com **{winner_count}** bumps!
 
 
       **{gift} Prêmio:** Cargo **{role_name}** customizável por 1 semana!
@@ -1099,35 +1109,35 @@ bump:
     week_end: '{hourglass} A semana termina em: <t:{next_reset_ts}:R>'
 bump_leaderboard:
   command:
-    name: bump_leaderboard
+    name: leaderboard
     description: Mostra o placar semanal de bumps
 bump_stats:
   command:
-    name: bump_stats
+    name: stats
     description: Mostra suas estatísticas de bumps
 test_bump:
   command:
-    name: test_bump
+    name: test
     description: '[ADMIN] Simula um bump para testar o sistema'
 test_bump_reminder:
   command:
-    name: test_bump_reminder
+    name: test_reminder
     description: '[ADMIN] Envia o lembrete de bump imediatamente'
 bump_status:
   command:
-    name: bump_status
+    name: status
     description: '[ADMIN] Mostra o status do sistema de bump'
 test_bump_leaderboard:
   command:
-    name: test_bump_leaderboard
+    name: test_leaderboard
     description: '[ADMIN] Força o cálculo do placar semanal'
 reset_bump_week:
   command:
-    name: reset_bump_week
+    name: reset_week
     description: '[ADMIN] Reseta a semana de bump manualmente'
 add_test_bumps:
   command:
-    name: add_test_bumps
+    name: add_test
     description: '[ADMIN] Adiciona bumps de teste para um usuário'
 ping:
   command:
@@ -1238,6 +1248,9 @@ partnerships_clean:
     name: limpar_parcerias_orfas
     description: '[ADMIN] Remove parcerias órfãs'
 partnerships:
+  command:
+    name: partnerships
+    description: Gerencia parcerias do servidor
   error_disabled: '{error} Parcerias estão desativadas neste servidor.'
   error_no_channel: '{error} Nenhum canal de parcerias configurado.'
   modal:
@@ -1295,6 +1308,9 @@ tickets_panel:
     name: painel_tickets
     description: '[ADMIN] Posta o painel de tickets'
 tickets:
+  command:
+    name: tickets
+    description: Painéis de tickets
   error_disabled: '{error} Tickets estão desativados neste servidor.'
   error_no_panel: '{error} Nenhum canal de painel configurado.'
   error_no_perms: '{error} O bot precisa da permissão Gerenciar Canais.'
@@ -1459,6 +1475,9 @@ reminders_send:
     name: enviar_lembrete
     description: '[ADMIN] Envia lembrete por DM a todos'
 reminders:
+  command:
+    name: lembretes
+    description: Gerencia lembretes
   error_disabled: '{error} Lembretes estão desativados neste servidor.'
   saved: '{success} Lembrete `{name}` salvo.'
   deleted: '{success} Lembrete `{name}` apagado.'
@@ -1479,6 +1498,9 @@ broadcast_stop:
     name: parar_broadcast
     description: '[ADMIN] Para o broadcast ao vivo'
 broadcast:
+  command:
+    name: broadcast
+    description: Sessões de broadcast ao vivo
   error_disabled: '{error} Broadcasts estão desativados neste servidor.'
   error_active: '{error} Já há um broadcast rolando.'
   error_none: '{error} Nenhum broadcast rolando.'
@@ -1494,7 +1516,7 @@ broadcast:
       description: '{moderator} encerrou o broadcast ({relayed} replicadas, {sent} enviadas, {failed} falharam).'
 invites:
   command:
-    name: convites
+    name: invites
     description: Mostra stats de convites seus ou de outro membro
   error_disabled: '{error} O rastreamento de convites está desativado neste servidor.'
   error_leaderboard_disabled: '{error} O ranking de convites está desativado.'
@@ -1595,6 +1617,10 @@ invites:
     reset:
       title: '{warning} Convites Resetados'
       description: 'Stats de convites resetados por {moderator}.'
+invites_stats:
+  command:
+    name: stats
+    description: Mostra stats de convites seus ou de outro membro
 invites_leaderboard:
   command:
     name: ranking_convites
@@ -1861,7 +1887,7 @@ variables:
     description: Menção de quem agiu
   actor_avatar:
     label: Avatar de quem agiu
-    description: URL do avatar de quem agiu (thumbnail do card de interação)
+    description: URL do avatar de quem agiu (thumbnail do card de roleplay)
   winner:
     label: Vencedor
     description: Menção do vencedor
@@ -1963,7 +1989,7 @@ variables:
     description: URL de uma imagem anexada
   gif_url:
     label: URL do gif
-    description: URL do gif exibido no card de interação
+    description: URL do gif exibido no card de roleplay
   roles:
     label: Cargos
     description: Número de cargos
@@ -2310,7 +2336,7 @@ card:
   starboard:
     card:
       title: Post do Starboard
-      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}"
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}, {{message_link}}"
   utility:
     ping:
       title: Card de latência
@@ -2622,10 +2648,10 @@ card:
         description:
           title: 'Log: warn aplicado'
           placeholders: ''
-  interactions:
+  roleplay:
     card:
-      title: Card de interação
-      placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}'
+      title: Card de roleplay
+      placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}, {{title}}, {{body}}'
     manager:
       title: Cabeçalho do gerenciador de gifs
       placeholders: "{{action}}"
@@ -3026,13 +3052,16 @@ birthday:
   command:
     name: aniversario
     description: Registre e liste aniversários
-interactions:
-  error_disabled: As interações estão desativadas neste servidor.
+roleplay:
+  command:
+    name: roleplay
+    description: Manda um card de roleplay com gif para alguém
+  error_disabled: O roleplay está desativado neste servidor.
   error_self: Você não pode interagir consigo mesmo... ou pode? Tente mencionar outra pessoa!
-  error_bot: Bots não participam das interações.
-  error_not_target: Só quem recebeu a interação pode retribuir.
-  error_gone: Quem participou desta interação não está mais no servidor.
-  error_no_gif: '{error} Nenhuma fonte de gif disponível para esta interação (API fora do ar e nada configurado).'
+  error_bot: Bots não participam do roleplay.
+  error_not_target: Só quem recebeu o roleplay pode retribuir.
+  error_gone: Quem participou deste roleplay não está mais no servidor.
+  error_no_gif: '{error} Nenhuma fonte de gif disponível para este roleplay (API fora do ar e nada configurado).'
   regive: Retribuir
   actions:
     hug: abraçou
@@ -3048,7 +3077,7 @@ interactions:
     stare: encarou
     cuddle: dormiu abraçado com
   card:
-    title: "Card de interação"
+    title: "Card de roleplay"
     placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}"
   source: Fonte da imagem
   manager:

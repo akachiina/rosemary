@@ -1,11 +1,12 @@
-"""Interactions (roleplay): action cards with gifs between members.
+"""Roleplay: action cards with gifs between members.
 
-``/roleplay_hug @user`` (or ``!hug @user`` with the guild prefix) posts a
-V2 card: the sentence as the heading (``{love_letter} @A abraçou @B``), a
-MediaGallery carrying the gif (URL only, no upload), a relative-timestamp
-footer and one button: **Retribuir** (target-only; sends a fresh card with
-the roles swapped) plus **Fonte da imagem** linking the resolved gif (even
-when the gif came from the API: the resolved url IS the source).
+``/roleplay hug @user`` (or ``!hug @user`` with the guild prefix) posts a
+V2 card: the action as the heading, the sentence as a body line
+(``{love_letter} @A abraçou @B``, both members ping), a MediaGallery
+carrying the gif (URL only, no upload), a relative-timestamp footer and
+one button: **Retribuir** (target-only; sends a fresh card with the roles
+swapped) plus **Fonte da imagem** linking the resolved gif (even when the
+gif came from the API: the resolved url IS the source).
 
 Gif resolution per action: the guild's ``roleplay.json`` override list
 when seeded (first manager edit), else the theme's ``roleplay.gifs``
@@ -13,7 +14,7 @@ section, else the built-in nekos.best category (``attack`` maps to
 ``kick``). Entries are ``{url}`` (fixed) or ``{api: category}`` (random
 gif from that category); within a list one entry is picked at random.
 
-The card is a first-class CardSpec (``interactions.card``) with a default
+The card is a first-class CardSpec (``roleplay.card``) with a default
 builder: themes can restyle everything (the gallery self-drops when
 ``{gif_url}`` resolves empty); the regive row stays in code because buttons
 need registered callbacks.
@@ -42,6 +43,48 @@ from rosemary.core.settings import get_setting
 from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
+
+#: The `/roleplay` group (one subcommand per action: `/roleplay beijar`).
+#: Module-level so the object is shared, never duplicated: a group held as a
+#: class attribute by two cogs would be copied and registered twice.
+#: Subcommand localization reuses the legacy flat keys
+#: (``roleplay_hug.command``), so no catalog churn. The group name itself is
+#: fixed (never localized); only subcommand names/descriptions are per guild.
+roleplay_group = discord.SlashCommandGroup(
+    "roleplay",
+    description="Send a roleplay card",
+    contexts={discord.InteractionContextType.guild},
+)
+
+def _member_slash(action: str):
+    """Build one group subcommand for an action (name localized per guild).
+
+    Module-level on purpose: the cog holds the group as a class attribute,
+    and py-cord copies it at class-definition time, so subcommands attached
+    later (e.g. from ``__init__``) would never reach the registered copy.
+    The first parameter takes the invoking cog: group subcommands always run
+    with ``.cog`` set (``callback(cog, ctx, ...)``).
+    """
+
+    @roleplay_group.command(
+        name=action,
+        description="Send a roleplay card",
+    )
+    async def cmd(
+        cog,
+        ctx: discord.ApplicationContext,
+        member: discord.Option(
+            discord.Member, description="Who receives the action"
+        ),
+    ) -> None:
+        await cog._slash_run(ctx, action, member)
+
+    cmd.__name__ = f"roleplay_{action}"
+    return cmd
+
+
+for _action in ACTIONS:
+    _member_slash(_action)
 
 #: Prefix-command aliases: English verb -> action key (plus the bare key).
 _PREFIX_ALIASES: dict[str, str] = {
@@ -75,20 +118,27 @@ _PREFIX_ALIASES: dict[str, str] = {
     "dormir": "cuddle",
 }
 
-_REGIVE_PREFIX = "interactions_regive"
+_REGIVE_PREFIX = "roleplay_regive"
+
+#: Pre-rename custom_id of the regive button. Cards posted before the
+#: interactions -> roleplay rename carry this id; the dispatcher answers it
+#: with the same handler so old buttons keep working.
+_LEGACY_REGIVE_PREFIX = "interactions_regive"
 
 
 def _sentence_key(action: str) -> str:
-    return f"interactions.actions.{action}"
+    return f"roleplay.actions.{action}"
 
 
 async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default roleplay card (``interactions.card``).
+    """Catalog-default roleplay card (``roleplay.card``).
 
-    Layout: the action sentence IS the heading (the theme's ``title``
-    markdown template, ``# ...``, keeps it big beside the actor's avatar
-    thumbnail), the gif gallery (self-drops when ``{gif_url}`` resolves
-    empty), a divider and the relative-timestamp footer. Placeholders stay
+    Layout: the heading names only the action (the theme's ``title``
+    markdown template, ``# ...``, beside the actor's avatar thumbnail);
+    the action sentence itself is a body line, never the title. Both
+    members ping through ``{@actor}``/``{@target}`` content mentions. The
+    gif gallery self-drops when ``{gif_url}`` resolves empty; a divider
+    and the relative-timestamp footer close the card. Placeholders stay
     literal: this is a template resolved at render.
     """
     from rosemary.core.cards import safe_format
@@ -100,8 +150,9 @@ async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
     def raw(key: str) -> str:
         return safe_format(key, mapping)
 
-    sentence = raw("{love_letter} {actor} {action} {target}")
-    heading = theme.md("title", title=sentence) if theme else f"# {sentence}"
+    action_title = raw("{love_letter} {action}")
+    heading = theme.md("title", title=action_title) if theme else f"# {action_title}"
+    sentence = raw("{love_letter} {@actor} {action} {@target}")
     avatar = str(variables.get("actor_avatar") or "{actor_avatar}")
     return {
         "v": 1,
@@ -112,6 +163,7 @@ async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
                  "children": [
                      {"type": "text", "body": heading},
                  ]},
+                {"type": "text", "body": sentence},
                 {"type": "gallery", "urls": ["{gif_url}"]},
                 {"type": "divider"},
                 {"type": "text", "body": "-# {timestamp}"},
@@ -123,7 +175,7 @@ async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
 def _register_default_builder() -> None:
     from rosemary.core.cards import set_default_builder
 
-    set_default_builder("interactions.card", default_interaction_document)
+    set_default_builder("roleplay.card", default_interaction_document)
 
 
 _register_default_builder()
@@ -144,10 +196,11 @@ class RegiveView(MenuView):
         self.bot = bot
         self.guild_id = guild_id
         self.register(_REGIVE_PREFIX, self._regive)
+        self.register(_LEGACY_REGIVE_PREFIX, self._regive)
 
     async def build_row(self, source_url: str = ""):
         """The regive button; the source link needs a real URL at send time."""
-        label = await self.bot.translator.t(self.guild_id, "interactions.regive")
+        label = await self.bot.translator.t(self.guild_id, "roleplay.regive")
         items = [
             self.make_button(
                 custom_id=_REGIVE_PREFIX,
@@ -181,7 +234,7 @@ class RegiveView(MenuView):
         guild = interaction.guild
         if message is None or guild is None:
             return
-        cog = self.bot.get_cog("InteractionsCog")
+        cog = self.bot.get_cog("RoleplayCog")
         if cog is None:
             return
         context = await cog.store.get_regive(guild.id, message.id)
@@ -189,7 +242,7 @@ class RegiveView(MenuView):
             if not interaction.response.is_done():
                 await interaction.response.send_message(
                     await self.bot.translator.t(
-                        guild.id, "interactions.error_gone"
+                        guild.id, "roleplay.error_gone"
                     ),
                     ephemeral=True,
                 )
@@ -199,7 +252,7 @@ class RegiveView(MenuView):
             if not interaction.response.is_done():
                 await interaction.response.send_message(
                     await self.bot.translator.t(
-                        guild.id, "interactions.error_not_target"
+                        guild.id, "roleplay.error_not_target"
                     ),
                     ephemeral=True,
                 )
@@ -213,7 +266,7 @@ class RegiveView(MenuView):
             if not interaction.response.is_done():
                 await interaction.response.send_message(
                     await self.bot.translator.t(
-                        guild.id, "interactions.error_gone"
+                        guild.id, "roleplay.error_gone"
                     ),
                     ephemeral=True,
                 )
@@ -224,24 +277,23 @@ class RegiveView(MenuView):
         if not sent and not interaction.response.is_done():
             await interaction.response.send_message(
                 await self.bot.translator.t(
-                    guild.id, "interactions.error_no_gif"
+                    guild.id, "roleplay.error_no_gif"
                 ),
                 ephemeral=True,
             )
 
 
-class InteractionsCog(commands.Cog):
+class RoleplayCog(commands.Cog):
     """The roleplay surface: action cards with gifs."""
+
+    # Held as a class attribute so add_cog registers the group (with the
+    # subcommands attached below by register_action_commands).
+    group = roleplay_group
 
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = RoleplayStore(bot.storage.data_dir)
         self._regive_view: RegiveView | None = None
-        # Synchronous on purpose: the commands must be pending BEFORE bot.py
-        # snapshots ``_command_base_keys`` (add_cog time), or the per-guild
-        # localization never sees them and every guild gets the English
-        # ``roleplay_hug`` instead of the localized name.
-        self.register_action_commands()
 
     async def start(self) -> None:
         """Register the persistent regive dispatcher once per process."""
@@ -256,7 +308,7 @@ class InteractionsCog(commands.Cog):
 
     async def _enabled(self, guild_id: int) -> bool:
         return bool(
-            await get_setting(self.bot.storage, guild_id, "interactions.enabled")
+            await get_setting(self.bot.storage, guild_id, "roleplay.enabled")
         )
 
     async def gifs_for(self, guild_id: int, action: str) -> list[dict[str, str]]:
@@ -300,14 +352,14 @@ class InteractionsCog(commands.Cog):
             "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
         }
         payload, allowed = await render_card_message(
-            self.bot, guild_id, "interactions.card", variables
+            self.bot, guild_id, "roleplay.card", variables
         )
         if payload is None:
             payload = await self._fallback_card(guild_id, variables)
             # Mentions are content: the fallback renders both mentions, so the
             # card still pings like the themed path does.
             allowed = await allowed_for_ids(
-                self.bot, guild_id, "interactions.card", user_ids=[actor.id, target.id]
+                self.bot, guild_id, "roleplay.card", user_ids=[actor.id, target.id]
             )
         view = RegiveView(self.bot, guild_id)
         # The source link always points at the resolved gif (API gifs
@@ -341,15 +393,20 @@ class InteractionsCog(commands.Cog):
         theme = self.bot.theme
         view = DesignerView(store=False)
         emoji_map = getattr(theme, "emojis", {}) if theme else {}
+        mapping = {**emoji_map, **variables}
+        # Plain placeholders here (the fallback pings via allowed_for_ids):
+        # `{@...}` would render literally outside the document renderer.
+        heading_text = safe_format("{love_letter} {action}", mapping)
         sentence = safe_format(
             "{love_letter} {actor} {action} {target}",
-            {**emoji_map, **variables},
+            mapping,
         )
-        heading = theme.md("title", title=sentence) if theme else f"# {sentence}"
+        heading = theme.md("title", title=heading_text) if theme else f"# {heading_text}"
         view.add_item(
             designer_container(
                 theme.color("brand") if theme else discord.Colour.blurple(),
                 TextDisplay(heading),
+                TextDisplay(sentence),
             )
         )
         return CardPayload(view=view)
@@ -387,7 +444,7 @@ class InteractionsCog(commands.Cog):
             with contextlib.suppress(discord.HTTPException):
                 await message.reply(
                     await self.bot.translator.t(
-                        message.guild.id, "interactions.error_self"
+                        message.guild.id, "roleplay.error_self"
                     ),
                     mention_author=False,
                 )
@@ -399,58 +456,38 @@ class InteractionsCog(commands.Cog):
             with contextlib.suppress(discord.HTTPException):
                 await message.reply(
                     await self.bot.translator.t(
-                        message.guild.id, "interactions.error_no_gif"
+                        message.guild.id, "roleplay.error_no_gif"
                     ),
                     mention_author=False,
                 )
 
     #: slash commands ---------------------------------------------------------
 
-    def _member_slash(self, action: str, description_key: str):
-        """Build one slash command for an action (name localized per guild)."""
-
-        @commands.slash_command(
-            name=f"roleplay_{action}",
-            description="Send a roleplay card",
-            contexts={discord.InteractionContextType.guild},
-        )
-        async def cmd(
-            ctx: discord.ApplicationContext,
-            member: discord.Option(
-                discord.Member, description="Who receives the action"
-            ),
-        ) -> None:
-            await self._slash_run(ctx, action, member, description_key)
-
-        cmd.__name__ = f"roleplay_{action}"
-        return cmd
-
     async def _slash_run(
         self,
         ctx: discord.ApplicationContext,
         action: str,
         member: discord.Member,
-        description_key: str,
     ) -> None:
         guild = ctx.guild
         # THINKING (public, not ephemeral): the card lands in the channel in
         # a few seconds; the placeholder is deleted right after the send, so
-        # there is no "Interação enviada!" clutter and no stuck "thinking".
+        # there is no "roleplay enviado!" clutter and no stuck "thinking".
         if not ctx.response.is_done():
             await ctx.response.defer()
         if not await self._enabled(guild.id):
             return await ctx.respond(
-                await self.bot.translator.t(guild.id, "interactions.error_disabled"),
+                await self.bot.translator.t(guild.id, "roleplay.error_disabled"),
                 ephemeral=True,
             )
         if member.id == ctx.author.id:
             return await ctx.respond(
-                await self.bot.translator.t(guild.id, "interactions.error_self"),
+                await self.bot.translator.t(guild.id, "roleplay.error_self"),
                 ephemeral=True,
             )
         if member.bot:
             return await ctx.respond(
-                await self.bot.translator.t(guild.id, "interactions.error_bot"),
+                await self.bot.translator.t(guild.id, "roleplay.error_bot"),
                 ephemeral=True,
             )
         sent = await self.send_interaction_card(
@@ -458,24 +495,13 @@ class InteractionsCog(commands.Cog):
         )
         if not sent:
             return await ctx.respond(
-                await self.bot.translator.t(guild.id, "interactions.error_no_gif"),
+                await self.bot.translator.t(guild.id, "roleplay.error_no_gif"),
                 ephemeral=True,
             )
         # The card is the answer: the "thinking" placeholder goes away
-        # instead of leaving a second "Interação enviada!" message behind.
+        # instead of leaving a second "roleplay enviado!" message behind.
         with contextlib.suppress(discord.HTTPException):
             await ctx.delete(delay=2.0)
-
-    #: registration -----------------------------------------------------------
-
-    def register_action_commands(self) -> None:
-        """Add one localized slash command per action (called from __init__)."""
-        for action in ACTIONS:
-            cmd = self._member_slash(
-                action, f"interactions.actions.{action}.description"
-            )
-            self.bot.add_application_command(cmd)
-
 
 def _parse_mention(raw: str) -> int | None:
     """``<@123>`` / ``<@!123>`` / bare id -> id, else ``None``."""

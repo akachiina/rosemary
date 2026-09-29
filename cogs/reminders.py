@@ -20,6 +20,12 @@ log = logging.getLogger(__name__)
 class RemindersCog(commands.Cog):
     """Named DM reminders."""
 
+
+    reminders_group = discord.SlashCommandGroup(
+        "reminders",
+        description="Manage reminders",
+        contexts={discord.InteractionContextType.guild},
+    )
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = ReminderStore(bot.storage.data_dir)
@@ -27,11 +33,10 @@ class RemindersCog(commands.Cog):
     async def _guard(self, guild_id: int) -> bool:
         return bool(await get_setting(self.bot.storage, guild_id, "reminders.enabled"))
 
-    @discord.slash_command(
-        name="reminders_save",
+    @reminders_group.command(
+        name="save",
         description="[ADMIN] Save a reminder message",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def reminders_save(
         self,
@@ -53,11 +58,10 @@ class RemindersCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="reminders_delete",
+    @reminders_group.command(
+        name="delete",
         description="[ADMIN] Delete a reminder message",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def reminders_delete(
         self,
@@ -81,11 +85,10 @@ class RemindersCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="reminders_list",
+    @reminders_group.command(
+        name="list",
         description="[ADMIN] List reminder messages",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def reminders_list(self, ctx: discord.ApplicationContext) -> None:
         """List saved reminder names as a themed card."""
@@ -121,11 +124,10 @@ class RemindersCog(commands.Cog):
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
-        name="reminders_send",
+    @reminders_group.command(
+        name="send",
         description="[ADMIN] DM a reminder to every member",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def reminders_send(
         self,

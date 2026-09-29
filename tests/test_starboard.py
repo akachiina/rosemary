@@ -308,3 +308,34 @@ async def test_builder_reacts_to_star_tier(tmp_path):
     assert low_c != mid_c != high_c, "ramp must move between 1/5/13 stars"
     # Monotonic toward the strong end: red channel only rises (yellow->orange).
     assert int(low_c[1:3], 16) <= int(mid_c[1:3], 16) <= int(high_c[1:3], 16)
+
+
+async def test_default_document_has_jump_button(tmp_path):
+    """The themed path dropped the jump button once: the default builder must
+    carry the link row (``{message_link}`` resolved at the send site)."""
+    from rosemary.core.card_service import default_document
+
+    bot = FakeBot(tmp_path)
+    doc = await default_document(bot, 1, "starboard.card", {"stars": 3})
+    rows = [
+        block
+        for block in doc["blocks"][0]["children"]
+        if isinstance(block, dict) and block.get("type") == "row"
+    ]
+    assert rows, "starboard default must include a button row"
+    buttons = [b for row in rows for b in row.get("buttons", [])]
+    assert any(b.get("url") == "{message_link}" for b in buttons), buttons
+
+
+async def test_card_view_passes_message_link(tmp_path):
+    """The send site must provide ``message_link`` or the button resolves empty."""
+    cog, bot, channel, _board, _post, message, seed = make_flow(tmp_path)
+    await seed()
+    card, _allowed = await cog._card_view(1, message, 3, "Jump", "empty")
+    urls = [
+        item.url
+        for item in card.view.walk_children()
+        if isinstance(item, discord.ui.Button)
+        and item.style is discord.ButtonStyle.link
+    ]
+    assert "https://discord.com/jump" in urls, urls

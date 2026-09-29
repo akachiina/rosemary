@@ -2,8 +2,8 @@
 
 Commands:
 
-* ``/boost`` (localized ``/cargo_boost``), the member panel for boost roles.
-* ``/boost_admin`` (localized ``/admin_boost``), the moderation panel
+* ``/boost panel`` (group localized ``/cargo_boost``), the member panel.
+* ``/boost admin`` (group localized ``/cargo_boost``), the moderation panel
   (``manage_guild`` required).
 
 The cog also reconciles the stored data with reality: when a member leaves the
@@ -37,6 +37,12 @@ _CLEANUP_INTERVAL = 300  # seconds
 class BoostRolesCog(commands.Cog):
     """Boost role management."""
 
+
+    boost_group = discord.SlashCommandGroup(
+        "boost",
+        description="Boost roles panel",
+        contexts={discord.InteractionContextType.guild},
+    )
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = BoostRoleStore(bot.storage.data_dir)
@@ -205,10 +211,9 @@ class BoostRolesCog(commands.Cog):
 
     #: commands -----------------------------------------------------------
 
-    @discord.slash_command(
-        name="boost",
+    @boost_group.command(
+        name="panel",
         description="Boost roles panel",
-        contexts={discord.InteractionContextType.guild},
     )
     async def boost(self, ctx: discord.ApplicationContext) -> None:
         """Open the boost-role panel."""
@@ -220,11 +225,10 @@ class BoostRolesCog(commands.Cog):
         view = BoostMenuView(self.bot, self._guild_id(ctx), owner_id=ctx.author.id)
         await self._open_menu(ctx, view)
 
-    @discord.slash_command(
-        name="boost_admin",
+    @boost_group.command(
+        name="admin",
         description="Admin boost roles panel",
         default_member_permissions=discord.Permissions(manage_guild=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def boost_admin(self, ctx: discord.ApplicationContext) -> None:
         """Open the admin boost-role panel."""

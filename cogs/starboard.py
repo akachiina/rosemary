@@ -158,6 +158,7 @@ class StarboardCog(commands.Cog):
                 "title": title,
                 "body": body,
                 "image_url": image_url or "",
+                "message_link": message.jump_url,
                 "timestamp": discord.utils.format_dt(message.created_at, style="R"),
             },
         )
@@ -357,14 +358,16 @@ async def default_starboard_document(bot, guild_id: int, **variables) -> dict:
 
     The tiered container wraps: the tiered title beside the author's avatar
     thumbnail, the attachment gallery (skipped when ``{image_url}`` resolves
-    empty: no image in the starred message), a divider and the standard
-    author footer (``card.author_footer.text``). Placeholders stay literal:
-    this is a template.
+    empty: no image in the starred message), a divider, the standard
+    author footer (``card.author_footer.text``) and the jump-to-message link
+    button (``{message_link}`` comes from the send site). Placeholders stay
+    literal: this is a template.
     """
     from rosemary.core.cards import author_footer_blocks
 
     stars = int(variables.get("stars") or 1)
     footer = await author_footer_blocks(bot, guild_id)
+    jump_label = await bot.translator.t(guild_id, "starboard.jump")
     return {
         "v": 1,
         "blocks": [
@@ -382,6 +385,10 @@ async def default_starboard_document(bot, guild_id: int, **variables) -> dict:
                     },
                     {"type": "gallery", "urls": ["{image_url}"]},
                     *footer,
+                    {
+                        "type": "row",
+                        "buttons": [{"label": jump_label, "url": "{message_link}"}],
+                    },
                 ],
             }
         ],

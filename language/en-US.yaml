@@ -85,7 +85,7 @@ settings:
     partnerships: Partnerships
     broadcast_reminders: Broadcast & Reminders
     colors: Color Panel
-    interactions: Interactions
+    roleplay: Roleplay
   colors.enabled:
     label: Color Panel Enabled
     description: Enables the color panel (colored roles any member can pick).
@@ -102,10 +102,10 @@ settings:
     label: Colors per Card
     description: How many colors per panel card (each card gets its own image and buttons).
   colors.manage: Manage colors
-  interactions.enabled:
-    label: Interactions enabled
-    description: Gif interaction cards (hug, kiss and friends).
-  interactions.manage: Manage gifs
+  roleplay.enabled:
+    label: Roleplay enabled
+    description: Gif roleplay cards (hug, kiss and friends).
+  roleplay.manage: Manage gifs
   bump.enabled:
     label: Disboard Bump Enabled
     description: Enables or disables the Disboard Bump reminder and leaderboard system.
@@ -825,7 +825,14 @@ boost:
       title: '{ban} Orphan Role Removed'
       description: "**{tag} Role:** {role} from {owner} was removed from the system."
   error_disabled: '{error} The boost roles system is disabled in this server.'
+boost_panel:
+  command:
+    name: panel
+    description: Boost roles panel
 colors:
+  command:
+    name: colors
+    description: Color panel
   defaults:
     rose_light: Light Rose
     rose_dark: Dark Rose
@@ -895,13 +902,16 @@ colors:
     removed: '{check} Color **{name}** removed.'
 colors_panel:
   command:
-    name: colors_panel
+    name: panel
     description: '[ADMIN] Post the color panel'
-my_colors:
+colors_my:
   command:
-    name: my_colors
+    name: my
     description: List the available panel colors
 bump:
+  command:
+    name: bump
+    description: Disboard bump leaderboard
   messages:
     anti_camping: 🔒 **|** The channel is temporarily locked. Bump will be available shortly!
     thank_you_title: '{tada} Bump Recorded!'
@@ -932,7 +942,7 @@ bump:
 
       **{hourglass} The week ends in:** <t:{next_reset_timestamp}:R>
 
-      **{crown} Winner:** {winner_mention} with **{winner_count}** bumps!
+      **{crown} Winner:** {@winner_mention} with **{winner_count}** bumps!
 
 
       **{gift} Prize:** Customizable **{role_name}** role for 1 week!
@@ -1099,35 +1109,35 @@ bump:
     week_end: '{hourglass} The week ends in: <t:{next_reset_ts}:R>'
 bump_leaderboard:
   command:
-    name: bump_leaderboard
+    name: leaderboard
     description: Show the weekly bump leaderboard
 bump_stats:
   command:
-    name: bump_stats
+    name: stats
     description: Show your bump statistics
 test_bump:
   command:
-    name: test_bump
+    name: test
     description: '[ADMIN] Simulate a bump to test the system'
 test_bump_reminder:
   command:
-    name: test_bump_reminder
+    name: test_reminder
     description: '[ADMIN] Send the bump reminder immediately'
 bump_status:
   command:
-    name: bump_status
+    name: status
     description: '[ADMIN] Show the bump system status'
 test_bump_leaderboard:
   command:
-    name: test_bump_leaderboard
+    name: test_leaderboard
     description: '[ADMIN] Force the weekly leaderboard calculation'
 reset_bump_week:
   command:
-    name: reset_bump_week
+    name: reset_week
     description: '[ADMIN] Manually reset the bump week'
 add_test_bumps:
   command:
-    name: add_test_bumps
+    name: add_test
     description: '[ADMIN] Add test bumps for a user'
 ping:
   command:
@@ -1211,33 +1221,36 @@ updater:
       description: 'Update applied: {previous} → {current}.'
 partnerships_add:
   command:
-    name: partnerships_add
+    name: add
     description: '[ADMIN] Add a partnership'
 partnerships_remove:
   command:
-    name: partnerships_remove
+    name: remove
     description: '[ADMIN] Remove a partnership'
 partnerships_renew:
   command:
-    name: partnerships_renew
+    name: renew
     description: Renew your partnership ad
 partnerships_invite:
   command:
-    name: partnerships_invite
+    name: invite
     description: '[ADMIN] Post the partnership invite text'
 partnerships_list:
   command:
-    name: partnerships_list
+    name: list
     description: '[ADMIN] List partnerships'
 partnerships_audit:
   command:
-    name: partnerships_audit
+    name: audit
     description: '[ADMIN] Audit partnerships without acting'
 partnerships_clean:
   command:
-    name: partnerships_clean
+    name: clean
     description: '[ADMIN] Remove orphan partnerships'
 partnerships:
+  command:
+    name: partnerships
+    description: Manage server partnerships
   error_disabled: '{error} Partnerships are disabled on this server.'
   error_no_channel: '{error} No partnerships channel configured.'
   modal:
@@ -1292,9 +1305,12 @@ partnerships:
       description: '{author} removed {count} orphan partnership(s).'
 tickets_panel:
   command:
-    name: tickets_panel
+    name: panel
     description: '[ADMIN] Post the ticket panel'
 tickets:
+  command:
+    name: tickets
+    description: Ticket panels
   error_disabled: '{error} Tickets are disabled on this server.'
   error_no_panel: '{error} No ticket panel channel configured.'
   error_no_perms: '{error} The bot needs Manage Channels permission.'
@@ -1444,21 +1460,24 @@ trap:
     reason_label: 'Reason'
 reminders_save:
   command:
-    name: reminders_save
+    name: save
     description: '[ADMIN] Save a reminder message'
 reminders_delete:
   command:
-    name: reminders_delete
+    name: delete
     description: '[ADMIN] Delete a reminder message'
 reminders_list:
   command:
-    name: reminders_list
+    name: list
     description: '[ADMIN] List reminder messages'
 reminders_send:
   command:
-    name: reminders_send
+    name: send
     description: '[ADMIN] DM a reminder to every member'
 reminders:
+  command:
+    name: reminders
+    description: Manage reminders
   error_disabled: '{error} Reminders are disabled on this server.'
   saved: '{success} Reminder `{name}` saved.'
   deleted: '{success} Reminder `{name}` deleted.'
@@ -1472,13 +1491,16 @@ reminders:
       description: '{moderator} sent reminder `{name}` ({sent} sent, {failed} failed).'
 broadcast_start:
   command:
-    name: broadcast_start
+    name: start
     description: '[ADMIN] Start a live broadcast from this channel'
 broadcast_stop:
   command:
-    name: broadcast_stop
+    name: stop
     description: '[ADMIN] Stop the live broadcast'
 broadcast:
+  command:
+    name: broadcast
+    description: Live broadcast sessions
   error_disabled: '{error} Broadcasts are disabled on this server.'
   error_active: '{error} A broadcast is already running.'
   error_none: '{error} No broadcast is running.'
@@ -1595,9 +1617,13 @@ invites:
     reset:
       title: '{warning} Invites Reset'
       description: 'Invite stats were reset by {moderator}.'
+invites_stats:
+  command:
+    name: stats
+    description: Show invite stats for yourself or another member
 invites_leaderboard:
   command:
-    name: invites_leaderboard
+    name: leaderboard
     description: Show the top inviters ranking
 who_invited:
   command:
@@ -1617,31 +1643,31 @@ server_invites:
     description: Show server-wide invite statistics
 invites_bonus:
   command:
-    name: invites_bonus
+    name: bonus
     description: '[ADMIN] Add or remove bonus invites'
 invites_sync:
   command:
-    name: invites_sync
+    name: sync
     description: '[ADMIN] Recount invite uses from Discord'
 invites_codes:
   command:
-    name: invites_codes
+    name: codes
     description: '[ADMIN] List invite codes and uses'
 invites_blacklist:
   command:
-    name: invites_blacklist
+    name: blacklist
     description: '[ADMIN] Manage the invite blacklist'
 invites_reset:
   command:
-    name: invites_reset
+    name: reset
     description: '[ADMIN] Reset all invite stats'
 invites_label:
   command:
-    name: invites_label
+    name: label
     description: '[ADMIN] Label an invite code'
 boost_admin:
   command:
-    name: boost_admin
+    name: admin
     description: Admin boost roles panel
 ban:
   command:
@@ -1860,7 +1886,7 @@ variables:
     description: Mention of who acted
   actor_avatar:
     label: Actor avatar
-    description: URL of the actor's avatar (interaction card thumbnail)
+    description: URL of the actor's avatar (roleplay card thumbnail)
   winner:
     label: Winner
     description: Mention of the winner
@@ -1962,7 +1988,7 @@ variables:
     description: URL of an attached image
   gif_url:
     label: Gif URL
-    description: URL of the gif shown on the interaction card
+    description: URL of the gif shown on the roleplay card
   roles:
     label: Roles
     description: Number of roles
@@ -2309,7 +2335,7 @@ card:
   starboard:
     card:
       title: Starboard post
-      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}"
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}, {{message_link}}"
   utility:
     ping:
       title: Latency card
@@ -2592,10 +2618,10 @@ card:
     dm:
       title: Mute DM
       placeholders: '{{duration}}, {{guild}}, {{moderator}}, {{reason}}'
-  interactions:
+  roleplay:
     card:
-      title: Interaction card
-      placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}'
+      title: Roleplay card
+      placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}, {{title}}, {{body}}'
     manager:
       title: Gif manager heading
       placeholders: "{{action}}"
@@ -3025,13 +3051,16 @@ birthday:
   command:
     name: birthday
     description: Register and list birthdays
-interactions:
-  error_disabled: Interactions are disabled on this server.
+roleplay:
+  command:
+    name: roleplay
+    description: Send a roleplay card
+  error_disabled: Roleplay is disabled on this server.
   error_self: You cannot interact with yourself... or can you? Try mentioning someone else!
-  error_bot: Bots do not join the interactions.
+  error_bot: Bots do not join the roleplay.
   error_not_target: Only the recipient can give it back.
-  error_gone: A participant of this interaction is no longer on the server.
-  error_no_gif: '{error} No gif source is available for this interaction (the API is down and nothing is configured).'
+  error_gone: A participant of this roleplay is no longer on the server.
+  error_no_gif: '{error} No gif source is available for this roleplay (the API is down and nothing is configured).'
   regive: Give it back
   actions:
     hug: hugged
@@ -3047,7 +3076,7 @@ interactions:
     stare: stared at
     cuddle: cuddled with
   card:
-    title: "Interaction card"
+    title: "Roleplay card"
     placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}"
   source: Image source
   manager:

@@ -50,6 +50,12 @@ def _snapshot(invite: discord.Invite) -> InviteSnapshot:
 class InvitesCog(commands.Cog):
     """Invite attribution, stats, ranking and admin tools."""
 
+    invites_group = discord.SlashCommandGroup(
+        "invites",
+        description="Show invite stats",
+        contexts={discord.InteractionContextType.guild},
+    )
+
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = InviteStore(bot.storage.data_dir)
@@ -267,10 +273,9 @@ class InvitesCog(commands.Cog):
 
     #: public commands -----------------------------------------------------------
 
-    @discord.slash_command(
-        name="invites",
+    @invites_group.command(
+        name="stats",
         description="Show invite stats",
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites(
         self,
@@ -365,10 +370,9 @@ class InvitesCog(commands.Cog):
         )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
-        name="invites_leaderboard",
+    @invites_group.command(
+        name="leaderboard",
         description="Show the top inviters ranking",
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites_leaderboard(self, ctx: discord.ApplicationContext) -> None:
         """Post the top inviters ranking in the current channel."""
@@ -450,10 +454,9 @@ class InvitesCog(commands.Cog):
         )
         return CardPayload(view=view)
 
-    @discord.slash_command(
+    @invites_group.command(
         name="who_invited",
         description="Show who invited a member",
-        contexts={discord.InteractionContextType.guild},
     )
     async def who_invited(
         self,
@@ -516,10 +519,9 @@ class InvitesCog(commands.Cog):
         )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
+    @invites_group.command(
         name="invited",
         description="List members invited by someone",
-        contexts={discord.InteractionContextType.guild},
     )
     async def invited(
         self,
@@ -573,10 +575,9 @@ class InvitesCog(commands.Cog):
         )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
+    @invites_group.command(
         name="my_invite",
         description="Get your personal invite link",
-        contexts={discord.InteractionContextType.guild},
     )
     async def my_invite(self, ctx: discord.ApplicationContext) -> None:
         """Create (or reuse) a permanent invite and show personal stats."""
@@ -648,10 +649,9 @@ class InvitesCog(commands.Cog):
         )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
+    @invites_group.command(
         name="server_invites",
         description="Show server-wide invite statistics",
-        contexts={discord.InteractionContextType.guild},
     )
     async def server_invites(self, ctx: discord.ApplicationContext) -> None:
         """Show server-wide invite statistics."""
@@ -709,11 +709,10 @@ class InvitesCog(commands.Cog):
 
     #: admin commands ----------------------------------------------------------
 
-    @discord.slash_command(
-        name="invites_bonus",
+    @invites_group.command(
+        name="bonus",
         description="[ADMIN] Add or remove bonus invites",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites_bonus(
         self,
@@ -754,11 +753,10 @@ class InvitesCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="invites_sync",
+    @invites_group.command(
+        name="sync",
         description="[ADMIN] Recount invite uses from Discord",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites_sync(self, ctx: discord.ApplicationContext) -> None:
         """Rebuild the attribution baseline from live invite uses."""
@@ -795,11 +793,10 @@ class InvitesCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="invites_codes",
+    @invites_group.command(
+        name="codes",
         description="[ADMIN] List invite codes and uses",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites_codes(self, ctx: discord.ApplicationContext) -> None:
         """List live invite codes with uses and owners."""
@@ -836,11 +833,10 @@ class InvitesCog(commands.Cog):
             return ", ".join(f"<@&{uid}>" for uid in ids)
         return ", ".join(f"<@{uid}>" for uid in ids)
 
-    @discord.slash_command(
-        name="invites_blacklist",
+    @invites_group.command(
+        name="blacklist",
         description="[ADMIN] Manage the invite blacklist",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites_blacklist(
         self,
@@ -912,11 +908,10 @@ class InvitesCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="invites_reset",
+    @invites_group.command(
+        name="reset",
         description="[ADMIN] Reset all invite stats",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites_reset(self, ctx: discord.ApplicationContext) -> None:
         """Reset every tracked join and counter (with confirmation)."""
@@ -986,11 +981,10 @@ class InvitesCog(commands.Cog):
         await view.prepare()
         await ctx.respond(view=view, ephemeral=True)
 
-    @discord.slash_command(
-        name="invites_label",
+    @invites_group.command(
+        name="label",
         description="[ADMIN] Label an invite code",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def invites_label(
         self,

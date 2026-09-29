@@ -194,7 +194,7 @@ class Theme:
                 parsed[threshold] = glyph
         return parsed
 
-    #: interactions (roleplay) gifs ------------------------------------------
+    #: roleplay gifs ----------------------------------------------------------
 
     def roleplay_gifs(self, action: str) -> list[dict[str, str]]:
         """The theme's built-in gif list for an interaction action.

@@ -31,6 +31,12 @@ MODES: tuple[str, ...] = ("none", "single", "winner_auto", "role", "all")
 #: Fallback when a card key has no registered spec (defensive: never ping).
 DEFAULT_MODE = "none"
 
+#: Renamed card keys and the legacy ``pings:`` toggle each still honors.
+_RENAMED_PINGS: dict[str, str] = {
+    "roleplay.card": "interactions.card",
+    "roleplay.manager": "interactions.manager",
+}
+
 
 def spec_default(key: str) -> str:
     """Default policy declared by the card spec, ``"none"`` when unknown."""
@@ -63,8 +69,13 @@ def theme_pings(bot, guild_id: int | None, key: str) -> bool:
 
     theme = theme_for(bot, guild_id)
     overrides = getattr(theme, "pings", None)
-    if isinstance(overrides, dict) and key in overrides:
-        return bool(overrides[key])
+    if isinstance(overrides, dict):
+        if key in overrides:
+            return bool(overrides[key])
+        # Renamed cards keep honoring the legacy toggle (theme compat).
+        legacy = _RENAMED_PINGS.get(key)
+        if legacy is not None and legacy in overrides:
+            return bool(overrides[legacy])
     return pings_default(key)
 
 

@@ -57,6 +57,19 @@ def _next_reset(now: datetime, reset_day: str, reset_hour: int, tz: tzinfo = UTC
     return candidate.astimezone(UTC)
 
 
+#: The shared `/bump` group (subcommands live in this cog AND in
+#: ``bump_reminder.py``). Module-level so both reference one object, held as
+#: a class attribute by NEITHER cog: py-cord copies class-attribute groups
+#: at class-definition time, freezing out subcommands attached later by the
+#: other module. ``bot._setup`` registers this live object explicitly and
+#: binds every subcommand to its owning cog (see ``_SHARED_SUBCOMMAND_OWNERS``).
+bump_group = discord.SlashCommandGroup(
+    "bump",
+    description="Disboard bump leaderboard",
+    contexts={discord.InteractionContextType.guild},
+)
+
+
 class BumpLeaderboardCog(commands.Cog):
     """Weekly bump leaderboard and MVP role management."""
 
@@ -326,8 +339,19 @@ class BumpLeaderboardCog(commands.Cog):
             context = await self._leaderboard_context(
                 guild, sorted_lb, winner_id, winner_count, role_name
             )
-        description = await self.bot.translator.t(
-            guild.id, "bump.messages.leaderboard_description", **context
+        # The description carries `{@winner_mention}` (mentions are content):
+        # resolved with safe_format_mentions, never t(), whose str.format
+        # would choke on the `{@...}` marker and return the raw template.
+        from rosemary.core.cards import safe_format_mentions
+
+        template = await self.bot.translator.raw(
+            guild.id, "bump.messages.leaderboard_description"
+        )
+        if not isinstance(template, str):
+            template = ""
+        emojis = getattr(getattr(self.bot, "theme", None), "emojis", {}) or {}
+        description, _mention_ids = safe_format_mentions(
+            template, {**emojis, **context}
         )
 
         view = DesignerView(store=False)
@@ -457,10 +481,9 @@ class BumpLeaderboardCog(commands.Cog):
 
     #: Commands ------------------------------------------------------------
 
-    @discord.slash_command(
-        name="bump_leaderboard",
+    @bump_group.command(
+        name="leaderboard",
         description="Show the weekly bump leaderboard",
-        contexts={discord.InteractionContextType.guild},
     )
     async def bump_leaderboard(self, ctx: discord.ApplicationContext) -> None:
         """Post the weekly bump leaderboard in the current channel."""
@@ -506,10 +529,9 @@ class BumpLeaderboardCog(commands.Cog):
             ),
         )
 
-    @discord.slash_command(
-        name="bump_stats",
+    @bump_group.command(
+        name="stats",
         description="Show your bump statistics",
-        contexts={discord.InteractionContextType.guild},
     )
     async def bump_stats(self, ctx: discord.ApplicationContext) -> None:
         """Show the caller's bump statistics for this week."""
@@ -608,11 +630,10 @@ class BumpLeaderboardCog(commands.Cog):
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @discord.slash_command(
-        name="test_bump_leaderboard",
+    @bump_group.command(
+        name="test_leaderboard",
         description="[ADMIN] Force the weekly leaderboard calculation",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def test_bump_leaderboard(self, ctx: discord.ApplicationContext) -> None:
         """Force the weekly leaderboard processing and posting."""
@@ -726,11 +747,10 @@ class BumpLeaderboardCog(commands.Cog):
         )
         return True
 
-    @discord.slash_command(
-        name="reset_bump_week",
+    @bump_group.command(
+        name="reset_week",
         description="[ADMIN] Manually reset the bump week",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def reset_bump_week(self, ctx: discord.ApplicationContext) -> None:
         """Reset the weekly leaderboard without posting."""
@@ -754,11 +774,10 @@ class BumpLeaderboardCog(commands.Cog):
             await self.bot.translator.t(ctx.guild_id, "bump.success.week_reset"), ephemeral=True
         )
 
-    @discord.slash_command(
-        name="add_test_bumps",
+    @bump_group.command(
+        name="add_test",
         description="[ADMIN] Add test bumps for a user",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def add_test_bumps(
         self,

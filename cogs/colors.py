@@ -55,6 +55,12 @@ PANEL_SETTING_KEYS = (
 class ColorsCog(commands.Cog):
     """Pickable color roles behind a public panel."""
 
+
+    colors_group = discord.SlashCommandGroup(
+        "colors",
+        description="Color panel",
+        contexts={discord.InteractionContextType.guild},
+    )
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = ColorStore(bot.storage.data_dir)
@@ -509,11 +515,10 @@ class ColorsCog(commands.Cog):
 
     # commands ====================
 
-    @discord.slash_command(
-        name="colors_panel",
+    @colors_group.command(
+        name="panel",
         description="[ADMIN] Post the color panel",
         default_member_permissions=discord.Permissions(administrator=True),
-        contexts={discord.InteractionContextType.guild},
     )
     async def colors_panel(self, ctx: discord.ApplicationContext) -> None:
         """Post (or refresh) the panel in the configured channel."""
@@ -545,10 +550,9 @@ class ColorsCog(commands.Cog):
             ephemeral=True,
         )
 
-    @discord.slash_command(
-        name="my_colors",
+    @colors_group.command(
+        name="my",
         description="List the available colors",
-        contexts={discord.InteractionContextType.guild},
     )
     async def my_colors(self, ctx: discord.ApplicationContext) -> None:
         """Ephemeral listing of the panel colors (member's current one marked)."""

@@ -187,7 +187,7 @@ class UtilityCog(commands.Cog):
             "title": await t(ctx.guild_id, "serverinfo.title"),
             "body": "",
         }
-        payload, _allowed = await render_card_message(
+        payload, allowed = await render_card_message(
             self.bot, ctx.guild_id, "utility.serverinfo", variables
         )
         if payload is None:
@@ -199,4 +199,5 @@ class UtilityCog(commands.Cog):
                 )
             )
             payload = CardPayload(view=view)
-        await ctx.respond(**payload.message_kwargs())
+            allowed = discord.AllowedMentions.none()
+        await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
