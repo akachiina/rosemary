@@ -27,6 +27,37 @@ class FakeTranslator:
         return key
 
 
+class RealCatalogTranslator(FakeTranslator):
+    """Resolves keys from the real pt-BR/en-US YAML catalogs."""
+
+    _catalogs: dict = {}
+
+    @classmethod
+    def _load(cls) -> None:
+        import yaml
+
+        for lang in ("en-US", "pt-BR"):
+            with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
+                data = yaml.safe_load(fh)
+            flat: dict = {}
+            stack = [(data, "")]
+            while stack:
+                node, prefix = stack.pop()
+                for name, value in node.items():
+                    dotted = f"{prefix}{name}"
+                    if isinstance(value, dict):
+                        stack.append((value, f"{dotted}."))
+                    else:
+                        flat[dotted] = value
+            cls._catalogs[lang] = flat
+
+    async def raw(self, guild_id, key):
+        if not self._catalogs:
+            self._load()
+        lang = "pt-BR" if guild_id == 1 else "en-US"
+        return self._catalogs[lang].get(key, key)
+
+
 def make_world(tmp_path, *, audit_channel_id=999, enabled=True):
     """Fake bot, guild, audit channel and cog wired to a real GuildStorage."""
     bot = MagicMock()
@@ -659,6 +690,16 @@ async def test_message_edit_snapshot_receives_before_for_pair(tmp_path):
     assert seen["marker"] == ""
     files = audit_channel.send.await_args.kwargs["files"]
     assert [f.filename for f in files] == ["mensagem_987654321000000000.png"]
+
+    # With the real catalog the guild's marker reaches the renderer. The key
+    # lives at ``audit.edited_marker`` (beside ``audit.no_nickname``): the
+    # old lookup went through _line and searched ``card.audit.edited_marker``
+    # (missing: the marker never appeared live).
+    bot.translator = RealCatalogTranslator()
+    seen.clear()
+    with patch("rosemary.core.chat_image.render_message_snapshot", new=fake_render):
+        await cog.on_message_edit(before, after)
+    assert seen["marker"] == "(editado)"
 
 
 async def test_message_delete_snapshot_never_breaks_the_send(tmp_path):
