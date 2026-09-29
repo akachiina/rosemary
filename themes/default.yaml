@@ -206,8 +206,11 @@ color_panel:
 # and {image}. Layout notes: WeasyPrint speaks a CSS subset - tables +
 # inline-block render faithfully; flexbox/grid do not; HTML width/height
 # attributes on <img> are IGNORED (size images with CSS width/height only);
-# word-break: break-word is rejected (use overflow-wrap). No overflow rule:
-# text is pre-capped.
+# word-break: break-word is rejected (use overflow-wrap). Keep the image
+# preview within the page height budget (max-height caps tall scans:
+# WeasyPrint splits an overflowing bubble across PDF pages and the raster
+# drops the second page, the image included). No overflow rule: text is
+# pre-capped.
 snapshot:
   page: |
     <style>
@@ -225,7 +228,7 @@ snapshot:
     </td>
     </tr></table>
   image: |
-    <img class="attachment" src="{image}" style="border-radius: 4px; margin-top: 8px; width: 320px;" />
+    <img class="attachment" src="{image}" style="border-radius: 4px; margin-top: 8px; max-width: 320px; max-height: 240px;" />
 
 # Interactions (roleplay) gifs: the DEFAULT source per action, used when a
 # guild has no own list (the manager seeds it on first edit). Two entry

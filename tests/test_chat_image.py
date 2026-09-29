@@ -366,3 +366,41 @@ def test_render_snapshot_fixed_width_regardless_of_content():
     assert w_short == w_long, f"{w_short} != {w_long}: width must be constant"
     # 360pt page (480 CSS px) at the 960-side cap: zoom clamps to 960/360.
     assert w_short == 960
+
+
+def test_render_snapshot_tall_attachment_stays_inside_the_bubble():
+    """Live regression: a tall manga scan vanished from the bubble.
+
+    The page budget (220px/bubble) was smaller than a width-capped 2:3
+    image: WeasyPrint paginated the overflow onto a second PDF page and the
+    rasterizer only ships page 1, leaving an empty tall bubble. The image
+    template now caps the preview height and the budget covers it; the PNG
+    must actually show the attachment's light pixels below the header.
+    """
+    import base64
+    import io
+    import struct
+
+    from PIL import Image, ImageDraw
+
+    scan = Image.new("RGB", (800, 1200), (245, 245, 245))
+    ImageDraw.Draw(scan).ellipse([200, 300, 600, 700], fill=(120, 90, 160))
+    scratch = io.BytesIO()
+    scan.save(scratch, format="PNG")
+    scan_uri = "data:image/png;base64," + base64.b64encode(scratch.getvalue()).decode()
+
+    png = render_snapshot([_info("", image=scan_uri)])
+    assert png is not None
+    assert struct.unpack(">II", png[16:24])[0] == 960
+
+    decoded = Image.open(io.BytesIO(png)).convert("RGBA")
+    width, height = decoded.size
+    # Count light pixels (the scan's background) in the bubble's LOWER half:
+    # an empty bubble has none there (only #32353b background).
+    light = sum(
+        1
+        for x in range(0, width, 6)
+        for y in range(height // 2, height, 6)
+        if decoded.getpixel((x, y))[:3] >= (230, 230, 230)
+    )
+    assert light > 200, f"attachment missing from the rendered bubble ({light} light px)"

@@ -85,9 +85,14 @@ DEFAULT_BUBBLE = (
     '  {image}\n</td>\n</tr></table>'
 )
 
+# Attachment preview: max-width AND max-height (ratio preserved, like
+# Discord's own chat previews). A tall manga scan at a bare width would
+# need ~500px of bubble: past the page budget WeasyPrint splits the table
+# across PDF pages and the atomic image jumps to page 2, which the
+# rasterizer drops (live: a tall EMPTY bubble in the card).
 DEFAULT_BUBBLE_IMAGE = (
     '<img class="attachment" src="{image}" style="border-radius: 4px; '
-    'margin-top: 8px; width: 320px;" />'
+    'margin-top: 8px; max-width: 320px; max-height: 240px;" />'
 )
 
 _SVG_AVATAR = (
@@ -389,10 +394,13 @@ def render_snapshot(
     # Fixed-width page (480 CSS px): the PNG keeps every snapshot at the
     # same scale, so Discord renders them all at the same visual size no
     # matter the message (the variable-width crop made each card a
-    # different zoom). Height anchors the PDF page only; the rasterizer
-    # crops the bottom to content.
+    # different zoom). Height is a BUDGET, not a target: it must hold the
+    # worst bubble (capped content plus the 240px image preview) or
+    # WeasyPrint paginates the overflow onto a second PDF page, which the
+    # rasterizer drops (the live empty-bubble bug); the crop trims whatever
+    # the actual content leaves unused.
     width_px = 480
-    height_px = 220 * len(infos) + 60
+    height_px = 560 * len(infos) + 80
     from weasyprint import HTML
 
     try:
