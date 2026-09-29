@@ -64,6 +64,7 @@ class RosemaryTheme(Theme):
         cards: dict[str, dict[str, Any]] | None = None,
         pings: dict[str, bool] | None = None,
         color_panel: dict[str, str] | None = None,
+        snapshot: dict[str, str] | None = None,
     ) -> None:
         super().__init__(colors, emojis, markdown, styles, bump, medals, star_tier_emoji)
         self.name = name
@@ -75,6 +76,14 @@ class RosemaryTheme(Theme):
         self.color_panel = {
             str(k): str(v)
             for k, v in (color_panel or {}).items()
+            if isinstance(v, str) and v.strip()
+        }
+        # Chat snapshot templates (HTML): ``page`` (frame) + ``bubble`` (one
+        # message) + optional ``image`` (embedded attachment markup).
+        # Missing/empty falls back to :mod:`rosemary.core.chat_image`.
+        self.snapshot = {
+            str(k): str(v)
+            for k, v in (snapshot or {}).items()
             if isinstance(v, str) and v.strip()
         }
 
@@ -124,11 +133,16 @@ def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
         for k, v in (data.get("color_panel") or {}).items()
         if isinstance(k, str) and isinstance(v, str)
     }
+    snapshot = {
+        str(k): str(v)
+        for k, v in (data.get("snapshot") or {}).items()
+        if isinstance(k, str) and isinstance(v, str)
+    }
 
     theme = RosemaryTheme(
         colors, emojis, markdown, styles, bump, medals,
         star_tier_emoji=star_tier_emoji, name=theme_name,
-        color_panel=color_panel,
+        color_panel=color_panel, snapshot=snapshot,
     )
 
     cards_section = data.get("cards") or {}

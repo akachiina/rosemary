@@ -521,6 +521,12 @@ SETTINGS: dict[str, SettingSpec] = {
             True,
         ),
         _spec(
+            "audit.snapshot_enabled",
+            SettingCategory.AUDIT,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
             "audit.trap_enabled",
             SettingCategory.AUDIT,
             SettingType.BOOLEAN,

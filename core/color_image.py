@@ -253,7 +253,9 @@ def _crop_bbox(
     return min_x, min_y, max_x + 1, max_y + 1
 
 
-def _rasterize(pdf: bytes) -> bytes | None:
+#: Shared rasterizer (also used by core/chat_image.py): PDF bytes -> cropped
+#: transparent PNG at :data:`_ZOOM`, capped at :data:`_MAX_SIDE`.
+def rasterize_pdf(pdf: bytes) -> bytes | None:
     """PDF bytes to a cropped transparent PNG (``None`` when blank/failed).
 
     The probe pass renders the whole page at :data:`_ZOOM` and locates the
@@ -296,6 +298,11 @@ def _rasterize(pdf: bytes) -> bytes | None:
     except Exception:
         log.warning("color panel rasterization failed", exc_info=True)
         return None
+
+
+def _rasterize(pdf: bytes) -> bytes | None:
+    """Backwards-compatible alias of :func:`rasterize_pdf`."""
+    return rasterize_pdf(pdf)
 
 
 def render_panel(

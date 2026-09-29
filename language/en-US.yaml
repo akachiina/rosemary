@@ -454,6 +454,9 @@ settings:
   audit.bulk_file_enabled:
     label: Attach a file of the deleted messages
     description: Sends a .txt with the purged messages alongside the summary.
+  audit.snapshot_enabled:
+    label: Message snapshot in logs
+    description: Renders an image simulating the chat (author bubble) in message delete/edit logs.
   audit.trap_enabled:
     label: Report trap channel punishments
     description: Logs who fell into the trap and the applied consequence.
@@ -1171,8 +1174,9 @@ emojiinfo:
   command:
     name: emojiinfo
     description: Show emoji or sticker information
-  error: '{warning} Invalid emoji. Send a custom emoji, a unicode emoji or a sticker ID.'
+  error: '{warning} Invalid emoji. Send a custom emoji, a unicode emoji, a message link or an ID.'
   not_found: '{error} Could not find this emoji or sticker.'
+  message_no_emoji: '{error} That message has no sticker or custom emoji to inspect.'
   source_guild: Server emoji
   source_app: Application emoji
   source_unknown: Unknown origin
@@ -2132,6 +2136,12 @@ variables:
   file_url:
     label: Purge file
     description: Link to the .txt with the bulk-deleted messages
+  attachment_lines:
+    label: Attachment lines
+    description: Markdown links of the deleted message's attachments (one per line)
+  chat_image:
+    label: Message snapshot
+    description: Image simulating the deleted message's chat (author bubble)
   joins:
     label: Joins
     description: Server join count
@@ -2711,6 +2721,8 @@ card:
         **{speech} Channel:** {channel}
 
         {message}
+      attachments_line: '**{scroll} Attachments:**
+        {attachment_lines}'
       placeholders: ''
     message_edit:
       title: Message edited
@@ -2723,6 +2735,8 @@ card:
 
         **{pencil} After:**
         {new_message}
+      attachments_line: '**{scroll} Attachments:**
+        {attachment_lines}'
       placeholders: ''
     bulk_delete:
       title: Message purge

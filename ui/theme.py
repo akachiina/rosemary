@@ -66,6 +66,10 @@ class Theme:
         self.medals = medals or {}
         self.star_tier_emoji = star_tier_emoji or {}
         self.roleplay = roleplay or {}
+        # Chat snapshot HTML templates (page/bubble/image): subclasses that
+        # load theme files fill this; the base defaults to empty and every
+        # consumer falls back to core.chat_image's built-in templates.
+        self.snapshot: dict[str, str] = {}
 
     def color(self, name: str) -> discord.Colour:
         """Return a ``discord.Colour`` for a named theme color."""
@@ -274,6 +278,7 @@ def load_theme(path: Path | None = None) -> Theme:
     medals: dict[str, str] = {}
     star_tier_emoji: dict[Any, str] = {}
     roleplay: dict[str, Any] = {}
+    snapshot: dict[str, str] = {}
     if theme_path.exists():
         try:
             with theme_path.open("r", encoding="utf-8") as fh:
@@ -289,14 +294,21 @@ def load_theme(path: Path | None = None) -> Theme:
             medals = {str(k): str(v) for k, v in (data.get("medals") or {}).items()}
             star_tier_emoji = dict((data.get("star_tier_emoji") or {}).items())
             roleplay = dict((data.get("roleplay") or {}).items())
+            snapshot = {
+                str(k): str(v)
+                for k, v in (data.get("snapshot") or {}).items()
+                if isinstance(v, str)
+            }
         except yaml.YAMLError as exc:
             log.error("Failed to load theme %s: %s", theme_path, exc)
     else:
         log.warning("Theme file not found: %s", theme_path)
     _validate_theme(theme_path, colors, emojis)
-    return Theme(
+    theme = Theme(
         colors, emojis, markdown, styles, bump, medals, star_tier_emoji, roleplay
     )
+    theme.snapshot = snapshot
+    return theme
 
 
 def _validate_theme(path: Path, colors: dict[str, str], emojis: dict[str, str]) -> None:

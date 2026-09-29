@@ -454,6 +454,9 @@ settings:
   audit.bulk_file_enabled:
     label: Anexar arquivo das mensagens apagadas
     description: Envia um .txt com as mensagens da purga junto do resumo.
+  audit.snapshot_enabled:
+    label: Imagem da mensagem nos logs
+    description: Monta uma imagem simulando o chat (bolha do autor) nos logs de mensagem apagada ou editada.
   audit.trap_enabled:
     label: Avisar punições do canal armadilha
     description: Registra quem caiu na armadilha e a consequência aplicada.
@@ -1170,9 +1173,10 @@ channelinfo:
 emojiinfo:
   command:
     name: info_emoji
-    description: Mostra informações de um emoji ou sticker
-  error: '{warning} Emoji inválido. Envie um emoji customizado, um emoji unicode ou o ID de um sticker.'
+    description: Mostra informações de um emoji, sticker ou mensagem
+  error: '{warning} Emoji inválido. Envie um emoji customizado, um emoji unicode, o link de uma mensagem ou um ID.'
   not_found: '{error} Não encontrei este emoji ou sticker.'
+  message_no_emoji: '{error} Essa mensagem não tem sticker nem emoji customizado para inspecionar.'
   source_guild: Emoji do servidor
   source_app: Emoji da aplicação
   source_unknown: Origem desconhecida
@@ -2133,6 +2137,12 @@ variables:
   file_url:
     label: Arquivo da purga
     description: Link do .txt com as mensagens apagadas em massa
+  attachment_lines:
+    label: Linhas de anexos
+    description: Links markdown dos anexos da mensagem apagada (uma linha por anexo)
+  chat_image:
+    label: Imagem da mensagem
+    description: Imagem simulando o chat da mensagem apagada (bolha do autor)
   joins:
     label: Entradas
     description: Qtd. de entradas no servidor
@@ -2712,6 +2722,8 @@ card:
         **{speech} Canal:** {channel}
 
         {message}
+      attachments_line: '**{scroll} Anexos:**
+        {attachment_lines}'
       placeholders: ''
     message_edit:
       title: Mensagem editada
@@ -2724,6 +2736,8 @@ card:
 
         **{pencil} Depois:**
         {new_message}
+      attachments_line: '**{scroll} Anexos:**
+        {attachment_lines}'
       placeholders: ''
     bulk_delete:
       title: Purga de mensagens

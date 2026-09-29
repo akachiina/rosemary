@@ -24,7 +24,9 @@ def make_bot(tmp_path=None):
 
     bot = MagicMock()
     bot.theme = load_theme()
-    bot.translator = Translator(Path("language"))
+    bot.translator = Translator(
+        Path("language"), default_placeholders=bot.theme.emojis
+    )
     if tmp_path is not None:
         from rosemary.core.storage import GuildStorage
         from rosemary.core.themes import ThemeStore
@@ -406,8 +408,13 @@ async def test_emojiinfo_dispatch_custom_unicode_and_sticker(tmp_path):
     bot.get_emoji.assert_not_called()
     assert ctx2.respond.call_args is not None
 
-    # Numeric input goes to the sticker fetch, which misses -> not_found.
+    # Numeric input walks the cascade (emoji cache/guild, sticker, message,
+    # app emoji): everything misses -> not_found.
     ctx3 = _make_ctx(guild, author)
+    bot.get_emoji = MagicMock(return_value=None)
+    ctx3.channel.fetch_message = AsyncMock(
+        side_effect=discord.NotFound(MagicMock(), "x")
+    )
     guild.fetch_sticker = AsyncMock(side_effect=discord.NotFound(MagicMock(), "x"))
     bot.fetch_emoji = AsyncMock(side_effect=discord.NotFound(MagicMock(), "x"))
     await InfoCog.emojiinfo.callback(cog, ctx3, emoji="999")
@@ -419,6 +426,156 @@ async def test_emojiinfo_dispatch_custom_unicode_and_sticker(tmp_path):
     await InfoCog.emojiinfo.callback(cog, ctx4, emoji="<:broken")
     assert "Invalid emoji" in ctx4.respond.call_args.args[0]
     assert ctx4.respond.call_args.kwargs == {"ephemeral": True}
+
+
+def _sticker_item(mid=1554304289021755506):
+    item = MagicMock(name="StickerItem")
+    item.id = mid
+    item.name = "Sela"
+    item.format.name = "png"
+    item.url = f"https://cdn.discordapp.com/stickers/{mid}.png"
+    return item
+
+
+def _message(**overrides):
+    msg = MagicMock(spec=discord.Message)
+    msg.id = 987654321000000000
+    msg.content = ""
+    msg.stickers = []
+    for name, value in overrides.items():
+        setattr(msg, name, value)
+    return msg
+
+
+async def test_emojiinfo_message_link_sticker_and_emoji(tmp_path):
+    """A message link inspects its media: sticker wins, emoji mention second."""
+    from rosemary.cogs.info import InfoCog
+
+    bot = make_pipeline_bot(tmp_path)
+    cog = InfoCog(bot)
+    guild = _guild_with_emoji(None)
+    chan = MagicMock()
+    chan.id = 55
+    guild.get_channel = MagicMock(return_value=chan)
+    bot.get_guild = MagicMock(return_value=guild)
+    author = _member()
+    link = "https://discord.com/channels/1/55/987654321000000000"
+
+    # Sticker in the message: fetch() upgrades to the full sticker.
+    item = _sticker_item()
+    full = MagicMock()
+    full.name = "Sela"
+    full.id = item.id
+    full.description = "um selo"
+    full.format.name = "png"
+    full.url = item.url
+    full.tags = ["selo"]
+    full.user = None
+    item.fetch = AsyncMock(return_value=full)
+    msg = _message(stickers=[item])
+    chan.fetch_message = AsyncMock(return_value=msg)
+    ctx = _make_ctx(guild, author)
+    await InfoCog.emojiinfo.callback(cog, ctx, emoji=link)
+    assert ctx.respond.call_args is not None, "sticker card must be sent"
+    item.fetch.assert_awaited_once()
+
+    # Sticker fetch miss: card still renders from the StickerItem alone.
+    item2 = _sticker_item(111222333444555666)
+    item2.fetch = AsyncMock(side_effect=discord.NotFound(MagicMock(), "x"))
+    ctx2 = _make_ctx(guild, author)
+    chan.fetch_message = AsyncMock(return_value=_message(stickers=[item2]))
+    await InfoCog.emojiinfo.callback(cog, ctx2, emoji=link)
+    assert ctx2.respond.call_args is not None
+
+    # Emoji mention in content: no sticker fetch, emoji card.
+    emoji_msg = _message(content="olha <:rosa:123456789012345678>")
+    ctx3 = _make_ctx(guild, author)
+    chan.fetch_message = AsyncMock(return_value=emoji_msg)
+    cached = MagicMock(name="GuildEmoji")
+    cached.name = "rosa"
+    cached.id = 123456789012345678
+    cached.animated = False
+    cached.guild = guild
+    cached.url = "https://cdn.discordapp.com/emojis/123456789012345678.png"
+    cached.created_at = discord.utils.snowflake_time(123456789012345678)
+    bot.get_emoji = MagicMock(return_value=cached)
+    await InfoCog.emojiinfo.callback(cog, ctx3, emoji=link)
+    assert ctx3.respond.call_args is not None
+
+    # No media in the message: dedicated error, never the generic not_found.
+    ctx4 = _make_ctx(guild, author)
+    chan.fetch_message = AsyncMock(return_value=_message())
+    await InfoCog.emojiinfo.callback(cog, ctx4, emoji=link)
+    assert "no sticker" in ctx4.respond.call_args.args[0]
+
+    # Dead link: silent (info) miss, user-facing not_found.
+    ctx5 = _make_ctx(guild, author)
+    chan.fetch_message = AsyncMock(
+        side_effect=discord.NotFound(MagicMock(), "unknown message")
+    )
+    with caplog_no_warning():
+        await InfoCog.emojiinfo.callback(cog, ctx5, emoji=link)
+    assert "Could not find" in ctx5.respond.call_args.args[0]
+
+
+def caplog_no_warning():
+    """Context asserting no WARNING+ record escapes the dispatch."""
+    import logging
+
+    class _Guard:
+        def __enter__(self):
+            self._handler = logging.Handler()
+            self.records = []
+            self._handler.emit = self.records.append
+            self._handler.setLevel(logging.WARNING)
+            logging.getLogger().addHandler(self._handler)
+            return self
+
+        def __exit__(self, *exc):
+            logging.getLogger().removeHandler(self._handler)
+            assert not self.records, f"warnings logged: {self.records}"
+            return False
+
+    return _Guard()
+
+
+async def test_emojiinfo_bare_id_cascade(tmp_path, caplog):
+    """A bare number tries emoji cache/guild, sticker, message, app emoji:
+    every miss is info-level, the final one answers not_found."""
+    import logging
+
+    from rosemary.cogs.info import InfoCog
+
+    bot = make_pipeline_bot(tmp_path)
+    bot.get_emoji = MagicMock(return_value=None)
+    cog = InfoCog(bot)
+    guild = _guild_with_emoji(None)
+    author = _member()
+    guild.fetch_emoji = AsyncMock(side_effect=discord.NotFound(MagicMock(), "x"))
+    guild.fetch_sticker = AsyncMock(side_effect=discord.NotFound(MagicMock(), "x"))
+    bot.fetch_emoji = AsyncMock(side_effect=discord.NotFound(MagicMock(), "x"))
+    chan = MagicMock()
+    chan.fetch_message = AsyncMock(
+        side_effect=discord.NotFound(MagicMock(), "no message")
+    )
+    ctx = _make_ctx(guild, author)
+    ctx.channel = chan
+
+    with caplog.at_level(logging.INFO):
+        await InfoCog.emojiinfo.callback(cog, ctx, emoji="999999999999999999")
+    assert "Could not find" in ctx.respond.call_args.args[0]
+    warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
+    assert not warnings, f"cascade misses must stay silent: {warnings}"
+
+    # A message id in the current channel resolves through the same input:
+    # sticker in it renders the sticker card.
+    item = _sticker_item()
+    item.fetch = AsyncMock(side_effect=discord.NotFound(MagicMock(), "x"))
+    chan.fetch_message = AsyncMock(return_value=_message(stickers=[item]))
+    ctx2 = _make_ctx(guild, author)
+    ctx2.channel = chan
+    await InfoCog.emojiinfo.callback(cog, ctx2, emoji="987654321000000000")
+    assert ctx2.respond.call_args is not None
 
 
 async def test_userinfo_defers_and_sends_card(tmp_path):

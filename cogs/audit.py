@@ -12,6 +12,7 @@ with the original messages (so ``/limpar`` batches do not flood the channel).
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import io
 import logging
 import time
@@ -43,6 +44,41 @@ def _fence(value: str) -> str:
         return "``` ```"
     cleaned = value.replace("```", "`\\`\\`")
     return f"```{cleaned}```"
+
+
+def _media(message: discord.Message) -> tuple[list[str], str]:
+    """``(attachment_lines, image_url)`` of a message, both possibly empty.
+
+    ``attachment_lines`` is one markdown link per attachment
+    (``[name.ext](url)``); ``image_url`` is the first displayable image
+    (image attachment or non-lottie sticker) for the card's gallery.
+    Attachment URLs of deleted messages can expire at Discord's CDN, so the
+    links are best-effort; the chat snapshot image (when enabled) carries the
+    embedded bytes instead.
+    """
+    lines: list[str] = []
+    image_url = ""
+    for att in getattr(message, "attachments", None) or []:
+        name = getattr(att, "filename", "") or "arquivo"
+        url = getattr(att, "url", "") or ""
+        if not url:
+            continue
+        lines.append(f"[{name}]({url})")
+        if image_url:
+            continue
+        content_type = (getattr(att, "content_type", "") or "").lower()
+        extension = url.split("?")[0].lower().rsplit(".", 1)
+        looks_image = len(extension) == 2 and extension[1] in {
+            "png", "jpg", "jpeg", "gif", "webp"
+        }
+        if content_type.startswith("image/") or (not content_type and looks_image):
+            image_url = url
+    for item in getattr(message, "stickers", None) or []:
+        if getattr(item.format, "name", "") == "lottie":
+            continue  # JSON animation: no raster image to show
+        if not image_url and getattr(item, "url", ""):
+            image_url = item.url
+    return lines, image_url
 
 
 def _variables(user: discord.abc.User, guild: discord.Guild) -> dict:
@@ -121,23 +157,82 @@ async def default_audit_document(
     }
 
 
+async def default_message_document(
+    bot,
+    guild_id: int,
+    *,
+    title_key: str,
+    body_key: str,
+    color: str,
+    emoji_token: str,
+    **variables,
+) -> dict:
+    """Catalog-default card for message_delete / message_edit.
+
+    The event layout plus the optional media blocks: the attachments line
+    (``card.audit.attachments_line``, composed at the send site into
+    ``{attachment_lines}``), then the visual content (chat snapshot image via
+    ``{chat_image}``, falling back to the original image URL) as a gallery.
+    Both drop out when their variables resolve empty; the author footer stays.
+    """
+    from rosemary.core.cards import ECHO_VARIABLES, author_footer_blocks, safe_format
+
+    mapping = {**bot.theme.emojis, **ECHO_VARIABLES, **variables}
+
+    async def raw(key2: str) -> str:
+        return safe_format(await bot.translator.raw(guild_id, key2), mapping)
+
+    title = await raw(title_key)
+    if not title.startswith("#"):
+        already = any(e and e in title for e in bot.theme.emojis.values())
+        emoji = "" if already else bot.theme.emojis.get(emoji_token, "")
+        title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
+    body = await raw(body_key)
+    footer = await author_footer_blocks(bot, guild_id)
+
+    children: list[dict] = [
+        {
+            "type": "section",
+            "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
+            "children": [
+                {"type": "text", "body": title},
+                {"type": "text", "body": body},
+            ],
+        }
+    ]
+    attachments = str(variables.get("attachment_lines") or "").strip()
+    if attachments:
+        line_template = await bot.translator.raw(guild_id, "card.audit.attachments_line")
+        if (
+            isinstance(line_template, str)
+            and line_template.strip()
+            and line_template != "card.audit.attachments_line"
+        ):
+            children.append(
+                {
+                    "type": "text",
+                    "body": safe_format(
+                        line_template, {**mapping, "attachment_lines": attachments}
+                    ),
+                }
+            )
+        else:
+            children.append({"type": "text", "body": attachments})
+    chat_image = str(variables.get("chat_image") or "").strip()
+    image_url = str(variables.get("image_url") or "").strip()
+    if chat_image or image_url:
+        children.append({"type": "divider"})
+        children.append({"type": "gallery", "urls": [chat_image or image_url]})
+    children.extend(footer)
+    return {
+        "v": 1,
+        "blocks": [{"type": "container", "color": color, "children": children}],
+    }
+
+
 _AUDIT_EVENTS = (
     ("ban", "card.audit.ban.title", "card.audit.ban.body", "danger", "ban"),
     ("unban", "card.audit.unban.title", "card.audit.unban.body", "success", "check"),
-    (
-        "message_delete",
-        "card.audit.message_delete.title",
-        "card.audit.message_delete.body",
-        "warning",
-        "trash",
-    ),
-    (
-        "message_edit",
-        "card.audit.message_edit.title",
-        "card.audit.message_edit.body",
-        "info",
-        "pencil",
-    ),
     (
         "bulk_delete",
         "card.audit.bulk_delete.title",
@@ -171,6 +266,47 @@ def _register_default_builders() -> None:
 
         set_default_builder(f"audit.{name}", _builder)
 
+    # message_delete / message_edit own a dedicated builder: the media blocks
+    # (attachments line, gallery) react to the send-site variables.
+    for name, title_key, body_key, color, emoji in (
+        (
+            "message_delete",
+            "card.audit.message_delete.title",
+            "card.audit.message_delete.body",
+            "warning",
+            "trash",
+        ),
+        (
+            "message_edit",
+            "card.audit.message_edit.title",
+            "card.audit.message_edit.body",
+            "info",
+            "pencil",
+        ),
+    ):
+
+        async def _message_builder(
+            bot,
+            guild_id,
+            *,
+            t=title_key,
+            b=body_key,
+            c=color,
+            e=emoji,
+            **_variables,
+        ):
+            return await default_message_document(
+                bot,
+                guild_id,
+                title_key=t,
+                body_key=b,
+                color=c,
+                emoji_token=e,
+                **_variables,
+            )
+
+        set_default_builder(f"audit.{name}", _message_builder)
+
 
 _register_default_builders()
 
@@ -182,6 +318,9 @@ class AuditCog(commands.Cog):
         self.bot = bot
         self._pending_bulk: dict[int, list[discord.Message]] = {}
         self._bulk_task: dict[int, asyncio.Task] = {}
+        #: discord.File list for the NEXT card send (chat snapshot images);
+        #: _snapshot_vars fills it and _send drains it into the payload.
+        self._snapshot_files: list[discord.File] = []
         #: guild_id -> (member_id, monotonic expiry) for /limpar attribution.
         self._purge_context: dict[int, tuple[int, float]] = {}
         #: guild_id -> {user_id: expiry} for bans executed by this bot's own
@@ -201,6 +340,40 @@ class AuditCog(commands.Cog):
 
     async def _on(self, guild_id: int, toggle_key: str) -> bool:
         return await get_setting(self.bot.storage, guild_id, toggle_key)
+
+    async def _snapshot_vars(
+        self, guild: discord.Guild, guild_id: int, message: discord.Message, *, before=None
+    ) -> dict[str, str]:
+        """Variables for the chat-snapshot image (``{chat_image}`` + file).
+
+        Renders the message as a Discord-style chat bubble (HTML template from
+        the theme's ``snapshot`` section, rasterized like the color panel) and
+        returns ``chat_image`` pointing at the ``attachment://`` file. Returns
+        ``{}`` (no image at all) when the setting is off, the renderer is
+        missing, or the template fails: the card keeps its text-only layout.
+        """
+        if not await get_setting(self.bot.storage, guild_id, "audit.snapshot_enabled"):
+            return {}
+        from rosemary.core.chat_image import render_message_snapshot
+
+        try:
+            png = await render_message_snapshot(
+                self.bot,
+                message,
+                before=before,
+            )
+        except Exception:
+            # render_message_snapshot already swallows everything internally;
+            # this is defense in depth so the log card always goes out.
+            log.exception("chat snapshot failed for message %s", message.id)
+            return {}
+        if png is None:
+            return {}
+        filename = f"mensagem_{message.id}.png"
+        self._snapshot_files.append(
+            discord.File(io.BytesIO(png), filename=filename)
+        )
+        return {"chat_image": f"attachment://{filename}"}
 
     async def _reason_line(self, guild_id: int, reason: str) -> str:
         """``card.audit.reason_line`` prefixed with a space, or empty."""
@@ -252,10 +425,20 @@ class AuditCog(commands.Cog):
                     view.add_item(TextDisplay(text))
                 payload = CardPayload(view=view)
                 allowed = await allowed_for_ids(self.bot, guild_id, card_key, user_ids=[])
+            if self._snapshot_files:
+                # Chat snapshot images ride the same message: the card's
+                # ``attachment://`` gallery references them. Attach on both
+                # payload shapes (V2 and embed); replace resets the payload's
+                # own file list instead of appending over it.
+                files = [*self._snapshot_files, *payload.files]
+                payload = dataclasses.replace(payload, files=files)
+                self._snapshot_files = []
             await send_card(channel, payload, allowed)
         except discord.HTTPException as exc:
             log.warning("Audit card %s failed in guild %s: %s", key, guild_id, exc)
+            self._snapshot_files = []
         except Exception:
+            self._snapshot_files = []
             log.exception("Audit card %s failed unexpectedly", key)
 
     async def _audit_log_context(self, guild: discord.Guild, user_id: int, action: int):
@@ -368,6 +551,7 @@ class AuditCog(commands.Cog):
             stamp = self._purge_context.get(guild.id)
             if stamp and stamp[1] > time.monotonic():
                 return
+            attachment_lines, image_url = _media(message)
             await self._send(
                 channel,
                 guild.id,
@@ -379,6 +563,9 @@ class AuditCog(commands.Cog):
                     "message": _fence(message.content or ""),
                     "channel": message.channel.mention,
                     "message_link": message.jump_url,
+                    **await self._snapshot_vars(guild, guild.id, message),
+                    "attachment_lines": "\n".join(attachment_lines),
+                    "image_url": image_url,
                 },
             )
         except Exception:
@@ -395,6 +582,7 @@ class AuditCog(commands.Cog):
             channel = await self._channel(guild.id)
             if channel is None or not await self._on(guild.id, "audit.message_edit_enabled"):
                 return
+            attachment_lines, image_url = _media(after)
             await self._send(
                 channel,
                 guild.id,
@@ -407,6 +595,9 @@ class AuditCog(commands.Cog):
                     "new_message": _fence(after.content or ""),
                     "channel": before.channel.mention,
                     "message_link": after.jump_url,
+                    **await self._snapshot_vars(guild, guild.id, after, before=before),
+                    "attachment_lines": "\n".join(attachment_lines),
+                    "image_url": image_url,
                 },
             )
         except Exception:
@@ -506,7 +697,15 @@ class AuditCog(commands.Cog):
         lines = []
         for m in sorted(messages, key=lambda x: x.created_at):
             stamp = m.created_at.strftime("%Y-%m-%d %H:%M:%S")
-            lines.append(f"[{stamp}] {m.author} ({m.id}): {m.content or ''}")
+            base = f"[{stamp}] {m.author} ({m.id}): {m.content or ''}"
+            attachment_lines, _image = _media(m)
+            if attachment_lines:
+                urls = ", ".join(
+                    link[link.find("](") + 2 : link.rfind(")")]
+                    for link in attachment_lines
+                )
+                base = f"{base} {urls}"
+            lines.append(base)
         data = io.BytesIO("\n".join(lines).encode("utf-8"))
         filename = f"purga-{messages[0].guild.id}-{int(time.time())}.txt"
         try:

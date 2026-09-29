@@ -8,7 +8,7 @@ theme-customizable send path (including the fenced ``` blocks).
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
 
@@ -360,6 +360,8 @@ async def test_message_delete_fences_content(tmp_path):
     msg.content = "conteudo secreto"
     msg.channel = chan
     msg.jump_url = "https://discord.com/channels/1/7/9"
+    msg.attachments = []
+    msg.stickers = []
     await cog.on_message_delete(msg)
     assert audit_channel.send.await_count == 1
 
@@ -378,6 +380,9 @@ async def test_message_edit_only_when_content_changes(tmp_path):
         m.content = content
         m.channel = chan
         m.jump_url = "https://x"
+        m.attachments = []
+        m.stickers = []
+        m.id = 987654321000000000
         return m
 
     await cog.on_message_edit(msg("a"), msg("a"))
@@ -546,3 +551,122 @@ async def test_purge_context_suppresses_single_deletes(tmp_path):
     msg.jump_url = "https://x"
     await cog.on_message_delete(msg)
     audit_channel.send.assert_not_awaited()
+
+
+#: chat snapshot (audit.snapshot_enabled) ---------------------------------------
+
+
+def _snapshot_message(guild, author, content="oi"):
+    """A message whose snapshot pipeline resolves everything offline."""
+    chan = MagicMock()
+    chan.mention = "<#7>"
+    msg = MagicMock(spec=discord.Message)
+    msg.guild = guild
+    msg.author = author
+    msg.content = content
+    msg.channel = chan
+    msg.jump_url = "https://x"
+    msg.attachments = []
+    msg.stickers = []
+    msg.id = 987654321000000000
+    msg.created_at.timestamp.return_value = 1700000000.0
+    return msg
+
+
+async def test_message_delete_snapshot_disabled_by_setting(tmp_path):
+    """``audit.snapshot_enabled`` off: renderer never runs, card stays text-only."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    from rosemary.core.settings import set_setting
+
+    await set_setting(bot.storage, 1, "audit.snapshot_enabled", False)
+    msg = _snapshot_message(guild, member())
+    with patch(
+        "rosemary.core.chat_image.render_message_snapshot", new=AsyncMock()
+    ) as renderer:
+        await cog.on_message_delete(msg)
+    renderer.assert_not_awaited()
+    assert cog._snapshot_files == []
+    assert audit_channel.send.await_count == 1  # the text-only card still goes out
+
+
+async def test_message_delete_snapshot_failure_degrades_to_text(tmp_path):
+    """Renderer returning None (missing WeasyPrint, broken theme): no file."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    msg = _snapshot_message(guild, member())
+    with patch(
+        "rosemary.core.chat_image.render_message_snapshot",
+        new=AsyncMock(return_value=None),
+    ):
+        await cog.on_message_delete(msg)
+    assert audit_channel.send.await_count == 1
+    assert cog._snapshot_files == []
+    assert "files" not in audit_channel.send.await_args.kwargs
+
+
+async def test_message_delete_snapshot_attaches_png_and_galleries_it(tmp_path):
+    """Snapshot ON + renderer ok: the card carries the PNG and references it."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    msg = _snapshot_message(guild, member())
+    png = b"\x89PNG\r\n\x1a\nfake"
+    with patch(
+        "rosemary.core.chat_image.render_message_snapshot",
+        new=AsyncMock(return_value=png),
+    ):
+        await cog.on_message_delete(msg)
+    audit_channel.send.assert_awaited_once()
+    files = audit_channel.send.await_args.kwargs["files"]
+    assert [f.filename for f in files] == ["mensagem_987654321000000000.png"]
+    assert files[0].fp.read() == png
+    assert cog._snapshot_files == []  # drained: no leak into the next card
+
+    # The V2 card must reference the attachment in its gallery.
+    view = audit_channel.send.await_args.kwargs["view"]
+    urls: list[str] = []
+    for item in view.walk_children():
+        gallery_items = getattr(item, "items", None)
+        if gallery_items and type(item).__name__ == "MediaGallery":
+            urls.extend(str(getattr(i.media, "url", "")) for i in gallery_items)
+    assert any(
+        "attachment://mensagem_987654321000000000.png" in u for u in urls
+    ), f"gallery missing the snapshot reference: {urls}"
+
+
+async def test_message_edit_snapshot_receives_before_for_pair(tmp_path):
+    """Edit: the snapshot pipeline gets before= so it can render both states."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    author = member()
+    before = _snapshot_message(guild, author, "antes")
+    after = _snapshot_message(guild, author, "depois")
+
+    seen: dict = {}
+
+    async def fake_render(bot_, message, *, before=None):
+        seen["before"] = before
+        seen["message"] = message
+        return b"\x89PNG\r\n\x1a\nfake"
+
+    with patch("rosemary.core.chat_image.render_message_snapshot", new=fake_render):
+        await cog.on_message_edit(before, after)
+    assert seen["before"] is before
+    assert seen["message"] is after
+    files = audit_channel.send.await_args.kwargs["files"]
+    assert [f.filename for f in files] == ["mensagem_987654321000000000.png"]
+
+
+async def test_message_delete_snapshot_never_breaks_the_send(tmp_path):
+    """The renderer raising unexpectedly must not lose the log card."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+
+    async def boom(bot_, message, *, before=None):
+        raise RuntimeError("renderer exploded")
+
+    msg = _snapshot_message(guild, member())
+    with patch("rosemary.core.chat_image.render_message_snapshot", new=boom):
+        await cog.on_message_delete(msg)
+    audit_channel.send.assert_awaited_once()
+    assert cog._snapshot_files == []

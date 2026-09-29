@@ -164,6 +164,8 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("new_message", "…"),
         _v("message_link", "https://example.com/message", "url"),
         _v("file_url", "https://example.com/purge.txt", "url"),
+        _v("attachment_lines", "[arquivo.png](https://example.com/arquivo.png)"),
+        _v("chat_image", "attachment://mensagem.png", "image"),
         _v("old_avatar", "https://cdn.discordapp.com/embed/avatars/0.png", "image"),
         _v("new_avatar", "https://cdn.discordapp.com/embed/avatars/1.png", "image"),
         _v("nickname", "…"),

@@ -14,6 +14,7 @@ would break option parsing at runtime (same reason as ``cogs/invites.py``).
 """
 
 import logging
+import re
 
 import discord
 from discord.ext import commands
@@ -21,6 +22,17 @@ from discord.ext import commands
 from rosemary.core.card_service import CardPayload, render_card_message
 
 log = logging.getLogger(__name__)
+
+#: Message link (https://discord.com/channels/<guild>/<channel>/<message>);
+#: the scheme and the ptb/canary prefix are optional. Ids are 1-25 digits:
+#: real snowflakes run 17-20, but tests and fakes use small ids too.
+_MESSAGE_LINK_RE = re.compile(
+    r"(?:https?://)?(?:ptb\.|canary\.)?discord(?:app)?\.com/channels/"
+    r"(?P<g>[0-9]{1,25})/(?P<c>[0-9]{1,25})/(?P<m>[0-9]{1,25})"
+)
+
+#: Custom emoji mention inside message content (`<:name:id>` / `<a:name:id>`).
+_EMOJI_MENTION_RE = re.compile(r"<a?:[a-zA-Z0-9_]{1,32}:[0-9]{1,25}>")
 
 
 def _ts(moment, style: str) -> str:
@@ -340,9 +352,12 @@ class InfoCog(commands.Cog):
     async def emojiinfo(
         self,
         ctx: discord.ApplicationContext,
-        emoji: discord.Option(str, description="Custom or unicode emoji, or a sticker ID"),
+        emoji: discord.Option(
+            str,
+            description="Custom or unicode emoji, a message link/ID, or a sticker ID",
+        ),
     ) -> None:
-        """Inspect a custom emoji, a unicode glyph or a sticker by ID."""
+        """Inspect a custom emoji, a unicode glyph, a sticker or a message's media."""
         value = (emoji or "").strip()
         t = self.bot.translator.t
         guild_id = ctx.guild_id
@@ -362,8 +377,15 @@ class InfoCog(commands.Cog):
                     await t(guild_id, "emojiinfo.not_found"), ephemeral=True
                 )
             return await self._respond_emoji(ctx, resolved)
+        # Message link or bare message ID: inspect the message's media
+        # (sticker first, then the first custom emoji in the content).
+        link = _MESSAGE_LINK_RE.match(value)
+        if link is not None:
+            return await self._respond_message(
+                ctx, int(link.group("g")), int(link.group("c")), int(link.group("m"))
+            )
         if value.isdigit():
-            return await self._respond_sticker(ctx, int(value))
+            return await self._respond_numeric(ctx, int(value))
         # Unicode glyphs never carry < or >: anything shaped like an emoji
         # mention that failed from_str is garbage input.
         if "<" in value or ">" in value or len(value) > 32:
@@ -374,6 +396,46 @@ class InfoCog(commands.Cog):
         return await self._respond_emoji(
             ctx, _UnicodeEmoji(value), fetch_origin=False
         )
+
+    async def _respond_message(
+        self, ctx, guild_id: int, channel_id: int, message_id: int
+    ) -> None:
+        """Sticker/emoji inside a message addressed by link.
+
+        Discord exposes no sticker ID for the lookup commands, so the message
+        is the address: the link is the only reliable way to reach stickers
+        posted in chat. Emoji mention first (users quoting emoji cards),
+        sticker second: a message rarely carries both.
+        """
+        t = self.bot.translator.t
+        guild = self.bot.get_guild(guild_id)
+        if guild is None:
+            return await ctx.respond(
+                await t(ctx.guild_id, "emojiinfo.not_found"), ephemeral=True
+            )
+        channel = guild.get_channel(channel_id) or getattr(
+            guild, "get_thread", lambda _cid: None
+        )(channel_id)
+        if channel is None:
+            return await ctx.respond(
+                await t(guild.id, "emojiinfo.not_found"), ephemeral=True
+            )
+        try:
+            message = await channel.fetch_message(message_id)
+        except (discord.Forbidden, discord.NotFound, discord.HTTPException) as exc:
+            log.info("Message %s/%s fetch failed: %s", channel_id, message_id, exc)
+            return await ctx.respond(
+                await t(guild.id, "emojiinfo.not_found"), ephemeral=True
+            )
+        found = self._message_media(message)
+        if found is None:
+            return await ctx.respond(
+                await t(guild.id, "emojiinfo.message_no_emoji"), ephemeral=True
+            )
+        kind, media = found
+        if kind == "sticker":
+            return await self._respond_sticker_object(ctx, media)
+        return await self._respond_emoji(ctx, media)
 
     async def _resolve_emoji(self, ctx, partial: discord.PartialEmoji):
         """Cache -> guild -> application cascade; ``None`` when unresolvable."""
@@ -433,30 +495,104 @@ class InfoCog(commands.Cog):
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
-    async def _respond_sticker(self, ctx, sticker_id: int) -> None:
-        """Sticker by ID; a sticker miss falls back to the app-emoji lookup."""
+    async def _respond_numeric(self, ctx, value: int) -> None:
+        """Bare number: emoji id (cache -> guild -> app) or message id.
+
+        Snowflakes alone are ambiguous: every step falls through silently
+        (info level), so a miss never logs a warning and only the final one
+        reports failure to the user. Message lookup stays before the app-emoji
+        fetch: application emojis and messages share the id space and a
+        message id only resolves in the command's own channel.
+        """
+        resolved = self.bot.get_emoji(value)
+        if resolved is not None:
+            return await self._respond_emoji(ctx, resolved)
+        try:
+            return await self._respond_emoji(ctx, await ctx.guild.fetch_emoji(value))
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+        sticker = await self._fetch_sticker(ctx, value)
+        if sticker is not None:
+            return await self._respond_sticker_card(ctx, sticker)
+        try:
+            return await self._respond_message_id(ctx, value)
+        except (discord.Forbidden, discord.NotFound, discord.HTTPException) as exc:
+            log.info("Message %s lookup failed: %s", value, exc)
+        try:
+            return await self._respond_emoji(ctx, await self.bot.fetch_emoji(value))
+        except (discord.Forbidden, discord.HTTPException):
+            pass
+        return await ctx.respond(
+            await self.bot.translator.t(ctx.guild_id, "emojiinfo.not_found"),
+            ephemeral=True,
+        )
+
+    @staticmethod
+    def _message_media(message: discord.Message):
+        """First ``(kind, object)`` of interest in a message, or ``None``.
+
+        Sticker wins over content (a sticker message rarely carries text) and
+        custom emoji mentions in the text come next; attachments and embed
+        media are not emoji-like, so they resolve nothing here.
+        """
+        stickers = list(getattr(message, "stickers", None) or [])
+        if stickers:
+            return "sticker", stickers[0]
+        content = message.content or ""
+        found = _EMOJI_MENTION_RE.search(content)
+        if found is not None:
+            return "emoji", discord.PartialEmoji.from_str(found.group(0))
+        return None
+
+    async def _respond_message_id(self, ctx, message_id: int):
+        """Fetch a bare-id message in the command's own channel."""
+        message = await ctx.channel.fetch_message(message_id)
+        found = self._message_media(message)
+        if found is None:
+            raise discord.NotFound(
+                discord.http.Route("GET", "/channels/{c}/messages/{m}"), "no media"
+            )
+        kind, media = found
+        if kind == "sticker":
+            await self._respond_sticker_object(ctx, media)
+        else:
+            await self._respond_emoji(ctx, media)
+
+    async def _respond_sticker_object(self, ctx, sticker_item) -> None:
+        """Sticker card from a message's :class:`StickerItem`.
+
+        ``StickerItem`` carries only name/id/format/url; ``fetch()`` upgrades
+        it to the full sticker (description, tags, uploader) best-effort: a
+        fetch miss renders from the item alone (optional lines drop).
+        """
+        try:
+            full = await sticker_item.fetch()
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            log.info("Sticker item %s fetch fallback: %s", sticker_item.id, exc)
+            full = sticker_item
+        return await self._respond_sticker_card(ctx, full)
+
+    async def _fetch_sticker(self, ctx, sticker_id: int):
+        """Guild sticker by id, or ``None`` (silent: part of a cascade)."""
+        try:
+            return await ctx.guild.fetch_sticker(sticker_id)
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            log.info("Sticker %s not in guild: %s", sticker_id, exc)
+            return None
+
+    async def _respond_sticker_card(self, ctx, sticker) -> None:
+        """Render the stickerinfo card for one resolved sticker-like object."""
         t = self.bot.translator.t
         guild_id = ctx.guild_id
-        try:
-            sticker = await ctx.guild.fetch_sticker(sticker_id)
-        except (discord.Forbidden, discord.HTTPException) as exc:
-            log.warning("Sticker %s fetch failed: %s", sticker_id, exc)
-            try:
-                app_emoji = await self.bot.fetch_emoji(sticker_id)
-            except (discord.Forbidden, discord.HTTPException):
-                return await ctx.respond(
-                    await t(guild_id, "emojiinfo.not_found"), ephemeral=True
-                )
-            return await self._respond_emoji(ctx, app_emoji)
         uploader = getattr(sticker, "user", None)
         is_lottie = sticker.format.name == "lottie"
         created = discord.utils.snowflake_time(sticker.id)
         variables = {
             "sticker_name": sticker.name,
             "sticker_id": str(sticker.id),
-            "description": sticker.description or "",
+            "description": getattr(sticker, "description", None) or "",
             "format": sticker.format.name.upper(),
-            "tags": ", ".join(sticker.tags) if sticker.tags else "",
+            "tags": ", ".join(sticker.tags) if getattr(sticker, "tags", None) else "",
             "uploader": uploader.mention if uploader else "",
             # Lottie is a JSON animation: no raster image to show.
             "sticker_url": "" if is_lottie else sticker.url,

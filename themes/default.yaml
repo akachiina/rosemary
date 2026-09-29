@@ -195,6 +195,35 @@ color_panel:
   item: |
     <div class="item"><span class="dot" style="background: {color}"></span>{number}. {name}</div>
 
+# Chat snapshot image (audit message_delete/edit logs): a deleted/edited
+# message rendered as a Discord-style chat bubble PNG (WeasyPrint, like the
+# color panel). `page` is the frame (__ITEMS__ receives the bubbles,
+# __PAGE_W__/__PAGE_H__ anchor the PDF page; the PNG is cropped to content).
+# `bubble` is one message; `image` wraps an embedded attachment. Bubble
+# placeholders: {author_name}, {author_color} (#rrggbb top-role color),
+# {author_avatar} (data URI), {bot} (APP badge or empty), {time} (HH:MM),
+# {content} (HTML-escaped, newlines as <br>, capped) and {image}. Layout
+# notes: WeasyPrint speaks a CSS subset - tables + inline-block render
+# faithfully; flexbox/grid do not. No overflow rule: text is pre-capped.
+snapshot:
+  page: |
+    <style>
+    @page { size: __PAGE_W__px __PAGE_H__px; margin: 0; background: transparent; }
+    html, body { margin: 0; padding: 0; background: transparent; }
+    </style>
+    <div class="page">__ITEMS__</div>
+  bubble: |
+    <table class="bubble" style="background: #2b2d31; border-left: 4px solid {author_color}; border-radius: 8px; margin: 0 0 12px 0; padding: 0;" cellpadding="0" cellspacing="0"><tr>
+    <td class="avatar" style="vertical-align: top; padding: 12px 0 12px 12px;"><img src="{author_avatar}" width="40" height="40" style="border-radius: 50%; display: block;" /></td>
+    <td class="body" style="padding: 10px 16px 12px 12px;">
+      <div class="header" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; font-weight: 600; color: {author_color};">{author_name}{bot}<span class="time" style="font-size: 11px; font-weight: 400; color: #949ba4; margin-left: 6px;">{time}</span></div>
+      <div class="content" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; color: #dbdee1; white-space: pre-wrap; word-break: break-word;">{content}</div>
+      {image}
+    </td>
+    </tr></table>
+  image: |
+    <img class="attachment" src="{image}" style="border-radius: 4px; margin-top: 6px; max-width: 320px;" />
+
 # Interactions (roleplay) gifs: the DEFAULT source per action, used when a
 # guild has no own list (the manager seeds it on first edit). Two entry
 # shapes: `api: <category>` fetches a RANDOM gif from that nekos.best

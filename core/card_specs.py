@@ -2,7 +2,7 @@
 
 Each entry can be overridden per guild through a theme file's ``cards:``
 section (see :mod:`rosemary.core.themes`); keys map to i18n labels under
-``card.<key>.title``. Adding a message here is all a feature needs to opt in --
+``card.<key>.title``. Adding a message here is all a feature needs to opt in:
 resolution, mentions and rendering are shared infrastructure.
 """
 
@@ -100,6 +100,7 @@ AUDIT_VARIABLES = (
     "moderator", "reason", "message_author", "message_author_name", "message",
     "new_message", "message_link", "channel", "count", "file_url", "old_name",
     "new_name", "old_avatar", "new_avatar", "role", "duration",
+    "attachment_lines", "image_url", "chat_image",
 )
 
 INVITES_CARDS = [
@@ -169,8 +170,8 @@ SHARED_EXTRA_LOGS = [
     "broadcast.logs.ended",
 ]
 
-#: Cards assembled in feature code that are now first-class CardSpecs --
-#: "everything the bot sends is theme-customizable" (user mandate).
+#: Cards assembled in feature code that are now first-class CardSpecs
+#: ("everything the bot sends is theme-customizable", user mandate).
 CONTENT_CARDS = {
     "starboard.card": (
         "user", "user_name", "user_avatar", "stars", "title", "body", "image_url", "timestamp",
