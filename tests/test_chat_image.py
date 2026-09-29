@@ -156,6 +156,67 @@ def test_render_snapshot_png_signature():
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
 
 
+def test_avatar_renders_at_css_size():
+    """Regression: WeasyPrint ignores HTML width/height attributes on <img>.
+
+    The bubble used to size the avatar with ``width="40"`` attributes: live
+    renders blew the avatar up to its natural size and swallowed the whole
+    bubble (user screenshot). The template must size it via CSS; the PDF's
+    own image placement proves it (30pt = 40 CSS px at 96dpi).
+    """
+    import base64
+    import struct
+    import zlib
+
+    def chunk(tag, data):
+        head = struct.pack(">I", len(data)) + tag + data
+        return head + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    ihdr = struct.pack(">IIBBBBB", 800, 800, 8, 2, 0, 0, 0)
+    raw = b"".join(b"\x00" + b"\xff\x00\xff" * 800 for _ in range(800))
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", ihdr)
+        + chunk(b"IDAT", zlib.compress(raw))
+        + chunk(b"IEND", b"")
+    )
+    big_avatar = "data:image/png;base64," + base64.b64encode(png).decode()
+
+    from rosemary.core.chat_image import _bubble_markup, default_templates
+
+    info = SnapshotMessage(
+        author_name="Chiina",
+        author_color="#e74c3c",
+        author_avatar=big_avatar,
+        is_bot=False,
+        timestamp=1700000000.0,
+        content="a",
+        image_data_uri="",
+    )
+    page_template, bubble_template = default_templates()
+    items = _bubble_markup(info, bubble_template, "<img src=\"{image}\" />", {})
+
+    import pymupdf
+    from weasyprint import HTML
+
+    pdf = HTML(
+        string=page_template.replace("__ITEMS__", items)
+        .replace("__PAGE_W__", "480")
+        .replace("__PAGE_H__", "160")
+    ).write_pdf()
+    doc = pymupdf.open(stream=pdf, filetype="pdf")
+    rects = [
+        r
+        for image in doc[0].get_images(full=True)
+        for r in doc[0].get_image_rects(image[0])
+    ]
+    assert rects, "avatar image missing from the rendered PDF"
+    width_css_px = rects[0].width / 0.75
+    assert 36 <= width_css_px <= 44, (
+        f"avatar rendered at {width_css_px:.0f} CSS px, expected ~40"
+    )
+
+
 def test_render_snapshot_empty_inputs_degrade_to_none():
     assert render_snapshot([]) is None
     assert render_snapshot([_info(content="")]) is not None  # empty bubble frame

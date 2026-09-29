@@ -60,11 +60,12 @@ html, body { margin: 0; padding: 0; background: transparent; }
 
 DEFAULT_BUBBLE = (
     '<table class="bubble" style="background: #2b2d31; border-left: 4px solid '
-    '{author_color}; border-radius: 8px; margin: 0 0 12px 0; padding: 0;" '
-    'cellpadding="0" cellspacing="0"><tr>\n'
+    '{author_color}; border-radius: 8px; margin: 0 0 12px 0; padding: 0; '
+    'border-collapse: collapse; border-spacing: 0;"><tr>\n'
     '<td class="avatar" style="vertical-align: top; padding: 12px 0 12px 12px;">'
-    '<img src="{author_avatar}" width="40" height="40" '
-    'style="border-radius: 50%; display: block;" /></td>\n'
+    '<img src="{author_avatar}" '
+    'style="width: 40px; height: 40px; border-radius: 50%; display: block;" />'
+    '</td>\n'
     '<td class="body" style="padding: 10px 16px 12px 12px;">\n'
     '  <div class="header" style="font-family: \'Segoe UI\', \'Ubuntu\', '
     '\'Noto Sans\', sans-serif; font-size: 15px; font-weight: 600; '

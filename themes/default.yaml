@@ -204,7 +204,9 @@ color_panel:
 # {author_avatar} (data URI), {bot} (APP badge or empty), {time} (HH:MM),
 # {content} (HTML-escaped, newlines as <br>, capped) and {image}. Layout
 # notes: WeasyPrint speaks a CSS subset - tables + inline-block render
-# faithfully; flexbox/grid do not. No overflow rule: text is pre-capped.
+# faithfully; flexbox/grid do not, and HTML width/height attributes on <img>
+# are IGNORED: size images with CSS width/height only. No overflow rule:
+# text is pre-capped.
 snapshot:
   page: |
     <style>
@@ -213,8 +215,8 @@ snapshot:
     </style>
     <div class="page">__ITEMS__</div>
   bubble: |
-    <table class="bubble" style="background: #2b2d31; border-left: 4px solid {author_color}; border-radius: 8px; margin: 0 0 12px 0; padding: 0;" cellpadding="0" cellspacing="0"><tr>
-    <td class="avatar" style="vertical-align: top; padding: 12px 0 12px 12px;"><img src="{author_avatar}" width="40" height="40" style="border-radius: 50%; display: block;" /></td>
+    <table class="bubble" style="background: #2b2d31; border-left: 4px solid {author_color}; border-radius: 8px; margin: 0 0 12px 0; padding: 0; border-collapse: collapse; border-spacing: 0;"><tr>
+    <td class="avatar" style="vertical-align: top; padding: 12px 0 12px 12px;"><img src="{author_avatar}" style="width: 40px; height: 40px; border-radius: 50%; display: block;" /></td>
     <td class="body" style="padding: 10px 16px 12px 12px;">
       <div class="header" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; font-weight: 600; color: {author_color};">{author_name}{bot}<span class="time" style="font-size: 11px; font-weight: 400; color: #949ba4; margin-left: 6px;">{time}</span></div>
       <div class="content" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; color: #dbdee1; white-space: pre-wrap; word-break: break-word;">{content}</div>
