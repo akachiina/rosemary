@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import discord
 import pytest
 
 from rosemary.core.storage import GuildStorage
 from rosemary.ui.boost_invite import ACCEPT_PREFIX, DECLINE_PREFIX, BoostInviteView
 from rosemary.ui.boost_menu import AdminBoostMenuView, BoostMenuView, _Screen
+from rosemary.ui.containers import ActionRow
 from rosemary.ui.theme import load_theme
 
 
@@ -365,6 +367,122 @@ async def test_boost_invite_view_layout_valid(bot):
         decline_label="Decline",
     )
     _assert_valid_layout(view, "boost_invite")
+
+
+#: duplicate custom_id guard -------------------------------------------------
+
+
+def _payload_custom_ids(view) -> list[str]:
+    """Collect custom_ids from the exact serialized payload, accessory included.
+
+    ``walk_children`` already reaches Section accessories, but walking the
+    ``to_components()`` dicts pins the contract against py-cord serialization
+    changes instead of our assumptions about the item tree.
+    """
+    ids: list[str] = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            custom_id = node.get("custom_id")
+            if custom_id:
+                ids.append(custom_id)
+            accessory = node.get("accessory")
+            if isinstance(accessory, dict):
+                walk(accessory)
+            for child in node.get("components", []):
+                walk(child)
+
+    for top in view.to_components():
+        walk(top)
+    return ids
+
+
+@pytest.mark.usefixtures("bot")
+@pytest.mark.parametrize("screen", list(_Screen))
+async def test_every_screen_serializes_unique_custom_ids(bot, screen):
+    """Discord rejects the WHOLE payload (400 50035) when two components share
+    a custom_id; the members screen used to ship two ``boost_back`` buttons,
+    poisoning every later edit of the menu (live: "rerender edit failed")."""
+    for cls in (BoostMenuView, AdminBoostMenuView):
+        view = cls(bot, 1, owner_id=1)
+        view.screen = screen
+        view.role_id = 123
+        await view.prepare()
+        ids = _payload_custom_ids(view)
+        assert len(ids) == len(set(ids)), (
+            f"{cls.__name__}/{screen}: duplicate custom_ids {sorted(ids)}"
+        )
+
+
+async def test_prepare_rejects_duplicate_custom_ids(bot):
+    """The guard must fail at build time, not as a live-only Discord 400."""
+    async def duplicate_build(self):
+        return [
+            ActionRow(discord.ui.Button(custom_id="same", label="a")),
+            ActionRow(discord.ui.Button(custom_id="same", label="b")),
+        ]
+
+    view = BoostMenuView(bot, 1, owner_id=1)
+    view.build_items = duplicate_build.__get__(view, BoostMenuView)
+    with pytest.raises(ValueError, match="duplicate custom_id"):
+        await view.prepare()
+
+
+#: modal handlers rebuild before editing -------------------------------------
+
+
+class _FakeHTTPResponse:
+    status = 403
+    reason = "Forbidden"
+
+
+async def test_emoji_submit_boost_forbidden_flashes_and_rerenders(monkeypatch, bot):
+    """Editing the emoji on a guild without boost level 2 fails with 403 50101;
+    the handler must flash the localized error and re-render (never let the
+    exception escape the modal dispatch)."""
+    guild_bot = BotWithGuild(bot.storage)
+
+    class ForbiddenRole(RoleWithIcon):
+        async def edit(self, **kwargs):
+            raise discord.Forbidden(
+                _FakeHTTPResponse(),
+                {"code": 50101, "message": "This server needs more boosts"},
+            )
+
+    guild_bot._guild._role = ForbiddenRole(True)
+    view = BoostMenuView(guild_bot, 1, owner_id=1)
+    view.role_id = 123
+    rerenders: list[object] = []
+
+    async def fake_rerender(interaction):
+        rerenders.append(interaction)
+
+    monkeypatch.setattr(view, "rerender", fake_rerender)
+    interaction = FakeInteraction()
+
+    await view._emoji_submit(interaction, "\U0001F451")
+
+    assert rerenders, "handler must re-render after the forbidden role edit"
+    assert view.flash == "boost.errors.requires_boost_level_2"
+    assert interaction.order == ["defer"]
+
+
+async def test_rename_submit_empty_name_rebuilds_before_edit(monkeypatch, bot):
+    """Modal handlers must run prepare() before editing: a bare edit serializes
+    the stale previous screen and can 400 over the validation flash."""
+    view = BoostMenuView(bot, 1, owner_id=1)
+    rerenders: list[object] = []
+
+    async def fake_rerender(interaction):
+        rerenders.append(interaction)
+
+    monkeypatch.setattr(view, "rerender", fake_rerender)
+    interaction = FakeInteraction()
+
+    await view._rename_submit(interaction, "   ")
+
+    assert rerenders
+    assert view.flash == "boost.errors.empty_name"
 
 
 #: membership grows only through invites ------------------------------------

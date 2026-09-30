@@ -226,6 +226,28 @@ class MenuView(discord.ui.DesignerView):
 
     #: lifecycle ----------------------------------------------------------
 
+    def _assert_unique_custom_ids(self) -> None:
+        """Fail loudly when two dispatchable components share a ``custom_id``.
+
+        Discord rejects the WHOLE message payload with a 400 (50035 "Component
+        custom id cannot be duplicated") when a view serializes two components
+        with the same id; the failure then repeats on every later edit of the
+        menu. Catching it at build time turns a silent live-only 400 into an
+        immediate, localizable regression.
+        """
+        seen: dict[str, str] = {}
+        for child in self.walk_children():
+            custom_id = getattr(child, "custom_id", None)
+            if custom_id is None:
+                continue
+            kind = type(child).__name__
+            if custom_id in seen:
+                raise ValueError(
+                    f"{type(self).__name__}: duplicate custom_id {custom_id!r} "
+                    f"({seen[custom_id]} and {kind})"
+                )
+            seen[custom_id] = kind
+
     async def prepare(self) -> None:
         """Rebuild the view's children for the current state.
 
@@ -237,6 +259,7 @@ class MenuView(discord.ui.DesignerView):
         self.clear_items()
         for item in await self.build_items():
             self.add_item(item)
+        self._assert_unique_custom_ids()
         self._prepared = True
 
     async def _apply_menu_timeout(self) -> None:

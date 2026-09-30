@@ -283,7 +283,7 @@ class _BaseMenu(MenuView):
             member_id = int(value.strip())
         except ValueError:
             await self._flash("boost.errors.member_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         await self._finalize_register(interaction, member_id)
 
     async def _finalize_register(self, interaction: discord.Interaction, member_id: int) -> None:
@@ -592,11 +592,11 @@ class BoostMenuView(_BaseMenu):
         name = value.strip()
         if not name:
             await self._flash("boost.errors.empty_name", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         role = self._current_role()
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         old = role.name
         if not interaction.response.is_done():
             await interaction.response.defer()
@@ -604,11 +604,11 @@ class BoostMenuView(_BaseMenu):
             await role.edit(name=name, reason="Boost role rename")
         except discord.Forbidden:
             await self._flash("boost.errors.forbidden_manage_role", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         except discord.HTTPException as exc:
             log.error("Role rename failed: %s", exc)
             await self._flash("boost.errors.generic_error", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         await self._log(
             "rename",
             color="brand",
@@ -618,7 +618,7 @@ class BoostMenuView(_BaseMenu):
             actor=await self._actor_mention(),
         )
         await self._flash("boost.success.role_renamed", old=old, new=name)
-        await interaction.edit(view=self)
+        await self.rerender(interaction)
 
     async def _open_emoji(self, interaction: discord.Interaction) -> None:
         self.role_id = int(_suffix(interaction.custom_id, "boost_emoji"))
@@ -636,22 +636,22 @@ class BoostMenuView(_BaseMenu):
         emoji = value.strip()
         if not _EMOJI_RE.match(emoji):
             await self._flash("boost.errors.invalid_emoji", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         role = self._current_role()
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         if not interaction.response.is_done():
             await interaction.response.defer()
         try:
             await role.edit(unicode_emoji=emoji, reason="Boost role emoji")
         except discord.Forbidden:
             await self._flash("boost.errors.requires_boost_level_2", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         except discord.HTTPException as exc:
             log.error("Role emoji edit failed: %s", exc)
             await self._flash("boost.errors.invalid_emoji", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         await self._log(
             "emoji_change",
             color="brand",
@@ -660,7 +660,7 @@ class BoostMenuView(_BaseMenu):
             actor=await self._actor_mention(),
         )
         await self._flash("boost.success.emoji_set", emoji=emoji)
-        await interaction.edit(view=self)
+        await self.rerender(interaction)
 
     async def _open_icon(self, interaction: discord.Interaction) -> None:
         self.role_id = int(_suffix(interaction.custom_id, "boost_icon"))
@@ -678,11 +678,11 @@ class BoostMenuView(_BaseMenu):
     ) -> None:
         if not attachments:
             await self._flash("boost.errors.invalid_image", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         attachment = attachments[0]
         if not (attachment.content_type or "").startswith("image/"):
             await self._flash("boost.errors.invalid_image", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         if not interaction.response.is_done():
             await interaction.response.defer()
         try:
@@ -690,23 +690,23 @@ class BoostMenuView(_BaseMenu):
         except Exception as exc:
             log.error("Icon download failed: %s", exc)
             await self._flash("boost.errors.image_download_failed", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         if len(data) > 1_048_576:
             await self._flash("boost.errors.icon_too_large", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         role = self._current_role()
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         try:
             await role.edit(icon=data, reason="Boost role icon")
         except discord.Forbidden:
             await self._flash("boost.errors.requires_boost_level_2", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         except discord.HTTPException as exc:
             log.error("Role icon edit failed: %s", exc)
             await self._flash("boost.errors.generic_error", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         await self._log(
             "icon",
             color="brand",
@@ -714,7 +714,7 @@ class BoostMenuView(_BaseMenu):
             actor=await self._actor_mention(),
         )
         await self._flash("boost.success.icon_set")
-        await interaction.edit(view=self)
+        await self.rerender(interaction)
 
     async def _open_color(self, interaction: discord.Interaction) -> None:
         self.screen = _Screen.COLOR
@@ -764,11 +764,11 @@ class BoostMenuView(_BaseMenu):
         match = _HEX_RE.match(value.strip())
         if match is None:
             await self._flash("boost.errors.invalid_hex_color", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         role = self._current_role()
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         if not interaction.response.is_done():
             await interaction.response.defer()
         try:
@@ -777,7 +777,7 @@ class BoostMenuView(_BaseMenu):
             )
         except discord.Forbidden:
             await self._flash("boost.errors.forbidden_manage_role", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         await self._log(
             "color_change",
             color="brand",
@@ -786,7 +786,7 @@ class BoostMenuView(_BaseMenu):
             actor=await self._actor_mention(),
         )
         await self._flash("boost.success.color_changed")
-        await interaction.edit(view=self)
+        await self.rerender(interaction)
 
     async def _remove_member(self, interaction: discord.Interaction) -> None:
         await self._ack(interaction)
@@ -841,7 +841,7 @@ class BoostMenuView(_BaseMenu):
             member_id = int(value.strip())
         except ValueError:
             await self._flash("boost.errors.member_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         role_id = int(_suffix(interaction.custom_id, "boost_by_id_invitee_modal").split(":")[0])
         await self._send_invite_to(interaction, role_id, member_id)
 
@@ -1018,7 +1018,7 @@ class BoostMenuView(_BaseMenu):
             member_id = int(value.strip())
         except ValueError:
             await self._flash("boost.errors.member_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         role_id = int(
             _suffix(interaction.custom_id, "boost_by_id_transfer_owner_modal").split(":")[0]
         )
@@ -1453,7 +1453,9 @@ class BoostMenuView(_BaseMenu):
         items.append(divider())
         # Membership grows ONLY through invites: this button opens the invite
         # target screen (the same flow as the invites screen), never a direct
-        # role grant from here.
+        # role grant from here. Navigation lives solely in the row below: two
+        # components with the same custom_id make Discord reject the WHOLE
+        # payload (400 50035), which poisoned every later edit of the menu.
         items.append(
             ActionRow(
                 self.make_button(
@@ -1461,9 +1463,6 @@ class BoostMenuView(_BaseMenu):
                     label=await t(self.guild_id, "boost.buttons.invite_member"),
                     style=discord.ButtonStyle.success,
                     emoji=theme.emojis.get("plus", ""),
-                ),
-                self.make_button(
-                    custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
                 ),
             )
         )
@@ -1788,26 +1787,26 @@ class AdminBoostMenuView(_BaseMenu):
         role = self._role_by_id(value)
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         if action in ("transfer", "remove") and not await self.store.role_exists(
             self.guild_id, role.id
         ):
             await self._flash("boost.errors.role_not_registered", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         if action == "register":
             if await self.store.role_exists(self.guild_id, role.id):
                 await self._flash("boost.errors.role_already_registered", color="danger")
-                return await interaction.edit(view=self)
+                return await self.rerender(interaction)
             self.role_id = role.id
             self.screen = _Screen.REGISTER_OWNER
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         if action == "remove":
             self.role_id = role.id
             self.screen = _Screen.REMOVE_CONFIRM
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         self.role_id = role.id
         self.screen = _Screen.INVITE_TARGET
-        await interaction.edit(view=self)
+        await self.rerender(interaction)
 
     async def _pick_transfer_owner(self, interaction: discord.Interaction) -> None:
         role_id = int(_suffix(interaction.custom_id, "boost_transfer_owner"))
@@ -1836,7 +1835,7 @@ class AdminBoostMenuView(_BaseMenu):
             member_id = int(value.strip())
         except ValueError:
             await self._flash("boost.errors.member_not_found", color="danger")
-            return await interaction.edit(view=self)
+            return await self.rerender(interaction)
         role_id = int(
             _suffix(interaction.custom_id, "boost_by_id_transfer_owner_modal").split(":")[0]
         )
