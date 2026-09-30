@@ -602,7 +602,7 @@ async def test_prefix_command_ignores_self_and_unknown_verbs(tmp_path):
 
 
 async def test_roleplay_sentence_is_body_not_title_and_pings_both(tmp_path):
-    """The action sentence must not be the title, and both members ping."""
+    """The titleless card opens with the action sentence, pinging both."""
     import rosemary.core.card_specs  # noqa: F401 (fills the card registry)
     from rosemary.cogs.roleplay import default_interaction_document
     from rosemary.core.card_service import render_card_message
@@ -630,11 +630,9 @@ async def test_roleplay_sentence_is_body_not_title_and_pings_both(tmp_path):
                 collect(item)
 
     collect(doc["blocks"])
-    heading = bodies[0]
-    assert "{@actor}" not in heading and "{@target}" not in heading
-    assert "<@100>" not in heading and "<@200>" not in heading
-    sentence = next(b for b in bodies if "{@actor}" in b)
-    assert "{@target}" in sentence
+    opening = bodies[0]
+    assert "{@actor}" in opening and "{@target}" in opening
+    assert not [b for b in bodies if "abraçou" in b and "{@actor}" not in b]
 
     _payload, allowed = await render_card_message(
         bot, 1, "roleplay.card", variables

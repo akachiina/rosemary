@@ -1,7 +1,7 @@
 """Roleplay: action cards with gifs between members.
 
 ``/roleplay hug @user`` (or ``!hug @user`` with the guild prefix) posts a
-V2 card: the action as the heading, the sentence as a body line
+V2 card: the action sentence as the opening body line
 (``{love_letter} @A abraçou @B``, both members ping), a MediaGallery
 carrying the gif (URL only, no upload), a relative-timestamp footer and
 one button: **Retribuir** (target-only; sends a fresh card with the roles
@@ -133,9 +133,8 @@ def _sentence_key(action: str) -> str:
 async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
     """Catalog-default roleplay card (``roleplay.card``).
 
-    Layout: the heading names only the action (the theme's ``title``
-    markdown template, ``# ...``); the action sentence itself is a body
-    line, never the title. Both members ping through ``{@actor}``/``{@target}``
+    Layout: no heading, the action sentence itself is the opening body
+    line. Both members ping through ``{@actor}``/``{@target}``
     content mentions. No avatar: the card shows no user image. The gif
     gallery self-drops when ``{gif_url}`` resolves empty; a divider and
     the relative-timestamp footer close the card. Placeholders stay
@@ -150,14 +149,11 @@ async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
     def raw(key: str) -> str:
         return safe_format(key, mapping)
 
-    action_title = raw("{love_letter} {action}")
-    heading = theme.md("title", title=action_title) if theme else f"# {action_title}"
     sentence = raw("{love_letter} {@actor} {action} {@target}")
     return {
         "v": 1,
         "blocks": [
             {"type": "container", "color": "brand", "children": [
-                {"type": "text", "body": heading},
                 {"type": "text", "body": sentence},
                 {"type": "gallery", "urls": ["{gif_url}"]},
                 {"type": "divider"},
@@ -400,16 +396,13 @@ class RoleplayCog(commands.Cog):
         mapping = {**emoji_map, **variables}
         # Plain placeholders here (the fallback pings via allowed_for_ids):
         # `{@...}` would render literally outside the document renderer.
-        heading_text = safe_format("{love_letter} {action}", mapping)
         sentence = safe_format(
             "{love_letter} {actor} {action} {target}",
             mapping,
         )
-        heading = theme.md("title", title=heading_text) if theme else f"# {heading_text}"
         view.add_item(
             designer_container(
                 theme.color("brand") if theme else discord.Colour.blurple(),
-                TextDisplay(heading),
                 TextDisplay(sentence),
             )
         )
