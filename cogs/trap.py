@@ -291,6 +291,10 @@ class TrapCog(commands.Cog):
                 failure = await t(guild_id, "trap.failure.no_hierarchy")
             else:
                 with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                    if isinstance(audit, AuditCog):
+                        # Stamp before the kick: welcome must not post a leave
+                        # card for a trap kick (audit.trap reports it).
+                        audit.note_bot_kick(guild_id, member.id)
                     await member.kick(reason=reason)
                     acted = True
                 if not acted:

@@ -986,6 +986,29 @@ class BumpReminderCog(commands.Cog):
             last_bump_display,
             await t(guild_id, "bump.status.next_reminder", next=next_bump),
         ]
+        last_reset = await self.store.get_last_reset(guild_id)
+        if last_reset.get("at") is None:
+            lines.append(await t(guild_id, "bump.status.last_reset_na"))
+        else:
+            reason_raw = last_reset.get("reason") or "unknown"
+            reason_key = f"bump.status.reset_reason.{reason_raw}"
+            reason = await t(guild_id, reason_key)
+            if reason == reason_key:
+                reason = reason_raw
+            actor_id = last_reset.get("actor")
+            if actor_id:
+                actor = f"<@{actor_id}>"
+            else:
+                actor = await t(guild_id, "bump.status.reset_actor_automatic")
+            lines.append(
+                await t(
+                    guild_id,
+                    "bump.status.last_reset",
+                    when=f"<t:{int(last_reset['at'].timestamp())}:R>",
+                    author=actor,
+                    reason=reason,
+                )
+            )
 
         from rosemary.core.card_service import CardPayload, render_card_message
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container

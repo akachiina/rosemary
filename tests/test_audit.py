@@ -715,3 +715,75 @@ async def test_message_delete_snapshot_never_breaks_the_send(tmp_path):
         await cog.on_message_delete(msg)
     audit_channel.send.assert_awaited_once()
     assert cog._snapshot_files == []
+
+
+#: bot-action stamps -----------------------------------------------------------
+
+
+async def test_bot_timeout_stamp_skips_gateway_card(tmp_path):
+    """Regression: /mute posted two cards (moderation log + audit timeout)."""
+    import datetime as dt
+
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    expiry = dt.datetime.now(dt.UTC) + dt.timedelta(hours=1)
+    before = member()
+    before.communication_disabled_until = None
+    after = member()
+    after.communication_disabled_until = expiry
+    after.guild = guild
+    cog.note_bot_timeout(1, after.id)
+    await cog.on_member_update(before, after)
+    assert audit_channel.send.await_count == 0
+    # Stamp consumed: the same change now posts (manual GUI timeout path).
+    await cog.on_member_update(before, after)
+    assert audit_channel.send.await_count == 1
+
+
+async def test_timeout_until_line_has_no_raw_placeholders(tmp_path):
+    """Regression: the card leaked '{clock} Válido até: {duration}'."""
+    import datetime as dt
+
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    bot.translator = RealCatalogTranslator()
+    await cog._arm()
+    before = member()
+    before.communication_disabled_until = None
+    after = member()
+    after.communication_disabled_until = dt.datetime.now(dt.UTC) + dt.timedelta(hours=1)
+    after.guild = guild
+    await cog.on_member_update(before, after)
+    assert audit_channel.send.await_count == 1
+    view = audit_channel.send.await_args.kwargs["view"]
+    texts: list[str] = []
+
+    def walk(node) -> None:
+        if hasattr(node, "content") and isinstance(node.content, str):
+            texts.append(node.content)
+        for child in (
+            list(getattr(node, "children", []) or [])
+            + list(getattr(node, "items", []) or [])
+            + list(getattr(node, "walk_children", lambda: [])())
+        ):
+            walk(child)
+
+    for item in view.children:
+        walk(item)
+    joined = " ".join(texts)
+    assert "{clock}" not in joined, joined
+    assert "{duration}" not in joined, joined
+    assert "Válido até:" in joined, joined
+
+
+async def test_reason_and_moderator_lines_resolve_placeholders(tmp_path):
+    """Same nested-template class as until_line, on the ban/unban bodies."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    bot.translator = RealCatalogTranslator()
+    reason = await cog._reason_line(1, "spam")
+    assert "{scroll}" not in reason, reason
+    assert "{reason}" not in reason, reason
+    assert "spam" in reason, reason
+    moderator = await cog._moderator_line(1, "@mod")
+    assert "{gear}" not in moderator, moderator
+    assert "{moderator}" not in moderator, moderator
+    assert "@mod" in moderator, moderator

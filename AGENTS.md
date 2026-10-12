@@ -8,7 +8,8 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
 
 - This directory is its own git repo (`main`). **Ignore the parent repo's
   `cogs/`, `utils/`, `config/`, `bot.py`** (legacy single-guild bot).
-- `requirements.txt` = runtime deps only. `rosemary/venv` is runtime-only
+- `requirements.txt` is the runtime source of truth (adds WeasyPrint, PyMuPDF,
+  PyNaCl over the parent `pyproject.toml`). `rosemary/venv` is runtime-only
   (no pytest/ruff); dev tools live in the parent `.venv`.
 - `pyproject.toml` (ruff + pytest config) lives in the **parent** repo, not here.
 - Token from `.env` (copy `.env.example`); never echo or commit it.
@@ -21,10 +22,12 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
 ## Verify
 
 - Tests **must run from inside this dir** (`../.venv/bin/python -m pytest tests`):
-  several files read `language/...` via CWD-relative paths and fail from the parent.
+  several files read `language/...` via CWD-relative paths and fail from the parent
+  (35 failures observed running via `rosemary/tests` from the parent).
 - Single test: `../.venv/bin/python -m pytest tests/test_<name>.py -q` (same dir).
 - Lint **must run from the parent** (`./.venv/bin/ruff check rosemary`):
   config is in parent `pyproject.toml` (line-length 100, py311, E/F/W/I/UP/B/SIM).
+  From inside this dir the `rosemary` path does not resolve (E902).
 - `asyncio_mode = "auto"`: async tests need no decorator.
   `tests/conftest.py` is sys.path bootstrap only; each test file builds its own fakes.
 
@@ -44,13 +47,12 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
   the cross-cog `bump` group is module-level, held by NEITHER cog, registered
   explicitly in `_setup()` + bound per subcommand via `rebind_shared_group_commands`
   (py-cord copies class-attr groups at class-def time, freezing later attachments,
-  and only the `.cog` assignment re-runs option validation, which is what skips
+  and only the `.cog` assignment re-runs option validation, which skips
   the leading `self`/`ctx` params).
 - Subcommand localization reuses keys: `{group}_{sub}.command` (legacy flat key)
-  then bare `{sub}.command`; group names localize like top-level names. New group
-  = group `command.name`/`.description` in BOTH catalogs + snapshot in
-  `_subcommand_base_keys` (automatic). Renamed setting/card keys need lazy
-  migration (`_RENAMED_KEYS` in settings, `_RENAMED_CARDS`/`_RENAMED_PINGS` for themes).
+  then bare `{sub}.command`; group names localize like top-level names. Renamed
+  setting/card keys need lazy migration (`_RENAMED_KEYS` in settings,
+  `_RENAMED_CARDS` in themes, `_RENAMED_PINGS` in mentions).
 - Persistence: one JSON file per guild, `data/<guild_id>/<filename>` via
   `GuildStorage`. Defaults merged on read (`use_defaults=False` skips even the
   `language` default). Writes are atomic (temp + rename).
@@ -78,9 +80,10 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
 
 ## Cards, themes, mentions
 
-- **One theme file**: `themes/default.yaml` feeds BOTH the built-in fallback
-  (`bot.theme`) and the selectable "default" in `/themes`. A theme = one YAML with
-  `colors`/`emojis`/`markdown`/`styles` + optional `cards:`/`pings:`/`color_panel:`.
+- `themes/default.yaml` is the single source for BOTH the built-in fallback
+  (`bot.theme`) and the selectable "default" in `/themes`. `themes/` may hold
+  extra importable themes (e.g. `ridiculous_theme.yaml` demo). A theme = one YAML
+  with `colors`/`emojis`/`markdown`/`styles` + optional `cards:`/`pings:`/`color_panel:`.
   Active theme resolves via sync `theme_for(bot, guild_id)` (boot snapshot).
 - New customizable card = `CardSpec` in `core/card_specs.py` + `card.<key>.title`
   in BOTH catalogs + `mention_default` + exact `variables` contract in

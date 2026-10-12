@@ -428,7 +428,14 @@ class SettingsMenuView(MenuView):
         elif action == "reset":
             if leaderboard_cog is None:
                 return await self._test_flash(interaction, "error")
-            await leaderboard_cog.bump_store.reset_week(self.guild_id)
+            await leaderboard_cog.bump_store.reset_week(
+                self.guild_id, reason="settings_reset", actor_id=interaction.user.id
+            )
+            log.warning(
+                "Bump week reset forced in %s by %s (source=settings_reset)",
+                self.guild_id,
+                interaction.user.id,
+            )
             await send_channel_log(
                 self.bot,
                 self.guild_id,

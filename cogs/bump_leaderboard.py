@@ -120,25 +120,56 @@ class BumpLeaderboardCog(commands.Cog):
             except Exception as exc:
                 log.error("Failed to process bump leaderboard reset for %s: %s", guild.id, exc)
 
-    async def _process_weekly_reset(self, guild: discord.Guild) -> str:
+    async def _process_weekly_reset(
+        self,
+        guild: discord.Guild,
+        *,
+        source: str = "scheduler",
+        actor_id: int | None = None,
+    ) -> str:
         """Process the weekly reset and return a status string.
 
         Returns one of ``"no_bumps"``, ``"no_role"`` or ``"posted"`` so callers
-        (e.g. the test command) can report what actually happened.
+        (e.g. the test command) can report what actually happened. ``source``
+        records which path triggered the reset (``scheduler``,
+        ``test_leaderboard``, ``reset_week_command``, ``settings_reset``) and
+        ``actor_id`` the admin who forced it, if any: forced resets are
+        attributed in the staff-log card and in ``bot.log`` so they can never
+        be mistaken for the automatic weekly run.
         """
         leaderboard = await self.bump_store.get_leaderboard(guild.id)
         channel_id = await get_setting(self.bot.storage, guild.id, "bump.channel")
         channel = guild.get_channel(channel_id) if channel_id else None
+        forced = source != "scheduler" or actor_id is not None
+
+        async def _attribution() -> str:
+            if not forced:
+                return ""
+            author = f"<@{actor_id}>" if actor_id else "?"
+            suffix = await self.bot.translator.t(
+                guild.id, "bump.logs.reset_attribution", author=author
+            )
+            return f"\n\n{suffix}"
 
         if not leaderboard:
             if isinstance(channel, discord.TextChannel):
                 await self._post_no_bumps(guild, channel)
-            await self.bump_store.reset_week(guild.id)
+            await self.bump_store.reset_week(guild.id, reason=source, actor_id=actor_id)
+            if forced:
+                log.warning(
+                    "Bump week reset forced in %s by %s (source=%s, bumps=0)",
+                    guild.id,
+                    actor_id,
+                    source,
+                )
+            else:
+                log.info("Bump week reset by scheduler in %s (bumps=0)", guild.id)
+            description = await self.bot.translator.t(guild.id, "bump.logs.no_winner.description")
             await send_channel_log(
                 self.bot,
                 guild.id,
                 await self.bot.translator.t(guild.id, "bump.logs.no_winner.title"),
-                await self.bot.translator.t(guild.id, "bump.logs.no_winner.description"),
+                description + await _attribution(),
                 color="info",
                 card_key="bump.logs.no_winner.description",
             )
@@ -156,15 +187,30 @@ class BumpLeaderboardCog(commands.Cog):
         role = guild.get_role(role_id) if role_id else None
 
         if not role:
+            await self.bump_store.reset_week(guild.id, reason=source, actor_id=actor_id)
+            if forced:
+                log.warning(
+                    "Bump week reset forced in %s by %s (source=%s, bumps=%d, no role)",
+                    guild.id,
+                    actor_id,
+                    source,
+                    sum(leaderboard.values()),
+                )
+            else:
+                log.info(
+                    "Bump week reset by scheduler in %s (bumps=%d, no role)",
+                    guild.id,
+                    sum(leaderboard.values()),
+                )
+            description = await self.bot.translator.t(guild.id, "bump.error_role_not_found")
             await send_channel_log(
                 self.bot,
                 guild.id,
                 await self.bot.translator.t(guild.id, "bump.logs.no_winner.title"),
-                await self.bot.translator.t(guild.id, "bump.error_role_not_found"),
+                description + await _attribution(),
                 color="danger",
                 card_key="bump.logs.no_winner.description",
             )
-            await self.bump_store.reset_week(guild.id)
             return "no_role"
 
         old_winner_id = await self.bump_store.get_current_winner(guild.id)
@@ -184,7 +230,24 @@ class BumpLeaderboardCog(commands.Cog):
             guild, role, new_winner_id, old_winner_id, winner_count, total_wins,
         )
 
-        await self.bump_store.reset_week(guild.id)
+        await self.bump_store.reset_week(guild.id, reason=source, actor_id=actor_id)
+        total_bumps = sum(c for _, c in sorted_lb)
+        if forced:
+            log.warning(
+                "Bump week reset forced in %s by %s (source=%s, winner=%d, bumps=%d)",
+                guild.id,
+                actor_id,
+                source,
+                new_winner_id,
+                total_bumps,
+            )
+        else:
+            log.info(
+                "Bump week reset by scheduler in %s (winner=%d, bumps=%d)",
+                guild.id,
+                new_winner_id,
+                total_bumps,
+            )
         await send_channel_log(
             self.bot,
             guild.id,
@@ -194,8 +257,9 @@ class BumpLeaderboardCog(commands.Cog):
                 guild.id,
                 "bump.logs.week_reset.description",
                 winner=f"<@{new_winner_id}>",
-                bumps=sum(c for _, c in sorted_lb),
-            ),
+                bumps=total_bumps,
+            )
+            + await _attribution(),
             color="success",
             card_key="bump.logs.week_reset.description",
             mention_user_ids=[new_winner_id],
@@ -658,8 +722,12 @@ class BumpLeaderboardCog(commands.Cog):
         # _process_weekly_reset performs heavy IO (card send, role.edit, participant
         # DMs, DB writes, log channel). DEFER first so the interaction keeps its
         # token past Discord's 3s ACK window; ctx.respond routes to a followup.
+        # The forced path bypasses the scheduler's day/hour guard on purpose,
+        # so the actor is recorded: it must never look like an automatic reset.
         await ctx.response.defer(ephemeral=True)
-        status = await self._process_weekly_reset(guild)
+        status = await self._process_weekly_reset(
+            guild, source="test_leaderboard", actor_id=ctx.author.id
+        )
         if status == "no_bumps":
             return await ctx.respond(
                 await self.bot.translator.t(guild.id, "bump.test.no_bumps"), ephemeral=True
@@ -755,7 +823,14 @@ class BumpLeaderboardCog(commands.Cog):
     async def reset_bump_week(self, ctx: discord.ApplicationContext) -> None:
         """Reset the weekly leaderboard without posting."""
         await ctx.response.defer(ephemeral=True)
-        await self.bump_store.reset_week(ctx.guild_id)
+        await self.bump_store.reset_week(
+            ctx.guild_id, reason="reset_week_command", actor_id=ctx.author.id
+        )
+        log.warning(
+            "Bump week reset forced in %s by %s (source=reset_week_command)",
+            ctx.guild_id,
+            ctx.author.id,
+        )
         await send_channel_log(
             self.bot,
             ctx.guild_id,

@@ -313,3 +313,65 @@ async def test_raid_protection_delays_welcomes(tmp_path, monkeypatch):
     for _ in range(WelcomeCog.__mro__ and 5):
         await cog.on_member_join(member)
     assert delays and delays[-1] == welcome_mod.RAID_WELCOME_DELAY
+
+
+#: bot-action stamps ------------------------------------------------------------
+
+
+async def test_bot_ban_skips_events_ban_but_keeps_leave_guard(tmp_path):
+    """Regression: /ban posted moderation log + events.ban (no stamp check)."""
+    bot, guild, member, _, _, ban_channel = make_world(tmp_path, ban=True)
+    await set_settings(bot, ban_channel=333)
+    from rosemary.cogs.audit import AuditCog
+
+    audit = MagicMock(spec=AuditCog)
+    audit.has_bot_stamp.side_effect = (
+        lambda gid, uid, kinds=("ban", "unban"): (gid, uid) == (1, 5) and "ban" in kinds
+    )
+    bot.get_cog = MagicMock(return_value=audit)
+    cog = WelcomeCog(bot)
+    user = MagicMock(spec=discord.User)
+    user.id = 5
+    user.name = "Ana"
+    user.mention = "<@5>"
+    await cog.on_member_ban(guild, user)
+    assert ban_channel.send.await_count == 0
+    # The leave that follows a ban is still swallowed, not announced.
+    assert 5 in cog._recently_banned
+
+
+async def test_manual_ban_still_posts_events_ban(tmp_path):
+    bot, guild, member, _, _, ban_channel = make_world(tmp_path, ban=True)
+    await set_settings(bot, ban_channel=333)
+    from rosemary.cogs.audit import AuditCog
+
+    audit = MagicMock(spec=AuditCog)
+    audit.has_bot_stamp.return_value = False
+    bot.get_cog = MagicMock(return_value=audit)
+    cog = WelcomeCog(bot)
+    user = MagicMock(spec=discord.User)
+    user.id = 5
+    user.name = "Ana"
+    user.mention = "<@5>"
+    await cog.on_member_ban(guild, user)
+    assert ban_channel.send.await_count == 1
+
+
+async def test_bot_kick_skips_leave_but_voluntary_leave_posts(tmp_path):
+    """Regression: /kick posted moderation log + events.leave."""
+    bot, guild, member, _, leave_channel, _ = make_world(tmp_path, leave=True)
+    await set_settings(bot, leave_channel=222)
+    from rosemary.cogs.audit import AuditCog
+
+    audit = MagicMock(spec=AuditCog)
+    audit.has_bot_stamp.side_effect = (
+        lambda gid, uid, kinds=("ban", "unban"): (gid, uid) == (1, 5) and "kick" in kinds
+    )
+    bot.get_cog = MagicMock(return_value=audit)
+    cog = WelcomeCog(bot)
+    await cog.on_member_remove(member)
+    assert leave_channel.send.await_count == 0
+    audit.has_bot_stamp.side_effect = None
+    audit.has_bot_stamp.return_value = False
+    await cog.on_member_remove(member)
+    assert leave_channel.send.await_count == 1

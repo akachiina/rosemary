@@ -173,13 +173,36 @@ class BumpStore:
         await self.storage.set_all(guild_id, doc)
         return lb[uid]
 
-    async def reset_week(self, guild_id: int) -> None:
+    async def reset_week(
+        self,
+        guild_id: int,
+        *,
+        reason: str = "unknown",
+        actor_id: int | None = None,
+    ) -> None:
         doc = await self.storage.get(guild_id)
         doc["leaderboard"] = {}
         await self.storage.set_all(guild_id, doc)
+        now = datetime.now(UTC).isoformat()
         state = await self.get_reminder(guild_id)
-        state["week_start"] = datetime.now(UTC).isoformat()
+        state["week_start"] = now
+        state["last_reset_at"] = now
+        state["last_reset_reason"] = reason
+        state["last_reset_actor"] = actor_id
         await self._set_reminder(guild_id, state)
+
+    async def get_last_reset(self, guild_id: int) -> dict[str, Any]:
+        """Return the last recorded week reset (or an empty mapping).
+
+        Keys: ``at`` (datetime or None), ``reason`` (str or None),
+        ``actor`` (int user id or None for the automatic scheduler).
+        """
+        state = await self.get_reminder(guild_id)
+        return {
+            "at": parse_datetime(state.get("last_reset_at")),
+            "reason": state.get("last_reset_reason"),
+            "actor": state.get("last_reset_actor"),
+        }
 
     #: Winner State --------------------------------------------------------
 

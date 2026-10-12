@@ -87,10 +87,19 @@ def rebind_shared_group_commands(bot) -> None:
             continue
         for sub in _walk_subcommands(cmd):
             base = snapshot.get(id(sub), sub.name)
-            owner = by_cog.get(owners.get(base, ""))
-            if owner is not None and sub.cog is not owner:
+            owner_name = owners.get(base)
+            owner = by_cog.get(owner_name) if owner_name else None
+            if owner is None:
+                log.warning(
+                    "Subcommand %s %s has no owning cog (expected %r)",
+                    cmd.name,
+                    base,
+                    owner_name,
+                )
+                continue
+            if sub.cog is not owner:
                 sub.cog = owner
-                log.info(
+                log.debug(
                     "Subcommand %s %s bound to %s",
                     cmd.name,
                     base,

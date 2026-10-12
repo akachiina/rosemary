@@ -394,14 +394,26 @@ class AuditCog(commands.Cog):
         if not reason:
             return ""
         template = await _line(self.bot, guild_id, "reason_line")
-        return f" {template}" if template else ""
+        if not template:
+            return ""
+        from rosemary.core.cards import safe_format
+
+        return " " + safe_format(
+            template, {**self.bot.theme.emojis, "reason": reason}
+        )
 
     async def _moderator_line(self, guild_id: int, moderator: str) -> str:
         """``card.audit.moderator_line`` prefixed with a newline, or empty."""
         if not moderator:
             return ""
         template = await _line(self.bot, guild_id, "moderator_line")
-        return f"\n{template}" if template else ""
+        if not template:
+            return ""
+        from rosemary.core.cards import safe_format
+
+        return "\n" + safe_format(
+            template, {**self.bot.theme.emojis, "moderator": moderator}
+        )
 
     async def _send(self, channel, guild_id: int, key: str, variables: dict) -> None:
         """Render ``audit.<event>`` through the shared pipeline and send it."""
@@ -480,6 +492,23 @@ class AuditCog(commands.Cog):
         """Stamp an unban our code triggers (the softban's own unban step)."""
         self._stamp_bot_action(guild_id, "unban", user_id)
 
+    def note_bot_timeout(self, guild_id: int, user_id: int) -> None:
+        """Stamp a timeout our code triggers (/mute).
+
+        The feature posts its own log card with the real moderator;
+        the gateway's ``on_member_update`` sees the stamp and skips the
+        generic duplicate.
+        """
+        self._stamp_bot_action(guild_id, "timeout", user_id)
+
+    def note_bot_kick(self, guild_id: int, user_id: int) -> None:
+        """Stamp a kick our code triggers (/kick, trap).
+
+        Lets ``welcome.on_member_remove`` tell a bot kick (already logged
+        by moderation) apart from a voluntary leave.
+        """
+        self._stamp_bot_action(guild_id, "kick", user_id)
+
     def _stamp_bot_action(self, guild_id: int, kind: str, user_id: int) -> None:
         self._bot_bans.setdefault(guild_id, {}).setdefault(kind, {})[user_id] = (
             time.monotonic() + BOT_BAN_WINDOW_SECONDS
@@ -487,16 +516,39 @@ class AuditCog(commands.Cog):
 
     def _consume_bot_ban(self, guild_id: int, user_id: int) -> bool:
         """Whether this ban/unban was stamped by our own code (and drop it)."""
-        kinds = self._bot_bans.get(guild_id)
-        if not kinds:
+        return self._consume_bot_stamp(guild_id, user_id, ("ban", "unban"))
+
+    def has_bot_stamp(
+        self, guild_id: int, user_id: int, kinds: tuple[str, ...] = ("ban", "unban")
+    ) -> bool:
+        """Non-destructive stamp check for cogs that listen to the same event.
+
+        Unlike ``_consume_bot_stamp``, this never drops the stamp: the audit
+        listener still needs to consume it when its own event arrives (event
+        delivery order between cogs is not guaranteed).
+        """
+        kinds_map = self._bot_bans.get(guild_id)
+        if not kinds_map:
             return False
-        for kind in ("ban", "unban"):
-            stamps = kinds.get(kind)
+        now = time.monotonic()
+        return any(
+            kinds_map.get(kind, {}).get(user_id, 0) >= now for kind in kinds
+        )
+
+    def _consume_bot_stamp(
+        self, guild_id: int, user_id: int, kinds: tuple[str, ...]
+    ) -> bool:
+        """Whether our own code stamped this action (and drop the stamp)."""
+        kinds_map = self._bot_bans.get(guild_id)
+        if not kinds_map:
+            return False
+        for kind in kinds:
+            stamps = kinds_map.get(kind)
             if stamps and user_id in stamps:
                 expiry = stamps.pop(user_id)
                 if not stamps:
-                    kinds.pop(kind, None)
-                if not kinds:
+                    kinds_map.pop(kind, None)
+                if not kinds_map:
                     self._bot_bans.pop(guild_id, None)
                 return expiry >= time.monotonic()
         return False
@@ -811,6 +863,10 @@ class AuditCog(commands.Cog):
             old_to = _timeout_until(before)
             new_to = _timeout_until(after)
             if old_to != new_to and await self._on(guild.id, "audit.timeout_enabled"):
+                if self._consume_bot_stamp(guild.id, after.id, ("timeout",)):
+                    # Our own /mute: moderation posted its card with the real
+                    # moderator, the generic gateway card would only duplicate.
+                    return
                 channel = channel or await self._channel(guild.id)
                 if channel is not None:
                     t = self.bot.translator.t
@@ -818,7 +874,15 @@ class AuditCog(commands.Cog):
                         duration = f"<t:{int(new_to.timestamp())}:f>"
                         state = await t(guild.id, "audit.timeout_applied", duration=duration)
                         until = await _line(self.bot, guild.id, "timeout.until_line")
-                        duration_line = f"\n{until}" if until else ""
+                        if until:
+                            from rosemary.core.cards import safe_format
+
+                            duration_line = "\n" + safe_format(
+                                until,
+                                {**self.bot.theme.emojis, "duration": duration},
+                            )
+                        else:
+                            duration_line = ""
                     else:
                         duration = ""
                         state = await t(guild.id, "audit.timeout_removed")

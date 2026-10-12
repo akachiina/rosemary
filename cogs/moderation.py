@@ -400,6 +400,23 @@ class ModerationCog(commands.Cog):
         await view.prepare()
         await self._send_view(ctx, view)
 
+    def _stamp_bot_action(self, guild_id: int, user_id: int, kind: str) -> None:
+        """Stamp an action this cog is about to execute (kick/timeout).
+
+        The feature posts its own log card with the real moderator, so the
+        gateway cards (audit timeout, welcome leave) would only duplicate it.
+        Stamped BEFORE the API call: delivery order is not guaranteed and the
+        stamp window covers a slow call.
+        """
+        from rosemary.cogs.audit import AuditCog
+
+        get_cog = getattr(self.bot, "get_cog", None)
+        audit = get_cog("AuditCog") if callable(get_cog) else None
+        if isinstance(audit, AuditCog):
+            noter = {"kick": audit.note_bot_kick, "timeout": audit.note_bot_timeout}.get(kind)
+            if noter is not None:
+                noter(guild_id, user_id)
+
     async def _execute_action(
         self,
         guild_id: int,
@@ -451,8 +468,10 @@ class ModerationCog(commands.Cog):
             if isinstance(audit, AuditCog):
                 audit.note_bot_ban(guild_id, target.id)
         elif action == "kick":
+            self._stamp_bot_action(guild_id, target.id, "kick")
             await target.kick(reason=reason)
         elif action == "mute":
+            self._stamp_bot_action(guild_id, target.id, "timeout")
             await target.timeout_for(duration, reason=reason)
         elif action == "warn":
             count = await self.warnings.add_warning(
