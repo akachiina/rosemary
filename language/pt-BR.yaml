@@ -2355,6 +2355,9 @@ variables:
   vote:
     label: Voto
     description: A palavra do voto (upvote ou downvote)
+  side:
+    label: Lado do voto
+    description: Qual lado foi votado (up ou down)
 card:
   # Rodapé de autoria padrão (builder helper ``author_footer_blocks``): linha
   # pequena (``-#``) com a menção de quem gerou o card e o tempo relativo.
@@ -2387,7 +2390,7 @@ card:
     dm:
       vote:
         title: DM de voto em sugestão
-        placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}"
+        placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}, {{side}}"
   utility:
     ping:
       title: Card de latência
@@ -3088,7 +3091,7 @@ suggest:
   dm:
     up: upvote
     down: downvote
-    body: "{voter} deu um {vote} na sua sugestão #{suggestion_number}:\n> {body}"
+    body: "{voter} deu um **{vote}** na sua **sugestão #{suggestion_number}:**\n> {body}"
     jump: Ir para a sugestão
   sent: '{success} Sua sugestão foi postada!'
   voted: '{success} Voto registrado! ({up} a favor, {down} contra)'

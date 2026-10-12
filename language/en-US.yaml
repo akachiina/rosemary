@@ -2354,6 +2354,9 @@ variables:
   vote:
     label: Vote
     description: The vote word (upvote or downvote)
+  side:
+    label: Vote side
+    description: Which side was voted (up or down)
 card:
   # Default author footer (``author_footer_blocks`` builder helper): a small
   # (``-#``) line with the mention of who triggered the card and relative time.
@@ -2386,7 +2389,7 @@ card:
     dm:
       vote:
         title: Suggestion vote DM
-        placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}"
+        placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}, {{side}}"
   utility:
     ping:
       title: Latency card
@@ -3087,7 +3090,7 @@ suggest:
   dm:
     up: upvote
     down: downvote
-    body: "New {vote} on your suggestion #{suggestion_number} from {voter}:\n> {body}"
+    body: "New **{vote}** on your **suggestion #{suggestion_number}** from {voter}:\n> {body}"
     jump: Go to suggestion
   sent: '{success} Your suggestion was posted!'
   voted: '{success} Vote recorded! ({up} up, {down} down)'

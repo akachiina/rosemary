@@ -162,6 +162,57 @@ class Theme:
             return None
         return from_color, to_color, limit
 
+    #: suggestion ramp -----------------------------------------------------
+
+    def suggestion_ramp_config(self) -> tuple[str, str, str, int] | None:
+        """``(from_color, up_color, down_color, limit)`` or ``None``.
+
+        Mirrors the starboard ramp: ``from_color`` is the score-zero accent,
+        positive balances blend toward ``up_color`` and negative toward
+        ``down_color``, reaching the strong end at ``limit``. Colors accept
+        theme token names or ``#rrggbb``; a missing/malformed section makes
+        the consumer fall back to the plain ``success``/``danger``/``info``
+        tokens.
+        """
+        ramp = self.styles.get("suggestion_ramp")
+        if not isinstance(ramp, dict):
+            return None
+        try:
+            limit = int(ramp.get("limit", 10))
+        except (TypeError, ValueError):
+            return None
+        resolved: list[str] = []
+        for name in (ramp.get("from_color"), ramp.get("up_color"), ramp.get("down_color")):
+            value = self.colors.get(name, name) if isinstance(name, str) else None
+            if not isinstance(value, str) or not _HEX.fullmatch(value):
+                return None
+            resolved.append(value)
+        if limit < 1:
+            return None
+        return resolved[0], resolved[1], resolved[2], limit
+
+    def suggestion_ramp(self, score: int) -> str:
+        """The accent color for a vote balance, as a hex string.
+
+        Zero stays at ``from_color``; positive blends toward ``up_color``
+        and negative toward ``down_color``, reaching the strong end at
+        ``limit`` and holding there: every vote nudges the tone. Malformed
+        config falls back to the ``info`` token so the look never breaks.
+        """
+        ramp = self.suggestion_ramp_config()
+        if ramp is None:
+            return self.style("info").color
+        from_color, up_color, down_color, limit = ramp
+        try:
+            value = int(score)
+        except (TypeError, ValueError):
+            value = 0
+        if value == 0:
+            return from_color
+        target = up_color if value > 0 else down_color
+        ratio = min(1.0, abs(value) / max(1, limit))
+        return _blend_hex(from_color, target, ratio)
+
     def star_title_emoji(self, stars: int) -> str:
         """The title emoji for a star count (milestone map, highest wins).
 

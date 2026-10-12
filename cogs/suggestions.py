@@ -38,10 +38,34 @@ _NEW_ID = "suggest_new"
 
 
 def _score_color(score: int) -> str:
-    """Theme color token for a vote score."""
+    """Theme color token for a vote score (green/red, neutral otherwise)."""
     if score > 0:
-        return "gold"
+        return "success"
     if score < 0:
+        return "danger"
+    return "info"
+
+
+def _score_hex(theme, score: int) -> str:
+    """Accent color for a vote balance as ``#rrggbb`` (documents speak hex).
+
+    Continuous ramp when the theme defines ``suggestion_ramp`` (every vote
+    nudges the tone toward green/red, starboard-style); otherwise the plain
+    ``success``/``danger``/``info`` token resolved through the palette, so
+    guild themes without a ramp keep a working look.
+    """
+    if theme is not None and theme.suggestion_ramp_config() is not None:
+        return theme.suggestion_ramp(score)
+    token = _score_color(score)
+    value = theme.color(token).value if theme is not None else 0x3498DB
+    return f"#{value:06X}"
+
+
+def _side_color(side: str | None) -> str:
+    """Theme color token for one vote event (green up, red down)."""
+    if side == "up":
+        return "success"
+    if side == "down":
         return "danger"
     return "info"
 
@@ -50,6 +74,14 @@ def _safe_filename(name: str) -> str:
     """Attachment-safe filename (``attachment://`` URLs reject spaces)."""
     clean = re.sub(r"[^\w.\-]+", "_", (name or "").strip()).strip("._")
     return (clean or "suggestion.png")[:80]
+
+
+def _image_url_from(attachments) -> str:
+    """First image attachment's CDN URL (empty when none)."""
+    for attachment in attachments or []:
+        if (getattr(attachment, "content_type", "") or "").startswith("image/"):
+            return attachment.url
+    return ""
 
 
 async def default_suggestion_document(bot, guild_id: int, **variables) -> dict:
@@ -72,7 +104,7 @@ async def default_suggestion_document(bot, guild_id: int, **variables) -> dict:
         "blocks": [
             {
                 "type": "container",
-                "color": _score_color(score),
+                "color": _score_hex(getattr(bot, "theme", None), score),
                 "children": [
                     {
                         "type": "section",
@@ -97,16 +129,20 @@ async def default_suggestion_vote_dm_document(bot, guild_id: int, **variables) -
 
     Layout: the vote sentence from ``suggest.dm.body`` (who voted, which
     suggestion, quoted text) plus a link button jumping to the suggestion.
-    Placeholders stay literal: this is a template resolved at render.
+    The accent follows the voted side (green up, red down). The template is
+    read via ``raw()``: ``t()`` would attempt formatting without variables
+    and log a warning on every vote. Placeholders stay literal: this is a
+    template resolved at render.
     """
-    body = await bot.translator.t(guild_id, "suggest.dm.body")
+    raw = bot.translator.raw
+    body = await raw(guild_id, "suggest.dm.body")
     jump_label = await bot.translator.t(guild_id, "suggest.dm.jump")
     return {
         "v": 1,
         "blocks": [
             {
                 "type": "container",
-                "color": "info",
+                "color": _side_color(variables.get("side")),
                 "children": [
                     {"type": "text", "body": body},
                     {
@@ -351,10 +387,13 @@ class SuggestionsCog(commands.Cog):
         theme = self.bot.theme
         command = await self.bot.translator.t(guild_id, "suggest.command.name")
         hint = await self.bot.translator.t(guild_id, "suggest.card.hint", command=command)
+        accent = discord.Colour(
+            int(_score_hex(theme, int(variables.get("score") or 0)).lstrip("#"), 16)
+        )
         view = DesignerView(store=False)
         view.add_item(
             designer_container(
-                theme.color(_score_color(int(variables.get("score") or 0))),
+                accent,
                 TextDisplay(f"# {variables.get('title', '')}"),
                 TextDisplay(str(variables.get("body") or "")),
                 TextDisplay(f"{variables.get('upvotes', 0)} · {variables.get('downvotes', 0)}"),
@@ -418,9 +457,16 @@ class SuggestionsCog(commands.Cog):
         if files:
             send_kwargs["files"] = files
         sent = await channel.send(**send_kwargs, allowed_mentions=allowed)
-        stored_image_url = ""
-        if files and sent.attachments:
-            stored_image_url = sent.attachments[0].url
+        stored_image_url = _image_url_from(sent.attachments)
+        if files and not stored_image_url:
+            # py-cord's send response may come back without the attachment
+            # list; fetch the message to get the signed CDN URL, otherwise
+            # every later repaint drops the gallery.
+            try:
+                fresh = await channel.fetch_message(sent.id)
+                stored_image_url = _image_url_from(fresh.attachments)
+            except discord.HTTPException:
+                stored_image_url = ""
         await self.store.put(
             guild.id,
             sent.id,
@@ -467,6 +513,11 @@ class SuggestionsCog(commands.Cog):
                 message_link=message.jump_url,
                 timestamp=discord.utils.format_dt(message.created_at, style="R"),
             )
+            live_image = _image_url_from(getattr(message, "attachments", None))
+            if live_image:
+                # The clicked message's own attachments win over the store:
+                # entries saved before the CDN URL was persisted self-heal.
+                variables["image_url"] = live_image
             variables["title"] = await self._title_for(guild.id, updated.get("number", 0))
             payload, allowed = await self._card_payload(guild.id, variables)
             up, down = SuggestionStore.counts(updated)
@@ -499,6 +550,7 @@ class SuggestionsCog(commands.Cog):
             "body": entry.get("body") or "",
             "message_link": message_link,
             "vote": await self.bot.translator.t(guild.id, f"suggest.dm.{side}"),
+            "side": side,
         }
         from rosemary.core.card_service import CardPayload, render_card_message
 
@@ -518,7 +570,7 @@ class SuggestionsCog(commands.Cog):
             view = DesignerView(store=False)
             view.add_item(
                 designer_container(
-                    theme.color("info"),
+                    theme.color(_side_color(side)),
                     TextDisplay(await t(guild.id, "suggest.dm.body", **variables)),
                 )
             )

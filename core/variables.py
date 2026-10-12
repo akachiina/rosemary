@@ -209,6 +209,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("score", 1, "number"),
         _v("voter", "<@0>", "mention"),
         _v("vote", "upvote"),
+        _v("side", "up"),
     ]
 }
 

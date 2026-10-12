@@ -285,7 +285,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
         "image_url", "upvotes", "downvotes", "score", "message_link", "timestamp",
     ),
     "suggestions.dm.vote": (
-        "voter", "suggestion_number", "body", "message_link", "vote",
+        "voter", "suggestion_number", "body", "message_link", "vote", "side",
     ),
     "partnerships.invite": ("server",),
     "partnerships.dm.added": ("server", "mention"),

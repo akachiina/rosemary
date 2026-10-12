@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 from datetime import UTC, datetime
 from pathlib import Path
@@ -88,7 +89,15 @@ def make_message(message_id=111):
     message.jump_url = f"https://discord.com/channels/1/42/{message_id}"
     message.created_at = datetime(2026, 1, 1, tzinfo=UTC)
     message.edit = AsyncMock()
+    message.attachments = []
     return message
+
+
+def make_attachment(url="https://cdn.discordapp.com/attachments/1/42/cat.png"):
+    attachment = MagicMock()
+    attachment.url = url
+    attachment.content_type = "image/png"
+    return attachment
 
 
 #: store ----------------------------------------------------------------------
@@ -190,7 +199,7 @@ def test_builder_signature_accepts_variables():
 
 
 def test_score_color_branches():
-    assert _score_color(3) == "gold"
+    assert _score_color(3) == "success"
     assert _score_color(-2) == "danger"
     assert _score_color(0) == "info"
 
@@ -200,12 +209,53 @@ async def test_default_document_colors_and_placeholders(tmp_path):
 
     bot = FakeBot(tmp_path)
     variables = samples_for(get_card("suggestions.card").variables)
-    for score, color in ((5, "gold"), (-1, "danger"), (0, "info")):
+    for score in (5, -1, 0):
         doc = await default_document(
             bot, 1, "suggestions.card", {**variables, "score": score}
         )
         assert doc is not None
-        assert doc["blocks"][0]["color"] == color
+        color = doc["blocks"][0]["color"]
+        assert isinstance(color, str) and color.startswith("#"), color
+
+
+async def test_score_ramp_moves_with_balance(tmp_path):
+    """Starboard-style: every vote nudges the tone toward the strong end."""
+    from rosemary.core.card_service import default_document
+
+    bot = FakeBot(tmp_path)
+    variables = samples_for(get_card("suggestions.card").variables)
+
+    async def color_for(score):
+        doc = await default_document(
+            bot, 1, "suggestions.card", {**variables, "score": score}
+        )
+        return doc["blocks"][0]["color"]
+
+    neutral, low, mid, strong = await asyncio.gather(
+        color_for(0), color_for(1), color_for(5), color_for(10)
+    )
+    assert neutral != low != mid != strong, (neutral, low, mid, strong)
+    # Positive ramp: the red channel only falls toward the strong end
+    # (pale yellow -> green drains red, same idea as the starboard test).
+    reds = [int(c.lstrip("#")[0:2], 16) for c in (low, mid, strong)]
+    assert reds == sorted(reds, reverse=True), reds
+    # Negative pulls toward red: same score magnitude, opposite direction.
+    down = await color_for(-5)
+    assert down != mid, (down, mid)
+
+
+async def test_score_falls_back_to_tokens_without_ramp(tmp_path):
+    from rosemary.core.card_service import default_document
+
+    bot = FakeBot(tmp_path)
+    bot.theme.styles.pop("suggestion_ramp", None)
+    assert bot.theme.suggestion_ramp_config() is None
+    variables = samples_for(get_card("suggestions.card").variables)
+    doc = await default_document(
+        bot, 1, "suggestions.card", {**variables, "score": 4}
+    )
+    expected = f"#{bot.theme.color('success').value:06X}"
+    assert doc["blocks"][0]["color"] == expected
 
 
 async def test_default_document_renders_title_body_counts(tmp_path):
@@ -384,7 +434,7 @@ def test_dm_vote_spec_registered_with_exact_contract():
     spec = get_card("suggestions.dm.vote")
     assert spec is not None
     assert spec.variables == (
-        "voter", "suggestion_number", "body", "message_link", "vote",
+        "voter", "suggestion_number", "body", "message_link", "vote", "side",
     )
     for name in spec.variables:
         assert name in VARIABLES, f"unregistered variable {name}"
@@ -394,7 +444,7 @@ def test_dm_vote_variables_have_labels_in_both_catalogs():
     for code in ("en-US", "pt-BR"):
         with (LANG_DIR / f"{code}.yaml").open(encoding="utf-8") as fh:
             data = yaml.safe_load(fh) or {}
-        for name in ("voter", "vote"):
+        for name in ("voter", "vote", "side"):
             entry = (data.get("variables") or {}).get(name) or {}
             assert isinstance(entry.get("label"), str), f"{code}:{name}.label"
             assert isinstance(entry.get("description"), str), f"{code}:{name}.description"
@@ -442,6 +492,50 @@ async def test_vote_down_dm_uses_downvote_word(tmp_path):
     view = member.send.await_args.kwargs["view"]
     texts, _urls = _dm_texts_and_urls(view)
     assert any("downvote" in text for text in texts), texts
+
+
+#: DM markdown + accent by side ----------------------------------------------
+
+
+async def test_dm_document_color_follows_side(tmp_path):
+    from rosemary.core.card_service import default_document
+
+    bot = FakeBot(tmp_path)
+    base = {
+        "voter": "<@9>",
+        "suggestion_number": 1,
+        "body": "idea",
+        "message_link": "https://discord.com/channels/1/42/111",
+        "vote": "upvote",
+    }
+    assert (await default_document(bot, 1, "suggestions.dm.vote", {**base, "side": "up"}))[
+        "blocks"
+    ][0]["color"] == "success"
+    assert (await default_document(bot, 1, "suggestions.dm.vote", {**base, "side": "down"}))[
+        "blocks"
+    ][0]["color"] == "danger"
+    # Defensive: a missing side stays neutral, never crashes.
+    assert (await default_document(bot, 1, "suggestions.dm.vote", dict(base)))[
+        "blocks"
+    ][0]["color"] == "info"
+
+
+async def test_dm_renders_bold_markdown(tmp_path):
+    bot = FakeBot(tmp_path, "pt-BR")
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    voter = MagicMock()
+    voter.id = 9
+    voter.mention = "<@9>"
+    guild.get_member.side_effect = lambda uid: voter if uid == 9 else member
+    await cog.post_suggestion(guild, channel, member, "vote on me")
+    assert await cog.apply_vote(guild, make_message(), 9, "up") is True
+    view = member.send.await_args.kwargs["view"]
+    texts, _urls = _dm_texts_and_urls(view)
+    assert any("**upvote**" in text for text in texts), texts
+    assert any("**sugestão #1:**" in text for text in texts), texts
+    assert any("<@9>" in text for text in texts), texts
 
 
 async def test_no_dm_on_self_vote(tmp_path):
@@ -663,6 +757,46 @@ async def test_vote_repaint_keeps_image(tmp_path):
     poster = make_click(guild, user_id=7)
     await cog._modal_submit(poster, "with pic", [make_upload()])
     message = make_message()
+    assert await cog.apply_vote(guild, message, 9, "up") is True
+    view = message.edit.await_args.kwargs["view"]
+    assert _has_gallery(view)
+
+
+async def test_post_fetches_cdn_url_when_send_response_lacks_attachments(tmp_path):
+    """Live regression: py-cord's send response may omit attachments, which
+    left ``image_url`` empty in the store and votes dropped the gallery."""
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, _member, sent = make_guild()
+    await _enable_suggestions(bot)
+    sent.attachments = []  # the live failure mode
+    fresh = MagicMock()
+    fresh.attachments = [make_attachment("https://cdn.example.com/fresh.png")]
+    channel.fetch_message.return_value = fresh
+    interaction = make_click(guild, user_id=7)
+    await cog._modal_submit(interaction, "pic via fetch", [make_upload()])
+    entry = await cog.store.get(1, 111)
+    assert entry["image_url"] == "https://cdn.example.com/fresh.png"
+
+
+async def test_vote_repaint_recovers_image_from_live_message(tmp_path):
+    """Entries stored before the CDN URL was persisted self-heal: the voted
+    message's own attachments feed the repaint."""
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, _member, sent = make_guild()
+    await _enable_suggestions(bot)
+    sent.attachments = []  # stored image_url ends up empty
+    fresh = MagicMock()
+    fresh.attachments = []
+    channel.fetch_message.return_value = fresh
+    interaction = make_click(guild, user_id=7)
+    await cog._modal_submit(interaction, "broken store", [make_upload()])
+    assert (await cog.store.get(1, 111))["image_url"] == ""
+    message = make_message()
+    message.attachments = [make_attachment("https://cdn.example.com/live.png")]
     assert await cog.apply_vote(guild, message, 9, "up") is True
     view = message.edit.await_args.kwargs["view"]
     assert _has_gallery(view)
