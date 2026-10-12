@@ -140,13 +140,14 @@ styles:
     to_color: "#FF8C00"
     limit: 13
   # Sugestões: rampa contínua pelo saldo de votos (como a do starboard).
-  # Saldo zero fica no tom neutro claro; positivo tende ao verde e negativo
-  # ao vermelho, atingindo o tom forte em `limit` (10 votos, teto do bot
-  # antigo) e parando ali.
+  # Saldo zero fica no amarelo claro; positivo fica mais dourado a cada
+  # upvote e negativo tende ao vermelho, atingindo o tom forte em `limit`
+  # (10 votos, teto do bot antigo) e parando ali. `gold`/`danger` são
+  # tokens da paleta, resolvidos para hex.
   suggestion_ramp:
-    from_color: "#F7EFA8"
-    up_color: "#2ECC71"
-    down_color: "#E74C3C"
+    from_color: "#FFE5B4"
+    up_color: "gold"
+    down_color: "danger"
     limit: 10
 
 # Título do post do starboard por marco de estrelas (o maior marco alcançado

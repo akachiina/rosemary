@@ -235,10 +235,10 @@ async def test_score_ramp_moves_with_balance(tmp_path):
         color_for(0), color_for(1), color_for(5), color_for(10)
     )
     assert neutral != low != mid != strong, (neutral, low, mid, strong)
-    # Positive ramp: the red channel only falls toward the strong end
-    # (pale yellow -> green drains red, same idea as the starboard test).
-    reds = [int(c.lstrip("#")[0:2], 16) for c in (low, mid, strong)]
-    assert reds == sorted(reds, reverse=True), reds
+    # Positive ramp: the blue channel only falls toward the strong end
+    # (light yellow -> gold drains blue, the legacy bot's warm-up).
+    blues = [int(c.lstrip("#")[4:6], 16) for c in (low, mid, strong)]
+    assert blues == sorted(blues, reverse=True), blues
     # Negative pulls toward red: same score magnitude, opposite direction.
     down = await color_for(-5)
     assert down != mid, (down, mid)
