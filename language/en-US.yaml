@@ -1166,9 +1166,6 @@ ping:
   title: Pong!
   latency: 'Latency: {ms}ms'
 serverinfo:
-  command:
-    name: serverinfo
-    description: Show server information
   title: Server Information
   name: '**Name:** {value}'
   owner: '**Owner:** {value}'
@@ -1176,19 +1173,33 @@ serverinfo:
   roles: '**Roles:** {value}'
   channels: '**Channels:** {value}'
   created: '**Created:** {value}'
-userinfo:
+info:
   command:
-    name: userinfo
+    name: info
+    description: Show information
+info_user:
+  command:
+    name: user
     description: Show member information
-  timeout_none: none
-roleinfo:
+info_emoji:
   command:
-    name: roleinfo
+    name: emoji
+    description: Show emoji or sticker information
+info_role:
+  command:
+    name: role
     description: Show role information
-channelinfo:
+info_channel:
   command:
-    name: channelinfo
+    name: channel
     description: Show channel information
+info_server:
+  command:
+    name: server
+    description: Show server information
+userinfo:
+  timeout_none: none
+channelinfo:
   types:
     text: Text
     voice: Voice
@@ -1201,9 +1212,6 @@ channelinfo:
     private_thread: Private thread
     announcement_thread: Announcement thread
 emojiinfo:
-  command:
-    name: emojiinfo
-    description: Show emoji or sticker information
   error: '{warning} Invalid emoji. Send a custom emoji, a unicode emoji, a message link or an ID.'
   not_found: '{error} Could not find this emoji or sticker.'
   message_no_emoji: '{error} That message has no sticker or custom emoji to inspect.'
@@ -3141,6 +3149,18 @@ birthday:
   command:
     name: birthday
     description: Register and list birthdays
+birthday_set:
+  command:
+    name: set
+    description: Register a birthday; admins may set other members.
+birthday_list:
+  command:
+    name: list
+    description: List all registered birthdays grouped by month.
+birthday_clear:
+  command:
+    name: clear
+    description: Remove your own birthday.
 roleplay:
   command:
     name: roleplay

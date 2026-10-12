@@ -502,7 +502,7 @@ settings:
     description: Dias para poder trocar o aniversário (0-365).
 boost:
   command:
-    name: cargo_boost
+    name: boost
     description: Painel de cargos boost
   titles:
     home: Cargos Boost
@@ -912,11 +912,11 @@ colors:
     removed: '{check} Cor **{name}** removida.'
 colors_panel:
   command:
-    name: painel_cores
+    name: painel
     description: '[ADMIN] Posta o painel de cores'
 colors_my:
   command:
-    name: minhas_cores
+    name: minhas
     description: Lista as cores disponíveis no painel
 bump:
   command:
@@ -1166,9 +1166,6 @@ ping:
   title: Pong!
   latency: 'Latência: {ms}ms'
 serverinfo:
-  command:
-    name: info_servidor
-    description: Mostra informações do servidor
   title: Informações do Servidor
   name: '**Nome:** {value}'
   owner: '**Dono:** {value}'
@@ -1176,19 +1173,33 @@ serverinfo:
   roles: '**Cargos:** {value}'
   channels: '**Canais:** {value}'
   created: '**Criado em:** {value}'
-userinfo:
+info:
   command:
-    name: info_usuario
+    name: info
+    description: Mostra informações
+info_user:
+  command:
+    name: usuario
     description: Mostra informações de um membro
-  timeout_none: nenhuma
-roleinfo:
+info_emoji:
   command:
-    name: info_cargo
+    name: emoji
+    description: Mostra informações de um emoji, sticker ou mensagem
+info_role:
+  command:
+    name: cargo
     description: Mostra informações de um cargo
-channelinfo:
+info_channel:
   command:
-    name: info_canal
+    name: canal
     description: Mostra informações de um canal
+info_server:
+  command:
+    name: servidor
+    description: Mostra informações do servidor
+userinfo:
+  timeout_none: nenhuma
+channelinfo:
   types:
     text: Texto
     voice: Voz
@@ -1201,9 +1212,6 @@ channelinfo:
     private_thread: Thread privada
     announcement_thread: Thread de novidades
 emojiinfo:
-  command:
-    name: info_emoji
-    description: Mostra informações de um emoji, sticker ou mensagem
   error: '{warning} Emoji inválido. Envie um emoji customizado, um emoji unicode, o link de uma mensagem ou um ID.'
   not_found: '{error} Não encontrei este emoji ou sticker.'
   message_no_emoji: '{error} Essa mensagem não tem sticker nem emoji customizado para inspecionar.'
@@ -1241,31 +1249,31 @@ updater:
       description: 'Update aplicado: {previous} → {current}.'
 partnerships_add:
   command:
-    name: fazer_parceria
+    name: adicionar
     description: '[ADMIN] Adiciona uma parceria'
 partnerships_remove:
   command:
-    name: desfazer_parceria
+    name: remover
     description: '[ADMIN] Remove uma parceria'
 partnerships_renew:
   command:
-    name: renovar_parceria
+    name: renovar
     description: Renova seu anúncio de parceria
 partnerships_invite:
   command:
-    name: enviar_convite_parceria
+    name: convidar
     description: '[ADMIN] Posta o texto de convite'
 partnerships_list:
   command:
-    name: listar_parcerias
+    name: listar
     description: '[ADMIN] Lista parcerias'
 partnerships_audit:
   command:
-    name: auditar_parcerias
+    name: auditar
     description: '[ADMIN] Audita parcerias sem agir'
 partnerships_clean:
   command:
-    name: limpar_parcerias_orfas
+    name: limpar
     description: '[ADMIN] Remove parcerias órfãs'
 partnerships:
   command:
@@ -1325,7 +1333,7 @@ partnerships:
       description: '{author} removeu {count} parceria(s) órfã(s).'
 tickets_panel:
   command:
-    name: painel_tickets
+    name: painel
     description: '[ADMIN] Posta o painel de tickets'
 tickets:
   command:
@@ -1480,19 +1488,19 @@ trap:
     reason_label: 'Motivo'
 reminders_save:
   command:
-    name: salvar_lembrete
+    name: salvar
     description: '[ADMIN] Salva uma mensagem de lembrete'
 reminders_delete:
   command:
-    name: apagar_lembrete
+    name: apagar
     description: '[ADMIN] Apaga uma mensagem de lembrete'
 reminders_list:
   command:
-    name: listar_lembretes
+    name: listar
     description: '[ADMIN] Lista mensagens de lembrete'
 reminders_send:
   command:
-    name: enviar_lembrete
+    name: enviar
     description: '[ADMIN] Envia lembrete por DM a todos'
 reminders:
   command:
@@ -1511,11 +1519,11 @@ reminders:
       description: '{moderator} enviou `{name}` ({sent} enviados, {failed} falharam).'
 broadcast_start:
   command:
-    name: iniciar_broadcast
+    name: iniciar
     description: '[ADMIN] Inicia broadcast ao vivo neste canal'
 broadcast_stop:
   command:
-    name: parar_broadcast
+    name: parar
     description: '[ADMIN] Para o broadcast ao vivo'
 broadcast:
   command:
@@ -1643,11 +1651,11 @@ invites_stats:
     description: Mostra stats de convites seus ou de outro membro
 invites_leaderboard:
   command:
-    name: ranking_convites
+    name: ranking
     description: Mostra o ranking de maiores convidadores
 who_invited:
   command:
-    name: quem_convidou
+    name: autor
     description: Mostra quem convidou um membro
 invited:
   command:
@@ -1655,39 +1663,39 @@ invited:
     description: Lista membros convidados por alguém
 my_invite:
   command:
-    name: meu_convite
+    name: convite
     description: Pega seu link pessoal e seus stats
 server_invites:
   command:
-    name: stats_convites
+    name: servidor
     description: Mostra stats de convites do servidor
 invites_bonus:
   command:
-    name: bonus_convites
+    name: bonus
     description: '[ADMIN] Adiciona ou remove bônus de convites'
 invites_sync:
   command:
-    name: sincronizar_convites
+    name: sincronizar
     description: '[ADMIN] Reconta usos de convites no Discord'
 invites_codes:
   command:
-    name: codigos_convite
+    name: codigos
     description: '[ADMIN] Lista códigos e usos'
 invites_blacklist:
   command:
-    name: blacklist_convites
+    name: bloqueados
     description: '[ADMIN] Gerencia a blacklist de convites'
 invites_reset:
   command:
-    name: resetar_convites
+    name: resetar
     description: '[ADMIN] Reseta todos os stats de convites'
 invites_label:
   command:
-    name: rotular_convite
+    name: rotular
     description: '[ADMIN] Rotula um código de convite'
 boost_admin:
   command:
-    name: admin_boost
+    name: admin
     description: Painel de cargos boost para administradores
 ban:
   command:
@@ -3142,6 +3150,18 @@ birthday:
   command:
     name: aniversario
     description: Registre e liste aniversários
+birthday_set:
+  command:
+    name: definir
+    description: Registra um aniversário; admins podem registrar de outros membros.
+birthday_list:
+  command:
+    name: listar
+    description: Lista todos os aniversários registrados agrupados por mês.
+birthday_clear:
+  command:
+    name: apagar
+    description: Remove o seu próprio aniversário.
 roleplay:
   command:
     name: roleplay

@@ -261,8 +261,75 @@ _register_default_builders()
 class InfoCog(commands.Cog):
     """Member, emoji, sticker, role and channel info commands."""
 
+    #: Single-cog group (birthday pattern): ``/info user``, ``/info server``...
+    info_group = discord.SlashCommandGroup(
+        "info",
+        description="Show information",
+        contexts={discord.InteractionContextType.guild},
+    )
+
     def __init__(self, bot) -> None:
         self.bot = bot
+
+    @info_group.command(
+        name="server",
+        description="Show server information",
+    )
+    async def serverinfo(self, ctx: discord.ApplicationContext) -> None:
+        """Show guild information as the rich default card (or a theme override)."""
+        guild = ctx.guild
+        created = (
+            f"<t:{int(guild.created_at.timestamp())}:D>" if guild.created_at else "-"
+        )
+        created_rel = (
+            f"<t:{int(guild.created_at.timestamp())}:R>" if guild.created_at else "-"
+        )
+        t = self.bot.translator.t
+        verification = await t(
+            ctx.guild_id,
+            f"card.utility.serverinfo.verification.{guild.verification_level.name}",
+        )
+        variables = {
+            "server": guild.name,
+            "owner": f"<@{guild.owner_id}>" if guild.owner_id else "-",
+            "members": guild.member_count or 0,
+            "roles": len(guild.roles),
+            "channels": len(guild.text_channels) + len(guild.voice_channels),
+            "text_channels": len(guild.text_channels),
+            "voice_channels": len(guild.voice_channels),
+            "boosts": guild.premium_subscription_count or 0,
+            "emojis": len(guild.emojis),
+            "stickers": len(guild.stickers),
+            "verification": verification,
+            "description": guild.description or "",
+            "server_icon": guild.icon.url if guild.icon else "",
+            "banner_url": guild.banner.url if guild.banner else "",
+            "created_at": created,
+            "created_rel": created_rel,
+            "server_id": guild.id,
+            "title": await t(ctx.guild_id, "serverinfo.title"),
+            "body": "",
+        }
+        payload, allowed = await render_card_message(
+            self.bot, ctx.guild_id, "utility.serverinfo", variables
+        )
+        if payload is None:
+            from rosemary.ui.containers import (
+                DesignerView,
+                TextDisplay,
+                designer_container,
+            )
+
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    self.bot.theme.color("brand"),
+                    TextDisplay(self.bot.theme.md("title", title=guild.name)),
+                )
+            )
+            payload = CardPayload(view=view)
+            allowed = discord.AllowedMentions.none()
+        await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
     def _fallback_payload(self, title: str) -> CardPayload:
         """Defensive plain card when the default builder itself fails."""
@@ -277,10 +344,9 @@ class InfoCog(commands.Cog):
         )
         return CardPayload(view=view)
 
-    @discord.slash_command(
-        name="userinfo",
+    @info_group.command(
+        name="user",
         description="Show member information",
-        contexts={discord.InteractionContextType.guild},
     )
     async def userinfo(
         self,
@@ -344,10 +410,9 @@ class InfoCog(commands.Cog):
             )
         await ctx.followup.send(**payload.message_kwargs(), allowed_mentions=allowed)
 
-    @discord.slash_command(
-        name="emojiinfo",
+    @info_group.command(
+        name="emoji",
         description="Show emoji or sticker information",
-        contexts={discord.InteractionContextType.guild},
     )
     async def emojiinfo(
         self,
@@ -608,10 +673,9 @@ class InfoCog(commands.Cog):
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
-    @discord.slash_command(
-        name="roleinfo",
+    @info_group.command(
+        name="role",
         description="Show role information",
-        contexts={discord.InteractionContextType.guild},
     )
     async def roleinfo(
         self,
@@ -652,10 +716,9 @@ class InfoCog(commands.Cog):
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
-    @discord.slash_command(
-        name="channelinfo",
+    @info_group.command(
+        name="channel",
         description="Show channel information",
-        contexts={discord.InteractionContextType.guild},
     )
     async def channelinfo(
         self,

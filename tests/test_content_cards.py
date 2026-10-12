@@ -277,8 +277,8 @@ async def test_serverinfo_send_does_not_ping_owner(tmp_path):
     from pathlib import Path
     from unittest.mock import AsyncMock
 
-    import rosemary.cogs.utility  # noqa: F401  (registers the builder)
-    from rosemary.cogs.utility import UtilityCog
+    import rosemary.cogs.info  # noqa: F401  (registers the builder)
+    from rosemary.cogs.info import InfoCog
     from rosemary.core.i18n import Translator
     from rosemary.core.themes import ThemeStore
 
@@ -288,7 +288,7 @@ async def test_serverinfo_send_does_not_ping_owner(tmp_path):
     from rosemary.core.storage import GuildStorage
 
     bot.storage = GuildStorage(tmp_path)
-    cog = UtilityCog(bot)
+    cog = InfoCog(bot)
 
     guild = MagicMock(spec=discord.Guild)
     guild.id = 1
