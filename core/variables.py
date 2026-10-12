@@ -203,6 +203,12 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("channel_id", "123456789012345678"),
         _v("invite", "https://discord.gg/example", "url"),
         _v("action", "…"),
+        _v("suggestion_number", 1, "number"),
+        _v("upvotes", 1, "number"),
+        _v("downvotes", 0, "number"),
+        _v("score", 1, "number"),
+        _v("voter", "<@0>", "mention"),
+        _v("vote", "upvote"),
     ]
 }
 

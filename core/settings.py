@@ -52,6 +52,7 @@ class SettingCategory(StrEnum):
     BOOST = "boost"
     BUMP = "bump"
     STARBOARD = "starboard"
+    SUGGESTIONS = "suggestions"
     BIRTHDAYS = "birthdays"
     INVITES = "invites"
     TICKETS = "tickets"
@@ -569,6 +570,18 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.STARBOARD,
             SettingType.BOOLEAN,
             False,
+        ),
+        _spec(
+            "suggestions.enabled",
+            SettingCategory.SUGGESTIONS,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "suggestions.channel",
+            SettingCategory.SUGGESTIONS,
+            SettingType.CHANNEL,
+            None,
         ),
         _spec(
             "birthdays.enabled",

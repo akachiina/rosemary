@@ -79,6 +79,7 @@ settings:
     events: Announcements
     audit: Event Log
     starboard: Starboard
+    suggestions: Suggestions
     birthdays: Birthdays
     invites: Invites
     tickets: Tickets
@@ -478,6 +479,12 @@ settings:
   starboard.allow_bots:
     label: Allow bot messages
     description: Whether bot messages can be highlighted.
+  suggestions.enabled:
+    label: Suggestions enabled
+    description: Collect member suggestions with button voting.
+  suggestions.channel:
+    label: Suggestions channel
+    description: Channel where suggestions are posted.
   birthdays.enabled:
     label: Birthdays enabled
     description: Track birthdays and post announcements.
@@ -1065,6 +1072,7 @@ bump:
     bumps_added:
       title: '{pencil} Test Bumps Added'
       description: '{author} added {count} test bump(s) for {user} (weekly total: {total}).'
+    reset_attribution: 'Forced by {author}.'
   error_disabled: '{error} The bump system is disabled in this server.'
   schedule:
     open_message_default: '{unlock} The bump channel is open! {ping_role} Use `/bump` to help the server!'
@@ -1088,6 +1096,15 @@ bump:
     last_bump_na: '**Last Bump:** N/A'
     next_reminder: '**Next Reminder:** {next}'
     none: 'N/A'
+    last_reset: '**Last Reset:** {when} by {author} ({reason})'
+    last_reset_na: '**Last Reset:** N/A'
+    reset_actor_automatic: automatic
+    reset_reason:
+      scheduler: automatic reset
+      test_leaderboard: forced test
+      reset_week_command: manual command
+      settings_reset: settings panel
+      unknown: unknown
   success:
     leaderboard_posted: '{success} Weekly leaderboard posted successfully!'
     week_reset: '{success} Bump week reset successfully!'
@@ -2319,6 +2336,24 @@ variables:
   server_name:
     label: Server name
     description: Name of the server
+  suggestion_number:
+    label: Suggestion number
+    description: Sequential number of the suggestion
+  upvotes:
+    label: Upvotes
+    description: Positive votes on the suggestion
+  downvotes:
+    label: Downvotes
+    description: Negative votes on the suggestion
+  score:
+    label: Score
+    description: Upvotes minus downvotes
+  voter:
+    label: Voter
+    description: Mention of who voted on the suggestion
+  vote:
+    label: Vote
+    description: The vote word (upvote or downvote)
 card:
   # Default author footer (``author_footer_blocks`` builder helper): a small
   # (``-#``) line with the mention of who triggered the card and relative time.
@@ -2339,6 +2374,19 @@ card:
     card:
       title: Starboard post
       placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}, {{message_link}}"
+  suggestions:
+    card:
+      title: Suggestion card
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}"
+    logs:
+      created:
+        description:
+          title: 'Log: suggestion posted'
+          placeholders: '{{user}}, {{suggestion_number}}, {{channel}}'
+    dm:
+      vote:
+        title: Suggestion vote DM
+        placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}"
   utility:
     ping:
       title: Latency card
@@ -3021,6 +3069,42 @@ starboard:
     description: Let bot messages reach the board.
   jump: Jump to message
   no_content: '*[No text content]*'
+suggest:
+  command:
+    name: suggest
+    description: Send a server suggestion
+  modal:
+    title: Send a suggestion
+    label: Your suggestion
+    placeholder: Write your suggestion here...
+    image_label: Image (optional)
+    image_description: Attach one image with your suggestion.
+  card:
+    title: "Suggestion #{suggestion_number}"
+    hint: "Use `/{command}` or the button below to send your suggestion!"
+  vote:
+    new: Send suggestion
+  dm:
+    up: upvote
+    down: downvote
+    body: "New {vote} on your suggestion #{suggestion_number} from {voter}:\n> {body}"
+    jump: Go to suggestion
+  sent: '{success} Your suggestion was posted!'
+  voted: '{success} Vote recorded! ({up} up, {down} down)'
+  error_disabled: '{error} Suggestions are disabled on this server.'
+  error_no_channel: '{error} No suggestions channel configured.'
+  error_no_perms: '{error} I cannot post in the suggestions channel.'
+  error_failed: '{error} Could not post your suggestion. Try again.'
+  error_empty: '{error} Your suggestion cannot be empty.'
+  error_too_long: '{error} Your suggestion is too long.'
+  error_bad_image: '{error} Please attach an image file.'
+  error_image_too_large: '{error} The image is too large (limit 8 MB).'
+  error_gone: '{error} That suggestion no longer exists.'
+suggestions:
+  logs:
+    created:
+      title: '{pencil} Suggestion Posted'
+      description: '{user} posted suggestion **#{suggestion_number}** in {channel}.'
 birthdays:
   enabled:
     label: Enable birthdays

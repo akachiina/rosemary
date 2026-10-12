@@ -139,6 +139,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.roleplay import RoleplayCog
         from rosemary.cogs.settings import SettingsCog
         from rosemary.cogs.starboard import StarboardCog
+        from rosemary.cogs.suggestions import SuggestionsCog
         from rosemary.cogs.themes import ThemesCog
         from rosemary.cogs.tickets import TicketsCog
         from rosemary.cogs.trap import TrapCog
@@ -195,6 +196,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(WelcomeCog(self))
         self.add_cog(AuditCog(self))
         self.add_cog(StarboardCog(self))
+        self.add_cog(SuggestionsCog(self))
         self.add_cog(TicketsCog(self))
         self.add_cog(ColorsCog(self))
         self.add_cog(BirthdayCog(self))

@@ -14,6 +14,9 @@ from collections.abc import Awaitable, Callable
 import discord
 
 SubmitHandler = Callable[[discord.Interaction, str], Awaitable[None]]
+TextFileSubmitHandler = Callable[
+    [discord.Interaction, str, list[discord.Attachment]], Awaitable[None]
+]
 TwoFieldSubmitHandler = Callable[[discord.Interaction, str, str], Awaitable[None]]
 FileSubmitHandler = Callable[[discord.Interaction, list[discord.Attachment]], Awaitable[None]]
 
@@ -103,6 +106,58 @@ def make_two_field_modal(
 
     async def submit(interaction: discord.Interaction) -> None:
         await on_submit(interaction, first.value, second.value)
+
+    modal.callback = submit
+    return modal
+
+
+def make_text_file_modal(
+    *,
+    title: str,
+    custom_id: str,
+    label: str,
+    placeholder: str = "",
+    required: bool = True,
+    max_length: int = 100,
+    style: discord.InputTextStyle = discord.InputTextStyle.short,
+    file_label: str,
+    file_description: str = "",
+    file_required: bool = False,
+    on_submit: TextFileSubmitHandler,
+) -> discord.ui.DesignerModal:
+    """Build a text + file-upload modal (e.g. suggestion with optional image).
+
+    Args:
+        title: Modal title (Discord caps at 45 characters).
+        custom_id: Stable identifier for the modal.
+        label: Field label shown to the user.
+        placeholder: Hint text inside the field.
+        required: Whether the text field must be filled.
+        max_length: Maximum input length.
+        style: Short (single line) or paragraph (multi-line) input.
+        file_label: Label of the upload field.
+        file_description: Smaller hint below the upload label.
+        file_required: Whether a file must be attached.
+        on_submit: ``async (interaction, value, files) -> None`` called on
+            submit (``files`` are the uploaded attachments, possibly empty).
+    """
+    field = discord.ui.InputText(
+        placeholder=placeholder,
+        required=required,
+        custom_id="value",
+        min_length=1 if required else 0,
+        max_length=max_length,
+        style=style,
+    )
+    upload = discord.ui.FileUpload(custom_id="file", required=file_required)
+    modal = discord.ui.DesignerModal(title=title, custom_id=custom_id)
+    modal.add_item(discord.ui.Label(label, item=field))
+    modal.add_item(
+        discord.ui.Label(file_label, item=upload, description=file_description or None)
+    )
+
+    async def submit(interaction: discord.Interaction) -> None:
+        await on_submit(interaction, field.value, list(upload.values or []))
 
     modal.callback = submit
     return modal

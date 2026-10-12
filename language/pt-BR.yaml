@@ -79,6 +79,7 @@ settings:
     events: Anúncios
     audit: Registro de Eventos
     starboard: Starboard
+    suggestions: Sugestões
     birthdays: Aniversários
     invites: Convites
     tickets: Tickets
@@ -478,6 +479,12 @@ settings:
   starboard.allow_bots:
     label: Permitir mensagens de bots
     description: Se mensagens de bots podem ser destacadas.
+  suggestions.enabled:
+    label: Sugestões ativadas
+    description: Recebe sugestões dos membros com voto em botões.
+  suggestions.channel:
+    label: Canal de sugestões
+    description: Canal onde as sugestões são postadas.
   birthdays.enabled:
     label: Aniversários ativados
     description: Registra aniversários e posta anúncios.
@@ -1065,6 +1072,7 @@ bump:
     bumps_added:
       title: '{pencil} Bumps de Teste Adicionados'
       description: '{author} adicionou {count} bump(s) de teste para {user} (total na semana: {total}).'
+    reset_attribution: 'Forçado por {author}.'
   error_disabled: '{error} O sistema de bump está desativado neste servidor.'
   schedule:
     open_message_default: '{unlock} O canal de bump está aberto! {ping_role} Use `/bump` para ajudar o servidor!'
@@ -1088,6 +1096,15 @@ bump:
     last_bump_na: '**Último Bump:** N/A'
     next_reminder: '**Próximo Lembrete:** {next}'
     none: 'N/A'
+    last_reset: '**Último Reset:** {when} por {author} ({reason})'
+    last_reset_na: '**Último Reset:** N/A'
+    reset_actor_automatic: automático
+    reset_reason:
+      scheduler: reset automático
+      test_leaderboard: teste forçado
+      reset_week_command: comando manual
+      settings_reset: painel settings
+      unknown: desconhecido
   success:
     leaderboard_posted: '{success} Placar semanal postado com sucesso!'
     week_reset: '{success} Semana de bumps resetada com sucesso!'
@@ -2320,6 +2337,24 @@ variables:
   server_name:
     label: Nome do servidor
     description: Nome do servidor
+  suggestion_number:
+    label: Número da sugestão
+    description: Número sequencial da sugestão
+  upvotes:
+    label: Votos positivos
+    description: Votos positivos na sugestão
+  downvotes:
+    label: Votos negativos
+    description: Votos negativos na sugestão
+  score:
+    label: Saldo
+    description: Votos positivos menos negativos
+  voter:
+    label: Quem votou
+    description: Menção de quem votou na sugestão
+  vote:
+    label: Voto
+    description: A palavra do voto (upvote ou downvote)
 card:
   # Rodapé de autoria padrão (builder helper ``author_footer_blocks``): linha
   # pequena (``-#``) com a menção de quem gerou o card e o tempo relativo.
@@ -2340,6 +2375,19 @@ card:
     card:
       title: Post do Starboard
       placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}, {{message_link}}"
+  suggestions:
+    card:
+      title: Card de sugestão
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}"
+    logs:
+      created:
+        description:
+          title: 'Log: sugestão postada'
+          placeholders: '{{user}}, {{suggestion_number}}, {{channel}}'
+    dm:
+      vote:
+        title: DM de voto em sugestão
+        placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}"
   utility:
     ping:
       title: Card de latência
@@ -3022,6 +3070,42 @@ starboard:
     description: Deixa mensagens de bots entrarem no Starboard.
   jump: Ir para a mensagem
   no_content: '*[Sem conteúdo de texto]*'
+suggest:
+  command:
+    name: sugestao
+    description: Envie uma sugestão para o servidor
+  modal:
+    title: Enviar sugestão
+    label: Sua sugestão
+    placeholder: Escreva sua sugestão aqui...
+    image_label: Imagem (opcional)
+    image_description: Anexe uma imagem à sua sugestão.
+  card:
+    title: "Sugestão #{suggestion_number}"
+    hint: "Use `/{command}` ou o botão abaixo para enviar a sua sugestão!"
+  vote:
+    new: Enviar sugestão
+  dm:
+    up: upvote
+    down: downvote
+    body: "{voter} deu um {vote} na sua sugestão #{suggestion_number}:\n> {body}"
+    jump: Ir para a sugestão
+  sent: '{success} Sua sugestão foi postada!'
+  voted: '{success} Voto registrado! ({up} a favor, {down} contra)'
+  error_disabled: '{error} Sugestões estão desativadas neste servidor.'
+  error_no_channel: '{error} Nenhum canal de sugestões configurado.'
+  error_no_perms: '{error} Não consigo postar no canal de sugestões.'
+  error_failed: '{error} Não foi possível postar sua sugestão. Tente de novo.'
+  error_empty: '{error} Sua sugestão não pode estar vazia.'
+  error_too_long: '{error} Sua sugestão é longa demais.'
+  error_bad_image: '{error} Anexe um arquivo de imagem.'
+  error_image_too_large: '{error} A imagem é grande demais (limite de 8 MB).'
+  error_gone: '{error} Essa sugestão não existe mais.'
+suggestions:
+  logs:
+    created:
+      title: '{pencil} Sugestão postada'
+      description: '{user} postou a sugestão **#{suggestion_number}** em {channel}.'
 birthdays:
   enabled:
     label: Ativar aniversários

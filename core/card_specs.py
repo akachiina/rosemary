@@ -280,6 +280,13 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     ),
     "tickets.panel": (),
     "tickets.created": ("user", "type"),
+    "suggestions.card": (
+        "user", "user_name", "user_avatar", "suggestion_number", "title", "body",
+        "image_url", "upvotes", "downvotes", "score", "message_link", "timestamp",
+    ),
+    "suggestions.dm.vote": (
+        "voter", "suggestion_number", "body", "message_link", "vote",
+    ),
     "partnerships.invite": ("server",),
     "partnerships.dm.added": ("server", "mention"),
     "partnerships.dm.removed": ("server", "mention"),
@@ -372,6 +379,7 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "tickets.logs.reopened.description": ("channel",),
     "tickets.logs.deleted.description": ("channel",),
     "tickets.logs.transcript.description": ("channel", "moderator"),
+    "suggestions.logs.created.description": ("user", "suggestion_number", "channel"),
     "partnerships.logs.added.description": ("user", "author"),
     "partnerships.logs.removed.description": ("user", "author"),
     "partnerships.logs.renewed.description": ("user",),
@@ -469,10 +477,13 @@ def _build() -> list[CardSpec]:
         _spec(f"tickets.{name}", "tickets", rich=(name == "panel"))
         for name in TICKETS_CARDS
     ]
+    specs += [_spec("suggestions.card", "suggestions", rich=True)]
+    specs += [_spec("suggestions.dm.vote", "suggestions")]
     specs += [
         _spec(f"tickets.logs.{name}.description", "tickets")
         for name in TICKETS_LOGS
     ]
+    specs += [_spec("suggestions.logs.created.description", "suggestions")]
     specs += [
         _spec("partnerships.invite", "partnerships", rich=True)
     ]
