@@ -354,7 +354,10 @@ async def test_post_second_message_increments_counter(tmp_path):
     assert (await cog.store.get(1, 222))["number"] == 2
 
 
-async def test_apply_vote_toggles_and_repaints(tmp_path):
+async def test_apply_vote_toggles_and_repaints(tmp_path, monkeypatch):
+    import rosemary.cogs.suggestions as suggestions_module
+
+    monkeypatch.setattr(suggestions_module, "EDIT_COOLDOWN_SECONDS", 0)
     bot = FakeBot(tmp_path)
     cog = SuggestionsCog(bot)
     bot._cog = cog
@@ -800,3 +803,55 @@ async def test_vote_repaint_recovers_image_from_live_message(tmp_path):
     assert await cog.apply_vote(guild, message, 9, "up") is True
     view = message.edit.await_args.kwargs["view"]
     assert _has_gallery(view)
+
+
+#: vote repaint debounce -----------------------------------------------------
+
+
+async def test_rapid_votes_debounce_with_trailing_repaint(tmp_path, monkeypatch):
+    """Votes past the 5-edits/5s bucket: record instantly, repaint once."""
+    import rosemary.cogs.suggestions as suggestions_module
+
+    monkeypatch.setattr(suggestions_module, "EDIT_COOLDOWN_SECONDS", 0.05)
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await cog.post_suggestion(guild, channel, member, "debounce me")
+    message = make_message()
+    assert await cog.apply_vote(guild, message, 9, "up") is True
+    message.edit.assert_awaited_once()
+    # Second vote inside the cooldown: recorded (store + DM) but no edit yet.
+    assert await cog.apply_vote(guild, message, 9, "down") is True
+    message.edit.assert_awaited_once()
+    assert SuggestionStore.counts(await cog.store.get(1, 111)) == (0, 1)
+    # Every vote notifies the author, debounced or not.
+    assert member.send.await_count == 2
+    # The trailing repaint lands with the consolidated counts.
+    await asyncio.sleep(0.15)
+    assert message.edit.await_count == 2
+    view = message.edit.await_args.kwargs["view"]
+    assert _has_gallery(view) is False
+    assert await cog.store.get(1, 111) is not None
+
+
+async def test_debounced_message_delete_cleans_state(tmp_path, monkeypatch):
+    import rosemary.cogs.suggestions as suggestions_module
+
+    monkeypatch.setattr(suggestions_module, "EDIT_COOLDOWN_SECONDS", 0.05)
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await cog.post_suggestion(guild, channel, member, "cleanup")
+    message = make_message()
+    await cog.apply_vote(guild, message, 9, "up")
+    assert await cog.apply_vote(guild, message, 10, "up") is True
+    assert message.id in cog._pending
+    payload = MagicMock()
+    payload.guild_id = 1
+    payload.message_id = message.id
+    await cog.on_raw_message_delete(payload)
+    assert message.id not in cog._last_edit
+    await asyncio.sleep(0.15)
+    assert message.id not in cog._pending

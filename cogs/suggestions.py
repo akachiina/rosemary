@@ -17,6 +17,7 @@ import contextlib
 import io
 import logging
 import re
+import time
 
 import discord
 from discord.ext import commands
@@ -26,6 +27,13 @@ from rosemary.core.suggestions import SuggestionStore
 from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
+
+#: Card repaints are message edits, and Discord caps those at 5 per 5s per
+#: message: rapid voting (toggling to watch the ramp) would trip the bucket
+#: and leave py-cord retrying for seconds. Votes always record instantly;
+#: the card repaint is debounced with a trailing update (the starboard uses
+#: the same cooldown, but skipping alone would leave stale counts here).
+EDIT_COOLDOWN_SECONDS = 2.0
 
 SUGGEST_MAX_LENGTH = 1000
 
@@ -310,6 +318,8 @@ class SuggestionsCog(commands.Cog):
         self.bot = bot
         self.store = SuggestionStore(bot.storage.data_dir)
         self._locks: dict[int, asyncio.Lock] = {}
+        self._last_edit: dict[int, float] = {}
+        self._pending: set[int] = set()
         self._started = False
 
     def _lock_for(self, message_id: int) -> asyncio.Lock:
@@ -502,29 +512,76 @@ class SuggestionsCog(commands.Cog):
         voter_id: int,
         side: str,
     ) -> bool:
-        """Toggle a vote and repaint the card. Returns ``False`` when gone."""
+        """Toggle a vote and repaint the card. Returns ``False`` when gone.
+
+        The vote and the DM always happen immediately; only the card repaint
+        is debounced (see :func:`_repaint_card`).
+        """
         async with self._lock_for(message.id):
             updated = await self.store.toggle_vote(guild.id, message.id, voter_id, side)
             if updated is None:
                 return False
-            variables = self._variables_for(
-                guild,
-                updated,
-                message_link=message.jump_url,
-                timestamp=discord.utils.format_dt(message.created_at, style="R"),
-            )
-            live_image = _image_url_from(getattr(message, "attachments", None))
-            if live_image:
-                # The clicked message's own attachments win over the store:
-                # entries saved before the CDN URL was persisted self-heal.
-                variables["image_url"] = live_image
-            variables["title"] = await self._title_for(guild.id, updated.get("number", 0))
-            payload, allowed = await self._card_payload(guild.id, variables)
-            up, down = SuggestionStore.counts(updated)
-            payload = await self._attach_row(payload, guild.id, up, down)
-            await message.edit(**payload.message_kwargs(), allowed_mentions=allowed)
+            await self._repaint_card(guild, message, updated)
             await self._dm_owner(guild, updated, voter_id, side, message.jump_url)
             return True
+
+    async def _repaint_card(
+        self, guild: discord.Guild, message: discord.Message, entry: dict
+    ) -> None:
+        """Repaint the card at most once per :data:`EDIT_COOLDOWN_SECONDS`.
+
+        Within the cooldown the repaint is skipped and a single trailing
+        update is scheduled: it re-reads the store (the latest consolidated
+        counts) and edits once, so rapid toggling never trips the 5-edits/
+        5s per-message bucket and the card always converges.
+        """
+        last = self._last_edit.get(message.id, 0.0)
+        elapsed = time.monotonic() - last
+        if elapsed < EDIT_COOLDOWN_SECONDS:
+            if message.id not in self._pending:
+                self._pending.add(message.id)
+                delay = EDIT_COOLDOWN_SECONDS - elapsed
+                asyncio.create_task(self._trailing_repaint(guild, message, delay))
+            return
+        self._last_edit[message.id] = time.monotonic()
+        await self._render_and_edit(guild, message, entry)
+
+    async def _trailing_repaint(
+        self, guild: discord.Guild, message: discord.Message, delay: float
+    ) -> None:
+        """The consolidated repaint after the vote cooldown elapses."""
+        try:
+            await asyncio.sleep(max(0.0, delay))
+            async with self._lock_for(message.id):
+                entry = await self.store.get(guild.id, message.id)
+                self._pending.discard(message.id)
+                if entry is None:
+                    return
+                self._last_edit[message.id] = time.monotonic()
+                await self._render_and_edit(guild, message, entry)
+        except Exception as exc:
+            log.error("Trailing suggestion repaint failed: %s", exc)
+
+    async def _render_and_edit(
+        self, guild: discord.Guild, message: discord.Message, entry: dict
+    ) -> None:
+        """Build the card variables for ``entry`` and edit the message."""
+        variables = self._variables_for(
+            guild,
+            entry,
+            message_link=message.jump_url,
+            timestamp=discord.utils.format_dt(message.created_at, style="R"),
+        )
+        live_image = _image_url_from(getattr(message, "attachments", None))
+        if live_image:
+            # The clicked message's own attachments win over the store:
+            # entries saved before the CDN URL was persisted self-heal.
+            variables["image_url"] = live_image
+        variables["title"] = await self._title_for(guild.id, entry.get("number", 0))
+        payload, allowed = await self._card_payload(guild.id, variables)
+        up, down = SuggestionStore.counts(entry)
+        payload = await self._attach_row(payload, guild.id, up, down)
+        await message.edit(**payload.message_kwargs(), allowed_mentions=allowed)
 
     async def _dm_owner(
         self,
@@ -739,6 +796,7 @@ class SuggestionsCog(commands.Cog):
     async def on_raw_message_delete(self, payload: discord.RawMessageDeleteEvent) -> None:
         if payload.guild_id is None:
             return
+        self._last_edit.pop(payload.message_id, None)
         try:
             await self.store.remove(payload.guild_id, payload.message_id)
         except Exception as exc:
