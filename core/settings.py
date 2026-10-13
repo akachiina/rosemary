@@ -584,6 +584,12 @@ SETTINGS: dict[str, SettingSpec] = {
             None,
         ),
         _spec(
+            "suggestions.dm_votes",
+            SettingCategory.SUGGESTIONS,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
             "birthdays.enabled",
             SettingCategory.BIRTHDAYS,
             SettingType.BOOLEAN,

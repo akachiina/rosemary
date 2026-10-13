@@ -155,6 +155,23 @@ def test_command_names_are_valid():
         name = data["suggest"]["command"]["name"]
         assert _COMMAND_NAME_RE.match(name) and name == name.lower(), f"{code}:{name!r}"
         assert isinstance(data["suggest"]["command"]["description"], str)
+        for key in ("suggest_send", "suggest_approve", "suggest_reject"):
+            sub = data[key]["command"]
+            assert _COMMAND_NAME_RE.match(sub["name"]), f"{code}:{key}:{sub['name']!r}"
+            assert sub["name"] == sub["name"].lower(), f"{code}:{key}"
+            assert isinstance(sub["description"], str)
+
+
+def test_group_registers_three_subcommands():
+    from rosemary.cogs.suggestions import SuggestionsCog
+
+    subs = {
+        sub.name
+        for attr in vars(SuggestionsCog).values()
+        if type(attr).__name__ == "SlashCommandGroup"
+        for sub in (getattr(attr, "subcommands", None) or [])
+    }
+    assert subs == {"send", "approve", "reject"}
 
 
 def test_suggest_modal_strings_present():
@@ -176,6 +193,7 @@ def test_card_spec_registered_with_exact_contract():
     assert spec.variables == (
         "user", "user_name", "user_avatar", "suggestion_number", "title", "body",
         "image_url", "upvotes", "downvotes", "score", "message_link", "timestamp",
+        "status",
     )
     for name in spec.variables:
         assert name in VARIABLES, f"unregistered variable {name}"
@@ -855,3 +873,182 @@ async def test_debounced_message_delete_cleans_state(tmp_path, monkeypatch):
     assert message.id not in cog._last_edit
     await asyncio.sleep(0.15)
     assert message.id not in cog._pending
+
+
+#: staff decisions ------------------------------------------------------------
+
+
+async def test_store_get_by_number_and_set_status(tmp_path):
+    store = SuggestionStore(tmp_path)
+    assert await store.get_by_number(1, 1) is None
+    await store.put(1, 10, number=1, author_id=7, channel_id=5)
+    await store.put(1, 11, number=2, author_id=8, channel_id=5)
+    found = await store.get_by_number(1, 2)
+    assert found is not None
+    assert found[0] == 11 and found[1]["author_id"] == 8
+    updated = await store.set_status(1, 11, "approved", decided_by=9)
+    assert updated is not None
+    assert updated["status"] == "approved" and updated["decided_by"] == 9
+    assert await store.set_status(1, 99, "approved") is None
+    with pytest.raises(ValueError):
+        await store.set_status(1, 11, "maybe")
+
+
+def _live_message(message_id=111):
+    message = make_message(message_id)
+    message.attachments = []
+    return message
+
+
+async def test_decide_approve_repaints_dm_and_logs(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await cog.post_suggestion(guild, channel, member, "decide me")
+    message = _live_message()
+    channel.fetch_message.return_value = message
+    outcome, _msg = await cog.decide_suggestion(
+        guild, 1, moderator=member, decision="approved", reason="great idea"
+    )
+    assert outcome == "ok"
+    entry = await cog.store.get(1, 111)
+    assert entry is not None
+    assert entry["status"] == "approved" and entry["decided_by"] == 7
+    message.edit.assert_awaited_once()
+    view = message.edit.await_args.kwargs["view"]
+    texts = [
+        item.content
+        for item in view.walk_children()
+        if isinstance(item, discord.ui.TextDisplay)
+    ]
+    assert any("Approved" in text for text in texts), texts
+    member.send.assert_awaited_once()
+    dm_view = member.send.await_args.kwargs["view"]
+    dm_texts = [
+        item.content
+        for item in dm_view.walk_children()
+        if isinstance(item, discord.ui.TextDisplay)
+    ]
+    assert any("approved" in text for text in dm_texts), dm_texts
+    assert any("great idea" in text for text in dm_texts), dm_texts
+    urls = [
+        item.url
+        for item in dm_view.walk_children()
+        if isinstance(item, discord.ui.Button)
+        and item.style is discord.ButtonStyle.link
+    ]
+    assert message.jump_url in urls, urls
+
+
+async def test_decide_reject_uses_danger_and_no_reason_line(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await cog.post_suggestion(guild, channel, member, "decide me")
+    message = _live_message()
+    channel.fetch_message.return_value = message
+    outcome, _msg = await cog.decide_suggestion(
+        guild, 1, moderator=member, decision="rejected"
+    )
+    assert outcome == "ok"
+    assert (await cog.store.get(1, 111))["status"] == "rejected"
+    dm_view = member.send.await_args.kwargs["view"]
+    dm_texts = [
+        item.content
+        for item in dm_view.walk_children()
+        if isinstance(item, discord.ui.TextDisplay)
+    ]
+    assert any("rejected" in text for text in dm_texts), dm_texts
+    assert not any("Reason" in text for text in dm_texts), dm_texts
+
+
+async def test_decide_unknown_twice_and_gone(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await cog.post_suggestion(guild, channel, member, "decide me")
+    outcome, _msg = await cog.decide_suggestion(
+        guild, 99, moderator=member, decision="approved"
+    )
+    assert outcome == "not_found"
+    message = _live_message()
+    channel.fetch_message.return_value = message
+    assert (
+        await cog.decide_suggestion(
+            guild, 1, moderator=member, decision="approved"
+        )
+    )[0] == "ok"
+    outcome, _msg = await cog.decide_suggestion(
+        guild, 1, moderator=member, decision="rejected"
+    )
+    assert outcome == "decided"
+    second = AsyncMock()
+    second.id = 222
+    second.jump_url = "https://discord.com/channels/1/42/222"
+    second.attachments = []
+    channel.send.return_value = second
+    channel.fetch_message.side_effect = discord.NotFound(MagicMock(), "gone")
+    await cog.post_suggestion(guild, channel, member, "vanishing")
+    outcome, _msg = await cog.decide_suggestion(
+        guild, 2, moderator=member, decision="approved"
+    )
+    assert outcome == "gone"
+    assert await cog.store.get(1, 222) is None
+
+
+async def test_decision_dm_specs_registered():
+    for key, expected in (
+        ("suggestions.dm.approved", ("suggestion_number", "body", "message_link")),
+        ("suggestions.dm.rejected", ("suggestion_number", "body", "message_link")),
+    ):
+        spec = get_card(key)
+        assert spec is not None, key
+        for name in expected:
+            assert name in spec.variables, f"{key}:{name}"
+
+
+async def test_vote_dm_toggle_off_skips_dm(tmp_path):
+    from rosemary.core.settings import set_setting
+
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await set_setting(bot.storage, 1, "suggestions.dm_votes", False)
+    await cog.post_suggestion(guild, channel, member, "quiet please")
+    assert await cog.apply_vote(guild, make_message(), 9, "up") is True
+    assert SuggestionStore.counts(await cog.store.get(1, 111)) == (1, 0)
+    member.send.assert_not_awaited()
+
+
+async def test_vote_on_decided_answers_ephemeral(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await cog.post_suggestion(guild, channel, member, "decide me")
+    message = _live_message()
+    channel.fetch_message.return_value = message
+    await cog.decide_suggestion(guild, 1, moderator=member, decision="approved")
+    edits_before = message.edit.await_count
+    member.send.reset_mock()
+
+    sent_messages = []
+
+    class FakeResponse:
+        def is_done(self):
+            return False
+
+        async def send_message(self, content, **kwargs):
+            sent_messages.append(content)
+
+    view = SuggestionVoteView(bot, 1)
+    interaction = make_click(guild, user_id=9, message=message)
+    interaction.response = FakeResponse()
+    await view._vote(interaction, "up")
+    assert len(sent_messages) == 1
+    assert "decided" in sent_messages[0], sent_messages[0]
+    assert message.edit.await_count == edits_before

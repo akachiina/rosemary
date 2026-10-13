@@ -485,6 +485,9 @@ settings:
   suggestions.channel:
     label: Canal de sugestões
     description: Canal onde as sugestões são postadas.
+  suggestions.dm_votes:
+    label: DMs de voto
+    description: Avisa o autor por DM a cada voto.
   birthdays.enabled:
     label: Aniversários ativados
     description: Registra aniversários e posta anúncios.
@@ -2389,16 +2392,30 @@ card:
   suggestions:
     card:
       title: Card de sugestão
-      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}"
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}, {{status}}"
     logs:
       created:
         description:
           title: 'Log: sugestão postada'
           placeholders: '{{user}}, {{suggestion_number}}, {{channel}}'
+      approved:
+        description:
+          title: 'Log: sugestão aprovada'
+          placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
+      rejected:
+        description:
+          title: 'Log: sugestão recusada'
+          placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
     dm:
       vote:
         title: DM de voto em sugestão
         placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}, {{side}}"
+      approved:
+        title: DM de sugestão aprovada
+        placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
+      rejected:
+        title: DM de sugestão recusada
+        placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
   utility:
     ping:
       title: Card de latência
@@ -3084,7 +3101,7 @@ starboard:
 suggest:
   command:
     name: sugestao
-    description: Envie uma sugestão para o servidor
+    description: Envie sugestões para o servidor
   modal:
     title: Enviar sugestão
     label: Sua sugestão
@@ -3096,11 +3113,17 @@ suggest:
     hint: "Use `/{command}` ou o botão abaixo para enviar a sua sugestão!"
   vote:
     new: Enviar sugestão
+  status:
+    approved: "{check} Aprovada pela staff"
+    rejected: "{error} Recusada pela staff"
   dm:
     up: upvote
     down: downvote
     body: "{voter} deu um **{vote}** na sua **sugestão #{suggestion_number}:**\n> {body}"
     jump: Ir para a sugestão
+    approved: "{check} Sua sugestão **#{suggestion_number}** foi aprovada por {moderator}!"
+    rejected: "{error} Sua sugestão **#{suggestion_number}** foi recusada por {moderator}."
+    reason: "Motivo: {reason}"
   sent: '{success} Sua sugestão foi postada!'
   voted: '{success} Voto registrado! ({up} a favor, {down} contra)'
   error_disabled: '{error} Sugestões estão desativadas neste servidor.'
@@ -3112,11 +3135,34 @@ suggest:
   error_bad_image: '{error} Anexe um arquivo de imagem.'
   error_image_too_large: '{error} A imagem é grande demais (limite de 8 MB).'
   error_gone: '{error} Essa sugestão não existe mais.'
+  error_not_found: '{error} Sugestão #{suggestion_number} não encontrada.'
+  error_decided: '{error} A sugestão #{suggestion_number} já foi avaliada.'
+  decided_approved: '{success} Sugestão #{suggestion_number} aprovada.'
+  decided_rejected: '{success} Sugestão #{suggestion_number} recusada.'
+  no_reason: Sem motivo informado.
+suggest_send:
+  command:
+    name: enviar
+    description: Envie uma sugestão para o servidor
+suggest_approve:
+  command:
+    name: aprovar
+    description: '[ADMIN] Aprova uma sugestão pelo número'
+suggest_reject:
+  command:
+    name: recusar
+    description: '[ADMIN] Recusa uma sugestão pelo número'
 suggestions:
   logs:
     created:
       title: '{pencil} Sugestão postada'
       description: '{user} postou a sugestão **#{suggestion_number}** em {channel}.'
+    approved:
+      title: '{check} Sugestão aprovada'
+      description: '{moderator} aprovou a sugestão **#{suggestion_number}** de {user} ({reason}).'
+    rejected:
+      title: '{error} Sugestão recusada'
+      description: '{moderator} recusou a sugestão **#{suggestion_number}** de {user} ({reason}).'
 birthdays:
   enabled:
     label: Ativar aniversários

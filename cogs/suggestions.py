@@ -99,36 +99,43 @@ async def default_suggestion_document(bot, guild_id: int, **variables) -> dict:
     suggestion body, the optional image gallery (self-drops when empty),
     the live vote counts (``{up}``/``{down}`` resolve from theme emojis),
     the standard author footer and a small hint with the guild's localized
-    command name. Placeholders stay literal: this is a template resolved
+    command name. A decided suggestion (``status`` ``approved``/``rejected``)
+    snaps to its fixed accent and gains a staff status line instead of the
+    score ramp. Placeholders stay literal: this is a template resolved
     at render.
     """
     from rosemary.core.cards import author_footer_blocks
 
     score = int(variables.get("score") or 0)
+    status = variables.get("status") or "open"
+    if status == "approved":
+        color: str = "gold"
+    elif status == "rejected":
+        color = "danger"
+    else:
+        color = _score_hex(getattr(bot, "theme", None), score)
     command = await bot.translator.t(guild_id, "suggest.command.name")
     hint = await bot.translator.t(guild_id, "suggest.card.hint", command=command)
+    children: list[dict] = [
+        {
+            "type": "section",
+            "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
+            "children": [
+                {"type": "text", "body": "# {title}"},
+                {"type": "text", "body": "{body}"},
+            ],
+        },
+        {"type": "gallery", "urls": ["{image_url}"]},
+        {"type": "text", "body": "{up} {upvotes} · {down} {downvotes}"},
+    ]
+    if status in ("approved", "rejected"):
+        line = await bot.translator.t(guild_id, f"suggest.status.{status}")
+        children.append({"type": "text", "body": line})
+    children.extend(await author_footer_blocks(bot, guild_id))
+    children.append({"type": "text", "body": f"-# {hint}"})
     return {
         "v": 1,
-        "blocks": [
-            {
-                "type": "container",
-                "color": _score_hex(getattr(bot, "theme", None), score),
-                "children": [
-                    {
-                        "type": "section",
-                        "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
-                        "children": [
-                            {"type": "text", "body": "# {title}"},
-                            {"type": "text", "body": "{body}"},
-                        ],
-                    },
-                    {"type": "gallery", "urls": ["{image_url}"]},
-                    {"type": "text", "body": "{up} {upvotes} · {down} {downvotes}"},
-                    *await author_footer_blocks(bot, guild_id),
-                    {"type": "text", "body": f"-# {hint}"},
-                ],
-            }
-        ],
+        "blocks": [{"type": "container", "color": color, "children": children}],
     }
 
 
@@ -163,11 +170,54 @@ async def default_suggestion_vote_dm_document(bot, guild_id: int, **variables) -
     }
 
 
+async def default_suggestion_decision_dm_document(
+    bot, guild_id: int, **variables
+) -> dict:
+    """Catalog-default approval/rejection DM (``suggestions.dm.approved`` etc).
+
+    One builder serves both keys: ``status`` selects the body template
+    (``suggest.dm.approved``/``suggest.dm.rejected``) and the accent
+    (gold/danger). The optional ``reason`` appends a resolved motive line;
+    an empty reason renders nothing. Templates come from ``raw()`` so no
+    formatting warning fires; placeholders resolve at render.
+    """
+    status = variables.get("status") or "approved"
+    if status not in ("approved", "rejected"):
+        status = "approved"
+    raw = bot.translator.raw
+    body = await raw(guild_id, f"suggest.dm.{status}")
+    jump_label = await bot.translator.t(guild_id, "suggest.dm.jump")
+    children: list[dict] = [{"type": "text", "body": body}]
+    if variables.get("reason"):
+        reason_line = await bot.translator.t(
+            guild_id, "suggest.dm.reason", **variables
+        )
+        children.append({"type": "text", "body": reason_line})
+    children.append(
+        {
+            "type": "row",
+            "buttons": [{"label": jump_label, "url": "{message_link}"}],
+        }
+    )
+    return {
+        "v": 1,
+        "blocks": [
+            {
+                "type": "container",
+                "color": "gold" if status == "approved" else "danger",
+                "children": children,
+            }
+        ],
+    }
+
+
 def _register_default_builder() -> None:
     from rosemary.core.cards import set_default_builder
 
     set_default_builder("suggestions.card", default_suggestion_document)
     set_default_builder("suggestions.dm.vote", default_suggestion_vote_dm_document)
+    set_default_builder("suggestions.dm.approved", default_suggestion_decision_dm_document)
+    set_default_builder("suggestions.dm.rejected", default_suggestion_decision_dm_document)
 
 
 _register_default_builder()
@@ -283,6 +333,17 @@ class SuggestionVoteView(MenuView):
                     ephemeral=True,
                 )
             return
+        if entry.get("status", "open") != "open":
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    await self.bot.translator.t(
+                        guild.id,
+                        "suggest.error_decided",
+                        suggestion_number=entry.get("number", 0),
+                    ),
+                    ephemeral=True,
+                )
+            return
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=True)
         try:
@@ -381,6 +442,7 @@ class SuggestionsCog(commands.Cog):
             "score": up - down,
             "message_link": message_link,
             "timestamp": timestamp,
+            "status": entry.get("status", "open") or "open",
         }
 
     async def _card_payload(self, guild_id: int, variables: dict):
@@ -397,19 +459,29 @@ class SuggestionsCog(commands.Cog):
         theme = self.bot.theme
         command = await self.bot.translator.t(guild_id, "suggest.command.name")
         hint = await self.bot.translator.t(guild_id, "suggest.card.hint", command=command)
-        accent = discord.Colour(
-            int(_score_hex(theme, int(variables.get("score") or 0)).lstrip("#"), 16)
-        )
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                accent,
-                TextDisplay(f"# {variables.get('title', '')}"),
-                TextDisplay(str(variables.get("body") or "")),
-                TextDisplay(f"{variables.get('upvotes', 0)} · {variables.get('downvotes', 0)}"),
-                TextDisplay(f"-# {hint}"),
+        status = variables.get("status") or "open"
+        if status == "approved":
+            accent = theme.color("gold")
+        elif status == "rejected":
+            accent = theme.color("danger")
+        else:
+            accent = discord.Colour(
+                int(_score_hex(theme, int(variables.get("score") or 0)).lstrip("#"), 16)
             )
-        )
+        items: list = [
+            TextDisplay(f"# {variables.get('title', '')}"),
+            TextDisplay(str(variables.get("body") or "")),
+            TextDisplay(f"{variables.get('upvotes', 0)} · {variables.get('downvotes', 0)}"),
+        ]
+        if status in ("approved", "rejected"):
+            items.append(
+                TextDisplay(
+                    await self.bot.translator.t(guild_id, f"suggest.status.{status}")
+                )
+            )
+        items.append(TextDisplay(f"-# {hint}"))
+        view = DesignerView(store=False)
+        view.add_item(designer_container(accent, *items))
         return CardPayload(view=view), discord.AllowedMentions.none()
 
     async def _attach_row(self, payload, guild_id: int, up: int, down: int):
@@ -460,6 +532,7 @@ class SuggestionsCog(commands.Cog):
             "score": 0,
             "message_link": "",
             "timestamp": timestamp,
+            "status": "open",
         }
         payload, allowed = await self._card_payload(guild.id, variables)
         payload = await self._attach_row(payload, guild.id, 0, 0)
@@ -599,6 +672,8 @@ class SuggestionsCog(commands.Cog):
         author_id = int(entry.get("author_id") or 0)
         if not author_id or voter_id == author_id:
             return
+        if not await get_setting(self.bot.storage, guild.id, "suggestions.dm_votes"):
+            return
         voter = guild.get_member(voter_id)
         voter_mention = voter.mention if voter is not None else f"<@{voter_id}>"
         variables = {
@@ -655,6 +730,154 @@ class SuggestionsCog(commands.Cog):
                 allowed_mentions=discord.AllowedMentions.none(),
             )
 
+    async def decide_suggestion(
+        self,
+        guild: discord.Guild,
+        number: int,
+        *,
+        moderator: discord.Member,
+        decision: str,
+        reason: str = "",
+    ) -> tuple[str, discord.Message | None]:
+        """Staff decision on a suggestion, resolved by its number.
+
+        Returns ``("ok", message)``, ``("not_found", None)``,
+        ``("decided", None)`` or ``("gone", None)`` (channel/message
+        deleted: the stale entry is dropped).
+        """
+        found = await self.store.get_by_number(guild.id, number)
+        if found is None:
+            return "not_found", None
+        message_id, entry = found
+        if entry.get("status", "open") != "open":
+            return "decided", None
+        channel = guild.get_channel(int(entry.get("channel_id") or 0))
+        if not isinstance(channel, discord.TextChannel):
+            await self.store.remove(guild.id, message_id)
+            return "gone", None
+        try:
+            message = await channel.fetch_message(message_id)
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            await self.store.remove(guild.id, message_id)
+            return "gone", None
+        updated = await self.store.set_status(
+            guild.id, message_id, decision, moderator.id
+        )
+        if updated is None:
+            return "gone", None
+        async with self._lock_for(message.id):
+            self._last_edit[message.id] = time.monotonic()
+            await self._render_and_edit(guild, message, updated)
+        await self._dm_decision(
+            guild, updated, moderator, decision, reason, message.jump_url
+        )
+        await self._log_decision(guild.id, updated, moderator, decision, reason)
+        return "ok", message
+
+    async def _dm_decision(
+        self,
+        guild: discord.Guild,
+        entry: dict,
+        moderator: discord.Member,
+        decision: str,
+        reason: str,
+        message_link: str,
+    ) -> None:
+        """Tell the author their suggestion was approved/rejected (best effort)."""
+        author_id = int(entry.get("author_id") or 0)
+        if not author_id:
+            return
+        variables = {
+            "suggestion_number": entry.get("number", 0),
+            "body": entry.get("body") or "",
+            "message_link": message_link,
+            "moderator": moderator.mention,
+            "reason": (reason or "").strip(),
+            "status": decision,
+        }
+        from rosemary.core.card_service import CardPayload, render_card_message
+
+        payload, _allowed = await render_card_message(
+            self.bot, guild.id, f"suggestions.dm.{decision}", variables
+        )
+        if payload is None:
+            from rosemary.ui.containers import (
+                ActionRow,
+                DesignerView,
+                TextDisplay,
+                designer_container,
+            )
+
+            theme = self.bot.theme
+            t = self.bot.translator.t
+            view = DesignerView(store=False)
+            view.add_item(
+                designer_container(
+                    theme.color("gold" if decision == "approved" else "danger"),
+                    TextDisplay(
+                        await t(guild.id, f"suggest.dm.{decision}", **variables)
+                    ),
+                )
+            )
+            view.add_item(
+                ActionRow(
+                    discord.ui.Button(
+                        style=discord.ButtonStyle.link,
+                        label=await t(guild.id, "suggest.dm.jump"),
+                        url=variables["message_link"],
+                    )
+                )
+            )
+            payload = CardPayload(view=view)
+        target = guild.get_member(author_id)
+        if target is None:
+            try:
+                target = await self.bot.fetch_user(author_id)
+            except (discord.NotFound, discord.HTTPException):
+                return
+        if target is None:
+            return
+        with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+            await target.send(
+                **payload.message_kwargs(),
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
+
+    async def _log_decision(
+        self,
+        guild_id: int,
+        entry: dict,
+        moderator: discord.Member,
+        decision: str,
+        reason: str,
+    ) -> None:
+        from rosemary.core.cards import log_description
+        from rosemary.core.debug import send_channel_log
+
+        reason_text = (reason or "").strip() or await self.bot.translator.t(
+            guild_id, "suggest.no_reason"
+        )
+        author_id = int(entry.get("author_id") or 0)
+        await send_channel_log(
+            self.bot,
+            guild_id,
+            await self.bot.translator.t(
+                guild_id, f"suggestions.logs.{decision}.title"
+            ),
+            await log_description(
+                self.bot,
+                guild_id,
+                f"suggestions.logs.{decision}.description",
+                moderator=moderator.mention,
+                user=f"<@{author_id}>" if author_id else "",
+                suggestion_number=entry.get("number", 0),
+                reason=reason_text,
+            ),
+            color="success" if decision == "approved" else "danger",
+            card_key=f"suggestions.logs.{decision}.description",
+            mention_user_ids=[author_id] if author_id else [],
+        )
+
     async def _log_created(
         self,
         guild_id: int,
@@ -683,6 +906,14 @@ class SuggestionsCog(commands.Cog):
         )
 
     #: commands ------------------------------------------------------------
+
+    #: Single-cog group: ``/suggest send`` opens the modal, staff decides
+    #: with ``/suggest approve`` / ``/suggest reject`` by suggestion number.
+    suggest_group = discord.SlashCommandGroup(
+        "suggest",
+        description="Send server suggestions",
+        contexts={discord.InteractionContextType.guild},
+    )
 
     async def build_suggest_modal(self, guild_id: int):
         """The suggestion intake modal (shared by /suggest and the send button)."""
@@ -769,12 +1000,11 @@ class SuggestionsCog(commands.Cog):
             await t(guild.id, "suggest.sent"), ephemeral=True
         )
 
-    @discord.slash_command(
-        name="suggest",
+    @suggest_group.command(
+        name="send",
         description="Send a server suggestion",
-        contexts={discord.InteractionContextType.guild},
     )
-    async def suggest(self, ctx: discord.ApplicationContext) -> None:
+    async def suggest_send(self, ctx: discord.ApplicationContext) -> None:
         """Open the suggestion modal."""
         guild = ctx.guild
         if guild is None:
@@ -789,6 +1019,86 @@ class SuggestionsCog(commands.Cog):
                 await t(guild.id, "suggest.error_no_channel"), ephemeral=True
             )
         await ctx.send_modal(await self.build_suggest_modal(guild.id))
+
+    async def _decide_command(
+        self,
+        ctx: discord.ApplicationContext,
+        number: int,
+        decision: str,
+        reason: str | None,
+    ) -> None:
+        """Shared body of the approve/reject staff subcommands."""
+        guild = ctx.guild
+        if guild is None:
+            return
+        t = self.bot.translator.t
+        if not await get_setting(self.bot.storage, guild.id, "suggestions.enabled"):
+            return await ctx.respond(
+                await t(guild.id, "suggest.error_disabled"), ephemeral=True
+            )
+        member = guild.get_member(ctx.author.id)
+        if member is None:
+            return await ctx.respond(
+                await t(guild.id, "general.unknown_error"), ephemeral=True
+            )
+        await ctx.defer(ephemeral=True)
+        outcome, _message = await self.decide_suggestion(
+            guild,
+            number,
+            moderator=member,
+            decision=decision,
+            reason=reason or "",
+        )
+        if outcome == "not_found":
+            return await ctx.followup.send(
+                await t(guild.id, "suggest.error_not_found", suggestion_number=number),
+                ephemeral=True,
+            )
+        if outcome == "decided":
+            return await ctx.followup.send(
+                await t(guild.id, "suggest.error_decided", suggestion_number=number),
+                ephemeral=True,
+            )
+        if outcome == "gone":
+            return await ctx.followup.send(
+                await t(guild.id, "suggest.error_gone"), ephemeral=True
+            )
+        await ctx.followup.send(
+            await t(guild.id, f"suggest.decided_{decision}", suggestion_number=number),
+            ephemeral=True,
+        )
+
+    @suggest_group.command(
+        name="approve",
+        description="Approve a suggestion by number",
+        default_member_permissions=discord.Permissions(manage_messages=True),
+    )
+    async def suggest_approve(
+        self,
+        ctx: discord.ApplicationContext,
+        number: discord.Option(int, description="Suggestion number", min_value=1),
+        reason: discord.Option(
+            str, description="Reason shown to the author", required=False
+        ),
+    ) -> None:
+        """Mark a suggestion approved (staff)."""
+        await self._decide_command(ctx, number, "approved", reason)
+
+    @suggest_group.command(
+        name="reject",
+        description="Reject a suggestion by number",
+        default_member_permissions=discord.Permissions(manage_messages=True),
+    )
+    async def suggest_reject(
+        self,
+        ctx: discord.ApplicationContext,
+        number: discord.Option(int, description="Suggestion number", min_value=1),
+        reason: discord.Option(
+            str, description="Reason shown to the author", required=False
+        ),
+    ) -> None:
+        """Mark a suggestion rejected (staff)."""
+        await self._decide_command(ctx, number, "rejected", reason)
 
     #: listeners -----------------------------------------------------------
 

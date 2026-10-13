@@ -283,9 +283,18 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "suggestions.card": (
         "user", "user_name", "user_avatar", "suggestion_number", "title", "body",
         "image_url", "upvotes", "downvotes", "score", "message_link", "timestamp",
+        "status",
     ),
     "suggestions.dm.vote": (
         "voter", "suggestion_number", "body", "message_link", "vote", "side",
+    ),
+    "suggestions.dm.approved": (
+        "suggestion_number", "body", "message_link", "moderator", "reason",
+        "status",
+    ),
+    "suggestions.dm.rejected": (
+        "suggestion_number", "body", "message_link", "moderator", "reason",
+        "status",
     ),
     "partnerships.invite": ("server",),
     "partnerships.dm.added": ("server", "mention"),
@@ -380,6 +389,12 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "tickets.logs.deleted.description": ("channel",),
     "tickets.logs.transcript.description": ("channel", "moderator"),
     "suggestions.logs.created.description": ("user", "suggestion_number", "channel"),
+    "suggestions.logs.approved.description": (
+        "moderator", "user", "suggestion_number", "reason",
+    ),
+    "suggestions.logs.rejected.description": (
+        "moderator", "user", "suggestion_number", "reason",
+    ),
     "partnerships.logs.added.description": ("user", "author"),
     "partnerships.logs.removed.description": ("user", "author"),
     "partnerships.logs.renewed.description": ("user",),
@@ -479,11 +494,15 @@ def _build() -> list[CardSpec]:
     ]
     specs += [_spec("suggestions.card", "suggestions", rich=True)]
     specs += [_spec("suggestions.dm.vote", "suggestions")]
+    specs += [_spec("suggestions.dm.approved", "suggestions")]
+    specs += [_spec("suggestions.dm.rejected", "suggestions")]
     specs += [
         _spec(f"tickets.logs.{name}.description", "tickets")
         for name in TICKETS_LOGS
     ]
     specs += [_spec("suggestions.logs.created.description", "suggestions")]
+    specs += [_spec("suggestions.logs.approved.description", "suggestions")]
+    specs += [_spec("suggestions.logs.rejected.description", "suggestions")]
     specs += [
         _spec("partnerships.invite", "partnerships", rich=True)
     ]

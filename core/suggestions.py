@@ -72,6 +72,35 @@ class SuggestionStore:
         entry = data["entries"].get(str(message_id))
         return dict(entry) if isinstance(entry, dict) else None
 
+    async def get_by_number(
+        self, guild_id: int, number: int
+    ) -> tuple[int, dict[str, Any]] | None:
+        """Find an entry by its suggestion number: ``(message_id, entry)``."""
+        data = await self._doc(guild_id)
+        for message_id, entry in data["entries"].items():
+            if isinstance(entry, dict) and entry.get("number") == number:
+                return int(message_id), dict(entry)
+        return None
+
+    async def set_status(
+        self,
+        guild_id: int,
+        message_id: int,
+        status: str,
+        decided_by: int = 0,
+    ) -> dict[str, Any] | None:
+        """Mark a suggestion ``approved``/``rejected`` (staff decision)."""
+        if status not in ("open", "approved", "rejected"):
+            raise ValueError(f"unknown status {status!r}")
+        data = await self._doc(guild_id)
+        entry = data["entries"].get(str(message_id))
+        if not isinstance(entry, dict):
+            return None
+        entry["status"] = status
+        entry["decided_by"] = decided_by
+        await self._storage.set_all(guild_id, data)
+        return dict(entry)
+
     async def all_entries(self, guild_id: int) -> dict[str, dict[str, Any]]:
         """Return every entry for a guild (used to restore vote views)."""
         data = await self._doc(guild_id)

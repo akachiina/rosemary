@@ -485,6 +485,9 @@ settings:
   suggestions.channel:
     label: Suggestions channel
     description: Channel where suggestions are posted.
+  suggestions.dm_votes:
+    label: Vote DMs
+    description: DM the author on every vote.
   birthdays.enabled:
     label: Birthdays enabled
     description: Track birthdays and post announcements.
@@ -2388,16 +2391,30 @@ card:
   suggestions:
     card:
       title: Suggestion card
-      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}"
+      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}, {{status}}"
     logs:
       created:
         description:
           title: 'Log: suggestion posted'
           placeholders: '{{user}}, {{suggestion_number}}, {{channel}}'
+      approved:
+        description:
+          title: 'Log: suggestion approved'
+          placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
+      rejected:
+        description:
+          title: 'Log: suggestion rejected'
+          placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
     dm:
       vote:
         title: Suggestion vote DM
         placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}, {{side}}"
+      approved:
+        title: Suggestion approved DM
+        placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
+      rejected:
+        title: Suggestion rejected DM
+        placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
   utility:
     ping:
       title: Latency card
@@ -3083,7 +3100,7 @@ starboard:
 suggest:
   command:
     name: suggest
-    description: Send a server suggestion
+    description: Send server suggestions
   modal:
     title: Send a suggestion
     label: Your suggestion
@@ -3095,11 +3112,17 @@ suggest:
     hint: "Use `/{command}` or the button below to send your suggestion!"
   vote:
     new: Send suggestion
+  status:
+    approved: "{check} Approved by staff"
+    rejected: "{error} Rejected by staff"
   dm:
     up: upvote
     down: downvote
     body: "New **{vote}** on your **suggestion #{suggestion_number}** from {voter}:\n> {body}"
     jump: Go to suggestion
+    approved: "{check} Your suggestion **#{suggestion_number}** was approved by {moderator}!"
+    rejected: "{error} Your suggestion **#{suggestion_number}** was rejected by {moderator}."
+    reason: "Reason: {reason}"
   sent: '{success} Your suggestion was posted!'
   voted: '{success} Vote recorded! ({up} up, {down} down)'
   error_disabled: '{error} Suggestions are disabled on this server.'
@@ -3111,11 +3134,34 @@ suggest:
   error_bad_image: '{error} Please attach an image file.'
   error_image_too_large: '{error} The image is too large (limit 8 MB).'
   error_gone: '{error} That suggestion no longer exists.'
+  error_not_found: '{error} Suggestion #{suggestion_number} not found.'
+  error_decided: '{error} Suggestion #{suggestion_number} was already decided.'
+  decided_approved: '{success} Suggestion #{suggestion_number} approved.'
+  decided_rejected: '{success} Suggestion #{suggestion_number} rejected.'
+  no_reason: No reason given.
+suggest_send:
+  command:
+    name: send
+    description: Send a server suggestion
+suggest_approve:
+  command:
+    name: approve
+    description: '[ADMIN] Approve a suggestion by number'
+suggest_reject:
+  command:
+    name: reject
+    description: '[ADMIN] Reject a suggestion by number'
 suggestions:
   logs:
     created:
       title: '{pencil} Suggestion Posted'
       description: '{user} posted suggestion **#{suggestion_number}** in {channel}.'
+    approved:
+      title: '{check} Suggestion Approved'
+      description: '{moderator} approved suggestion **#{suggestion_number}** by {user} ({reason}).'
+    rejected:
+      title: '{error} Suggestion Rejected'
+      description: '{moderator} rejected suggestion **#{suggestion_number}** by {user} ({reason}).'
 birthdays:
   enabled:
     label: Enable birthdays
