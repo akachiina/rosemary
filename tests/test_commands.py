@@ -66,6 +66,9 @@ def test_command_option_raw_types_are_classes() -> None:
     from rosemary.cogs.roleplay import RoleplayCog
 
     bot.add_cog(RoleplayCog(bot))
+    from rosemary.cogs.confessions import ConfessionsCog
+
+    bot.add_cog(ConfessionsCog(bot))
 
     commands_ = _all_commands(bot)
     assert commands_, "expected the new slash commands to be registered"
@@ -93,6 +96,11 @@ def test_command_option_raw_types_are_classes() -> None:
         "info emoji",
         "info role",
         "info channel",
+        "confess send",
+        "confess reply",
+        "confess ban",
+        "confess unban",
+        "confess banned",
         "roleplay hug",
         "roleplay kiss",
         "roleplay cuddle",

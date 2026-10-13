@@ -138,6 +138,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.bump_reminder import BumpReminderCog
         from rosemary.cogs.cleaner import CleanerCog
         from rosemary.cogs.colors import ColorsCog
+        from rosemary.cogs.confessions import ConfessionsCog
         from rosemary.cogs.debug import DebugCog
         from rosemary.cogs.info import InfoCog
         from rosemary.cogs.invites import InvitesCog
@@ -189,6 +190,7 @@ class RosemaryBot(commands.Bot):
         self.add_cog(ThemesCog(self))
         self.add_cog(PartnershipsCog(self))
         self.add_cog(CleanerCog(self))
+        self.add_cog(ConfessionsCog(self))
         self.add_cog(RemindersCog(self))
         self.add_cog(BroadcastCog(self))
         self.add_cog(AntiInviteCog(self))

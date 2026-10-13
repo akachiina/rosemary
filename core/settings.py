@@ -60,6 +60,7 @@ class SettingCategory(StrEnum):
     BROADCAST_REMINDERS = "broadcast_reminders"
     COLORS = "colors"
     ROLEPLAY = "roleplay"
+    CONFESSIONS = "confessions"
 
 
 @dataclass(frozen=True)
@@ -588,6 +589,36 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.SUGGESTIONS,
             SettingType.BOOLEAN,
             True,
+        ),
+        _spec(
+            "confessions.enabled",
+            SettingCategory.CONFESSIONS,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "confessions.public_channel",
+            SettingCategory.CONFESSIONS,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "confessions.review_channel",
+            SettingCategory.CONFESSIONS,
+            SettingType.CHANNEL,
+            None,
+        ),
+        _spec(
+            "confessions.review_required",
+            SettingCategory.CONFESSIONS,
+            SettingType.BOOLEAN,
+            False,
+        ),
+        _spec(
+            "confessions.reveal_author",
+            SettingCategory.CONFESSIONS,
+            SettingType.BOOLEAN,
+            False,
         ),
         _spec(
             "birthdays.enabled",

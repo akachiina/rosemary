@@ -296,6 +296,23 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
         "suggestion_number", "body", "message_link", "moderator", "reason",
         "status",
     ),
+    "confessions.review": (
+        "confession_number", "title", "body", "image_url", "author_line",
+        "timestamp",
+    ),
+    "confessions.card": (
+        "confession_number", "title", "body", "image_url", "color_hex",
+        "timestamp",
+    ),
+    "confessions.response": (
+        "confession_number", "reply_index", "title", "body", "parent_line",
+        "color_hex", "image_url",
+    ),
+    "confessions.dm.approved": ("confession_number", "body", "message_link"),
+    "confessions.dm.rejected": ("confession_number", "body", "reason"),
+    "confessions.dm.response": (
+        "confession_number", "reply_index", "body", "message_link",
+    ),
     "partnerships.invite": ("server",),
     "partnerships.dm.added": ("server", "mention"),
     "partnerships.dm.removed": ("server", "mention"),
@@ -395,6 +412,14 @@ LOG_VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "suggestions.logs.rejected.description": (
         "moderator", "user", "suggestion_number", "reason",
     ),
+    "confessions.logs.approved.description": ("moderator", "confession_number"),
+    "confessions.logs.denied.description": (
+        "moderator", "confession_number", "reason",
+    ),
+    "confessions.logs.replied.description": (
+        "confession_number", "reply_index",
+    ),
+    "confessions.logs.banned.description": ("moderator", "user", "reason"),
     "partnerships.logs.added.description": ("user", "author"),
     "partnerships.logs.removed.description": ("user", "author"),
     "partnerships.logs.renewed.description": ("user",),
@@ -496,6 +521,12 @@ def _build() -> list[CardSpec]:
     specs += [_spec("suggestions.dm.vote", "suggestions")]
     specs += [_spec("suggestions.dm.approved", "suggestions")]
     specs += [_spec("suggestions.dm.rejected", "suggestions")]
+    specs += [_spec("confessions.review", "confessions", rich=True)]
+    specs += [_spec("confessions.card", "confessions", rich=True)]
+    specs += [_spec("confessions.response", "confessions", rich=True)]
+    specs += [_spec("confessions.dm.approved", "confessions")]
+    specs += [_spec("confessions.dm.rejected", "confessions")]
+    specs += [_spec("confessions.dm.response", "confessions")]
     specs += [
         _spec(f"tickets.logs.{name}.description", "tickets")
         for name in TICKETS_LOGS
@@ -503,6 +534,10 @@ def _build() -> list[CardSpec]:
     specs += [_spec("suggestions.logs.created.description", "suggestions")]
     specs += [_spec("suggestions.logs.approved.description", "suggestions")]
     specs += [_spec("suggestions.logs.rejected.description", "suggestions")]
+    specs += [_spec("confessions.logs.approved.description", "confessions")]
+    specs += [_spec("confessions.logs.denied.description", "confessions")]
+    specs += [_spec("confessions.logs.replied.description", "confessions")]
+    specs += [_spec("confessions.logs.banned.description", "confessions")]
     specs += [
         _spec("partnerships.invite", "partnerships", rich=True)
     ]

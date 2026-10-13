@@ -87,6 +87,7 @@ settings:
     broadcast_reminders: Broadcast & Lembretes
     colors: Painel de Cores
     roleplay: Roleplay
+    confessions: Confissões
   colors.enabled:
     label: Painel de Cores Ativado
     description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).
@@ -488,6 +489,21 @@ settings:
   suggestions.dm_votes:
     label: DMs de voto
     description: Avisa o autor por DM a cada voto.
+  confessions.enabled:
+    label: Confissões ativadas
+    description: Recebe confissões anônimas dos membros.
+  confessions.public_channel:
+    label: Canal de confissões
+    description: Canal onde as confissões aprovadas são postadas.
+  confessions.review_channel:
+    label: Canal de revisão
+    description: Canal onde a staff revisa as confissões.
+  confessions.review_required:
+    label: Revisão da staff
+    description: Segura as confissões para revisão antes de postar.
+  confessions.reveal_author:
+    label: Revelar autor
+    description: Mostra quem escreveu cada confissão para a staff.
   birthdays.enabled:
     label: Aniversários ativados
     description: Registra aniversários e posta anúncios.
@@ -2369,6 +2385,21 @@ variables:
   side:
     label: Lado do voto
     description: Qual lado foi votado (up ou down)
+  confession_number:
+    label: Número da confissão
+    description: Número sequencial da confissão
+  reply_index:
+    label: Número da resposta
+    description: Número sequencial da resposta dentro da confissão
+  color_hex:
+    label: Cor em hex
+    description: Cor de destaque sorteada do card de confissão
+  parent_line:
+    label: Linha de origem
+    description: Linha de referência ao comentário respondido
+  author_line:
+    label: Linha de autor
+    description: Linha revelando quem escreveu (só a staff)
 card:
   # Rodapé de autoria padrão (builder helper ``author_footer_blocks``): linha
   # pequena (``-#``) com a menção de quem gerou o card e o tempo relativo.
@@ -2416,6 +2447,43 @@ card:
       rejected:
         title: DM de sugestão recusada
         placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
+  confessions:
+    review:
+      title: Card de revisão de confissão
+      placeholders: "{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{author_line}}, {{timestamp}}"
+    card:
+      title: Card de confissão
+      placeholders: "{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}"
+    response:
+      title: Card de resposta de confissão
+      placeholders: "{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}"
+    logs:
+      approved:
+        description:
+          title: 'Log: confissão aprovada'
+          placeholders: '{{moderator}}, {{confession_number}}'
+      denied:
+        description:
+          title: 'Log: confissão recusada'
+          placeholders: '{{moderator}}, {{confession_number}}, {{reason}}'
+      replied:
+        description:
+          title: 'Log: resposta de confissão'
+          placeholders: '{{confession_number}}, {{reply_index}}'
+      banned:
+        description:
+          title: 'Log: ban de confissão'
+          placeholders: '{{moderator}}, {{user}}, {{reason}}'
+    dm:
+      approved:
+        title: DM de confissão aprovada
+        placeholders: "{{confession_number}}, {{body}}, {{message_link}}"
+      rejected:
+        title: DM de confissão recusada
+        placeholders: "{{confession_number}}, {{body}}, {{reason}}"
+      response:
+        title: DM de resposta de confissão
+        placeholders: "{{confession_number}}, {{reply_index}}, {{body}}, {{message_link}}"
   utility:
     ping:
       title: Card de latência
@@ -3163,6 +3231,105 @@ suggestions:
     rejected:
       title: '{error} Sugestão recusada'
       description: '{moderator} recusou a sugestão **#{suggestion_number}** de {user} ({reason}).'
+confess:
+  command:
+    name: confissão
+    description: Envie confissões anônimas
+  modal:
+    title: Enviar confissão
+    label: Sua confissão
+    placeholder: Escreva sua confissão aqui...
+    image_label: Imagem (opcional)
+    image_description: Anexe uma imagem à sua confissão.
+  reply_modal:
+    title: Responder anonimamente
+    label: Sua resposta
+    placeholder: Escreva sua resposta anônima...
+    image_label: Imagem (opcional)
+    image_description: Anexe uma imagem à sua resposta.
+  reason_modal:
+    title: Motivo
+    label: Motivo (opcional)
+    placeholder: Por quê? (opcional, mostrado ao autor)
+  card:
+    title: "Confissão (#{confession_number})"
+  review:
+    title: "Confissão (#{confession_number}) · Revisão"
+    author: "{user} escreveu esta confissão"
+  response:
+    title: "Confissão (#{confession_number}-{reply_index})"
+    parent: "em resposta a #{confession_number}-{parent_index}"
+  thread_name: "Respostas da confissão #{confession_number}"
+  buttons:
+    new: Escrever confissão
+    reply: Responder
+    approve: Aprovar
+    deny: Recusar
+    ban: Banir
+  dm:
+    approved: "{check} Sua confissão **#{confession_number}** foi aprovada!"
+    rejected: "{error} Sua confissão **#{confession_number}** foi recusada."
+    reason: "Motivo: {reason}"
+    response: "{envelope} Nova resposta anônima **#{confession_number}-{reply_index}**:\n> {body}"
+    jump: Ir para a thread
+    banned: "{ban} Você foi banido das confissões. Motivo: {reason}"
+  no_reason: Sem motivo informado.
+  review_approved: '{success} Confissão postada.'
+  review_denied: '{success} Confissão recusada.'
+  sent: '{success} Sua confissão foi postada!'
+  sent_review: '{success} Sua confissão foi enviada para revisão!'
+  replied: '{success} Sua resposta anônima foi postada!'
+  banned_confirm: '{success} {user} foi banido das confissões.'
+  unbanned_confirm: '{success} {user} pode confessar de novo.'
+  already_banned: '{warning} {user} já está banido.'
+  not_banned: '{warning} {user} não está banido.'
+  error_disabled: '{error} Confissões estão desativadas neste servidor.'
+  error_no_channel: '{error} Nenhum canal de confissões configurado.'
+  error_no_review: '{error} Nenhum canal de revisão configurado.'
+  error_banned: '{error} Você está banido das confissões.'
+  error_empty: '{error} Sua confissão não pode estar vazia.'
+  error_too_long: '{error} Sua confissão é longa demais.'
+  error_bad_image: '{error} Anexe um arquivo de imagem.'
+  error_image_too_large: '{error} A imagem é grande demais (limite de 8 MB).'
+  error_gone: '{error} Essa confissão não existe mais.'
+  error_not_found: '{error} Confissão #{confession_number} não encontrada.'
+  error_staff_only: '{error} Só a staff pode fazer isso.'
+  error_failed: '{error} Não foi possível postar. Tente de novo.'
+  error_thread: '{error} Não foi possível abrir a thread de discussão.'
+  banned_list:
+    title: Banidos das confissões
+    empty: Nenhum membro banido.
+    line: "- {user}"
+confess_send:
+  command:
+    name: enviar
+    description: Envie uma confissão anônima
+confess_ban:
+  command:
+    name: banir
+    description: '[ADMIN] Bane um membro das confissões'
+confess_unban:
+  command:
+    name: desbanir
+    description: '[ADMIN] Desbane um membro das confissões'
+confess_banned:
+  command:
+    name: banidos
+    description: '[ADMIN] Lista membros banidos das confissões'
+confessions:
+  logs:
+    approved:
+      title: '{check} Confissão aprovada'
+      description: '{moderator} aprovou a confissão **#{confession_number}**.'
+    denied:
+      title: '{error} Confissão recusada'
+      description: '{moderator} recusou a confissão **#{confession_number}** ({reason}).'
+    replied:
+      title: '{envelope} Resposta de confissão'
+      description: 'Resposta **#{confession_number}-{reply_index}** postada.'
+    banned:
+      title: '{ban} Ban de confissão'
+      description: '{moderator} baniu {user} das confissões ({reason}).'
 birthdays:
   enabled:
     label: Ativar aniversários

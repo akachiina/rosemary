@@ -87,6 +87,7 @@ settings:
     broadcast_reminders: Broadcast & Reminders
     colors: Color Panel
     roleplay: Roleplay
+    confessions: Confessions
   colors.enabled:
     label: Color Panel Enabled
     description: Enables the color panel (colored roles any member can pick).
@@ -488,6 +489,21 @@ settings:
   suggestions.dm_votes:
     label: Vote DMs
     description: DM the author on every vote.
+  confessions.enabled:
+    label: Confessions enabled
+    description: Collect anonymous confessions from members.
+  confessions.public_channel:
+    label: Confessions channel
+    description: Channel where approved confessions are posted.
+  confessions.review_channel:
+    label: Review channel
+    description: Channel where staff reviews confessions.
+  confessions.review_required:
+    label: Staff review
+    description: Hold confessions for staff review before posting.
+  confessions.reveal_author:
+    label: Reveal author
+    description: Show who wrote each confession to staff.
   birthdays.enabled:
     label: Birthdays enabled
     description: Track birthdays and post announcements.
@@ -2368,6 +2384,21 @@ variables:
   side:
     label: Vote side
     description: Which side was voted (up or down)
+  confession_number:
+    label: Confession number
+    description: Sequential number of the confession
+  reply_index:
+    label: Reply number
+    description: Sequential reply number inside one confession
+  color_hex:
+    label: Color hex
+    description: Random accent color of the confession card
+  parent_line:
+    label: Parent line
+    description: Reference line to the replied comment
+  author_line:
+    label: Author line
+    description: Line revealing who wrote the confession (staff only)
 card:
   # Default author footer (``author_footer_blocks`` builder helper): a small
   # (``-#``) line with the mention of who triggered the card and relative time.
@@ -2415,6 +2446,43 @@ card:
       rejected:
         title: Suggestion rejected DM
         placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
+  confessions:
+    review:
+      title: Confession review card
+      placeholders: "{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{author_line}}, {{timestamp}}"
+    card:
+      title: Confession card
+      placeholders: "{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}"
+    response:
+      title: Confession reply card
+      placeholders: "{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}"
+    logs:
+      approved:
+        description:
+          title: 'Log: confession approved'
+          placeholders: '{{moderator}}, {{confession_number}}'
+      denied:
+        description:
+          title: 'Log: confession denied'
+          placeholders: '{{moderator}}, {{confession_number}}, {{reason}}'
+      replied:
+        description:
+          title: 'Log: confession reply'
+          placeholders: '{{confession_number}}, {{reply_index}}'
+      banned:
+        description:
+          title: 'Log: confession ban'
+          placeholders: '{{moderator}}, {{user}}, {{reason}}'
+    dm:
+      approved:
+        title: Confession approved DM
+        placeholders: "{{confession_number}}, {{body}}, {{message_link}}"
+      rejected:
+        title: Confession denied DM
+        placeholders: "{{confession_number}}, {{body}}, {{reason}}"
+      response:
+        title: Confession reply DM
+        placeholders: "{{confession_number}}, {{reply_index}}, {{body}}, {{message_link}}"
   utility:
     ping:
       title: Latency card
@@ -3162,6 +3230,105 @@ suggestions:
     rejected:
       title: '{error} Suggestion Rejected'
       description: '{moderator} rejected suggestion **#{suggestion_number}** by {user} ({reason}).'
+confess:
+  command:
+    name: confess
+    description: Send anonymous confessions
+  modal:
+    title: Send a confession
+    label: Your confession
+    placeholder: Write your confession here...
+    image_label: Image (optional)
+    image_description: Attach one image with your confession.
+  reply_modal:
+    title: Reply anonymously
+    label: Your reply
+    placeholder: Write your anonymous reply...
+    image_label: Image (optional)
+    image_description: Attach one image with your reply.
+  reason_modal:
+    title: Reason
+    label: Reason (optional)
+    placeholder: Why? (optional, shown to the author)
+  card:
+    title: "Confession (#{confession_number})"
+  review:
+    title: "Confession (#{confession_number}) · Review"
+    author: "{user} wrote this confession"
+  response:
+    title: "Confession (#{confession_number}-{reply_index})"
+    parent: "in reply to #{confession_number}-{parent_index}"
+  thread_name: "Replies to confession #{confession_number}"
+  buttons:
+    new: Write confession
+    reply: Reply
+    approve: Approve
+    deny: Deny
+    ban: Ban
+  dm:
+    approved: "{check} Your confession **#{confession_number}** was approved!"
+    rejected: "{error} Your confession **#{confession_number}** was denied."
+    reason: "Reason: {reason}"
+    response: "{envelope} New anonymous reply **#{confession_number}-{reply_index}**:\n> {body}"
+    jump: Go to the thread
+    banned: "{ban} You were banned from confessions. Reason: {reason}"
+  no_reason: No reason given.
+  review_approved: '{success} Confession posted.'
+  review_denied: '{success} Confession denied.'
+  sent: '{success} Your confession was posted!'
+  sent_review: '{success} Your confession was sent for review!'
+  replied: '{success} Your anonymous reply was posted!'
+  banned_confirm: '{success} {user} was banned from confessions.'
+  unbanned_confirm: '{success} {user} can confess again.'
+  already_banned: '{warning} {user} is already banned.'
+  not_banned: '{warning} {user} is not banned.'
+  error_disabled: '{error} Confessions are disabled on this server.'
+  error_no_channel: '{error} No confessions channel configured.'
+  error_no_review: '{error} No confessions review channel configured.'
+  error_banned: '{error} You are banned from confessions.'
+  error_empty: '{error} Your confession cannot be empty.'
+  error_too_long: '{error} Your confession is too long.'
+  error_bad_image: '{error} Please attach an image file.'
+  error_image_too_large: '{error} The image is too large (limit 8 MB).'
+  error_gone: '{error} That confession no longer exists.'
+  error_not_found: '{error} Confession #{confession_number} not found.'
+  error_staff_only: '{error} Only staff can do that.'
+  error_failed: '{error} Could not post. Try again.'
+  error_thread: '{error} Could not open the discussion thread.'
+  banned_list:
+    title: Banned from confessions
+    empty: No banned members.
+    line: "- {user}"
+confess_send:
+  command:
+    name: send
+    description: Send an anonymous confession
+confess_ban:
+  command:
+    name: ban
+    description: '[ADMIN] Ban a member from confessions'
+confess_unban:
+  command:
+    name: unban
+    description: '[ADMIN] Unban a member from confessions'
+confess_banned:
+  command:
+    name: banned
+    description: '[ADMIN] List members banned from confessions'
+confessions:
+  logs:
+    approved:
+      title: '{check} Confession Approved'
+      description: '{moderator} approved confession **#{confession_number}**.'
+    denied:
+      title: '{error} Confession Denied'
+      description: '{moderator} denied confession **#{confession_number}** ({reason}).'
+    replied:
+      title: '{envelope} Confession Reply'
+      description: 'Reply **#{confession_number}-{reply_index}** posted.'
+    banned:
+      title: '{ban} Confession Ban'
+      description: '{moderator} banned {user} from confessions ({reason}).'
 birthdays:
   enabled:
     label: Enable birthdays

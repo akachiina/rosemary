@@ -51,7 +51,7 @@ def make_text_modal(
         value=value,
         required=required,
         custom_id="value",
-        min_length=1,
+        min_length=1 if required else 0,
         max_length=max_length,
         style=style,
     )

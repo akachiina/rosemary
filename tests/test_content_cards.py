@@ -377,3 +377,60 @@ async def test_menu_heading_splices_themed_text_and_rejects_container(tmp_path):
     await preload_themes(bot)
     items = await menu_heading_items(bot, 1, "settings.title")
     assert items == []
+
+
+#: url placeholder contract ---------------------------------------------------
+
+
+async def test_default_builder_url_placeholders_come_from_contract():
+    """Regression (live 400 on confessions): a ``{placeholder}`` left literal
+    in a thumbnail/gallery/button URL is rejected by Discord ("Not a well
+    formed URL"). Every placeholder in a URL position of a default document
+    must belong to the card's variable contract, which the send site fills.
+    """
+    import importlib
+    import re
+    from pathlib import Path
+
+    from rosemary.core.cards import _DEFAULT_BUILDERS, get_card
+    from rosemary.core.variables import samples_for
+
+    cogs_dir = Path(__file__).resolve().parents[1] / "cogs"
+    for path in sorted(cogs_dir.glob("*.py")):
+        if path.stem.startswith("_"):
+            continue
+        importlib.import_module(f"rosemary.cogs.{path.stem}")
+
+    def urls_in(node, found):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "url" and isinstance(value, str):
+                    found.append(value)
+                elif key == "urls" and isinstance(value, list):
+                    found.extend(u for u in value if isinstance(u, str))
+                else:
+                    urls_in(value, found)
+        elif isinstance(node, list):
+            for item in node:
+                urls_in(item, found)
+        return found
+
+    bot = make_bot()
+    problems = []
+    for key in sorted(_DEFAULT_BUILDERS):
+        spec = get_card(key)
+        if spec is None:
+            continue
+        try:
+            doc = await _DEFAULT_BUILDERS[key](bot, 1, **samples_for(spec.variables))
+        except Exception as exc:  # noqa: BLE001 - sweep reports, never raises here
+            problems.append(f"{key}: builder crashed on contract samples: {exc}")
+            continue
+        if not isinstance(doc, dict):
+            continue
+        for url in urls_in(doc.get("blocks", []), []):
+            names = set(re.findall(r"\{(\w+)\}", url))
+            outside = names - set(spec.variables)
+            if outside:
+                problems.append(f"{key}: {sorted(outside)} in {url!r}")
+    assert problems == []
