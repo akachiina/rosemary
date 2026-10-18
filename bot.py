@@ -58,9 +58,6 @@ _SHARED_SUBCOMMAND_OWNERS: dict[str, dict[str, str]] = {
     "bump": {
         "leaderboard": "BumpLeaderboardCog",
         "stats": "BumpLeaderboardCog",
-        "test_leaderboard": "BumpLeaderboardCog",
-        "reset_week": "BumpLeaderboardCog",
-        "add_test": "BumpLeaderboardCog",
         "test": "BumpReminderCog",
         "test_reminder": "BumpReminderCog",
         "status": "BumpReminderCog",

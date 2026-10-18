@@ -21,6 +21,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.cards import log_description
+from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_channel_log
 from rosemary.core.invites import (
     FAKE,
@@ -54,6 +55,14 @@ class InvitesCog(commands.Cog):
         "invites",
         description="Show invite stats",
         contexts={discord.InteractionContextType.guild},
+    )
+    #: Admin-only subgroup (see bump_admin_group for why this needs its own
+    #: top-level group: the API ignores subcommand-level permissions).
+    invites_admin_group = discord.SlashCommandGroup(
+        "invites_admin",
+        description="Admin-only invite management",
+        contexts={discord.InteractionContextType.guild},
+        default_member_permissions=discord.Permissions(administrator=True),
     )
 
     def __init__(self, bot) -> None:
@@ -709,7 +718,7 @@ class InvitesCog(commands.Cog):
 
     #: admin commands ----------------------------------------------------------
 
-    @invites_group.command(
+    @invites_admin_group.command(
         name="bonus",
         description="[ADMIN] Add or remove bonus invites",
         default_member_permissions=discord.Permissions(administrator=True),
@@ -721,6 +730,8 @@ class InvitesCog(commands.Cog):
         amount: discord.Option(int, description="Between -100 and 100, excluding 0"),
     ) -> None:
         """Add (positive) or remove (negative) bonus invites."""
+        if not await require_admin(ctx):
+            return
         guild_id = ctx.guild_id
         if amount == 0 or not -100 <= amount <= 100:
             return await ctx.respond(
@@ -753,13 +764,15 @@ class InvitesCog(commands.Cog):
             ephemeral=True,
         )
 
-    @invites_group.command(
+    @invites_admin_group.command(
         name="sync",
         description="[ADMIN] Recount invite uses from Discord",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def invites_sync(self, ctx: discord.ApplicationContext) -> None:
         """Rebuild the attribution baseline from live invite uses."""
+        if not await require_admin(ctx):
+            return
         await ctx.response.defer(ephemeral=True)
         guild = ctx.guild
         snapshots = await self._fetch_snapshots(guild)
@@ -793,13 +806,15 @@ class InvitesCog(commands.Cog):
             ephemeral=True,
         )
 
-    @invites_group.command(
+    @invites_admin_group.command(
         name="codes",
         description="[ADMIN] List invite codes and uses",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def invites_codes(self, ctx: discord.ApplicationContext) -> None:
         """List live invite codes with uses and owners."""
+        if not await require_admin(ctx):
+            return
         await ctx.response.defer(ephemeral=True)
         snapshots = await self._fetch_snapshots(ctx.guild)
         if not snapshots:
@@ -833,7 +848,7 @@ class InvitesCog(commands.Cog):
             return ", ".join(f"<@&{uid}>" for uid in ids)
         return ", ".join(f"<@{uid}>" for uid in ids)
 
-    @invites_group.command(
+    @invites_admin_group.command(
         name="blacklist",
         description="[ADMIN] Manage the invite blacklist",
         default_member_permissions=discord.Permissions(administrator=True),
@@ -851,6 +866,8 @@ class InvitesCog(commands.Cog):
         role: discord.Option(discord.Role, description="Role (for roles)", required=False),
     ) -> None:
         """Manage users/roles excluded from credit and users hidden from ranking."""
+        if not await require_admin(ctx):
+            return
         guild_id = ctx.guild_id
         if action == "list":
             doc_users = await self.store._id_list(guild_id, "users")
@@ -908,13 +925,15 @@ class InvitesCog(commands.Cog):
             ephemeral=True,
         )
 
-    @invites_group.command(
+    @invites_admin_group.command(
         name="reset",
         description="[ADMIN] Reset all invite stats",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def invites_reset(self, ctx: discord.ApplicationContext) -> None:
         """Reset every tracked join and counter (with confirmation)."""
+        if not await require_admin(ctx):
+            return
         from rosemary.ui.confirm import ConfirmView
 
         t = self.bot.translator.t
@@ -981,7 +1000,7 @@ class InvitesCog(commands.Cog):
         await view.prepare()
         await ctx.respond(view=view, ephemeral=True)
 
-    @invites_group.command(
+    @invites_admin_group.command(
         name="label",
         description="[ADMIN] Label an invite code",
         default_member_permissions=discord.Permissions(administrator=True),
@@ -993,6 +1012,8 @@ class InvitesCog(commands.Cog):
         label: discord.Option(str, description="Label (omit to clear)", required=False),
     ) -> None:
         """Label a code with its source (omit the label to clear it)."""
+        if not await require_admin(ctx):
+            return
         guild_id = ctx.guild_id
         await self.store.set_label(guild_id, code, label)
         if label:

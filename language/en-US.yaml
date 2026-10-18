@@ -53,6 +53,7 @@ general:
   unknown_error: '{error} An unexpected error occurred.'
   'yes': 'Yes'
   'no': 'No'
+  no_permission: '{error} Only server administrators can use this command.'
 menu:
   owner_only: '{error} This menu is private. Only the author can interact.'
 confirm:
@@ -1266,11 +1267,11 @@ updater:
     updated:
       title: '{success} Bot Updated'
       description: 'Update applied: {previous} → {current}.'
-partnerships_add:
+partnerships_admin_add:
   command:
     name: add
     description: '[ADMIN] Add a partnership'
-partnerships_remove:
+partnerships_admin_remove:
   command:
     name: remove
     description: '[ADMIN] Remove a partnership'
@@ -1278,19 +1279,19 @@ partnerships_renew:
   command:
     name: renew
     description: Renew your partnership ad
-partnerships_invite:
+partnerships_admin_invite:
   command:
     name: invite
     description: '[ADMIN] Post the partnership invite text'
-partnerships_list:
+partnerships_admin_list:
   command:
     name: list
     description: '[ADMIN] List partnerships'
-partnerships_audit:
+partnerships_admin_audit:
   command:
     name: audit
     description: '[ADMIN] Audit partnerships without acting'
-partnerships_clean:
+partnerships_admin_clean:
   command:
     name: clean
     description: '[ADMIN] Remove orphan partnerships'
@@ -1350,7 +1351,27 @@ partnerships:
     orphans_cleaned:
       title: '{trash} Orphan Partnerships Cleaned'
       description: '{author} removed {count} orphan partnership(s).'
-tickets_panel:
+bump_admin:
+  command:
+    name: bump_admin
+    description: '[ADMIN] Admin-only bump tools'
+invites_admin:
+  command:
+    name: invites_admin
+    description: '[ADMIN] Admin-only invite tools'
+tickets_admin:
+  command:
+    name: tickets_admin
+    description: '[ADMIN] Admin-only ticket tools'
+suggest_admin:
+  command:
+    name: suggest_admin
+    description: '[ADMIN] Staff-only suggestion moderation'
+partnerships_admin:
+  command:
+    name: partnerships_admin
+    description: '[ADMIN] Admin-only partnership tools'
+tickets_admin_panel:
   command:
     name: panel
     description: '[ADMIN] Post the ticket panel'
@@ -1688,27 +1709,27 @@ server_invites:
   command:
     name: server_invites
     description: Show server-wide invite statistics
-invites_bonus:
+invites_admin_bonus:
   command:
     name: bonus
     description: '[ADMIN] Add or remove bonus invites'
-invites_sync:
+invites_admin_sync:
   command:
     name: sync
     description: '[ADMIN] Recount invite uses from Discord'
-invites_codes:
+invites_admin_codes:
   command:
     name: codes
     description: '[ADMIN] List invite codes and uses'
-invites_blacklist:
+invites_admin_blacklist:
   command:
     name: blacklist
     description: '[ADMIN] Manage the invite blacklist'
-invites_reset:
+invites_admin_reset:
   command:
     name: reset
     description: '[ADMIN] Reset all invite stats'
-invites_label:
+invites_admin_label:
   command:
     name: label
     description: '[ADMIN] Label an invite code'
@@ -3211,11 +3232,11 @@ suggest_send:
   command:
     name: send
     description: Send a server suggestion
-suggest_approve:
+suggest_admin_approve:
   command:
     name: approve
     description: '[ADMIN] Approve a suggestion by number'
-suggest_reject:
+suggest_admin_reject:
   command:
     name: reject
     description: '[ADMIN] Reject a suggestion by number'

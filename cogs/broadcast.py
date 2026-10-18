@@ -15,6 +15,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.cards import log_description
+from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import get_setting
 
@@ -39,6 +40,10 @@ class BroadcastCog(commands.Cog):
         "broadcast",
         description="Live broadcast sessions",
         contexts={discord.InteractionContextType.guild},
+        # Every subcommand is admin-only. The API reads the restriction only
+        # on the top-level command, so declare it here for real client-side
+        # hiding and pair it with require_admin() in each handler.
+        default_member_permissions=discord.Permissions(administrator=True),
     )
     def __init__(self, bot) -> None:
         self.bot = bot
@@ -55,6 +60,8 @@ class BroadcastCog(commands.Cog):
         title: discord.Option(str, description="Broadcast title"),
     ) -> None:
         """Open a relay session bound to the current channel."""
+        if not await require_admin(ctx):
+            return
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "broadcast.enabled"):
             return await ctx.respond(
@@ -104,6 +111,8 @@ class BroadcastCog(commands.Cog):
     )
     async def broadcast_stop(self, ctx: discord.ApplicationContext) -> None:
         """End the running session and report stats."""
+        if not await require_admin(ctx):
+            return
         guild_id = ctx.guild_id
         session = self._sessions.pop(guild_id, None)
         if session is None:

@@ -155,7 +155,7 @@ def test_command_names_are_valid():
         name = data["suggest"]["command"]["name"]
         assert _COMMAND_NAME_RE.match(name) and name == name.lower(), f"{code}:{name!r}"
         assert isinstance(data["suggest"]["command"]["description"], str)
-        for key in ("suggest_send", "suggest_approve", "suggest_reject"):
+        for key in ("suggest_send", "suggest_admin_approve", "suggest_admin_reject"):
             sub = data[key]["command"]
             assert _COMMAND_NAME_RE.match(sub["name"]), f"{code}:{key}:{sub['name']!r}"
             assert sub["name"] == sub["name"].lower(), f"{code}:{key}"

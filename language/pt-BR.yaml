@@ -53,6 +53,7 @@ general:
   unknown_error: '{error} Ocorreu um erro inesperado.'
   'yes': 'Sim'
   'no': 'Não'
+  no_permission: '{error} Apenas administradores do servidor podem usar este comando.'
 menu:
   owner_only: '{error} Este menu é privado. Somente o autor pode interagir.'
 confirm:
@@ -1266,11 +1267,11 @@ updater:
     updated:
       title: '{success} Bot Atualizado'
       description: 'Update aplicado: {previous} → {current}.'
-partnerships_add:
+partnerships_admin_add:
   command:
     name: adicionar
     description: '[ADMIN] Adiciona uma parceria'
-partnerships_remove:
+partnerships_admin_remove:
   command:
     name: remover
     description: '[ADMIN] Remove uma parceria'
@@ -1278,25 +1279,25 @@ partnerships_renew:
   command:
     name: renovar
     description: Renova seu anúncio de parceria
-partnerships_invite:
+partnerships_admin_invite:
   command:
     name: convidar
     description: '[ADMIN] Posta o texto de convite'
-partnerships_list:
+partnerships_admin_list:
   command:
     name: listar
     description: '[ADMIN] Lista parcerias'
-partnerships_audit:
+partnerships_admin_audit:
   command:
     name: auditar
     description: '[ADMIN] Audita parcerias sem agir'
-partnerships_clean:
+partnerships_admin_clean:
   command:
     name: limpar
     description: '[ADMIN] Remove parcerias órfãs'
 partnerships:
   command:
-    name: partnerships
+    name: parcerias
     description: Gerencia parcerias do servidor
   error_disabled: '{error} Parcerias estão desativadas neste servidor.'
   error_no_channel: '{error} Nenhum canal de parcerias configurado.'
@@ -1350,7 +1351,27 @@ partnerships:
     orphans_cleaned:
       title: '{trash} Órfãs Removidas'
       description: '{author} removeu {count} parceria(s) órfã(s).'
-tickets_panel:
+bump_admin:
+  command:
+    name: bump_admin
+    description: '[ADMIN] Ferramentas de Bump para administradores'
+invites_admin:
+  command:
+    name: invites_admin
+    description: '[ADMIN] Ferramentas de convites para administradores'
+tickets_admin:
+  command:
+    name: tickets_admin
+    description: '[ADMIN] Ferramentas de Ticket para administradores'
+suggest_admin:
+  command:
+    name: suggest_admin
+    description: '[ADMIN] Moderação de sugestões para a staff'
+partnerships_admin:
+  command:
+    name: parcerias_admin
+    description: '[ADMIN] Ferramentas de parceria para administradores'
+tickets_admin_panel:
   command:
     name: painel
     description: '[ADMIN] Posta o painel de tickets'
@@ -1688,27 +1709,27 @@ server_invites:
   command:
     name: servidor
     description: Mostra stats de convites do servidor
-invites_bonus:
+invites_admin_bonus:
   command:
     name: bonus
     description: '[ADMIN] Adiciona ou remove bônus de convites'
-invites_sync:
+invites_admin_sync:
   command:
     name: sincronizar
     description: '[ADMIN] Reconta usos de convites no Discord'
-invites_codes:
+invites_admin_codes:
   command:
     name: codigos
     description: '[ADMIN] Lista códigos e usos'
-invites_blacklist:
+invites_admin_blacklist:
   command:
     name: bloqueados
     description: '[ADMIN] Gerencia a blacklist de convites'
-invites_reset:
+invites_admin_reset:
   command:
     name: resetar
     description: '[ADMIN] Reseta todos os stats de convites'
-invites_label:
+invites_admin_label:
   command:
     name: rotular
     description: '[ADMIN] Rotula um código de convite'
@@ -3212,11 +3233,11 @@ suggest_send:
   command:
     name: enviar
     description: Envie uma sugestão para o servidor
-suggest_approve:
+suggest_admin_approve:
   command:
     name: aprovar
     description: '[ADMIN] Aprova uma sugestão pelo número'
-suggest_reject:
+suggest_admin_reject:
   command:
     name: recusar
     description: '[ADMIN] Recusa uma sugestão pelo número'

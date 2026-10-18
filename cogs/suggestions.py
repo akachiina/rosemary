@@ -22,6 +22,7 @@ import time
 import discord
 from discord.ext import commands
 
+from rosemary.core.command_guards import require_permissions
 from rosemary.core.settings import get_setting
 from rosemary.core.suggestions import SuggestionStore
 from rosemary.ui.menu import MenuView
@@ -914,6 +915,15 @@ class SuggestionsCog(commands.Cog):
         description="Send server suggestions",
         contexts={discord.InteractionContextType.guild},
     )
+    #: Staff-only subgroup (manage_messages): see bump_admin_group for why
+    #: this needs its own top-level group; the API ignores subcommand-level
+    #: default_member_permissions.
+    suggest_admin_group = discord.SlashCommandGroup(
+        "suggest_admin",
+        description="Staff-only suggestion moderation",
+        contexts={discord.InteractionContextType.guild},
+        default_member_permissions=discord.Permissions(manage_messages=True),
+    )
 
     async def build_suggest_modal(self, guild_id: int):
         """The suggestion intake modal (shared by /suggest and the send button)."""
@@ -1028,6 +1038,8 @@ class SuggestionsCog(commands.Cog):
         reason: str | None,
     ) -> None:
         """Shared body of the approve/reject staff subcommands."""
+        if not await require_permissions(ctx, "manage_messages"):
+            return
         guild = ctx.guild
         if guild is None:
             return
@@ -1068,7 +1080,7 @@ class SuggestionsCog(commands.Cog):
             ephemeral=True,
         )
 
-    @suggest_group.command(
+    @suggest_admin_group.command(
         name="approve",
         description="Approve a suggestion by number",
         default_member_permissions=discord.Permissions(manage_messages=True),
@@ -1084,7 +1096,7 @@ class SuggestionsCog(commands.Cog):
         """Mark a suggestion approved (staff)."""
         await self._decide_command(ctx, number, "approved", reason)
 
-    @suggest_group.command(
+    @suggest_admin_group.command(
         name="reject",
         description="Reject a suggestion by number",
         default_member_permissions=discord.Permissions(manage_messages=True),

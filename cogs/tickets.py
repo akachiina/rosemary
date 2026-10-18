@@ -21,6 +21,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.cards import log_description, maybe_view, text_or
+from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import get_setting
 from rosemary.core.tickets import CLOSED, OPEN, TicketStore
@@ -60,6 +61,14 @@ class TicketsCog(commands.Cog):
         "tickets",
         description="Ticket panels",
         contexts={discord.InteractionContextType.guild},
+    )
+    #: Admin-only subgroup (see bump_admin_group for why this needs its own
+    #: top-level group: the API ignores subcommand-level permissions).
+    tickets_admin_group = discord.SlashCommandGroup(
+        "tickets_admin",
+        description="Admin-only ticket management",
+        contexts={discord.InteractionContextType.guild},
+        default_member_permissions=discord.Permissions(administrator=True),
     )
     def __init__(self, bot) -> None:
         self.bot = bot
@@ -442,13 +451,15 @@ class TicketsCog(commands.Cog):
 
     #: commands ------------------------------------------------------------
 
-    @tickets_group.command(
+    @tickets_admin_group.command(
         name="panel",
         description="[ADMIN] Post the ticket panel",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def tickets_panel(self, ctx: discord.ApplicationContext) -> None:
         """Post (or refresh) the ticket panel in the configured channel."""
+        if not await require_admin(ctx):
+            return
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "tickets.enabled"):
             return await ctx.respond(

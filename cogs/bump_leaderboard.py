@@ -19,6 +19,7 @@ from discord.ext import commands, tasks
 from rosemary.core.boost_roles import BoostRoleStore
 from rosemary.core.bump import BumpStore
 from rosemary.core.cards import log_description, maybe_view
+from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_channel_log
 from rosemary.core.settings import get_setting
 from rosemary.core.timezone import resolve_timezone
@@ -72,6 +73,18 @@ bump_group = discord.SlashCommandGroup(
 
 class BumpLeaderboardCog(commands.Cog):
     """Weekly bump leaderboard and MVP role management."""
+
+    #: Admin-only subgroup. Discord hides a command client-side only via the
+    #: top-level ``default_member_permissions``; subcommand declarations are
+    #: ignored by the API, so the admin subcommands live in their own fully
+    #: admin group instead of the public ``/bump``. Handlers still call
+    #: ``require_admin`` for defense in depth.
+    bump_admin_group = discord.SlashCommandGroup(
+        "bump_admin",
+        description="Admin-only bump management",
+        contexts={discord.InteractionContextType.guild},
+        default_member_permissions=discord.Permissions(administrator=True),
+    )
 
     def __init__(self, bot) -> None:
         self.bot = bot
@@ -694,13 +707,15 @@ class BumpLeaderboardCog(commands.Cog):
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @bump_group.command(
+    @bump_admin_group.command(
         name="test_leaderboard",
         description="[ADMIN] Force the weekly leaderboard calculation",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def test_bump_leaderboard(self, ctx: discord.ApplicationContext) -> None:
         """Force the weekly leaderboard processing and posting."""
+        if not await require_admin(ctx):
+            return
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "bump.enabled"):
             return await ctx.respond(
@@ -815,13 +830,15 @@ class BumpLeaderboardCog(commands.Cog):
         )
         return True
 
-    @bump_group.command(
+    @bump_admin_group.command(
         name="reset_week",
         description="[ADMIN] Manually reset the bump week",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def reset_bump_week(self, ctx: discord.ApplicationContext) -> None:
         """Reset the weekly leaderboard without posting."""
+        if not await require_admin(ctx):
+            return
         await ctx.response.defer(ephemeral=True)
         await self.bump_store.reset_week(
             ctx.guild_id, reason="reset_week_command", actor_id=ctx.author.id
@@ -849,7 +866,7 @@ class BumpLeaderboardCog(commands.Cog):
             await self.bot.translator.t(ctx.guild_id, "bump.success.week_reset"), ephemeral=True
         )
 
-    @bump_group.command(
+    @bump_admin_group.command(
         name="add_test",
         description="[ADMIN] Add test bumps for a user",
         default_member_permissions=discord.Permissions(administrator=True),
@@ -863,6 +880,8 @@ class BumpLeaderboardCog(commands.Cog):
         ),
     ) -> None:
         """Add ``count`` bumps for ``user`` in this week's leaderboard."""
+        if not await require_admin(ctx):
+            return
         # Each add_bump is a read-modify-write of the guild JSON; with count up to
         # 100 this easily exceeds the 3s initial-response window, so DEFER first.
         await ctx.response.defer(ephemeral=True)

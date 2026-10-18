@@ -10,6 +10,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.cards import log_description
+from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_channel_log
 from rosemary.core.reminders import ReminderStore
 from rosemary.core.settings import get_setting
@@ -25,6 +26,10 @@ class RemindersCog(commands.Cog):
         "reminders",
         description="Manage reminders",
         contexts={discord.InteractionContextType.guild},
+        # Every subcommand is admin-only. The API reads the restriction only
+        # on the top-level command, so declare it here for real client-side
+        # hiding and pair it with require_admin() in each handler.
+        default_member_permissions=discord.Permissions(administrator=True),
     )
     def __init__(self, bot) -> None:
         self.bot = bot
@@ -45,6 +50,8 @@ class RemindersCog(commands.Cog):
         message: discord.Option(str, description="Message text"),
     ) -> None:
         """Save a named reminder message."""
+        if not await require_admin(ctx):
+            return
         if not await self._guard(ctx.guild_id):
             return await ctx.respond(
                 await self.bot.translator.t(ctx.guild_id, "reminders.error_disabled"),
@@ -69,6 +76,8 @@ class RemindersCog(commands.Cog):
         name: discord.Option(str, description="Short name"),
     ) -> None:
         """Delete a named reminder message."""
+        if not await require_admin(ctx):
+            return
         if not await self._guard(ctx.guild_id):
             return await ctx.respond(
                 await self.bot.translator.t(ctx.guild_id, "reminders.error_disabled"),
@@ -92,6 +101,8 @@ class RemindersCog(commands.Cog):
     )
     async def reminders_list(self, ctx: discord.ApplicationContext) -> None:
         """List saved reminder names as a themed card."""
+        if not await require_admin(ctx):
+            return
         if not await self._guard(ctx.guild_id):
             return await ctx.respond(
                 await self.bot.translator.t(ctx.guild_id, "reminders.error_disabled"),
@@ -135,6 +146,8 @@ class RemindersCog(commands.Cog):
         name: discord.Option(str, description="Short name"),
     ) -> None:
         """Fan out a saved reminder to every non-bot member."""
+        if not await require_admin(ctx):
+            return
         guild_id = ctx.guild_id
         if not await self._guard(guild_id):
             return await ctx.respond(

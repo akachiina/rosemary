@@ -14,6 +14,7 @@ import discord.ext.tasks as tasks
 from discord.ext import commands
 
 from rosemary.core.cards import log_description, text_or
+from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_channel_log
 from rosemary.core.partnerships import PartnershipStore
 from rosemary.core.settings import get_setting
@@ -28,6 +29,14 @@ class PartnershipsCog(commands.Cog):
         "partnerships",
         description="Manage server partnerships",
         contexts={discord.InteractionContextType.guild},
+    )
+    #: Admin-only subgroup (see bump_admin_group for why this needs its own
+    #: top-level group: the API ignores subcommand-level permissions).
+    partnerships_admin_group = discord.SlashCommandGroup(
+        "partnerships_admin",
+        description="Admin-only partnership management",
+        contexts={discord.InteractionContextType.guild},
+        default_member_permissions=discord.Permissions(administrator=True),
     )
 
     def __init__(self, bot) -> None:
@@ -253,7 +262,7 @@ class PartnershipsCog(commands.Cog):
 
     #: commands ------------------------------------------------------------------
 
-    @partnerships_group.command(
+    @partnerships_admin_group.command(
         name="add",
         description="[ADMIN] Add a partnership",
         default_member_permissions=discord.Permissions(administrator=True),
@@ -264,6 +273,8 @@ class PartnershipsCog(commands.Cog):
         member: discord.Option(discord.Member, description="Partner representative"),
     ) -> None:
         """Open the ad-text modal for a new partnership (submit posts it)."""
+        if not await require_admin(ctx):
+            return
         from rosemary.core.cards import safe_format
         from rosemary.ui.modals import make_text_modal
 
@@ -326,7 +337,7 @@ class PartnershipsCog(commands.Cog):
         )
         await ctx.send_modal(modal)
 
-    @partnerships_group.command(
+    @partnerships_admin_group.command(
         name="remove",
         description="[ADMIN] Remove a partnership",
         default_member_permissions=discord.Permissions(administrator=True),
@@ -337,6 +348,8 @@ class PartnershipsCog(commands.Cog):
         member: discord.Option(discord.Member, description="Partner representative"),
     ) -> None:
         """Remove a partnership: delete the ad and strip the role."""
+        if not await require_admin(ctx):
+            return
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "partnerships.enabled"):
             return await ctx.respond(
@@ -400,7 +413,7 @@ class PartnershipsCog(commands.Cog):
             ephemeral=True,
         )
 
-    @partnerships_group.command(
+    @partnerships_admin_group.command(
         name="invite",
         description="[ADMIN] Post the partnership invite text",
         default_member_permissions=discord.Permissions(administrator=True),
@@ -420,6 +433,8 @@ class PartnershipsCog(commands.Cog):
         ) = None,
     ) -> None:
         """Post the guild's partnership pitch, pinging its invite role."""
+        if not await require_admin(ctx):
+            return
         guild = ctx.guild
         if not ctx.response.is_done():
             await ctx.response.defer(ephemeral=True)
@@ -446,13 +461,15 @@ class PartnershipsCog(commands.Cog):
             ephemeral=True,
         )
 
-    @partnerships_group.command(
+    @partnerships_admin_group.command(
         name="list",
         description="[ADMIN] List partnerships",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def partnerships_list(self, ctx: discord.ApplicationContext) -> None:
         """List partnerships with days left until renewal."""
+        if not await require_admin(ctx):
+            return
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "partnerships.enabled"):
             return await ctx.respond(
@@ -501,13 +518,15 @@ class PartnershipsCog(commands.Cog):
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @partnerships_group.command(
+    @partnerships_admin_group.command(
         name="audit",
         description="[ADMIN] Audit partnerships without acting",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def partnerships_audit(self, ctx: discord.ApplicationContext) -> None:
         """Report expired and orphan partnerships (read-only)."""
+        if not await require_admin(ctx):
+            return
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "partnerships.enabled"):
             return await ctx.respond(
@@ -559,13 +578,15 @@ class PartnershipsCog(commands.Cog):
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
-    @partnerships_group.command(
+    @partnerships_admin_group.command(
         name="clean",
         description="[ADMIN] Remove orphan partnerships",
         default_member_permissions=discord.Permissions(administrator=True),
     )
     async def partnerships_clean(self, ctx: discord.ApplicationContext) -> None:
         """Delete records (and ads) whose representative left the server."""
+        if not await require_admin(ctx):
+            return
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "partnerships.enabled"):
             return await ctx.respond(
