@@ -13,8 +13,8 @@ import re
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description, text_or
-from rosemary.core.debug import send_channel_log
+from rosemary.core.cards import text_or
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 
 log = logging.getLogger(__name__)
@@ -72,21 +72,13 @@ class AntiInviteCog(commands.Cog):
                         user_ids=[message.author.id],
                     ),
                 )
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild_id,
-                await self.bot.translator.t(guild_id, "anti_invite.logs.blocked.title"),
-                await log_description(
-                    self.bot,
-                    guild_id,
-                    "anti_invite.logs.blocked.description",
-                    user=message.author.mention,
-                    channel=message.channel.mention,
-                    code=match.group(1),
-                ),
-                color="warning",
-                card_key="anti_invite.logs.blocked.description",
-                mention_user_ids=[message.author.id],
+                "anti_invite.logs.blocked",
+                user=message.author.mention,
+                channel=message.channel.mention,
+                code=match.group(1),
             )
         except Exception as exc:
             log.error("Anti-invite check failed: %s", exc)

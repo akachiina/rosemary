@@ -28,6 +28,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.confessions import ConfessionStore
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui.menu import MenuView
 
@@ -612,20 +613,7 @@ class ConfessionsCog(commands.Cog):
         user_ids: list[int] | tuple[int, ...] = (),
         **variables,
     ) -> None:
-        from rosemary.core.cards import log_description
-        from rosemary.core.debug import send_channel_log
-
-        await send_channel_log(
-            self.bot,
-            guild_id,
-            await self.bot.translator.t(guild_id, f"confessions.logs.{key}.title"),
-            await log_description(
-                self.bot, guild_id, f"confessions.logs.{key}.description", **variables
-            ),
-            color=color,
-            card_key=f"confessions.logs.{key}.description",
-            mention_user_ids=list(user_ids),
-        )
+        await send_log(self.bot, guild_id, f"confessions.logs.{key}", **variables)
 
     #: modals ----------------------------------------------------------------
     async def build_confess_modal(self, guild_id: int):

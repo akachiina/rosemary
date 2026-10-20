@@ -18,9 +18,9 @@ from discord.ext import commands, tasks
 
 from rosemary.core.boost_roles import BoostRoleStore
 from rosemary.core.bump import BumpStore
-from rosemary.core.cards import log_description, maybe_view
+from rosemary.core.cards import maybe_view
 from rosemary.core.command_guards import require_admin
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.timezone import resolve_timezone
 from rosemary.ui.boost_dm import send_preview
@@ -155,14 +155,7 @@ class BumpLeaderboardCog(commands.Cog):
         channel = guild.get_channel(channel_id) if channel_id else None
         forced = source != "scheduler" or actor_id is not None
 
-        async def _attribution() -> str:
-            if not forced:
-                return ""
-            author = f"<@{actor_id}>" if actor_id else "?"
-            suffix = await self.bot.translator.t(
-                guild.id, "bump.logs.reset_attribution", author=author
-            )
-            return f"\n\n{suffix}"
+        author = f"<@{actor_id}>" if forced and actor_id else None
 
         if not leaderboard:
             if isinstance(channel, discord.TextChannel):
@@ -177,14 +170,11 @@ class BumpLeaderboardCog(commands.Cog):
                 )
             else:
                 log.info("Bump week reset by scheduler in %s (bumps=0)", guild.id)
-            description = await self.bot.translator.t(guild.id, "bump.logs.no_winner.description")
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild.id,
-                await self.bot.translator.t(guild.id, "bump.logs.no_winner.title"),
-                description + await _attribution(),
-                color="info",
-                card_key="bump.logs.no_winner.description",
+                "bump.logs.no_winner",
+                author=author,
             )
             return "no_bumps"
 
@@ -215,14 +205,11 @@ class BumpLeaderboardCog(commands.Cog):
                     guild.id,
                     sum(leaderboard.values()),
                 )
-            description = await self.bot.translator.t(guild.id, "bump.error_role_not_found")
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild.id,
-                await self.bot.translator.t(guild.id, "bump.logs.no_winner.title"),
-                description + await _attribution(),
-                color="danger",
-                card_key="bump.logs.no_winner.description",
+                "bump.logs.no_role",
+                author=author,
             )
             return "no_role"
 
@@ -261,21 +248,13 @@ class BumpLeaderboardCog(commands.Cog):
                 new_winner_id,
                 total_bumps,
             )
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild.id,
-            await self.bot.translator.t(guild.id, "bump.logs.week_reset.title"),
-            await log_description(
-                self.bot,
-                guild.id,
-                "bump.logs.week_reset.description",
-                winner=f"<@{new_winner_id}>",
-                bumps=total_bumps,
-            )
-            + await _attribution(),
-            color="success",
-            card_key="bump.logs.week_reset.description",
-            mention_user_ids=[new_winner_id],
+            "bump.logs.week_reset",
+            winner=f"<@{new_winner_id}>",
+            bumps=total_bumps,
+            author=author,
         )
         return "posted"
 
@@ -779,18 +758,11 @@ class BumpLeaderboardCog(commands.Cog):
             # staying silent, so the button always publishes something to the
             # bump channel. The ephemeral flash still reports "no_data".
             await self._post_no_bumps(guild, channel)
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild_id,
-                await self.bot.translator.t(guild_id, "bump.logs.no_bumps_posted.title"),
-                await log_description(
-                    self.bot,
-                    guild_id,
-                    "bump.logs.no_bumps_posted.description",
-                    channel=channel.mention,
-                ),
-                color="info",
-                card_key="bump.logs.no_bumps_posted.description",
+                "bump.logs.no_bumps_posted",
+                channel=channel.mention,
             )
             return False
 
@@ -815,18 +787,11 @@ class BumpLeaderboardCog(commands.Cog):
                 user_ids=[winner_id],
             ),
         )
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(guild_id, "bump.logs.leaderboard_posted.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "bump.logs.leaderboard_posted.description",
-                channel=channel.mention,
-            ),
-            color="info",
-            card_key="bump.logs.leaderboard_posted.description",
+            "bump.logs.leaderboard_posted",
+            channel=channel.mention,
         )
         return True
 
@@ -848,19 +813,11 @@ class BumpLeaderboardCog(commands.Cog):
             ctx.guild_id,
             ctx.author.id,
         )
-        await send_channel_log(
+        await send_log(
             self.bot,
             ctx.guild_id,
-            await self.bot.translator.t(ctx.guild_id, "bump.logs.week_reset_manual.title"),
-            await log_description(
-                self.bot,
-                ctx.guild_id,
-                "bump.logs.week_reset_manual.description",
-                author=ctx.author.mention,
-            ),
-            color="warning",
-            card_key="bump.logs.week_reset_manual.description",
-            mention_user_ids=[ctx.author.id],
+            "bump.logs.week_reset_manual",
+            author=ctx.author.mention,
         )
         await ctx.respond(
             await self.bot.translator.t(ctx.guild_id, "bump.success.week_reset"), ephemeral=True
@@ -888,22 +845,14 @@ class BumpLeaderboardCog(commands.Cog):
         for _ in range(count):
             await self.bump_store.add_bump(ctx.guild_id, user.id)
         total = (await self.bump_store.get_leaderboard(ctx.guild_id)).get(str(user.id), 0)
-        await send_channel_log(
+        await send_log(
             self.bot,
             ctx.guild_id,
-            await self.bot.translator.t(ctx.guild_id, "bump.logs.bumps_added.title"),
-            await log_description(
-                self.bot,
-                ctx.guild_id,
-                "bump.logs.bumps_added.description",
-                author=ctx.author.mention,
-                user=user.mention,
-                count=count,
-                total=total,
-            ),
-            color="warning",
-            card_key="bump.logs.bumps_added.description",
-            mention_user_ids=[ctx.author.id, user.id],
+            "bump.logs.bumps_added",
+            author=ctx.author.mention,
+            user=user.mention,
+            count=count,
+            total=total,
         )
         await ctx.respond(
             await self.bot.translator.t(

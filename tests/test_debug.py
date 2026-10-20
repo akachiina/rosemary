@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import io
 import time
+from unittest.mock import MagicMock
 
-from rosemary.core.debug import bot_state_summary, format_uptime, send_channel_log
+import discord
+
+from rosemary.core.debug import bot_state_summary, format_uptime, send_log
 
 
 def test_format_uptime_none():
@@ -45,28 +49,105 @@ class _FakeStorage:
         return dict(self.data)
 
 
-async def test_send_channel_log_disabled_by_default():
+class _Translator:
+    async def t(self, guild_id, key, **kwargs):
+        return key
+
+
+def _bot(data: dict, channel=None):
     class Bot:
-        storage = _FakeStorage({})
+        storage = _FakeStorage(data)
+        translator = _Translator()
 
-    assert await send_channel_log(Bot(), 1, "T", "D") is False
+        def get_channel(self, channel_id):
+            return channel
 
-
-async def test_send_channel_log_no_op_without_channel():
-    class Bot:
-        storage = _FakeStorage({"logging.enabled": True})
-
-        def get_channel(self, channel_id: int):
-            return None
-
-    assert await send_channel_log(Bot(), 1, "T", "D") is False
+    return Bot()
 
 
-async def test_send_channel_log_resolves_unusable_channel():
-    class Bot:
-        storage = _FakeStorage({"logging.enabled": True, "logging.channel": 999})
+async def test_send_log_disabled_by_default():
+    assert await send_log(_bot({}), 1, "debug.logs.test") is False
 
-        def get_channel(self, channel_id: int):
-            return None
 
-    assert await send_channel_log(Bot(), 1, "T", "D") is False
+async def test_send_log_no_op_without_channel():
+    assert await send_log(
+        _bot({"logging.enabled": True}), 1, "debug.logs.test"
+    ) is False
+
+
+async def test_send_log_resolves_unusable_channel():
+    assert await send_log(
+        _bot({"logging.enabled": True, "logging.channel": 999}),
+        1,
+        "debug.logs.test",
+    ) is False
+
+
+async def test_send_log_rejects_unknown_event():
+    assert await send_log(
+        _bot({"logging.enabled": True, "logging.channel": 999}),
+        1,
+        "no.such.event",
+    ) is False
+
+
+async def test_send_log_injects_actor_labels_and_body_variant(monkeypatch):
+    import rosemary.core.debug as debug_mod
+
+    channel = MagicMock(spec=discord.TextChannel)
+    bot = _bot({"logging.enabled": True, "logging.channel": 999}, channel)
+    captured: dict = {}
+
+    async def fake_render(got_bot, guild_id, event, variables):
+        captured.update({"event": event, **variables})
+        return object(), discord.AllowedMentions.none()
+
+    async def fake_send(got_channel, payload, allowed, **kwargs):
+        captured["channel"] = got_channel
+        captured["payload"] = payload
+        captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(debug_mod, "render_card_message", fake_render)
+    monkeypatch.setattr(debug_mod, "send_card", fake_send)
+
+    sent = await send_log(
+        bot,
+        1,
+        "moderation.logs.ban",
+        member="<@2>",
+        member_id="2",
+        moderator="<@3>",
+        reason="spam",
+        body_key="moderation.logs.ban.description",
+    )
+
+    assert sent is True
+    assert captured["event"] == "moderation.logs.ban"
+    assert captured["actor"] == "<@3>"
+    assert captured["member_label"] == "log.field.target"
+    assert captured["body_key"] == "moderation.logs.ban.description"
+    assert captured["channel"] is channel
+    assert "timestamp" in captured
+    assert captured["kwargs"] == {}
+
+
+async def test_send_log_attaches_file(monkeypatch):
+    import rosemary.core.debug as debug_mod
+
+    channel = MagicMock(spec=discord.TextChannel)
+    bot = _bot({"logging.enabled": True, "logging.channel": 999}, channel)
+    file = discord.File(fp=io.BytesIO(b"x"), filename="transcript.txt")
+    sent_kwargs: dict = {}
+
+    async def fake_render(got_bot, guild_id, event, variables):
+        return object(), discord.AllowedMentions.none()
+
+    async def fake_send(got_channel, payload, allowed, **kwargs):
+        sent_kwargs.update(kwargs)
+
+    monkeypatch.setattr(debug_mod, "render_card_message", fake_render)
+    monkeypatch.setattr(debug_mod, "send_card", fake_send)
+
+    assert await send_log(bot, 1, "tickets.logs.transcript", file=file) is True
+    assert sent_kwargs["file"] is file
+    file.close()

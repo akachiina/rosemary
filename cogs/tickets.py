@@ -20,9 +20,9 @@ import re
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description, maybe_view, text_or
+from rosemary.core.cards import maybe_view, text_or
 from rosemary.core.command_guards import require_admin
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.tickets import CLOSED, OPEN, TicketStore
 from rosemary.ui.confirm import ConfirmView
@@ -237,17 +237,7 @@ class TicketsCog(commands.Cog):
         user_ids: list[int] | tuple[int, ...] = (),
         **variables,
     ) -> None:
-        await send_channel_log(
-            self.bot,
-            guild_id,
-            await self.bot.translator.t(guild_id, f"tickets.logs.{key}.title"),
-            await log_description(
-                self.bot, guild_id, f"tickets.logs.{key}.description", **variables
-            ),
-            color=color,
-            card_key=f"tickets.logs.{key}.description",
-            mention_user_ids=list(user_ids),
-        )
+        await send_log(self.bot, guild_id, f"tickets.logs.{key}", **variables)
 
     async def _actor_allowed(self, guild: discord.Guild, user_id: int, owner_id: int) -> bool:
         if user_id == owner_id:
@@ -431,22 +421,16 @@ class TicketsCog(commands.Cog):
         return discord.File(io.BytesIO(data), filename=f"transcript-{channel.id}.txt")
 
     async def _log_file(
-        self, guild_id: int, title_key: str, description_key: str, file: discord.File,
+        self, guild_id: int, description_key: str, file: discord.File,
         **variables,
     ) -> bool:
         """Transcript log via the standard V2 log card (file attached)."""
-        title = await self.bot.translator.t(guild_id, title_key)
-        description = await log_description(
-            self.bot, guild_id, description_key, **variables
-        )
-        return await send_channel_log(
+        return await send_log(
             self.bot,
             guild_id,
-            title,
-            description,
-            color="info",
-            card_key=description_key,
+            description_key.removesuffix(".description"),
             file=file,
+            **variables,
         )
 
     #: commands ------------------------------------------------------------
@@ -769,7 +753,6 @@ class TicketActionsView(MenuView):
         file = await cog.build_transcript(channel)
         ok = await cog._log_file(
             guild.id,
-            "tickets.logs.transcript.title",
             "tickets.logs.transcript.description",
             file,
             channel=channel.mention,

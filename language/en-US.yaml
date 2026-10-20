@@ -26,12 +26,12 @@ themes:
     name: themes
     description: Manage this server's themes
   title: Themes
-  hint: 'Import a theme file, pick the active one, or export/download what is installed.'
+  hint: Import a theme file, pick the active one, or export/download what is installed.
   active_none: Built-in default
   active_label: 'Active theme: **{theme}**'
   import_title: Import theme
   import_label: Theme file (.yaml)
-  import_description: 'A theme YAML previously exported from Rosemary or written by hand.'
+  import_description: A theme YAML previously exported from Rosemary or written by hand.
   imported: '{success} Theme **{theme}** imported and validated.'
   select_placeholder: Choose the active theme...
   selected: '{success} Theme **{theme}** is now active.'
@@ -147,16 +147,16 @@ settings:
     description: Lock the bump channel on a fixed daily schedule.
   bump.schedule.open_time:
     label: Daily Open Time
-    description: 'Time the channel opens every day (HH:MM, e.g. 06:00).'
+    description: Time the channel opens every day (HH:MM, e.g. 06:00).
   bump.schedule.open_message:
     label: Opening Message
-    description: 'Message posted when the channel opens. Supports {{ping_role}}.'
+    description: Message posted when the channel opens. Supports {{ping_role}}.
   bump.schedule.close_time:
     label: Daily Close Time
-    description: 'Time the channel closes every day (HH:MM, e.g. 23:00).'
+    description: Time the channel closes every day (HH:MM, e.g. 23:00).
   bump.schedule.close_message:
     label: Closing Message
-    description: 'Message posted when the channel closes. Supports {{ping_role}}.'
+    description: Message posted when the channel closes. Supports {{ping_role}}.
   bump.leaderboard.enabled:
     label: Weekly Leaderboard Enabled
     description: Enables the weekly ranking and Bump-MVP role.
@@ -234,11 +234,17 @@ settings:
   page_indicator: Page {page} of {pages}
   log:
     title: '{gear} Setting Changed'
-    description: "**{pencil} {setting}** ({category}): {old} → {new}\n**{people} By:** {author}"
-    language_title: '{gear} Language Changed'
+    description: '**{pencil} {setting}** ({category}): {old} → {new}
+
+      **{people} By:** {author}'
   logs:
     language:
-      description: "**From:** {old}\n**To:** {new}\n**By:** {author}"
+      description: '**From:** {old}
+
+        **To:** {new}
+
+        **By:** {author}'
+      title: '{gear} Language Changed'
   bool:
     'true': 'On'
     'false': 'Off'
@@ -365,9 +371,7 @@ settings:
     description: Role pinged on partnership expiry.
   partnerships.invite_text:
     label: Partnership invite text
-    description: >-
-      Text posted by /partnerships_invite. Placeholders: {{rep}} and
-      {{ping_role}}.
+    description: 'Text posted by /partnerships_invite. Placeholders: {{rep}} and {{ping_role}}.'
   partnerships.renewal_days:
     label: Renewal period (days)
     description: Days before a partnership ad expires (1-90).
@@ -516,7 +520,7 @@ settings:
     description: Role granted to celebrants for the day.
   birthdays.announce_time:
     label: Announce time
-    description: 'Daily announce time (HH:MM, e.g. 12:00).'
+    description: Daily announce time (HH:MM, e.g. 12:00).
   birthdays.change_cooldown_days:
     label: Change cooldown (days)
     description: Days before a birthday can be changed (0-365).
@@ -550,10 +554,8 @@ boost:
     my_roles_empty: You do not own or belong to any boost role yet.
     pending_invites_empty: You have no pending invites.
     pending_invite_entry: '{invitee} · expires {expires}'
-    register: Pick the role you own to register it as your boost role. Then you will choose who becomes
-      the owner.
-    register_owner: Pick who will be the owner of the role {role}. They will receive a private message
-      with the instructions.
+    register: Pick the role you own to register it as your boost role. Then you will choose who becomes the owner.
+    register_owner: Pick who will be the owner of the role {role}. They will receive a private message with the instructions.
     remove: Pick a boost role to remove.
     transfer: Pick a boost role to transfer.
     select_color: Pick a color for the role.
@@ -688,8 +690,7 @@ boost:
       '
     auto_transferred: '{swap} Ownership Transferred Automatically!
 
-      Hello, {mention}! Since the previous owner left the server, ownership of the boost role @{role_name}
-      was transferred to you on **{server_name}**.
+      Hello, {mention}! Since the previous owner left the server, ownership of the boost role @{role_name} was transferred to you on **{server_name}**.
 
 
       Use the boost roles panel to manage your role.
@@ -707,8 +708,7 @@ boost:
       > **{clock} Expires:** {expires}
 
 
-      -# By accepting, you will receive the role and can use it on the server. Use the buttons below to
-      reply!
+      -# By accepting, you will receive the role and can use it on the server. Use the buttons below to reply!
 
       '
     accepted: '{success} Invite Accepted!
@@ -805,55 +805,121 @@ boost:
   logs:
     register:
       title: '{register} Boost Role Registered'
-      description: "**{tag} Role:** {role}\n**{people} Owner:** {owner}\n**{gear} Registered by:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        **{people} Owner:** {owner}
+
+        **{gear} Registered by:** {actor}'
     remove:
       title: '{trash} Boost Role Removed'
-      description: "**{tag} Role:** {role}\n**{people} Owner:** {owner}\n**{gear} Removed by:** {actor}\n**{trash} Role deleted:** {deleted}"
+      description: '**{tag} Role:** {role}
+
+        **{people} Owner:** {owner}
+
+        **{gear} Removed by:** {actor}
+
+        **{trash} Role deleted:** {deleted}'
     transfer:
       title: '{swap} Ownership Transferred'
-      description: "**{tag} Role:** {role}\n**{people} Previous owner:** {old_owner}\n**{people} New owner:** {new_owner}\n**{gear} Transferred by:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        **{people} Previous owner:** {old_owner}
+
+        **{people} New owner:** {new_owner}
+
+        **{gear} Transferred by:** {actor}'
     rename:
       title: '{pencil} Role Renamed'
-      description: "**{tag} Role:** {role}\n**{pencil} From:** {old_name}\n**{pencil} To:** {new_name}\n**{gear} By:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        **{pencil} From:** {old_name}
+
+        **{pencil} To:** {new_name}
+
+        **{gear} By:** {actor}'
     color_change:
       title: '{palette} Color Changed'
-      description: "**{tag} Role:** {role}\n**{palette} New color:** {new_color}\n**{gear} By:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        **{palette} New color:** {new_color}
+
+        **{gear} By:** {actor}'
     emoji_change:
       title: '{tag} Emoji Changed'
-      description: "**{tag} Role:** {role}\n**{frame} New emoji:** {emoji}\n**{gear} By:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        **{frame} New emoji:** {emoji}
+
+        **{gear} By:** {actor}'
     icon:
       title: '{frame} Icon Changed'
-      description: "**{tag} Role:** {role}\n**{frame} Icon:** updated by {actor}."
+      description: '**{tag} Role:** {role}
+
+        **{frame} Icon:** updated by {actor}.'
     member_add:
       title: '{plus} Member Added'
-      description: "**{tag} Role:** {role}\n{member} joined the role.\n**{gear} Added by:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        {member} joined the role.
+
+        **{gear} Added by:** {actor}'
     member_remove:
       title: '{minus} Member Removed'
-      description: "**{tag} Role:** {role}\n{member} was removed from the role.\n**{gear} Removed by:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        {member} was removed from the role.
+
+        **{gear} Removed by:** {actor}'
     member_left:
       title: '{door} Member Left the Role'
-      description: "**{tag} Role:** {role}\n{member} left the role.\n**{people} Owner:** {owner}"
+      description: '**{tag} Role:** {role}
+
+        {member} left the role.
+
+        **{people} Owner:** {owner}'
     invite_sent:
       title: '{love_letter} Invite Sent'
-      description: "**{tag} Role:** {role}\n**{people} Invitee:** {invitee}\n**{people} By:** {inviter}\n**{clock} Expires:** {expires}"
+      description: '**{tag} Role:** {role}
+
+        **{people} Invitee:** {invitee}
+
+        **{people} By:** {inviter}
+
+        **{clock} Expires:** {expires}'
     invite_cancelled:
       title: '{error} Invite Cancelled'
-      description: "**{tag} Role:** {role}\nInvite for {invitee} cancelled.\n**{gear} By:** {actor}"
+      description: '**{tag} Role:** {role}
+
+        Invite for {invitee} cancelled.
+
+        **{gear} By:** {actor}'
     invite_accepted:
       title: '{success} Invite Accepted'
-      description: "**{tag} Role:** {role}\n{member} accepted the invite.\n**{people} Invited by:** {inviter}"
+      description: '**{tag} Role:** {role}
+
+        {member} accepted the invite.
+
+        **{people} Invited by:** {inviter}'
     invite_declined:
       title: '{error} Invite Declined'
-      description: "**{tag} Role:** {role}\n{member} declined the invite.\n**{people} Invited by:** {inviter}"
+      description: '**{tag} Role:** {role}
+
+        {member} declined the invite.
+
+        **{people} Invited by:** {inviter}'
     invite_expired:
       title: '{clock} Invite Expired'
-      description: "**{tag} Role:** {role}\nInvite for {invitee} expired.\n**{people} Invited by:** {inviter}"
+      description: '**{tag} Role:** {role}
+
+        Invite for {invitee} expired.
+
+        **{people} Invited by:** {inviter}'
     auto_transfer:
       title: '{warning} Automatic Ownership Transfer'
-      description: "**{tag} Role:** {role} was transferred from {old_owner} to {new_owner}."
+      description: '**{tag} Role:** {role} was transferred from {old_owner} to {new_owner}.'
     orphan_remove:
       title: '{ban} Orphan Role Removed'
-      description: "**{tag} Role:** {role} from {owner} was removed from the system."
+      description: '**{tag} Role:** {role} from {owner} was removed from the system.'
   error_disabled: '{error} The boost roles system is disabled in this server.'
 boost_panel:
   command:
@@ -910,7 +976,7 @@ colors:
     attach: Attach roles
     pending: 'Selected ({count}): {roles}'
     attach_title: Attach Roles
-    attach_hint: 'Pick the roles that become colors. Each role''s current color is inherited; edit later to adjust name or hex.'
+    attach_hint: Pick the roles that become colors. Each role's current color is inherited; edit later to adjust name or hex.
     attach_placeholder: Choose the roles...
     attached: '{check} {count} role(s) attached.'
     saved: '{check} Color updated.'
@@ -920,13 +986,13 @@ colors:
     role_modal_title: Create Color Role
     edit_modal_title: Edit Color
     field_name: Name (shown in the image)
-    field_hex: 'Hex color (e.g. FFB7C5)'
+    field_hex: Hex color (e.g. FFB7C5)
     delete_title: Remove Color
-    delete_text: 'Color **{name}** leaves the panel. The Discord role is **not** deleted.'
+    delete_text: Color **{name}** leaves the panel. The Discord role is **not** deleted.
     delete_confirm: Remove
   panel:
     title: Pick your Color
-    text: 'Click the number of the color you want ({count} available). Clicking again removes it.'
+    text: Click the number of the color you want ({count} available). Clicking again removes it.
     placeholder: Pick your color...
     applied: '{check} Color **{name}** applied!'
     removed: '{check} Color **{name}** removed.'
@@ -945,8 +1011,7 @@ bump:
   messages:
     anti_camping: 🔒 **|** The channel is temporarily locked. Bump will be available shortly!
     thank_you_title: '{tada} Bump Recorded!'
-    thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining.
-      {cup}
+    thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining. {cup}
 
 
       {clock} **|** I''ll remind you in **{cooldown}!**
@@ -1092,7 +1157,6 @@ bump:
     bumps_added:
       title: '{pencil} Test Bumps Added'
       description: '{author} added {count} test bump(s) for {user} (weekly total: {total}).'
-    reset_attribution: 'Forced by {author}.'
   error_disabled: '{error} The bump system is disabled in this server.'
   schedule:
     open_message_default: '{unlock} The bump channel is open! {ping_role} Use `/bump` to help the server!'
@@ -1115,7 +1179,7 @@ bump:
     last_bump: '**Last Bump:** <t:{timestamp}:R>'
     last_bump_na: '**Last Bump:** N/A'
     next_reminder: '**Next Reminder:** {next}'
-    none: 'N/A'
+    none: N/A
     last_reset: '**Last Reset:** {when} by {author} ({reason})'
     last_reset_na: '**Last Reset:** N/A'
     reset_actor_automatic: automatic
@@ -1263,7 +1327,7 @@ updater:
       description: '{moderator} started an update to **{target}** (from {previous}). Restarting.'
     auto_failed:
       title: '{error} Auto-update Failed'
-      description: 'Automatic check failed ({reason}). It will retry on schedule.'
+      description: Automatic check failed ({reason}). It will retry on schedule.
     updated:
       title: '{success} Bot Updated'
       description: 'Update applied: {previous} → {current}.'
@@ -1302,26 +1366,99 @@ partnerships:
   error_disabled: '{error} Partnerships are disabled on this server.'
   error_no_channel: '{error} No partnerships channel configured.'
   modal:
-    title: 'Partnership ad'
-    label: 'Ad text'
-    placeholder: 'Write the ad. Use {{rep}} and {{ping_role}} anywhere.'
+    title: Partnership ad
+    label: Ad text
+    placeholder: Write the ad. Use {{rep}} and {{ping_role}} anywhere.
   error_not_found: '{error} No partnership for {user}.'
   error_not_rep: '{error} You do not represent any partnership here.'
-  list_empty: 'No partnerships yet.'
-  list_title: 'Partnerships'
+  list_empty: No partnerships yet.
+  list_title: Partnerships
   list_line: '- {user} ({days}d left){warned}'
-  audit_title: 'Partnership Audit'
+  audit_title: Partnership Audit
   audit_body: 'Expired: {expired}
 
     Orphaned: {orphans}'
-  invite_text: 'Partner with us! Talk to the staff to join.'
-  invite_text_default: 'Partner with us! Talk to {rep} to join.'
+  invite_text: Partner with us! Talk to the staff to join.
+  invite_text_default: Partner with us! Talk to {rep} to join.
   dm:
-    added: "# {crown} New Partnership Established!\n\nHello, {mention}! You have been designated as the **official representative** of the partnership with **{server}**.\n\n### {scroll} Your responsibilities\n> Keep your server safe, active and welcoming\n> Follow the partnership rules of the corresponding channel\n> Represent both communities with respect\n\n{tada} Thank you for being part of this partnership!\n-# Leaving the server or breaking the rules may result in losing the partnership. Questions? Talk to the moderation team!"
-    removed: "# {door} Partnership Ended\n\nHello, {mention}! Your partnership with **{server}** was ended by the staff.\n\n{envelope} If you want to re-establish it, talk to the server staff to start the process again.\n\n-# This is an automated partnership notification."
-    warning: "# {clock} Partnership Renewal Required!\n\nHello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.\n\n### How to renew\n> Use the `/partnerships_renew` command on the server before the deadline.\n\n### {warning} Deadline\n> You have **{days} day(s)** to act.\n\n-# When it expires, your partnership ad will be deleted and the partner role will be removed."
-    expired: "# {hourglass} Partnership Expired\n\nHello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.\n\n### {refresh} Want to come back?\n> Just talk to the server staff to redo the partnership process.\n\n-# Your ad was deleted and the partner role was removed."
-    expired_admin: "# {hourglass} Partnership Expired\n\nHello, {mention}! The partnership you added with representative {rep} expired without renewal and was removed from **{server}**.\n\n### {calendar} Details\n> **Representative:** {rep}\n> **Last renewed:** {days} day(s) ago\n\n### {refresh} Want to re-establish it?\n> Redo the process normally in the partnerships channel.\n> Invite to share with the representative: {invite}\n\n-# This is an automated notification. No further action was taken beyond removing the partnership."
+    added: '# {crown} New Partnership Established!
+
+
+      Hello, {mention}! You have been designated as the **official representative** of the partnership with **{server}**.
+
+
+      ### {scroll} Your responsibilities
+
+      > Keep your server safe, active and welcoming
+
+      > Follow the partnership rules of the corresponding channel
+
+      > Represent both communities with respect
+
+
+      {tada} Thank you for being part of this partnership!
+
+      -# Leaving the server or breaking the rules may result in losing the partnership. Questions? Talk to the moderation team!'
+    removed: '# {door} Partnership Ended
+
+
+      Hello, {mention}! Your partnership with **{server}** was ended by the staff.
+
+
+      {envelope} If you want to re-establish it, talk to the server staff to start the process again.
+
+
+      -# This is an automated partnership notification.'
+    warning: '# {clock} Partnership Renewal Required!
+
+
+      Hello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.
+
+
+      ### How to renew
+
+      > Use the `/partnerships_renew` command on the server before the deadline.
+
+
+      ### {warning} Deadline
+
+      > You have **{days} day(s)** to act.
+
+
+      -# When it expires, your partnership ad will be deleted and the partner role will be removed.'
+    expired: '# {hourglass} Partnership Expired
+
+
+      Hello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.
+
+
+      ### {refresh} Want to come back?
+
+      > Just talk to the server staff to redo the partnership process.
+
+
+      -# Your ad was deleted and the partner role was removed.'
+    expired_admin: '# {hourglass} Partnership Expired
+
+
+      Hello, {mention}! The partnership you added with representative {rep} expired without renewal and was removed from **{server}**.
+
+
+      ### {calendar} Details
+
+      > **Representative:** {rep}
+
+      > **Last renewed:** {days} day(s) ago
+
+
+      ### {refresh} Want to re-establish it?
+
+      > Redo the process normally in the partnerships channel.
+
+      > Invite to share with the representative: {invite}
+
+
+      -# This is an automated notification. No further action was taken beyond removing the partnership.'
   invite: '{server} 🤝'
   success:
     added: '{success} Partnership added for {user}.'
@@ -1344,7 +1481,7 @@ partnerships:
       description: '{user} was warned ({days}d overdue).'
     expired:
       title: '{clock} Partnership Expired'
-      description: 'Partnership of {user} expired. {ping}'
+      description: Partnership of {user} expired. {ping}
     invite_posted:
       title: '{love_letter} Partnership Invite Posted'
       description: '{author} posted the partnership invite.'
@@ -1389,8 +1526,8 @@ tickets:
   error_close_first: '{error} Close the ticket before deleting it.'
   panel_posted: '{success} Ticket panel posted.'
   panel:
-    title: 'Need help? Open a ticket'
-    text: 'Pick a type below and we will assist you.'
+    title: Need help? Open a ticket
+    text: Pick a type below and we will assist you.
     placeholder: Choose a ticket type...
   types:
     report:
@@ -1413,14 +1550,14 @@ tickets:
   cancel: Cancel
   cancelled: Cancelled.
   confirm_title: Open a ticket?
-  confirm_text: 'Open a **{type}** ticket?'
+  confirm_text: Open a **{type}** ticket?
   created_confirm: '{success} Ticket opened: {channel}'
   close: Close
   transcript: Transcript
   reopen: Reopen
   delete: Delete
   created:
-    title: 'Ticket opened'
+    title: Ticket opened
     text: '{user}, describe your issue. Staff will assist you soon ({type}).'
   closed_done: '{success} Ticket closed.'
   reopened_done: '{success} Ticket reopened.'
@@ -1433,16 +1570,16 @@ tickets:
       description: '{user} opened a **{type}** ticket in {channel}.'
     closed:
       title: '{lock} Ticket Closed'
-      description: 'Ticket {channel} was closed.'
+      description: Ticket {channel} was closed.
     reopened:
       title: '{unlock} Ticket Reopened'
-      description: 'Ticket {channel} was reopened.'
+      description: Ticket {channel} was reopened.
     deleted:
       title: '{trash} Ticket Deleted'
-      description: 'Ticket {channel} was deleted.'
+      description: Ticket {channel} was deleted.
     transcript:
       title: '{scroll} Ticket Transcript'
-      description: 'Transcript of {channel} (requested by {moderator}).'
+      description: Transcript of {channel} (requested by {moderator}).
 audit:
   no_nickname: (no nickname)
   edited_marker: (edited)
@@ -1457,7 +1594,7 @@ cleaner:
   error_conflict: '{error} Use a word OR a regex, not both.'
   error_bad_regex: '{error} Invalid regex: {reason}'
   error_last_range: '{error} The last-N limit must be between 1 and 1000.'
-  confirm_text: 'This deletes messages permanently. It cannot be undone.'
+  confirm_text: This deletes messages permanently. It cannot be undone.
   confirm: Delete everything
   cancel: Cancel
   stop: Stop
@@ -1472,14 +1609,14 @@ cleaner:
   result_gap: '{warning} {gap} matched message(s) could not be deleted.'
   stopped: '{warning} Purge stopped: {count} of {matched} matched message(s) deleted. {criterion}'
   cancelled: Purge cancelled.
-  criterion_word: 'with the word “{word}”'
-  criterion_regex: 'matching regex `{regex}`'
-  criterion_last: 'the last {count} message(s)'
-  criterion_last_word: 'the last {count} message(s) with the word “{word}”'
-  criterion_last_regex: 'the last {count} message(s) matching `{regex}`'
-  criterion_author: 'from author {author}'
-  criterion_channel: 'in {channel}'
-  criterion_all: 'in every channel'
+  criterion_word: with the word “{word}”
+  criterion_regex: matching regex `{regex}`
+  criterion_last: the last {count} message(s)
+  criterion_last_word: the last {count} message(s) with the word “{word}”
+  criterion_last_regex: the last {count} message(s) matching `{regex}`
+  criterion_author: from author {author}
+  criterion_channel: in {channel}
+  criterion_all: in every channel
   logs:
     purged:
       title: '{trash} Messages Purged'
@@ -1491,41 +1628,58 @@ anti_invite:
       title: '{ban} Invite Blocked'
       description: '{user} posted `{code}` in {channel} (deleted).'
 trap:
-  reason: 'Fell into the trap channel'
+  reason: Fell into the trap channel
   notice:
-    text: "This channel is a **moderation trap** on {server}.\n\n### {ban} Do not send messages here\n> This is a moderation trap channel to catch spam, bot and RAID accounts. Anyone posting here loses the message instantly and faces a consequence.\n\n**{gear} Configured consequence:** {action}\n\n{envelope} Fell here by mistake? Talk to the moderation team."
+    text: 'This channel is a **moderation trap** on {server}.
+
+
+      ### {ban} Do not send messages here
+
+      > This is a moderation trap channel to catch spam, bot and RAID accounts. Anyone posting here loses the message instantly and faces a consequence.
+
+
+      **{gear} Configured consequence:** {action}
+
+
+      {envelope} Fell here by mistake? Talk to the moderation team.'
     action:
-      none: 'The message is deleted.'
-      kick: 'Kick from the server.'
-      softban: 'Kick with a purge of recent messages.'
-      ban: 'Ban from the server.'
+      none: The message is deleted.
+      kick: Kick from the server.
+      softban: Kick with a purge of recent messages.
+      ban: Ban from the server.
   failure:
-    no_ban: 'The bot lacks the ban permission (or the victim role is above its own).'
-    no_kick: 'The bot lacks the kick permission.'
-    no_hierarchy: 'The victim role is above the bot role.'
+    no_ban: The bot lacks the ban permission (or the victim role is above its own).
+    no_kick: The bot lacks the kick permission.
+    no_hierarchy: The victim role is above the bot role.
     no_unban: 'The ban worked but the softban unban failed: the victim stays banned.'
   logs:
     failed:
       title: '{error} Trap Failed'
       description: '**{people} Target:** {user}\n**{gear} Consequence:** {action}\n**{scroll} Reason:** {reason}'
   dm:
-    text: "You posted in the trap channel of **{server}** and the message was removed.\n\n{action}\n\n-# This is an automated notification. Questions? Talk to the moderation team."
+    text: 'You posted in the trap channel of **{server}** and the message was removed.
+
+
+      {action}
+
+
+      -# This is an automated notification. Questions? Talk to the moderation team.'
     action:
-      none: 'Your message was deleted.'
-      kick: 'You were kicked from the server.'
-      softban: 'You were kicked and your recent messages were purged. You can come back with a new invite.'
-      ban: 'You were banned from the server and your recent messages were purged.'
+      none: Your message was deleted.
+      kick: You were kicked from the server.
+      softban: You were kicked and your recent messages were purged. You can come back with a new invite.
+      ban: You were banned from the server and your recent messages were purged.
   audit:
-    applied: 'Consequence applied'
-    skipped: 'Failed to apply (permission or hierarchy)'
+    applied: Consequence applied
+    skipped: Failed to apply (permission or hierarchy)
     action:
-      none: 'Delete message only'
-      kick: 'Kick'
-      softban: 'Softban'
-      ban: 'Ban'
-    user_label: 'Target'
-    action_label: 'Consequence'
-    reason_label: 'Reason'
+      none: Delete message only
+      kick: Kick
+      softban: Softban
+      ban: Ban
+    user_label: Target
+    action_label: Consequence
+    reason_label: Reason
 reminders_save:
   command:
     name: save
@@ -1551,7 +1705,7 @@ reminders:
   deleted: '{success} Reminder `{name}` deleted.'
   not_found: '{error} No reminder named `{name}`.'
   list_title: Saved reminders
-  list_empty: 'No reminders saved yet.'
+  list_empty: No reminders saved yet.
   done: '{success} Reminder sent to {sent} member(s) ({failed} failed).'
   logs:
     sent:
@@ -1598,9 +1752,9 @@ invites:
   leaderboard:
     title: '{trophy} Top Inviters'
     line: '{medal} **{position}.** {user}: **{total}**'
-    empty: 'No invites tracked yet. Share your invite link!'
+    empty: No invites tracked yet. Share your invite link!
   inviter:
-    title: 'Invited by'
+    title: Invited by
     body: 'Member: {user}
 
       Inviter: {inviter}
@@ -1610,13 +1764,13 @@ invites:
       Joined: {when}
 
       Status: {status}'
-    unknown: 'No record for {user} (they joined before tracking started).'
+    unknown: No record for {user} (they joined before tracking started).
   invited:
-    title: 'Members invited by {user}'
+    title: Members invited by {user}
     line: '- {user} ({when}, {status})'
     empty: '{user} has not invited anyone yet.'
   personal:
-    title: 'Your invite link'
+    title: Your invite link
     body: 'Share this link: {link}
 
       Total: **{total}** ({regular} regular · {bonus} bonus)'
@@ -1643,9 +1797,9 @@ invites:
   sync:
     success: '{success} Recounted {codes} invite code(s).'
   codes:
-    title: 'Invite codes'
+    title: Invite codes
     line: '`{code}`: {uses} use(s) by {inviter}{label}'
-    empty: 'No invite codes found.'
+    empty: No invite codes found.
   blacklist:
     added: '{success} Added {target} to the {kind} list.'
     removed: '{success} Removed {target} from the {kind} list.'
@@ -1653,15 +1807,15 @@ invites:
     missing: '{error} {target} is not on the {kind} list.'
     missing_role: '{error} Pick a role for the roles list.'
     missing_member: '{error} Pick a member for this list.'
-    title: 'Invite blacklist'
-    empty: 'All blacklist lists are empty.'
+    title: Invite blacklist
+    empty: All blacklist lists are empty.
     users: Users
     roles: Roles
     hidden: Hidden
     nobody: none
   reset:
     confirm_title: Reset all invite stats?
-    confirm_text: 'This erases every tracked join and counter. This cannot be undone.'
+    confirm_text: This erases every tracked join and counter. This cannot be undone.
     confirm: Confirm reset
     cancel: Cancel
     success: '{success} All invite stats were reset.'
@@ -1672,19 +1826,25 @@ invites:
   logs:
     join:
       title: '{rocket} Member Joined With Invite'
-      description: "**Invitee:** {user}\n**Code:** `{code}`\n**Inviter:** {inviter}{label}{flags}"
+      description: '**Invitee:** {user}
+
+        **Code:** `{code}`
+
+        **Inviter:** {inviter}{label}{flags}'
     leave:
       title: '{door} Member Left'
-      description: "**Member:** {user}\n**Inviter:** {inviter}"
+      description: '**Member:** {user}
+
+        **Inviter:** {inviter}'
     bonus:
       title: '{plus} Bonus Adjusted'
       description: '{moderator} adjusted {user} by {amount} (total: {total}).'
     sync:
       title: '{refresh} Invites Synced'
-      description: 'Recounted {codes} code(s) (requested by {moderator}).'
+      description: Recounted {codes} code(s) (requested by {moderator}).
     reset:
       title: '{warning} Invites Reset'
-      description: 'Invite stats were reset by {moderator}.'
+      description: Invite stats were reset by {moderator}.
 invites_stats:
   command:
     name: stats
@@ -1803,7 +1963,7 @@ moderation:
   cancel: Cancel
   cancelled: Action cancelled.
   error_failed: '{error} The action failed. Check the bot logs.'
-  auto_ban_applied: 'Auto-ban applied (limit of {limit} warnings).'
+  auto_ban_applied: Auto-ban applied (limit of {limit} warnings).
   auto_ban_failed: '{warning} Warning recorded but auto-ban failed (check permissions).'
   no_reason: No reason provided
   summary: '{member}
@@ -1820,29 +1980,45 @@ moderation:
   error_bot_permissions: '{error} The bot does not have permission to do that.'
   error_hierarchy: '{error} This member''s role is equal to or higher than yours.'
   error_bot_hierarchy: '{error} This member''s role is equal to or higher than the bot''s.'
-  log:
-    ban:
-      title: '{ban} Ban'
-    kick:
-      title: '{kick} Kick'
-    mute:
-      title: '{mute} Mute'
-    warn:
-      title: '{pencil} Warn'
-    member: '{people} Target'
-    member_id: '{numbers} ID'
-    moderator: '{gear} Moderator'
-    reason: '{scroll} Reason'
-    duration: '{clock} Duration'
   logs:
     ban:
-      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** {member_id}
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{ban} Ban'
     kick:
-      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** {member_id}
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{kick} Kick'
     mute:
-      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{duration_label}:** {duration}\n**{reason_label}:** {reason}"
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** {member_id}
+
+        **{moderator_label}:** {moderator}
+
+        **{duration_label}:** {duration}
+
+        **{reason_label}:** {reason}'
+      title: '{mute} Mute'
     warn:
-      description: "**{member_label}:** {member}\n**{member_id_label}:** {member_id}\n**{moderator_label}:** {moderator}\n**{reason_label}:** {reason}"
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** {member_id}
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{pencil} Warn'
 debug:
   command:
     name: debug
@@ -1850,22 +2026,26 @@ debug:
   trace:
     title: Tracked card
     card_path: '`{path}` ← {origin}'
-    theme: 'theme "{theme}"'
+    theme: theme "{theme}"
     default: catalog default
-  title: Diagnostics
   guilds: 'Guilds: {count}'
   members: 'Members: {count}'
   latency: 'Latency: {ms} ms'
   uptime: 'Uptime: {uptime}'
   close: Close
   test_log: Test log
-  test_log_title: Log test
-  test_log_description: This message confirms that the logging channel works.
   logs:
     test:
       description: This message confirms that the logging channel works.
+      title: '{gear} Log test'
   test_log_sent: '{success} Test message sent to the log channel.'
   test_log_not_sent: '{error} Could not send the test message. Check the log channel setting.'
+  panel:
+    title: Debug panel
+    version: 'Version: {version}'
+    theme: 'Theme: {theme}'
+    logging: 'Logging: {logging}'
+    audit: 'Audit log: {audit}'
 time_parser:
   seconds:
   - second
@@ -2420,107 +2600,124 @@ variables:
   author_line:
     label: Author line
     description: Line revealing who wrote the confession (staff only)
+  path:
+    label: Card path
+    description: The card key that was rendered.
+  origin:
+    label: Origin
+    description: Where the active card definition came from.
+  setting:
+    label: Setting
+    description: Human-readable name of the changed setting.
+  guilds:
+    label: Guilds
+    description: Number of servers the bot is in.
+  latency:
+    label: Latency
+    description: Current gateway latency in milliseconds.
+  uptime:
+    label: Uptime
+    description: How long the bot has been running.
+  theme:
+    label: Theme
+    description: Active visual theme name.
+  logging:
+    label: Logging
+    description: Whether the staff log channel is enabled.
+  audit:
+    label: Audit log
+    description: Whether the audit log channel is enabled.
 card:
-  # Default author footer (``author_footer_blocks`` builder helper): a small
-  # (``-#``) line with the mention of who triggered the card and relative time.
   author_footer:
-    text: "by {user} · {timestamp}"
-  # Code-built cards promoted to CardSpecs (theme-customizable like any card).
+    text: by {user} · {timestamp}
   colors:
     panel:
       title: Color panel card
       placeholders: ''
     manager:
       title: Color manager heading
-      placeholders: "{{count}}, {{max}}"
+      placeholders: '{{count}}, {{max}}'
     list:
       title: Color list
-      placeholders: "{{title}}, {{body}}"
+      placeholders: '{{title}}, {{body}}'
   starboard:
     card:
       title: Starboard post
-      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}, {{message_link}}"
+      placeholders: '{{user}}, {{user_name}}, {{user_avatar}}, {{stars}}, {{title}}, {{body}}, {{image_url}}, {{message_link}}'
   suggestions:
     card:
       title: Suggestion card
-      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}, {{status}}"
+      placeholders: '{{user}}, {{user_name}}, {{user_avatar}}, {{suggestion_number}}, {{title}}, {{body}}, {{image_url}}, {{upvotes}}, {{downvotes}}, {{score}}, {{message_link}}, {{timestamp}}, {{status}}'
     logs:
       created:
-        description:
-          title: 'Log: suggestion posted'
-          placeholders: '{{user}}, {{suggestion_number}}, {{channel}}'
+        title: 'Log: suggestion posted'
+        placeholders: '{{user}}, {{suggestion_number}}, {{channel}}'
       approved:
-        description:
-          title: 'Log: suggestion approved'
-          placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
+        title: 'Log: suggestion approved'
+        placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
       rejected:
-        description:
-          title: 'Log: suggestion rejected'
-          placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
+        title: 'Log: suggestion rejected'
+        placeholders: '{{moderator}}, {{user}}, {{suggestion_number}}, {{reason}}'
     dm:
       vote:
         title: Suggestion vote DM
-        placeholders: "{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}, {{side}}"
+        placeholders: '{{voter}}, {{suggestion_number}}, {{body}}, {{message_link}}, {{vote}}, {{side}}'
       approved:
         title: Suggestion approved DM
-        placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
+        placeholders: '{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}'
       rejected:
         title: Suggestion rejected DM
-        placeholders: "{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}"
+        placeholders: '{{suggestion_number}}, {{body}}, {{message_link}}, {{moderator}}, {{reason}}, {{status}}'
   confessions:
     review:
       title: Confession review card
-      placeholders: "{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{author_line}}, {{timestamp}}"
+      placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{author_line}}, {{timestamp}}'
     card:
       title: Confession card
-      placeholders: "{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}"
+      placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}'
     response:
       title: Confession reply card
-      placeholders: "{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}"
+      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}'
     logs:
       approved:
-        description:
-          title: 'Log: confession approved'
-          placeholders: '{{moderator}}, {{confession_number}}'
+        title: 'Log: confession approved'
+        placeholders: '{{moderator}}, {{confession_number}}'
       denied:
-        description:
-          title: 'Log: confession denied'
-          placeholders: '{{moderator}}, {{confession_number}}, {{reason}}'
+        title: 'Log: confession denied'
+        placeholders: '{{moderator}}, {{confession_number}}, {{reason}}'
       replied:
-        description:
-          title: 'Log: confession reply'
-          placeholders: '{{confession_number}}, {{reply_index}}'
+        title: 'Log: confession reply'
+        placeholders: '{{confession_number}}, {{reply_index}}'
       banned:
-        description:
-          title: 'Log: confession ban'
-          placeholders: '{{moderator}}, {{user}}, {{reason}}'
+        title: 'Log: confession ban'
+        placeholders: '{{moderator}}, {{user}}, {{reason}}'
     dm:
       approved:
         title: Confession approved DM
-        placeholders: "{{confession_number}}, {{body}}, {{message_link}}"
+        placeholders: '{{confession_number}}, {{body}}, {{message_link}}'
       rejected:
         title: Confession denied DM
-        placeholders: "{{confession_number}}, {{body}}, {{reason}}"
+        placeholders: '{{confession_number}}, {{body}}, {{reason}}'
       response:
         title: Confession reply DM
-        placeholders: "{{confession_number}}, {{reply_index}}, {{body}}, {{message_link}}"
+        placeholders: '{{confession_number}}, {{reply_index}}, {{body}}, {{message_link}}'
   utility:
     ping:
       title: Latency card
       placeholders: '{{ms}}'
     serverinfo:
       title: Server info card
-      placeholders: "{{server}}, {{server_icon}}, {{banner_url}}, {{description}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{text_channels}}, {{voice_channels}}, {{boosts}}, {{emojis}}, {{stickers}}, {{verification}}, {{created_at}}, {{created_rel}}, {{server_id}}, {{title}}, {{body}}"
-      subtitle: "{crown} {owner} · {people} {members} members"
-      created_label: "{calendar} Created"
-      created_value: "{created_at} · {created_rel}"
-      channels_label: "{speech} Channels"
-      channels_value: "{channels} · {text_channels} text · {voice_channels} voice"
-      roles_label: "{tag} Roles"
-      boosts_label: "{rocket} Boosts"
-      emojis_label: "{palette} Emojis"
-      stickers_label: "{love_letter} Stickers"
-      verification_label: "{lock} Verification"
+      placeholders: '{{server}}, {{server_icon}}, {{banner_url}}, {{description}}, {{owner}}, {{members}}, {{roles}}, {{channels}}, {{text_channels}}, {{voice_channels}}, {{boosts}}, {{emojis}}, {{stickers}}, {{verification}}, {{created_at}}, {{created_rel}}, {{server_id}}, {{title}}, {{body}}'
+      subtitle: '{crown} {owner} · {people} {members} members'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+      channels_label: '{speech} Channels'
+      channels_value: '{channels} · {text_channels} text · {voice_channels} voice'
+      roles_label: '{tag} Roles'
+      boosts_label: '{rocket} Boosts'
+      emojis_label: '{palette} Emojis'
+      stickers_label: '{love_letter} Stickers'
+      verification_label: '{lock} Verification'
       verification:
         none: None
         low: Low
@@ -2529,65 +2726,65 @@ card:
         highest: Very high
     userinfo:
       title: Member info card
-      placeholders: "{{user}}, {{user_name}}, {{user_avatar}}, {{banner_url}}, {{nickname}}, {{created_at}}, {{created_rel}}, {{joined_at}}, {{joined_rel}}, {{roles}}, {{top_role}}, {{boosting_since}}, {{timeout}}, {{is_bot}}, {{user_id}}, {{title}}, {{body}}"
-      subtitle: "{crown} {top_role}"
-      nickname_label: "{pencil} Nickname"
-      created_label: "{calendar} Created"
-      created_value: "{created_at} · {created_rel}"
-      joined_label: "{door} Joined"
-      joined_value: "{joined_at} · {joined_rel}"
-      roles_label: "{tag} Roles"
-      boosting_since_label: "{rocket} Boosting since"
-      timeout_label: "{mute} Timeout"
-      is_bot_label: "{gear} Bot"
+      placeholders: '{{user}}, {{user_name}}, {{user_avatar}}, {{banner_url}}, {{nickname}}, {{created_at}}, {{created_rel}}, {{joined_at}}, {{joined_rel}}, {{roles}}, {{top_role}}, {{boosting_since}}, {{timeout}}, {{is_bot}}, {{user_id}}, {{title}}, {{body}}'
+      subtitle: '{crown} {top_role}'
+      nickname_label: '{pencil} Nickname'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+      joined_label: '{door} Joined'
+      joined_value: '{joined_at} · {joined_rel}'
+      roles_label: '{tag} Roles'
+      boosting_since_label: '{rocket} Boosting since'
+      timeout_label: '{mute} Timeout'
+      is_bot_label: '{gear} Bot'
     emojiinfo:
       title: Emoji info card
-      placeholders: "{{emoji}}, {{emoji_name}}, {{emoji_id}}, {{animated}}, {{emoji_url}}, {{source}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
-      subtitle: "{palette} {source}"
-      created_label: "{calendar} Created"
-      created_value: "{created_at} · {created_rel}"
-      animated_label: "{tada} Animated"
+      placeholders: '{{emoji}}, {{emoji_name}}, {{emoji_id}}, {{animated}}, {{emoji_url}}, {{source}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}'
+      subtitle: '{palette} {source}'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+      animated_label: '{tada} Animated'
     stickerinfo:
       title: Sticker info card
-      placeholders: "{{sticker_name}}, {{sticker_id}}, {{description}}, {{format}}, {{tags}}, {{uploader}}, {{sticker_url}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
-      format_label: "{frame} Format"
-      tags_label: "{tag} Tags"
-      uploader_label: "{user} Uploader"
-      description_label: "{scroll} Description"
-      created_label: "{calendar} Created"
-      created_value: "{created_at} · {created_rel}"
+      placeholders: '{{sticker_name}}, {{sticker_id}}, {{description}}, {{format}}, {{tags}}, {{uploader}}, {{sticker_url}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}'
+      format_label: '{frame} Format'
+      tags_label: '{tag} Tags'
+      uploader_label: '{user} Uploader'
+      description_label: '{scroll} Description'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
     roleinfo:
       title: Role info card
-      placeholders: "{{role}}, {{role_name}}, {{role_color}}, {{members}}, {{position}}, {{mentionable}}, {{hoist}}, {{role_icon}}, {{role_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
-      subtitle: "{tag} {role_color}"
-      members_label: "{people} Members"
-      position_label: "{numbers} Position"
-      role_color_label: "{palette} Color"
-      mentionable_label: "{speech} Mentionable"
-      hoist_label: "{up} Shown separately"
-      created_label: "{calendar} Created"
-      created_value: "{created_at} · {created_rel}"
+      placeholders: '{{role}}, {{role_name}}, {{role_color}}, {{members}}, {{position}}, {{mentionable}}, {{hoist}}, {{role_icon}}, {{role_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}'
+      subtitle: '{tag} {role_color}'
+      members_label: '{people} Members'
+      position_label: '{numbers} Position'
+      role_color_label: '{palette} Color'
+      mentionable_label: '{speech} Mentionable'
+      hoist_label: '{up} Shown separately'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
     channelinfo:
       title: Channel info card
-      placeholders: "{{channel}}, {{channel_name}}, {{channel_type}}, {{topic}}, {{category}}, {{nsfw}}, {{slowmode}}, {{position}}, {{bitrate}}, {{user_limit}}, {{channel_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}"
-      channel_type_label: "{speech} Type"
-      category_label: "{frame} Category"
-      topic_label: "{scroll} Topic"
-      slowmode_label: "{hourglass} Slowmode"
-      bitrate_label: "{volume} Bitrate"
-      user_limit_label: "{people} User limit"
-      nsfw_label: "{lock} Age restricted"
-      position_label: "{numbers} Position"
-      created_label: "{calendar} Created"
-      created_value: "{created_at} · {created_rel}"
+      placeholders: '{{channel}}, {{channel_name}}, {{channel_type}}, {{topic}}, {{category}}, {{nsfw}}, {{slowmode}}, {{position}}, {{bitrate}}, {{user_limit}}, {{channel_id}}, {{created_at}}, {{created_rel}}, {{title}}, {{body}}'
+      channel_type_label: '{speech} Type'
+      category_label: '{frame} Category'
+      topic_label: '{scroll} Topic'
+      slowmode_label: '{hourglass} Slowmode'
+      bitrate_label: '{volume} Bitrate'
+      user_limit_label: '{people} User limit'
+      nsfw_label: '{lock} Age restricted'
+      position_label: '{numbers} Position'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
   themes:
     title:
       title: Themes menu heading
-      placeholders: ""
+      placeholders: ''
   boost:
     home:
       title: Boost panel heading
-      placeholders: ""
+      placeholders: ''
     dm:
       registered:
         title: 'DM: boost role registered'
@@ -2627,76 +2824,63 @@ card:
       placeholders: '{{count}}, {{max_members}}, {{owner}}, {{role_name}}'
     logs:
       register:
-        description:
-          title: 'Log: role registered'
-          placeholders: '{{actor}}, {{owner}}, {{role}}'
+        title: 'Log: role registered'
+        placeholders: '{{actor}}, {{owner}}, {{role}}'
       remove:
-        description:
-          title: 'Log: role removed'
-          placeholders: '{{actor}}, {{deleted}}, {{owner}}, {{role}}'
+        title: 'Log: role removed'
+        placeholders: '{{actor}}, {{deleted}}, {{owner}}, {{role}}'
       transfer:
-        description:
-          title: 'Log: ownership transferred'
-          placeholders: '{{actor}}, {{new_owner}}, {{old_owner}}, {{role}}'
+        title: 'Log: ownership transferred'
+        placeholders: '{{actor}}, {{new_owner}}, {{old_owner}}, {{role}}'
       rename:
-        description:
-          title: 'Log: role renamed'
-          placeholders: '{{actor}}, {{new_name}}, {{old_name}}, {{role}}'
+        title: 'Log: role renamed'
+        placeholders: '{{actor}}, {{new_name}}, {{old_name}}, {{role}}'
       color_change:
-        description:
-          title: 'Log: color changed'
-          placeholders: '{{actor}}, {{new_color}}, {{role}}'
+        title: 'Log: color changed'
+        placeholders: '{{actor}}, {{new_color}}, {{role}}'
       emoji_change:
-        description:
-          title: 'Log: emoji changed'
-          placeholders: '{{actor}}, {{emoji}}, {{role}}'
+        title: 'Log: emoji changed'
+        placeholders: '{{actor}}, {{emoji}}, {{role}}'
       icon:
-        description:
-          title: 'Log: icon changed'
-          placeholders: '{{actor}}, {{role}}'
+        title: 'Log: icon changed'
+        placeholders: '{{actor}}, {{role}}'
       member_add:
-        description:
-          title: 'Log: member added'
-          placeholders: '{{actor}}, {{member}}, {{role}}'
+        title: 'Log: member added'
+        placeholders: '{{actor}}, {{member}}, {{role}}'
       member_remove:
-        description:
-          title: 'Log: member removed'
-          placeholders: '{{actor}}, {{member}}, {{role}}'
+        title: 'Log: member removed'
+        placeholders: '{{actor}}, {{member}}, {{role}}'
       member_left:
-        description:
-          title: 'Log: member left'
-          placeholders: '{{member}}, {{owner}}, {{role}}'
+        title: 'Log: member left'
+        placeholders: '{{member}}, {{owner}}, {{role}}'
       invite_sent:
-        description:
-          title: 'Log: invite sent'
-          placeholders: '{{expires}}, {{invitee}}, {{inviter}}, {{role}}'
+        title: 'Log: invite sent'
+        placeholders: '{{expires}}, {{invitee}}, {{inviter}}, {{role}}'
       invite_cancelled:
-        description:
-          title: 'Log: invite cancelled'
-          placeholders: '{{actor}}, {{invitee}}, {{role}}'
+        title: 'Log: invite cancelled'
+        placeholders: '{{actor}}, {{invitee}}, {{role}}'
       invite_accepted:
-        description:
-          title: 'Log: invite accepted'
-          placeholders: '{{inviter}}, {{member}}, {{role}}'
+        title: 'Log: invite accepted'
+        placeholders: '{{inviter}}, {{member}}, {{role}}'
       invite_expired:
-        description:
-          title: 'Log: invite expired'
-          placeholders: '{{invitee}}, {{inviter}}, {{role}}'
+        title: 'Log: invite expired'
+        placeholders: '{{invitee}}, {{inviter}}, {{role}}'
       orphan_remove:
-        description:
-          title: 'Log: orphan role removed'
-          placeholders: '{{owner}}, {{role}}'
+        title: 'Log: orphan role removed'
+        placeholders: '{{owner}}, {{role}}'
       auto_transfer:
-        description:
-          title: 'Log: automatic transfer'
-          placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
+        title: 'Log: automatic transfer'
+        placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
+      invite_declined:
+        title: 'Log: invite declined'
+        placeholders: '{{inviter}}, {{member}}, {{role}}, {{timestamp}}, {{actor}}'
   bump:
     stats:
       title: Bump statistics
       placeholders: '{{title}}, {{body}}'
     status:
       title: Bump status card
-      placeholders: "{{title}}, {{body}}"
+      placeholders: '{{title}}, {{body}}'
     dm:
       winner_new:
         title: 'DM: new MVP winner'
@@ -2731,53 +2915,44 @@ card:
         placeholders: '{{ping_role}}'
     logs:
       channel_locked:
-        description:
-          title: 'Log: channel locked'
-          placeholders: '{{channel}}'
+        title: 'Log: channel locked'
+        placeholders: '{{channel}}'
       channel_unlocked:
-        description:
-          title: 'Log: channel unlocked'
-          placeholders: '{{channel}}'
+        title: 'Log: channel unlocked'
+        placeholders: '{{channel}}'
       schedule_opened:
-        description:
-          title: 'Log: channel opened on schedule'
-          placeholders: '{{channel}}'
+        title: 'Log: channel opened on schedule'
+        placeholders: '{{channel}}'
       schedule_closed:
-        description:
-          title: 'Log: channel closed on schedule'
-          placeholders: '{{channel}}'
+        title: 'Log: channel closed on schedule'
+        placeholders: '{{channel}}'
       reminder_sent:
-        description:
-          title: 'Log: reminder sent'
-          placeholders: '{{channel}}'
+        title: 'Log: reminder sent'
+        placeholders: '{{channel}}'
       bump_recorded:
-        description:
-          title: 'Log: bump recorded'
-          placeholders: '{{channel}}, {{user}}'
+        title: 'Log: bump recorded'
+        placeholders: '{{channel}}, {{user}}'
       week_reset:
-        description:
-          title: 'Log: week reset, winner announced'
-          placeholders: '{{bumps}}, {{winner}}'
+        title: 'Log: week reset, winner announced'
+        placeholders: '{{bumps}}, {{winner}}'
       no_winner:
-        description:
-          title: 'Log: week ended without bumps'
-          placeholders: ''
+        title: 'Log: week ended without bumps'
+        placeholders: ''
       no_bumps_posted:
-        description:
-          title: 'Log: empty-week card posted'
-          placeholders: '{{channel}}'
+        title: 'Log: empty-week card posted'
+        placeholders: '{{channel}}'
       leaderboard_posted:
-        description:
-          title: 'Log: leaderboard posted'
-          placeholders: '{{channel}}'
+        title: 'Log: leaderboard posted'
+        placeholders: '{{channel}}'
       week_reset_manual:
-        description:
-          title: 'Log: manual week reset'
-          placeholders: '{{author}}'
+        title: 'Log: manual week reset'
+        placeholders: '{{author}}'
       bumps_added:
-        description:
-          title: 'Log: test bumps added'
-          placeholders: '{{author}}, {{count}}, {{total}}, {{user}}'
+        title: 'Log: test bumps added'
+        placeholders: '{{author}}, {{count}}, {{total}}, {{user}}'
+      no_role:
+        title: 'Log: winner role missing'
+        placeholders: '{{actor}}, {{timestamp}}'
   warn:
     dm:
       title: Warn DM
@@ -2792,7 +2967,7 @@ card:
       placeholders: '{{actor}}, {{target}}, {{actor_avatar}}, {{action}}, {{gif_url}}, {{timestamp}}, {{title}}, {{body}}'
     manager:
       title: Gif manager heading
-      placeholders: "{{action}}"
+      placeholders: '{{action}}'
   cleaner:
     panel:
       title: Purge panel heading
@@ -2805,57 +2980,49 @@ card:
       placeholders: '{{count}}, {{criterion}}'
     logs:
       purged:
-        description:
-          title: 'Log: messages purged'
-          placeholders: '{{count}}, {{deleted}}, {{moderator}}, {{criterion}}'
+        title: 'Log: messages purged'
+        placeholders: '{{count}}, {{deleted}}, {{moderator}}, {{criterion}}'
   anti_invite:
     warning:
       title: Anti-invite warning text
       placeholders: '{{user}}'
     logs:
       blocked:
-        description:
-          title: 'Log: invite blocked'
-          placeholders: '{{channel}}, {{code}}, {{user}}'
+        title: 'Log: invite blocked'
+        placeholders: '{{channel}}, {{code}}, {{user}}'
   trap:
     notice:
-      title: 'Trap channel notice'
+      title: Trap channel notice
       placeholders: '{{server}}, {{action}}'
     dm:
       title: 'DM: fell into the trap'
       placeholders: '{{server}}, {{action}}'
     logs:
       failed:
-        description:
-          title: 'Log: trap failed'
-          placeholders: '{{user}}, {{action}}, {{reason}}'
+        title: 'Log: trap failed'
+        placeholders: '{{user}}, {{action}}, {{reason}}'
   broadcast:
     logs:
       started:
-        description:
-          title: 'Log: broadcast started'
-          placeholders: '{{channel}}, {{moderator}}, {{title}}'
+        title: 'Log: broadcast started'
+        placeholders: '{{channel}}, {{moderator}}, {{title}}'
       ended:
-        description:
-          title: 'Log: broadcast ended'
-          placeholders: '{{failed}}, {{moderator}}, {{relayed}}, {{sent}}'
+        title: 'Log: broadcast ended'
+        placeholders: '{{failed}}, {{moderator}}, {{relayed}}, {{sent}}'
   updater:
     confirm:
       title: Update confirmation text
       placeholders: '{target}'
     logs:
       updating:
-        description:
-          title: 'Log: bot updating'
-          placeholders: '{{moderator}}, {{previous}}, {{target}}'
+        title: 'Log: bot updating'
+        placeholders: '{{moderator}}, {{previous}}, {{target}}'
       updated:
-        description:
-          title: 'Log: bot updated'
-          placeholders: '{{current}}, {{previous}}'
+        title: 'Log: bot updated'
+        placeholders: '{{current}}, {{previous}}'
       auto_failed:
-        description:
-          title: 'Log: auto-update failed'
-          placeholders: '{{reason}}'
+        title: 'Log: auto-update failed'
+        placeholders: '{{reason}}'
   kick:
     dm:
       title: Kick DM
@@ -2870,21 +3037,17 @@ card:
       placeholders: '{{user}}, {{title}}, {{body}}'
     logs:
       ban:
-        description:
-          title: 'Log: member banned'
-          placeholders: ''
+        title: 'Log: member banned'
+        placeholders: ''
       kick:
-        description:
-          title: 'Log: member kicked'
-          placeholders: ''
+        title: 'Log: member kicked'
+        placeholders: ''
       mute:
-        description:
-          title: 'Log: member muted'
-          placeholders: ''
+        title: 'Log: member muted'
+        placeholders: ''
       warn:
-        description:
-          title: 'Log: member warned'
-          placeholders: ''
+        title: 'Log: member warned'
+        placeholders: ''
   events:
     welcome:
       title: Welcome message
@@ -2896,9 +3059,6 @@ card:
       title: Ban message
       placeholders: '{{user}}, {{user_name}}, {{user_id}}, {{server}}, {{count}}, {{inviter}}, {{user_avatar}}'
   audit:
-    # Line fragments composed at the send site and injected as variables
-    # ({reason_line}, {moderator_line}...): an optional line disappears
-    # entirely when its field comes in empty.
     reason_line: '**{scroll} Reason:** {reason}'
     moderator_line: '**{gear} Moderator:** {moderator}'
     ban:
@@ -2911,46 +3071,59 @@ card:
       placeholders: ''
     message_delete:
       title: Message deleted
-      body: |
-        **{people} Author:** {message_author}
+      body: '**{people} Author:** {message_author}
+
         **{speech} Channel:** {channel}
 
+
         {message}
-      attachments_line: '**{scroll} Attachments:**
-        {attachment_lines}'
+
+        '
+      attachments_line: '**{scroll} Attachments:** {attachment_lines}'
       placeholders: ''
     message_edit:
       title: Message edited
-      body: |
-        **{people} Author:** {message_author}
+      body: '**{people} Author:** {message_author}
+
         **{speech} Channel:** {channel}
 
+
         **{pencil} Before:**
+
         {message}
 
+
         **{pencil} After:**
+
         {new_message}
-      attachments_line: '**{scroll} Attachments:**
-        {attachment_lines}'
+
+        '
+      attachments_line: '**{scroll} Attachments:** {attachment_lines}'
       placeholders: ''
     bulk_delete:
       title: Message purge
-      body: |
-        **{numbers} Deleted:** {count} in {channel}.
+      body: '**{numbers} Deleted:** {count} in {channel}.
+
         {moderator_line}{file_line}
+
+        '
       file_line: '**{scroll} Full transcript:** [open file]({file_url})'
       placeholders: ''
     nickname:
       title: Nickname changed
-      body: |
-        **{pencil} Before:** {old_name}
+      body: '**{pencil} Before:** {old_name}
+
         **{pencil} Now:** {new_name}
+
+        '
       placeholders: ''
     avatar:
       title: Avatar changed
-      body: |
-        **{frame} Before:** [view avatar]({old_avatar})
+      body: '**{frame} Before:** [view avatar]({old_avatar})
+
         **{frame} Now:** [view avatar]({new_avatar})
+
+        '
       placeholders: ''
     roles:
       title: Roles changed
@@ -2971,10 +3144,13 @@ card:
       placeholders: ''
     trap:
       title: Fell into the trap
-      body: |
-        **{volume} Channel:** {channel}
+      body: '**{volume} Channel:** {channel}
+
         **{gear} Consequence:** {action}
+
         **{check} Result:** {outcome}
+
+        '
       placeholders: ''
   birthdays:
     list:
@@ -2992,25 +3168,20 @@ card:
       placeholders: '{{user}}, {{type}}'
     logs:
       opened:
-        description:
-          title: 'Log: ticket opened'
-          placeholders: '{{channel}}, {{type}}, {{user}}'
+        title: 'Log: ticket opened'
+        placeholders: '{{channel}}, {{type}}, {{user}}'
       closed:
-        description:
-          title: 'Log: ticket closed'
-          placeholders: '{{channel}}'
+        title: 'Log: ticket closed'
+        placeholders: '{{channel}}'
       reopened:
-        description:
-          title: 'Log: ticket reopened'
-          placeholders: '{{channel}}'
+        title: 'Log: ticket reopened'
+        placeholders: '{{channel}}'
       deleted:
-        description:
-          title: 'Log: ticket deleted'
-          placeholders: '{{channel}}'
+        title: 'Log: ticket deleted'
+        placeholders: '{{channel}}'
       transcript:
-        description:
-          title: 'Log: ticket transcript'
-          placeholders: '{{channel}}, {{moderator}}'
+        title: 'Log: ticket transcript'
+        placeholders: '{{channel}}, {{moderator}}'
   partnerships:
     list:
       title: Partnership list
@@ -3039,43 +3210,36 @@ card:
         placeholders: '{{rep}}, {{server}}, {{days}}, {{invite}}, {{mention}}'
     logs:
       added:
-        description:
-          title: 'Log: partnership added'
-          placeholders: '{{author}}, {{user}}'
+        title: 'Log: partnership added'
+        placeholders: '{{author}}, {{user}}'
       removed:
-        description:
-          title: 'Log: partnership removed'
-          placeholders: '{{author}}, {{user}}'
+        title: 'Log: partnership removed'
+        placeholders: '{{author}}, {{user}}'
       renewed:
-        description:
-          title: 'Log: partnership renewed'
-          placeholders: '{{user}}'
+        title: 'Log: partnership renewed'
+        placeholders: '{{user}}'
       warning_sent:
-        description:
-          title: 'Log: partnership warning'
-          placeholders: '{{days}}, {{user}}'
+        title: 'Log: partnership warning'
+        placeholders: '{{days}}, {{user}}'
       expired:
-        description:
-          title: 'Log: partnership expired'
-          placeholders: '{{ping}}, {{user}}'
+        title: 'Log: partnership expired'
+        placeholders: '{{ping}}, {{user}}'
       invite_posted:
-        description:
-          title: 'Log: partnership invite posted'
-          placeholders: '{{author}}'
+        title: 'Log: partnership invite posted'
+        placeholders: '{{author}}'
       orphans_cleaned:
-        description:
-          title: 'Log: orphan partnerships cleaned'
-          placeholders: '{{author}}, {{count}}'
+        title: 'Log: orphan partnerships cleaned'
+        placeholders: '{{author}}, {{count}}'
   invites:
     leaderboard:
       title: Top inviters ranking
       placeholders: '{{title}}, {{body}}'
     codes:
       title: Invite code list
-      placeholders: "{{title}}, {{body}}"
+      placeholders: '{{title}}, {{body}}'
     blacklist:
       title: Invite blacklist card
-      placeholders: "{{title}}, {{body}}"
+      placeholders: '{{title}}, {{body}}'
     stats:
       title: Invite stats card
       placeholders: '{{user}}, {{total}}, {{regular}}, {{bonus}}, {{fake}}, {{left}}, {{rank}}, {{title}}, {{body}}'
@@ -3093,25 +3257,20 @@ card:
       placeholders: '{{body}}, {{code}}, {{inviter}}, {{status}}, {{title}}, {{user}}, {{when}}'
     logs:
       join:
-        description:
-          title: 'Log: member joined with invite'
-          placeholders: '{{code}}, {{flags}}, {{inviter}}, {{label}}, {{user}}'
+        title: 'Log: member joined with invite'
+        placeholders: '{{code}}, {{flags}}, {{inviter}}, {{label}}, {{user}}'
       leave:
-        description:
-          title: 'Log: invited member left'
-          placeholders: '{{inviter}}, {{user}}'
+        title: 'Log: invited member left'
+        placeholders: '{{inviter}}, {{user}}'
       bonus:
-        description:
-          title: 'Log: bonus invites adjusted'
-          placeholders: '{{amount}}, {{moderator}}, {{total}}, {{user}}'
+        title: 'Log: bonus invites adjusted'
+        placeholders: '{{amount}}, {{moderator}}, {{total}}, {{user}}'
       sync:
-        description:
-          title: 'Log: invites synced'
-          placeholders: '{{codes}}, {{moderator}}'
+        title: 'Log: invites synced'
+        placeholders: '{{codes}}, {{moderator}}'
       reset:
-        description:
-          title: 'Log: invites reset'
-          placeholders: '{{moderator}}'
+        title: 'Log: invites reset'
+        placeholders: '{{moderator}}'
   about:
     card:
       title: About card
@@ -3122,27 +3281,30 @@ card:
       placeholders: ''
     logs:
       language:
-        description:
-          title: 'Log: language changed'
-          placeholders: '{{author}}, {{new}}, {{old}}'
+        title: 'Log: language changed'
+        placeholders: '{{author}}, {{new}}, {{old}}'
+    log:
+      title: 'Log: setting changed'
+      placeholders: '{{setting}}, {{category}}, {{old}}, {{new}}, {{author}}, {{timestamp}}, {{actor}}'
   reminders:
     list:
       title: Reminder list
-      placeholders: "{{title}}, {{body}}"
+      placeholders: '{{title}}, {{body}}'
     logs:
       sent:
-        description:
-          title: 'Log: reminder sent'
-          placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
+        title: 'Log: reminder sent'
+        placeholders: '{{failed}}, {{moderator}}, {{name}}, {{sent}}'
   debug:
-    title:
-      title: Debug panel heading
-      placeholders: ''
     logs:
       test:
-        description:
-          title: 'Log: test message'
-          placeholders: ''
+        title: 'Log: test message'
+        placeholders: ''
+    trace:
+      title: 'Log: card path'
+      placeholders: '{{path}}, {{origin}}, {{timestamp}}'
+    panel:
+      title: Debug panel
+      placeholders: '{{guilds}}, {{members}}, {{latency}}, {{uptime}}, {{version}}, {{theme}}, {{logging}}, {{audit}}, {{timestamp}}'
 events:
   enabled:
     label: Enable announcements
@@ -3197,21 +3359,23 @@ suggest:
     image_label: Image (optional)
     image_description: Attach one image with your suggestion.
   card:
-    title: "Suggestion #{suggestion_number}"
-    hint: "Use `/{command}` or the button below to send your suggestion!"
+    title: 'Suggestion #{suggestion_number}'
+    hint: Use `/{command}` or the button below to send your suggestion!
   vote:
     new: Send suggestion
   status:
-    approved: "{check} Approved by staff"
-    rejected: "{error} Rejected by staff"
+    approved: '{check} Approved by staff'
+    rejected: '{error} Rejected by staff'
   dm:
     up: upvote
     down: downvote
-    body: "New **{vote}** on your **suggestion #{suggestion_number}** from {voter}:\n> {body}"
+    body: 'New **{vote}** on your **suggestion #{suggestion_number}** from {voter}:
+
+      > {body}'
     jump: Go to suggestion
-    approved: "{check} Your suggestion **#{suggestion_number}** was approved by {moderator}!"
-    rejected: "{error} Your suggestion **#{suggestion_number}** was rejected by {moderator}."
-    reason: "Reason: {reason}"
+    approved: '{check} Your suggestion **#{suggestion_number}** was approved by {moderator}!'
+    rejected: '{error} Your suggestion **#{suggestion_number}** was rejected by {moderator}.'
+    reason: 'Reason: {reason}'
   sent: '{success} Your suggestion was posted!'
   voted: '{success} Vote recorded! ({up} up, {down} down)'
   error_disabled: '{error} Suggestions are disabled on this server.'
@@ -3272,14 +3436,14 @@ confess:
     label: Reason (optional)
     placeholder: Why? (optional, shown to the author)
   card:
-    title: "Confession (#{confession_number})"
+    title: Confession (#{confession_number})
   review:
-    title: "Confession (#{confession_number}) · Review"
-    author: "{user} wrote this confession"
+    title: Confession (#{confession_number}) · Review
+    author: '{user} wrote this confession'
   response:
-    title: "Confession (#{confession_number}-{reply_index})"
-    parent: "in reply to #{confession_number}-{parent_index}"
-  thread_name: "Replies to confession #{confession_number}"
+    title: Confession (#{confession_number}-{reply_index})
+    parent: 'in reply to #{confession_number}-{parent_index}'
+  thread_name: 'Replies to confession #{confession_number}'
   buttons:
     new: Write confession
     reply: Reply
@@ -3287,12 +3451,14 @@ confess:
     deny: Deny
     ban: Ban
   dm:
-    approved: "{check} Your confession **#{confession_number}** was approved!"
-    rejected: "{error} Your confession **#{confession_number}** was denied."
-    reason: "Reason: {reason}"
-    response: "{envelope} New anonymous reply **#{confession_number}-{reply_index}**:\n> {body}"
+    approved: '{check} Your confession **#{confession_number}** was approved!'
+    rejected: '{error} Your confession **#{confession_number}** was denied.'
+    reason: 'Reason: {reason}'
+    response: '{envelope} New anonymous reply **#{confession_number}-{reply_index}**:
+
+      > {body}'
     jump: Go to the thread
-    banned: "{ban} You were banned from confessions. Reason: {reason}"
+    banned: '{ban} You were banned from confessions. Reason: {reason}'
   no_reason: No reason given.
   review_approved: '{success} Confession posted.'
   review_denied: '{success} Confession denied.'
@@ -3319,7 +3485,7 @@ confess:
   banned_list:
     title: Banned from confessions
     empty: No banned members.
-    line: "- {user}"
+    line: '- {user}'
 confess_send:
   command:
     name: send
@@ -3346,7 +3512,7 @@ confessions:
       description: '{moderator} denied confession **#{confession_number}** ({reason}).'
     replied:
       title: '{envelope} Confession Reply'
-      description: 'Reply **#{confession_number}-{reply_index}** posted.'
+      description: Reply **#{confession_number}-{reply_index}** posted.
     banned:
       title: '{ban} Confession Ban'
       description: '{moderator} banned {user} from confessions ({reason}).'
@@ -3420,12 +3586,12 @@ roleplay:
     stare: stared at
     cuddle: cuddled with
   card:
-    title: "Roleplay card"
-    placeholders: "{{actor}}, {{target}}, {{action}}, {{gif_url}}"
+    title: Roleplay card
+    placeholders: '{{actor}}, {{target}}, {{action}}, {{gif_url}}'
   source: Image source
   manager:
     title: Manage gifs
-    body: "Action: **{action}**. `api` = random gif from the category (nekos.best); `url` = fixed gif."
+    body: 'Action: **{action}**. `api` = random gif from the category (nekos.best); `url` = fixed gif.'
     empty: No gif configured for this action (the default API is the fallback).
     add: Add gif
     add_hint: Paste the gif URL (leave the category empty to use only the URL).
@@ -3441,7 +3607,7 @@ roleplay:
     api_offline: '{warning} The nekos.best API did not answer; check back later or use a fixed URL.'
     save: Save
     cancel: Cancel
-    list_title: 'Configured gifs'
+    list_title: Configured gifs
     mode_api: random (API)
     mode_url: fixed
 roleplay_hug:
@@ -3492,3 +3658,75 @@ roleplay_cuddle:
   command:
     name: cuddle
     description: Send a cuddle gif card to someone
+log:
+  field:
+    target:
+      label: '{people} Target'
+    member_id:
+      label: '{numbers} Member ID'
+    moderator:
+      label: '{gear} Moderator'
+    reason:
+      label: '{scroll} Reason'
+    duration:
+      label: '{clock} Duration'
+    role:
+      label: '{tag} Role'
+    owner:
+      label: '{crown} Owner'
+    actor:
+      label: '{people} By'
+    deleted:
+      label: '{trash} Deleted'
+    old_owner:
+      label: '{crown} Previous owner'
+    new_owner:
+      label: '{crown} New owner'
+    old_name:
+      label: '{pencil} Previous name'
+    new_name:
+      label: '{pencil} New name'
+    new_color:
+      label: '{palette} New color'
+    emoji:
+      label: '{palette} Emoji'
+    member:
+      label: '{people} Member'
+    invitee:
+      label: '{user} Invitee'
+    inviter:
+      label: '{user} Inviter'
+    expires:
+      label: '{hourglass} Expires'
+    consequence:
+      label: '{gear} Consequence'
+    matched:
+      label: '{search} Matched'
+    criterion:
+      label: '{search} Criterion'
+    title:
+      label: '{pencil} Title'
+    channel:
+      label: '{speech} Channel'
+    relayed:
+      label: '{envelope} Relayed'
+    sent:
+      label: '{check} Sent'
+    failed:
+      label: '{error} Failed'
+    setting:
+      label: '{gear} Setting'
+    category:
+      label: '{frame} Category'
+    old:
+      label: '{pencil} Previous'
+    new:
+      label: '{pencil} New'
+    winner:
+      label: '{trophy} Winner'
+    bumps:
+      label: '{bar_chart} Bumps'
+    previous:
+      label: '{pencil} Previous'
+  actor_footer: -# by {actor} · {timestamp}
+  system_footer: -# {timestamp}

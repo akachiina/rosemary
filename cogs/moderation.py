@@ -2,7 +2,7 @@
 
 All user-facing strings are translation keys resolved through ``t()``. Actions
 are gated by a confirmation dialog (notify / silent / cancel) and logged to the
-guild's configured log channel via ``core.debug.send_channel_log``.
+guild's configured log channel via ``core.debug.send_log``.
 
 Note: unlike the other new modules, this file intentionally does NOT import
 ``from __future__ import annotations``: py-cord inspects slash-command
@@ -18,7 +18,7 @@ from typing import Any
 import discord
 from discord.ext import commands
 
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.storage import GuildStorage
 from rosemary.core.time_parser import TimeParser, localized_aliases
@@ -40,14 +40,6 @@ _ACTION_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "mute": ("moderate_members",),
     "warn": ("moderate_members",),
 }
-
-_ACTION_LOG_COLORS: dict[str, str] = {
-    "ban": "danger",
-    "kick": "danger",
-    "mute": "warning",
-    "warn": "warning",
-}
-
 
 class WarningsStore:
     """Warnings persistence in its own ``warnings.json`` (per-guild).
@@ -478,12 +470,10 @@ class ModerationCog(commands.Cog):
                 guild_id, target.id, reason, moderator.id, moderator_tag
             )
 
-        from rosemary.core.cards import log_description
-
-        description = await log_description(
+        await send_log(
             self.bot,
             guild_id,
-            f"moderation.logs.{action}.description",
+            f"moderation.logs.{action}",
             member=target.mention,
             member_id=str(target.id),
             moderator=moderator.mention,
@@ -491,19 +481,6 @@ class ModerationCog(commands.Cog):
             duration=(
                 TimeParser.format_duration(duration) if duration is not None else "-"
             ),
-            member_label=await t(guild_id, "moderation.log.member"),
-            member_id_label=await t(guild_id, "moderation.log.member_id"),
-            moderator_label=await t(guild_id, "moderation.log.moderator"),
-            reason_label=await t(guild_id, "moderation.log.reason"),
-            duration_label=await t(guild_id, "moderation.log.duration"),
-        )
-        await send_channel_log(
-            self.bot,
-            guild_id,
-            await t(guild_id, f"moderation.log.{action}.title"),
-            description,
-            color=_ACTION_LOG_COLORS[action],
-            card_key=f"moderation.logs.{action}.description",
         )
 
         if action == "warn":

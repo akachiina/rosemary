@@ -229,9 +229,9 @@ async def test_boost_invite_accept_defers_first(tmp_path):
         await destination.send("dm")
 
     orig_send = boost_dm.send
-    orig_log = mod.send_channel_log
+    orig_log = mod.send_log
     boost_dm.send = fake_dm_send
-    mod.send_channel_log = AsyncMock()
+    mod.send_log = AsyncMock()
     try:
         view = BoostInviteView(
             bot, guild_id=1, invite_id="x", accept_label="A", decline_label="D"
@@ -240,7 +240,7 @@ async def test_boost_invite_accept_defers_first(tmp_path):
         await view._accept(OrderInteraction(order, user_id=5))
     finally:
         boost_dm.send = orig_send
-        mod.send_channel_log = orig_log
+        mod.send_log = orig_log
 
     assert order[0] == "defer"
     assert "work" in order
@@ -259,7 +259,7 @@ async def test_debug_test_log_defers_first(tmp_path, monkeypatch):
         order.append("work")
         return False
 
-    monkeypatch.setattr(mod, "send_channel_log", slow_log)
+    monkeypatch.setattr(mod, "send_log", slow_log)
     view = DebugMenuView(bot, 1, owner_id=1)
     await view._test_log(OrderInteraction(order))
     assert order == ["defer", "work", "edit"]
@@ -276,7 +276,7 @@ async def test_settings_apply_defers_first(tmp_path, monkeypatch):
         order.append("work")
         return False
 
-    monkeypatch.setattr(mod, "send_channel_log", slow_log)
+    monkeypatch.setattr(mod, "send_log", slow_log)
     view = SettingsMenuView(bot, 1, owner_id=1)
     interaction = OrderInteraction(order)
     await view._apply_value(interaction, "general.prefix", "Q")

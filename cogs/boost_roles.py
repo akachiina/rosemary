@@ -22,8 +22,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.boost_roles import BoostRoleStore
-from rosemary.core.cards import text_or
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui import boost_dm as dm
 from rosemary.ui.boost_invite import BoostInviteView
@@ -131,26 +130,12 @@ class BoostRolesCog(commands.Cog):
                 await self.store.remove_invite(guild_id, invite_id)
             role = guild.get_role(role_id)
             if not members:
-                await send_channel_log(
+                await send_log(
                     self.bot,
                     guild_id,
-                    await self.bot.translator.t(guild_id, "boost.logs.orphan_remove.title"),
-                    await text_or(
-                        self.bot,
-                        guild_id,
-                        "boost.logs.orphan_remove.description",
-                        await self.bot.translator.t(
-                            guild_id,
-                            "boost.logs.orphan_remove.description",
-                            role=role.mention if role else f"<@&{role_id}>",
-                            owner=member.mention,
-                        ),
-                        role=role.mention if role else f"<@&{role_id}>",
-                        owner=member.mention,
-                    ),
-                    color="danger",
-                    card_key="boost.logs.orphan_remove.description",
-                    mention_user_ids=[member.id],
+                    "boost.logs.orphan_remove",
+                    role=role.mention if role else f"<@&{role_id}>",
+                    owner=member.mention,
                 )
                 continue
             new_owner = guild.get_member(members[0])
@@ -170,28 +155,13 @@ class BoostRolesCog(commands.Cog):
                         server_name=guild.name,
                     )
                     await dm.send_preview(self.bot, new_owner, guild_id, role, data)
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild_id,
-                await self.bot.translator.t(guild_id, "boost.logs.auto_transfer.title"),
-                await text_or(
-                    self.bot,
-                    guild_id,
-                    "boost.logs.auto_transfer.description",
-                    await self.bot.translator.t(
-                        guild_id,
-                        "boost.logs.auto_transfer.description",
-                        role=role.mention if role else f"<@&{role_id}>",
-                        old_owner=member.mention,
-                        new_owner=new_owner.mention,
-                    ),
-                    role=role.mention if role else f"<@&{role_id}>",
-                    old_owner=member.mention,
-                    new_owner=new_owner.mention,
-                ),
-                color="warning",
-                card_key="boost.logs.auto_transfer.description",
-                mention_user_ids=[member.id, new_owner.id],
+                "boost.logs.auto_transfer",
+                role=role.mention if role else f"<@&{role_id}>",
+                old_owner=member.mention,
+                new_owner=new_owner.mention,
             )
         for role_id_str in await self.store.get_roles_as_member(guild_id, member.id):
             await self.store.remove_member(guild_id, int(role_id_str), member.id)

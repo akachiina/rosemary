@@ -16,8 +16,8 @@ from discord.ext import commands, tasks
 
 from rosemary.cogs.bump_leaderboard import bump_group
 from rosemary.core.bump import LOCK_CAMPING, LOCK_SCHEDULE, BumpStore, schedule_open
-from rosemary.core.cards import log_description, text_or
-from rosemary.core.debug import send_channel_log
+from rosemary.core.cards import text_or
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.time_parser import TimeParser
 from rosemary.core.timezone import resolve_timezone
@@ -264,17 +264,15 @@ class BumpReminderCog(commands.Cog):
                 overwrites[default_role] = discord.PermissionOverwrite()
             if locked:
                 overwrites[default_role].send_messages = False
-                key, log_key, color = (
+                key, log_key = (
                     "bump.schedule.close",
                     "bump.logs.schedule_closed.description",
-                    "warning",
                 )
             else:
                 overwrites[default_role].send_messages = None
-                key, log_key, color = (
+                key, log_key = (
                     "bump.schedule.open",
                     "bump.logs.schedule_opened.description",
-                    "success",
                 )
             await channel.edit(overwrites=overwrites)
             if locked:
@@ -305,18 +303,11 @@ class BumpReminderCog(commands.Cog):
                         role_ids=[ping_role_id] if ping_role_id else [],
                     ),
                 )
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild_id,
-                await self.bot.translator.t(
-                    guild_id,
-                    f"bump.logs.{'schedule_closed' if locked else 'schedule_opened'}.title",
-                ),
-                await log_description(
-                    self.bot, guild_id, log_key, channel=channel.mention
-                ),
-                color=color,
-                card_key=log_key,
+                log_key.removesuffix(".description"),
+                channel=channel.mention,
             )
         except Exception as exc:
             log.error("Failed to apply bump schedule in %s: %s", guild_id, exc)
@@ -471,18 +462,11 @@ class BumpReminderCog(commands.Cog):
                 )
                 await self.store.set_lock_message_id(guild_id, lock_message.id)
 
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild_id,
-                await self.bot.translator.t(guild_id, "bump.logs.channel_locked.title"),
-                await log_description(
-                    self.bot,
-                    guild_id,
-                    "bump.logs.channel_locked.description",
-                    channel=channel.mention,
-                ),
-                color="warning",
-                card_key="bump.logs.channel_locked.description",
+                "bump.logs.channel_locked",
+                channel=channel.mention,
             )
         except Exception as exc:
             log.error("Failed to lock bump channel in %s: %s", guild_id, exc)
@@ -533,18 +517,11 @@ class BumpReminderCog(commands.Cog):
                     )
                 await self.store.set_lock_message_id(guild_id, None)
 
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild_id,
-                await self.bot.translator.t(guild_id, "bump.logs.channel_unlocked.title"),
-                await log_description(
-                    self.bot,
-                    guild_id,
-                    "bump.logs.channel_unlocked.description",
-                    channel=channel.mention,
-                ),
-                color="success",
-                card_key="bump.logs.channel_unlocked.description",
+                "bump.logs.channel_unlocked",
+                channel=channel.mention,
             )
         except Exception as exc:
             log.error("Failed to unlock bump channel in %s: %s", guild_id, exc)
@@ -648,18 +625,11 @@ class BumpReminderCog(commands.Cog):
             )
             self._schedule_unlock(guild_id, unlock_delay)
 
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(guild_id, "bump.logs.reminder_sent.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "bump.logs.reminder_sent.description",
-                channel=channel.mention,
-            ),
-            color="info",
-            card_key="bump.logs.reminder_sent.description",
+            "bump.logs.reminder_sent",
+            channel=channel.mention,
         )
 
     async def send_thank_you(self, guild_id: int, user_id: int) -> None:
@@ -877,20 +847,12 @@ class BumpReminderCog(commands.Cog):
         self._schedule_reminder(guild.id, cooldown)
 
         await self.send_thank_you(guild.id, user_id)
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild.id,
-            await self.bot.translator.t(guild.id, "bump.logs.bump_recorded.title"),
-            await log_description(
-                self.bot,
-                guild.id,
-                "bump.logs.bump_recorded.description",
-                user=f"<@{user_id}>",
-                channel=message.channel.mention,
-            ),
-            color="success",
-            card_key="bump.logs.bump_recorded.description",
-            mention_user_ids=[user_id],
+            "bump.logs.bump_recorded",
+            user=f"<@{user_id}>",
+            channel=message.channel.mention,
         )
 
     #: Commands ------------------------------------------------------------

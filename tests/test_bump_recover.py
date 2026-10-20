@@ -176,10 +176,10 @@ async def test_send_reminder_separates_content_and_view(tmp_path):
         }.get(key)
 
     orig_get_setting = mod.get_setting
-    orig_send_channel_log = mod.send_channel_log
+    orig_send_log = mod.send_log
 
     mod.get_setting = fake_get_setting
-    mod.send_channel_log = AsyncMock()
+    mod.send_log = AsyncMock()
 
     cog = BumpReminderCog.__new__(BumpReminderCog)
     cog.bot = bot
@@ -191,7 +191,7 @@ async def test_send_reminder_separates_content_and_view(tmp_path):
         await cog.send_reminder(1)
     finally:
         mod.get_setting = orig_get_setting
-        mod.send_channel_log = orig_send_channel_log
+        mod.send_log = orig_send_log
 
     # Two send calls: one for the role ping, one for the view alone.
     assert channel.send.await_count == 2

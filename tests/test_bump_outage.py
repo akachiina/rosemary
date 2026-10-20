@@ -92,11 +92,9 @@ def _guild_with(channel):
 
 @pytest.fixture
 def quiet_logs(monkeypatch):
-    send_channel_log = AsyncMock()
-    monkeypatch.setattr(
-        "rosemary.cogs.bump_reminder.send_channel_log", send_channel_log
-    )
-    return send_channel_log
+    send_log = AsyncMock()
+    monkeypatch.setattr("rosemary.cogs.bump_reminder.send_log", send_log)
+    return send_log
 
 
 @pytest.fixture

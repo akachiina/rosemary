@@ -19,8 +19,8 @@ from datetime import UTC, datetime
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description, text_or
-from rosemary.core.debug import send_channel_log
+from rosemary.core.cards import text_or
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui.containers import ActionRow, TextDisplay, designer_container
 from rosemary.ui.menu import MenuView
@@ -346,25 +346,17 @@ class CleanerPurgeView(MenuView):
 
     async def _send_log(self) -> None:
         """One staff-log card for the whole run (attribution via the stamp)."""
-        t = self.bot.translator.t
         gid = self.guild_id
         with contextlib.suppress(Exception):
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 gid,
-                await t(gid, "cleaner.logs.purged.title"),
-                await log_description(
-                    self.bot,
-                    gid,
-                    "cleaner.logs.purged.description",
-                    moderator=self.moderator.mention,
-                    count=self.matched,
-                    deleted=self.deleted,
-                    criterion=self.request.criterion,
-                ),
-                color="warning",
-                card_key="cleaner.logs.purged.description",
-                mention_user_ids=[self.moderator.id],
+                "cleaner.logs.purged",
+                moderator=self.moderator.mention,
+                matched=self.matched,
+                count=self.matched,
+                deleted=self.deleted,
+                criterion=self.request.criterion,
             )
 
     async def _progress(

@@ -18,6 +18,7 @@ import copy
 import dataclasses
 import inspect
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 import discord
@@ -116,7 +117,6 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     # selects/buttons are code (Discord needs registered callbacks).
     "settings.title": ("brand", "settings.title", ("{body}",)),
     "themes.title": ("brand", "themes.title", ("{body}",)),
-    "debug.title": ("info", "debug.title", ("{body}",)),
     "cleaner.panel": ("warning", "cleaner.panel_title", ("{body}",)),
     "boost.home": ("brand", "boost.titles.home", ("boost.descriptions.user_panel",)),
     "roleplay.manager": (
@@ -398,37 +398,49 @@ async def render_card_message(
     return CardPayload(view=view), allowed
 
 
+_TRACE_TTL = 30.0
+_TRACE_SEEN: dict[tuple[int, str], float] = {}
+
+
 async def trace_card_path(bot, guild_id: int, key: str) -> None:
     """Post ``card.<key>`` + origin to the log channel when ``debug.card_paths``
-    is on. Never pings (``card_key=None``) and never traces itself.
+    is on. The default trace body carries no mention tokens and the trace card
+    never traces itself.
 
-    Public so call sites that build themed views outside this module
-    (ephemeral confirm cards) can trace their own sends."""
-    from rosemary.core.debug import send_channel_log
+    Repeats are deduplicated per ``(guild, key)`` for :data:`_TRACE_TTL`
+    seconds: one menu repaint or one log burst should not flood the log
+    channel with the same path. Public so call sites that build themed views
+    outside this module (ephemeral confirm cards) can trace their own sends.
+    """
+    from rosemary.core.debug import send_log
     from rosemary.core.settings import get_setting
     from rosemary.core.themes import card_origin
 
+    if key == "debug.trace":
+        return
     try:
         enabled = await get_setting(bot.storage, guild_id, "debug.card_paths")
     except (KeyError, AttributeError):
         return
     if not enabled:
         return
+    token = (guild_id, key)
+    now = time.monotonic()
+    if now - _TRACE_SEEN.get(token, 0.0) < _TRACE_TTL:
+        return
+    _TRACE_SEEN[token] = now
     theme_name, _ = card_origin(bot, guild_id, key)
     origin = (
         await bot.translator.t(guild_id, "debug.trace.theme", theme=theme_name)
         if theme_name
         else await bot.translator.t(guild_id, "debug.trace.default")
     )
-    description = await bot.translator.t(
-        guild_id, "debug.trace.card_path", path=f"card.{key}", origin=origin
-    )
-    await send_channel_log(
+    await send_log(
         bot,
         guild_id,
-        await bot.translator.t(guild_id, "debug.trace.title"),
-        description,
-        color="info",
+        "debug.trace",
+        path=f"card.{key}",
+        origin=origin,
     )
 
 
@@ -445,7 +457,7 @@ async def menu_heading_items(
     Menus are interactive: their selects and buttons live in code: Discord
     needs registered callbacks, so a theme file cannot generate them. What a
     theme *can* restyle is the heading card (``settings.title``,
-    ``themes.title``, ``debug.title``, ``boost.home``/``boost.admin``). The
+    ``themes.title``, ``debug.panel``, ``boost.home``/``boost.admin``). The
     themed document is rendered and spliced in place of the code heading; a
     container in the theme document is rejected (the menu already provides
     one, and nesting containers 400s the payload) so the menu falls back to

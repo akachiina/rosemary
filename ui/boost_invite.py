@@ -29,7 +29,7 @@ import discord
 
 from rosemary.core.boost_roles import BoostRoleStore, parse_datetime
 from rosemary.core.cards import text_or
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui import boost_dm
 
@@ -108,7 +108,6 @@ class BoostInviteView(discord.ui.DesignerView):
         await interaction.edit(view=self)
 
     async def _error(self, interaction: discord.Interaction, key: str, **variables) -> None:
-        from rosemary.core.cards import text_or
 
         body = await self._t(key, **variables)
         text = await text_or(
@@ -121,21 +120,8 @@ class BoostInviteView(discord.ui.DesignerView):
         await self._edit(interaction, text)
 
     async def _log(self, key: str, *, color: str, **variables) -> None:
-        description_key = f"boost.logs.{key}.description"
-        await send_channel_log(
-            self.bot,
-            self.guild_id,
-            await self._t(f"boost.logs.{key}.title"),
-            await text_or(
-                self.bot,
-                self.guild_id,
-                description_key,
-                await self._t(description_key, **variables),
-                **variables,
-            ),
-            color=color,
-            card_key=description_key,
-        )
+        """Log an invite outcome; ``color`` is legacy and now registry-owned."""
+        await send_log(self.bot, self.guild_id, f"boost.logs.{key}", **variables)
 
     #: handlers -----------------------------------------------------------
 
@@ -191,7 +177,6 @@ class BoostInviteView(discord.ui.DesignerView):
             member=member_mention,
             inviter=inviter_mention,
         )
-        from rosemary.core.cards import text_or
 
         await self._edit(
             interaction,
@@ -237,7 +222,6 @@ class BoostInviteView(discord.ui.DesignerView):
                 inviter=inviter_mention,
             )
         role_name = role.name if role else "-"
-        from rosemary.core.cards import text_or
 
         await self._edit(
             interaction,

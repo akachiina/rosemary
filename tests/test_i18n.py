@@ -288,15 +288,15 @@ def test_field_lines_carry_theme_emoji_token():
                 assert f"{{{token}}}" in node, f"{code}:{'.'.join(path)} missing {token}"
                 assert theme.emojis.get(token), f"theme emoji {token} missing"
 
-        # Moderation labels flow into **{member_label}:** bodies.
+        # Shared log-field labels flow into **{label}:** bodies.
         for label_key, token in (
-            ("member", "people"),
+            ("target", "people"),
             ("moderator", "gear"),
             ("reason", "scroll"),
             ("duration", "clock"),
         ):
-            value = data["moderation"]["log"][label_key]
-            assert f"{{{token}}}" in value, f"{code}:moderation.log.{label_key}"
+            value = data["log"]["field"][label_key]["label"]
+            assert f"{{{token}}}" in value, f"{code}:log.field.{label_key}"
 
         # ban/unban bodies keep the prose first line; the moderator rides in
         # the optional {moderator_line} fragment, which carries {gear}.

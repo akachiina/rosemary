@@ -84,7 +84,7 @@ async def _cog(bot, settings):
     cog.store = BumpStore(bot.storage.data_dir)
     cog._reminder_tasks = {}
     cog._unlock_tasks = {}
-    mod.send_channel_log = AsyncMock()
+    mod.send_log = AsyncMock()
     return cog, mod
 
 
@@ -111,10 +111,8 @@ async def test_close_transition_locks_and_posts(tmp_path):
     assert await cog.store.get_lock_source(1) == LOCK_SCHEDULE
     assert channel.edit.await_count == 1
     assert channel.send.await_count == 1
-    assert mod.send_channel_log.await_count == 1
-    assert mod.send_channel_log.call_args.kwargs.get("card_key") == (
-        "bump.logs.schedule_closed.description"
-    )
+    assert mod.send_log.await_count == 1
+    assert mod.send_log.call_args.args[2] == "bump.logs.schedule_closed"
 
 
 async def test_no_repeat_message_while_closed(tmp_path):
@@ -159,9 +157,7 @@ async def test_open_transition_unlocks_schedule_lock(tmp_path):
     await cog.check_schedule(guild, now=at(7, 0))
     assert await cog.store.is_channel_locked(1) is False
     assert channel.send.await_count == 1
-    assert mod.send_channel_log.call_args.kwargs.get("card_key") == (
-        "bump.logs.schedule_opened.description"
-    )
+    assert mod.send_log.call_args.args[2] == "bump.logs.schedule_opened"
 
 
 async def test_camping_lock_untouched_during_open_hours(tmp_path):

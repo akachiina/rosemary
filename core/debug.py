@@ -1,20 +1,23 @@
-"""Shared helpers for the /debug panel and moderation logging.
+"""Shared helpers for the /debug panel and staff logging.
 
-Nothing here renders user-facing text: translated strings are passed in by
-callers, and diagnostics return ``(i18n key, variables)`` pairs so the cog can
-translate them.
+Diagnostics return ``(i18n key, variables)`` pairs so the cog can translate
+them. Staff logs delegate title/body/layout rendering to the shared card
+pipeline; call sites pass content variables only.
 """
 
 from __future__ import annotations
 
 import logging
 import time
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import discord
 
+import rosemary.core.log_cards  # noqa: F401  (registers default log builders)
+from rosemary.core.card_service import render_card_message, send_card
+from rosemary.core.log_specs import LOG_SPECS
 from rosemary.core.settings import get_setting
-from rosemary.ui.containers import TextDisplay, designer_container, divider
 
 if TYPE_CHECKING:
     from rosemary.bot import RosemaryBot
@@ -59,30 +62,31 @@ def bot_state_summary(bot: RosemaryBot) -> list[tuple[str, dict[str, Any]]]:
     ]
 
 
-async def send_channel_log(
+async def send_log(
     bot: RosemaryBot,
     guild_id: int,
-    title: str,
-    description: str,
+    event: str,
     *,
-    color: str = "info",
-    card_key: str | None = None,
-    mention_user_ids: tuple[int, ...] | list[int] = (),
-    mention_role_ids: tuple[int, ...] | list[int] = (),
+    body_key: str | None = None,
     file: discord.File | None = None,
+    **variables: Any,
 ) -> bool:
-    """Send a Components V2 log message to the guild's configured log channel.
+    """Send one registry log event through the shared card pipeline.
 
-    No-ops when logging is disabled or no channel is configured. ``title`` and
-    ``description`` must already be translated. Returns whether a message was
-    actually sent. ``file`` attaches one document (e.g. a transcript) to the
-    same card, keeping every staff log on the standard V2 shape.
+    ``event`` is a key in :data:`rosemary.core.log_specs.LOG_SPECS`
+    (``moderation.logs.ban``). The call site passes content variables only:
+    title, body, color, footer and the per-event theme override come from the
+    registry and the guild's active theme. ``body_key`` selects a known body
+    variant (e.g. the no-role bump log) without moving copy into the call site.
 
-    Mentions inside ``description`` never ping unless the guild opted that log
-    card into pings in /customize: ``card_key`` selects the per-card policy
-    (log cards default to ``none``) and only the explicitly passed candidate
-    ids may ping.
+    Returns whether a message was actually sent. Logging disabled, no channel
+    and HTTP failures are silent (warned in the bot log), exactly like the
+    previous helper.
     """
+    spec = LOG_SPECS.get(event)
+    if spec is None:
+        log.warning("Unknown log event %r; dropping send", event)
+        return False
     if not await get_setting(bot.storage, guild_id, "logging.enabled"):
         return False
     channel_id = await get_setting(bot.storage, guild_id, "logging.channel")
@@ -92,35 +96,31 @@ async def send_channel_log(
     if channel is None or not isinstance(channel, discord.TextChannel):
         return False
 
-    style = bot.theme.style("log")
-    accent = bot.theme.color(color) if color else bot.theme.color(style.color)
-    view = discord.ui.DesignerView(store=False)
-    view.add_item(
-        designer_container(
-            accent,
-            TextDisplay(bot.theme.md(style.template, title=title)),
-            divider(),
-            TextDisplay(description),
-        )
-    )
-    try:
-        if card_key is not None:
-            from rosemary.core.mentions import allowed_for_text
+    values = dict(variables)
+    values.setdefault("timestamp", discord.utils.format_dt(datetime.now(UTC), "R"))
+    if spec.actor_var:
+        actor = values.get(spec.actor_var)
+        if actor is not None and str(actor).strip() and str(actor).strip() != "-":
+            values.setdefault("actor", actor)
+    # Old body overrides still reference their literal labels. Inject them so
+    # a guild theme written before the fields migration keeps rendering.
+    for old_name, label_key in spec.legacy_labels:
+        if old_name not in values:
+            translate = getattr(bot.translator, "t", None)
+            if callable(translate):
+                values[old_name] = await translate(guild_id, label_key)
+    if body_key:
+        values["body_key"] = body_key
 
-            # Pings are content-driven: the <@id> tokens actually present in
-            # the description may ping (when the guild's toggle allows), and
-            # explicitly passed candidate ids are merged in.
-            allowed = await allowed_for_text(
-                bot,
-                guild_id,
-                card_key,
-                description,
-                user_ids=mention_user_ids,
-                role_ids=mention_role_ids,
-            )
-        else:
-            allowed = discord.AllowedMentions.none()
-        await channel.send(view=view, file=file, allowed_mentions=allowed)
+    payload, allowed = await render_card_message(bot, guild_id, event, values)
+    if payload is None:
+        log.warning("Log event %s resolved no card for guild %s", event, guild_id)
+        return False
+    kwargs: dict[str, Any] = {}
+    if file is not None:
+        kwargs["file"] = file
+    try:
+        await send_card(channel, payload, allowed, **kwargs)
     except (discord.Forbidden, discord.NotFound, discord.HTTPException) as exc:
         log.warning("Could not send log to channel %s: %s", channel_id, exc)
         return False

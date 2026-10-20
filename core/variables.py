@@ -215,6 +215,16 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("voter", "<@0>", "mention"),
         _v("vote", "upvote"),
         _v("side", "up"),
+        # /debug panel and trace cards.
+        _v("guilds", 1, "number"),
+        _v("latency", "42"),
+        _v("uptime", "1d 2h 3m"),
+        _v("theme", "default"),
+        _v("logging", "On"),
+        _v("audit", "On"),
+        _v("path", "card.moderation.logs.ban"),
+        _v("origin", "default"),
+        _v("setting", "…"),
     ]
 }
 

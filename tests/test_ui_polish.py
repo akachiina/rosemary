@@ -63,7 +63,7 @@ async def test_join_attributes_via_prejoin_cache(tmp_path, monkeypatch):
     async def fake_log(*args, **kwargs):
         sent.append((args, kwargs))
 
-    monkeypatch.setattr(invites_mod, "send_channel_log", fake_log)
+    monkeypatch.setattr(invites_mod, "send_log", fake_log)
     await cog.on_member_join(member)
 
     record = await InviteStore(bot.storage.data_dir).previous_record(1, 5)

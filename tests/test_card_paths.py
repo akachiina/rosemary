@@ -3,8 +3,8 @@
 The trace hook lives in :func:`rosemary.core.card_service.render_card_message`
 -- the single choke point every rich card send passes through. These tests pin:
 off by default, emits ``card.<key>`` + origin (theme name or default) when on,
-and delivery is delegated to :func:`core.debug.send_channel_log` (whose Discord
-side has its own tests in :mod:`tests.test_debug`).
+and delivery is delegated to :func:`core.debug.send_log` (whose Discord side
+has its own tests in :mod:`tests.test_debug`).
 """
 
 from __future__ import annotations
@@ -53,16 +53,18 @@ def _make_bot(tmp_path, themes_yaml=None):
 
 
 def _capture_logs(monkeypatch):
-    """Replace ``core.debug.send_channel_log`` (late-imported by the hook)."""
+    """Replace ``core.debug.send_log`` (late-imported by the trace hook)."""
+    import rosemary.core.card_service as card_service
     import rosemary.core.debug as debug_mod
 
     calls: list[dict] = []
+    card_service._TRACE_SEEN.clear()
 
-    async def fake_send(bot, guild_id, title, description, **kwargs):
-        calls.append({"title": title, "description": description, **kwargs})
+    async def fake_send(bot, guild_id, event, **kwargs):
+        calls.append({"event": event, **kwargs})
         return True
 
-    monkeypatch.setattr(debug_mod, "send_channel_log", fake_send)
+    monkeypatch.setattr(debug_mod, "send_log", fake_send)
     return calls
 
 
@@ -95,9 +97,10 @@ async def test_trace_emits_path_with_theme_origin(tmp_path, monkeypatch):
     view, _allowed = await render_card_message(bot, 1, "about.card", {})
     assert view is not None  # themed document rendered
     assert len(calls) == 1
-    assert "card.about.card" in calls[0]["description"]
-    assert "debug.trace.theme" in calls[0]["description"]
-    assert "t" in calls[0]["description"]
+    assert calls[0]["event"] == "debug.trace"
+    assert calls[0]["path"] == "card.about.card"
+    assert "debug.trace.theme" in calls[0]["origin"]
+    assert "t" in calls[0]["origin"]
 
 
 async def test_trace_emits_default_origin_without_theme(tmp_path, monkeypatch):
@@ -109,8 +112,9 @@ async def test_trace_emits_default_origin_without_theme(tmp_path, monkeypatch):
     view, _allowed = await render_card_message(bot, 1, "about.card", {})
     assert view is not None  # catalog seed rendered
     assert len(calls) == 1
-    assert "card.about.card" in calls[0]["description"]
-    assert "debug.trace.default" in calls[0]["description"]
+    assert calls[0]["event"] == "debug.trace"
+    assert calls[0]["path"] == "card.about.card"
+    assert "debug.trace.default" in calls[0]["origin"]
 
 
 async def test_trace_skipped_when_card_has_no_document(tmp_path, monkeypatch):
@@ -168,7 +172,7 @@ async def test_ephemeral_invites_card_traces(tmp_path, monkeypatch):
     )
     assert view is not None
     assert len(calls) == 1, f"expected exactly one trace, got {calls}"
-    assert "card.invites.personal" in calls[0]["description"]
+    assert calls[0]["path"] == "card.invites.personal"
 
 
 async def test_about_command_traces_card_path(tmp_path, monkeypatch):
@@ -194,4 +198,4 @@ async def test_about_command_traces_card_path(tmp_path, monkeypatch):
     await AboutCog.about.callback(cog, Ctx)
     assert Ctx.respond is not None, "about must respond with a view"
     assert len(calls) == 1, f"expected exactly one trace, got {calls}"
-    assert "card.about.card" in calls[0]["description"]
+    assert calls[0]["path"] == "card.about.card"

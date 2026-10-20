@@ -18,8 +18,8 @@ import discord.ext.tasks as tasks
 from discord.ext import commands
 
 from rosemary import __version__
-from rosemary.core.cards import log_description, text_or
-from rosemary.core.debug import send_channel_log
+from rosemary.core.cards import text_or
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.updater import (
     backup_data,
@@ -100,19 +100,12 @@ class UpdaterCog(commands.Cog):
             flag.unlink()
         for guild_id in guild_ids:
             try:
-                await send_channel_log(
+                await send_log(
                     self.bot,
                     guild_id,
-                    await self.bot.translator.t(guild_id, "updater.logs.updated.title"),
-                    await log_description(
-                        self.bot,
-                        guild_id,
-                        "updater.logs.updated.description",
-                        previous=previous or "-",
-                        current=f"v{__version__}",
-                    ),
-                    color="success",
-                    card_key="updater.logs.updated.description",
+                    "updater.logs.updated",
+                    previous=previous or "-",
+                    current=f"v{__version__}",
                 )
             except Exception as exc:
                 log.error("Post-update notify failed in %s: %s", guild_id, exc)
@@ -203,20 +196,11 @@ class UpdaterCog(commands.Cog):
         if notify and signature is not None:
             for guild in guilds:
                 try:
-                    await send_channel_log(
+                    await send_log(
                         self.bot,
                         guild.id,
-                        await self.bot.translator.t(
-                            guild.id, "updater.logs.auto_failed.title"
-                        ),
-                        await log_description(
-                            self.bot,
-                            guild.id,
-                            "updater.logs.auto_failed.description",
-                            reason=signature,
-                        ),
-                        color="danger",
-                        card_key="updater.logs.auto_failed.description",
+                        "updater.logs.auto_failed",
+                        reason=signature,
                     )
                 except Exception as exc:
                     log.error("Auto-update failure notify failed: %s", exc)
@@ -238,22 +222,13 @@ class UpdaterCog(commands.Cog):
             return
         for guild in guilds:
             try:
-                await send_channel_log(
+                await send_log(
                     self.bot,
                     guild.id,
-                    await self.bot.translator.t(
-                        guild.id, "updater.logs.updating.title"
-                    ),
-                    await log_description(
-                        self.bot,
-                        guild.id,
-                        "updater.logs.updating.description",
-                        moderator="-",
-                        target=target,
-                        previous=f"v{__version__}",
-                    ),
-                    color="warning",
-                    card_key="updater.logs.updating.description",
+                    "updater.logs.updating",
+                    moderator="-",
+                    target=target,
+                    previous=f"v{__version__}",
                 )
             except Exception as exc:
                 log.error("Pre-update notify failed in %s: %s", guild.id, exc)
@@ -400,20 +375,11 @@ class UpdaterCog(commands.Cog):
     async def _notify_all(self, **variables) -> None:
         for guild in list(self.bot.guilds):
             try:
-                await send_channel_log(
+                await send_log(
                     self.bot,
                     guild.id,
-                    await self.bot.translator.t(
-                        guild.id, "updater.logs.updating.title"
-                    ),
-                    await log_description(
-                        self.bot,
-                        guild.id,
-                        "updater.logs.updating.description",
-                        **variables,
-                    ),
-                    color="warning",
-                    card_key="updater.logs.updating.description",
+                    "updater.logs.updating",
+                    **variables,
                 )
             except Exception as exc:
                 log.error("Pre-update notify failed in %s: %s", guild.id, exc)

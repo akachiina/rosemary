@@ -60,8 +60,10 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
   code. New setting = `SettingSpec` + `settings.<key>.label`/`.description`
   (+ `.choices.*`) in BOTH catalogs. **No test enforces label parity**: resolve
   every label or the UI renders raw keys. Duration settings store seconds.
-- Channel logs go through `core/debug.send_channel_log(...)` (no-op unless
-  `logging.enabled` + channel configured).
+- Staff logs go through `core/debug.send_log(bot, guild_id, "<event>", **vars)`
+  (no-op unless `logging.enabled` + channel configured). `LogSpec` in
+  `core/log_specs.py` owns title/body/severity/layout/footer; `core/log_cards.py`
+  registers one default builder per event. Never render a log envelope by hand.
 
 ## i18n (`core/i18n.py`, `language/en-US.yaml` + `pt-BR.yaml`)
 
@@ -96,6 +98,10 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
 - **Never add a seed-map entry for a card that has a default builder**: the seed
   shadows the builder when registration order slips, and tests pass green on the
   wrong path (regression: starboard author/avatar/gallery).
+- Log events are CardSpecs too: `cards.<event>` is a full-card override, while
+  the legacy `cards.<event>.description` stays a **body-only** override and old
+  `pings:<event>.description` toggles map to the new event key. Shared field
+  labels live in `log.field.*` (both catalogs) and carry theme emoji tokens.
 - **Every registered builder must accept `**variables`**: live sends forward
   send-site variables and a closed signature degrades to raw-key fallback
   (swept by `test_audit.py::test_all_builders_signatures_accept_variables`).

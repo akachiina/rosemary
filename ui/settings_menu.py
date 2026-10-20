@@ -14,7 +14,8 @@ from typing import Any
 
 import discord
 
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
+from rosemary.core.log_specs import SETTINGS_LOG_EVENT
 from rosemary.core.settings import (
     CATEGORIES,
     SETTINGS,
@@ -311,19 +312,15 @@ class SettingsMenuView(MenuView):
         new_fv = format_value(spec, new_value)
         old_fmt = await t(self.guild_id, old_fv.display) if old_fv.translate else old_fv.display
         new_fmt = await t(self.guild_id, new_fv.display) if new_fv.translate else new_fv.display
-        await send_channel_log(
+        await send_log(
             self.bot,
             self.guild_id,
-            await t(self.guild_id, "settings.log.title"),
-            await t(
-                self.guild_id,
-                "settings.log.description",
-                setting=label,
-                category=category_label,
-                old=old_fmt,
-                new=new_fmt,
-                author=interaction.user.mention,
-            ),
+            SETTINGS_LOG_EVENT,
+            setting=label,
+            category=category_label,
+            old=old_fmt,
+            new=new_fmt,
+            author=interaction.user.mention,
         )
         from rosemary.core.panels import on_setting_changed
 
@@ -436,18 +433,11 @@ class SettingsMenuView(MenuView):
                 self.guild_id,
                 interaction.user.id,
             )
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 self.guild_id,
-                await self.bot.translator.t(self.guild_id, "bump.logs.week_reset_manual.title"),
-                await self.bot.translator.t(
-                    self.guild_id,
-                    "bump.logs.week_reset_manual.description",
-                    author=interaction.user.mention,
-                ),
-                color="warning",
-                card_key="bump.logs.week_reset_manual.description",
-                mention_user_ids=[interaction.user.id],
+                "bump.logs.week_reset_manual",
+                author=interaction.user.mention,
             )
             await self._test_flash(interaction, "reset_done")
 

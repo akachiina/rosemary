@@ -72,8 +72,15 @@ def theme_pings(bot, guild_id: int | None, key: str) -> bool:
     if isinstance(overrides, dict):
         if key in overrides:
             return bool(overrides[key])
-        # Renamed cards keep honoring the legacy toggle (theme compat).
+        # Renamed cards and staff-log events keep honoring the legacy toggle:
+        # log cards used to live under ``<event>.description``.
         legacy = _RENAMED_PINGS.get(key)
+        if legacy is None:
+            from rosemary.core.log_specs import LOG_SPECS
+
+            spec = LOG_SPECS.get(key)
+            if spec is not None and spec.legacy_key:
+                legacy = spec.legacy_key
         if legacy is not None and legacy in overrides:
             return bool(overrides[legacy])
     return pings_default(key)

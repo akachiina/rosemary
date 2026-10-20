@@ -172,7 +172,7 @@ async def test_add_submit_resolves_placeholders_and_stores(tmp_path, monkeypatch
         return MagicMock(id=999)
 
     monkeypatch.setattr(cog, "_post_ad", fake_post)
-    monkeypatch.setattr(partnerships_module, "send_channel_log", AsyncMock())
+    monkeypatch.setattr(partnerships_module, "send_log", AsyncMock())
 
     interaction = await _submit(cog, ctx, guild, "Fala {rep}! {ping_role} {plus}")
     text = posted["content"]

@@ -28,8 +28,8 @@ def test_spec_defaults_back_the_toggle():
     assert spec_default("birthdays.announce") == "single"
     assert spec_default("events.welcome") == "single"
     assert spec_default("bump.no_bumps") == "none"
-    assert spec_default("bump.logs.week_reset.description") == "none"
-    assert spec_default("boost.logs.register.description") == "none"
+    assert spec_default("bump.logs.week_reset") == "none"
+    assert spec_default("boost.logs.register") == "none"
     assert spec_default("no.such.card") == "none"
     assert get_card("bump.leaderboard").mention_default == "winner_auto"
 
@@ -38,7 +38,7 @@ def test_pings_default_derives_from_spec():
     assert pings_default("bump.thank_you") is True
     assert pings_default("bump.leaderboard") is True
     assert pings_default("bump.no_bumps") is False
-    assert pings_default("moderation.logs.ban.description") is False
+    assert pings_default("moderation.logs.ban") is False
     assert pings_default("no.such.card") is False
 
 
@@ -81,3 +81,25 @@ async def test_theme_pings_reads_active_theme_override(tmp_path):
     assert theme_pings(bot, 1, "bump.thank_you") is False  # theme says off
     assert theme_pings(bot, 1, "bump.no_bumps") is True  # theme says on
     assert theme_pings(bot, 1, "bump.leaderboard") is True  # not overridden
+
+
+async def test_theme_pings_honors_legacy_log_body_toggle(tmp_path):
+    """Themes that enabled pings on the old body card keep the opt-in."""
+    from rosemary.core.themes import ThemeStore, preload_themes
+
+    themes_dir = tmp_path / "themes"
+    themes_dir.mkdir()
+    (themes_dir / "chatty.yaml").write_text(
+        "name: chatty\npings:\n"
+        "  moderation.logs.ban.description: true\n",
+        encoding="utf-8",
+    )
+    store = ThemeStore(tmp_path, themes_dir=themes_dir)
+    await store.set_active(1, "chatty")
+
+    bot = _Bot(tmp_path, themes_dir=themes_dir)
+    bot.guilds = [type("G", (), {"id": 1})()]
+    await preload_themes(bot)
+
+    assert theme_pings(bot, 1, "moderation.logs.ban") is True
+    assert theme_pings(bot, 1, "bump.logs.week_reset") is False

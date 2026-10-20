@@ -7,7 +7,7 @@ rich / fallback / invalid paths through the real resolution chain.
 
 from __future__ import annotations
 
-from rosemary.core.cards import log_description, text_or
+from rosemary.core.cards import text_or
 from rosemary.core.storage import GuildStorage
 from rosemary.core.themes import ThemeStore, preload_themes
 from rosemary.ui import boost_dm
@@ -93,13 +93,9 @@ async def test_dm_send_falls_back_to_translator(tmp_path):
     assert dest.last.get("content") == "boost.dm.member_left:Rosas"
 
 
-async def test_text_or_and_log_description_fallback(tmp_path):
+async def test_text_or_fallback(tmp_path):
     bot = FakeBot(tmp_path)
     assert await text_or(bot, 1, "warn.dm", "DEFAULT", guild="g") == "DEFAULT"
-    assert (
-        await log_description(bot, 1, "boost.logs.rename.description", old="a", new="b")
-        == "boost.logs.rename.description:"
-    )
 
 
 async def test_invalid_override_falls_back(tmp_path):

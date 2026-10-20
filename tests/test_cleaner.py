@@ -497,14 +497,14 @@ async def test_panel_completion_reports_and_stamps_final_summary(tmp_path):
 
     sent_logs: list = []
 
-    async def spy_send_channel_log(*args, **kwargs):
+    async def spy_send_log(*args, **kwargs):
         sent_logs.append((args, kwargs))
         return True
 
     import rosemary.cogs.cleaner as cleaner_mod
 
-    original = cleaner_mod.send_channel_log
-    cleaner_mod.send_channel_log = spy_send_channel_log
+    original = cleaner_mod.send_log
+    cleaner_mod.send_log = spy_send_log
     try:
         interaction = MagicMock()
         interaction.response = MagicMock()
@@ -515,7 +515,7 @@ async def test_panel_completion_reports_and_stamps_final_summary(tmp_path):
         await view._confirm(interaction)
         await view._task
     finally:
-        cleaner_mod.send_channel_log = original
+        cleaner_mod.send_log = original
 
     assert view.state == "done"
     assert view.deleted == 4
@@ -525,12 +525,12 @@ async def test_panel_completion_reports_and_stamps_final_summary(tmp_path):
     assert "4" in joined
     assert "com a palavra" in joined
     assert len(sent_logs) == 1, "one audit card for the whole run"
+    assert sent_logs[0][0][2] == "cleaner.logs.purged"
     log_kwargs = sent_logs[0][1]
-    assert log_kwargs["card_key"] == "cleaner.logs.purged.description"
-    assert log_kwargs["mention_user_ids"] == [9]
-    # The audit body reports confirmed deletes against criteria matches
-    # (send_channel_log args: bot, guild_id, title, description).
-    assert "4 of 5" in sent_logs[0][0][3]
+    assert log_kwargs["moderator"] == "<@9>"
+    assert log_kwargs["matched"] == 5
+    assert log_kwargs["count"] == 5
+    assert log_kwargs["deleted"] == 4
 
 
 async def test_panel_stopped_summary_after_cancel(tmp_path):
@@ -548,8 +548,8 @@ async def test_panel_stopped_summary_after_cancel(tmp_path):
 
     import rosemary.cogs.cleaner as cleaner_mod
 
-    original = cleaner_mod.send_channel_log
-    cleaner_mod.send_channel_log = AsyncMock(return_value=True)
+    original = cleaner_mod.send_log
+    cleaner_mod.send_log = AsyncMock(return_value=True)
     try:
         interaction = MagicMock()
         interaction.response = MagicMock()
@@ -560,7 +560,7 @@ async def test_panel_stopped_summary_after_cancel(tmp_path):
         await view._confirm(interaction)
         await view._task
     finally:
-        cleaner_mod.send_channel_log = original
+        cleaner_mod.send_log = original
 
     assert view.state == "done"
     joined = "\n".join(container_texts(view))
@@ -579,8 +579,8 @@ async def test_panel_reports_matched_vs_deleted_gap(tmp_path):
 
     import rosemary.cogs.cleaner as cleaner_mod
 
-    original = cleaner_mod.send_channel_log
-    cleaner_mod.send_channel_log = AsyncMock(return_value=True)
+    original = cleaner_mod.send_log
+    cleaner_mod.send_log = AsyncMock(return_value=True)
     try:
         interaction = MagicMock()
         interaction.response = MagicMock()
@@ -591,7 +591,7 @@ async def test_panel_reports_matched_vs_deleted_gap(tmp_path):
         await view._confirm(interaction)
         await view._task
     finally:
-        cleaner_mod.send_channel_log = original
+        cleaner_mod.send_log = original
 
     joined = "\n".join(container_texts(view))
     assert "could not be deleted" in joined
@@ -621,8 +621,8 @@ async def test_panel_timer_refreshes_counters_mid_run(tmp_path):
 
     original_interval = cleaner_mod.PANEL_EDIT_INTERVAL
     cleaner_mod.PANEL_EDIT_INTERVAL = 0.05
-    original = cleaner_mod.send_channel_log
-    cleaner_mod.send_channel_log = AsyncMock(return_value=True)
+    original = cleaner_mod.send_log
+    cleaner_mod.send_log = AsyncMock(return_value=True)
     try:
         interaction = MagicMock()
         interaction.response = MagicMock()
@@ -636,7 +636,7 @@ async def test_panel_timer_refreshes_counters_mid_run(tmp_path):
             await view._timer_task
     finally:
         cleaner_mod.PANEL_EDIT_INTERVAL = original_interval
-        cleaner_mod.send_channel_log = original
+        cleaner_mod.send_log = original
 
     assert interaction.edit_original_response.await_count >= 1
 

@@ -34,8 +34,7 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.storage import GuildStorage
 
@@ -372,23 +371,13 @@ class TrapCog(commands.Cog):
     ) -> None:
         """Staff log card: the trap punished nobody and staff must know."""
         guild_id = guild.id
-        t = self.bot.translator.t
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await t(guild_id, "trap.logs.failed.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "trap.logs.failed.description",
-                user=member.mention,
-                action=await t(guild_id, f"trap.audit.action.{action}"),
-                reason=failure,
-                user_label=await t(guild_id, "trap.audit.user_label"),
-                action_label=await t(guild_id, "trap.audit.action_label"),
-                reason_label=await t(guild_id, "trap.audit.reason_label"),
+            "trap.logs.failed",
+            user=member.mention,
+            action=await self.bot.translator.t(
+                guild_id, f"trap.audit.action.{action}"
             ),
-            color="danger",
-            card_key="trap.logs.failed.description",
-            mention_user_ids=[member.id],
+            reason=failure,
         )

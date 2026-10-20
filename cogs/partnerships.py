@@ -13,9 +13,9 @@ import discord
 import discord.ext.tasks as tasks
 from discord.ext import commands
 
-from rosemary.core.cards import log_description, text_or
+from rosemary.core.cards import text_or
 from rosemary.core.command_guards import require_admin
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.partnerships import PartnershipStore
 from rosemary.core.settings import get_setting
 
@@ -151,17 +151,8 @@ class PartnershipsCog(commands.Cog):
             await member.send(text)
 
     async def _log(self, guild_id: int, key: str, color: str, ids=(), **variables) -> None:
-        await send_channel_log(
-            self.bot,
-            guild_id,
-            await self.bot.translator.t(guild_id, f"partnerships.logs.{key}.title"),
-            await log_description(
-                self.bot, guild_id, f"partnerships.logs.{key}.description", **variables
-            ),
-            color=color,
-            card_key=f"partnerships.logs.{key}.description",
-            mention_user_ids=list(ids),
-        )
+        """Log a partnership event; ``color``/``ids`` are legacy arguments."""
+        await send_log(self.bot, guild_id, f"partnerships.logs.{key}", **variables)
 
     async def _delete_ad(self, guild: discord.Guild, entry: dict) -> None:
         channel = await self._channel(guild)

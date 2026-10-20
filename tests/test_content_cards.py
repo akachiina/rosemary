@@ -67,7 +67,7 @@ def test_promoted_content_specs_registered():
         "bump.stats",
         "settings.title",
         "themes.title",
-        "debug.title",
+        "debug.panel",
         "boost.home",
     ):
         assert get_card(key) is not None, f"spec missing: {key}"
@@ -119,7 +119,6 @@ async def test_seed_documents_render():
         "bump.stats",
         "settings.title",
         "themes.title",
-        "debug.title",
         "boost.home",
     ]
     for key in keys:

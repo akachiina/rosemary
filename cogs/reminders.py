@@ -9,9 +9,8 @@ import logging
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description
 from rosemary.core.command_guards import require_admin
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.reminders import ReminderStore
 from rosemary.core.settings import get_setting
 
@@ -169,22 +168,14 @@ class RemindersCog(commands.Cog):
         target = await get_setting(self.bot.storage, guild_id, "reminders.target_role")
         members = with_role(ctx.guild.members, target)
         sent, failed = await fan_out(members, message, delay)
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(guild_id, "reminders.logs.sent.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "reminders.logs.sent.description",
-                moderator=ctx.author.mention,
-                name=name.strip().lower(),
-                sent=sent,
-                failed=failed,
-            ),
-            color="info",
-            card_key="reminders.logs.sent.description",
-            mention_user_ids=[ctx.author.id],
+            "reminders.logs.sent",
+            moderator=ctx.author.mention,
+            name=name.strip().lower(),
+            sent=sent,
+            failed=failed,
         )
         await ctx.respond(
             await self.bot.translator.t(

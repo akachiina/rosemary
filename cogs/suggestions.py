@@ -23,6 +23,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.command_guards import require_permissions
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.suggestions import SuggestionStore
 from rosemary.ui.menu import MenuView
@@ -852,31 +853,18 @@ class SuggestionsCog(commands.Cog):
         decision: str,
         reason: str,
     ) -> None:
-        from rosemary.core.cards import log_description
-        from rosemary.core.debug import send_channel_log
-
         reason_text = (reason or "").strip() or await self.bot.translator.t(
             guild_id, "suggest.no_reason"
         )
         author_id = int(entry.get("author_id") or 0)
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(
-                guild_id, f"suggestions.logs.{decision}.title"
-            ),
-            await log_description(
-                self.bot,
-                guild_id,
-                f"suggestions.logs.{decision}.description",
-                moderator=moderator.mention,
-                user=f"<@{author_id}>" if author_id else "",
-                suggestion_number=entry.get("number", 0),
-                reason=reason_text,
-            ),
-            color="success" if decision == "approved" else "danger",
-            card_key=f"suggestions.logs.{decision}.description",
-            mention_user_ids=[author_id] if author_id else [],
+            f"suggestions.logs.{decision}",
+            moderator=moderator.mention,
+            user=f"<@{author_id}>" if author_id else "",
+            suggestion_number=entry.get("number", 0),
+            reason=reason_text,
         )
 
     async def _log_created(
@@ -886,24 +874,13 @@ class SuggestionsCog(commands.Cog):
         number: int,
         channel: discord.TextChannel,
     ) -> None:
-        from rosemary.core.cards import log_description
-        from rosemary.core.debug import send_channel_log
-
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(guild_id, "suggestions.logs.created.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "suggestions.logs.created.description",
-                user=author.mention,
-                suggestion_number=number,
-                channel=channel.mention,
-            ),
-            color="success",
-            card_key="suggestions.logs.created.description",
-            mention_user_ids=[author.id],
+            "suggestions.logs.created",
+            user=author.mention,
+            suggestion_number=number,
+            channel=channel.mention,
         )
 
     #: commands ------------------------------------------------------------

@@ -390,12 +390,13 @@ async def test_failed_punishment_posts_the_staff_log(tmp_path):
     member.guild = guild
     import rosemary.cogs.trap as trap_mod
 
-    with patch.object(trap_mod, "send_channel_log", new=AsyncMock()) as fake_log:
+    with patch.object(trap_mod, "send_log", new=AsyncMock()) as fake_log:
         await cog._punish(guild, member)
     fake_log.assert_awaited_once()
+    assert fake_log.await_args.args[2] == "trap.logs.failed"
     kwargs = fake_log.await_args.kwargs
-    assert kwargs["card_key"] == "trap.logs.failed.description"
-    assert kwargs["mention_user_ids"] == [100]
+    assert kwargs["user"] == member.mention
+    assert kwargs["reason"]
 
 
 async def test_successful_punishment_skips_the_failure_log(tmp_path):
@@ -413,6 +414,6 @@ async def test_successful_punishment_skips_the_failure_log(tmp_path):
     member.ban = AsyncMock()  # guild.ban works: ban succeeds
     import rosemary.cogs.trap as trap_mod
 
-    with patch.object(trap_mod, "send_channel_log", new=AsyncMock()) as fake_log:
+    with patch.object(trap_mod, "send_log", new=AsyncMock()) as fake_log:
         await cog._punish(guild, member)
     fake_log.assert_not_awaited()

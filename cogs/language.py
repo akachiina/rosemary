@@ -9,7 +9,7 @@ as fixed suggestions (no type-to-filter narrowing).
 import discord
 from discord.ext import commands
 
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
 
@@ -68,21 +68,13 @@ class LanguageCog(commands.Cog):
             old_lang = (await self.bot.storage.get(ctx.guild_id)).get("language")
             await self.bot.storage.set(ctx.guild_id, "language", language)
             message = await t(ctx.guild_id, "language.updated", language=language)
-            from rosemary.core.cards import log_description
-
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 ctx.guild_id,
-                await t(ctx.guild_id, "settings.log.language_title"),
-                await log_description(
-                    self.bot,
-                    ctx.guild_id,
-                    "settings.logs.language.description",
-                    old=old_lang or "-",
-                    new=language,
-                    author=ctx.author.mention,
-                ),
-                card_key="settings.logs.language.description",
+                "settings.logs.language",
+                old=old_lang or "-",
+                new=language,
+                author=ctx.author.mention,
             )
 
         view = DesignerView(store=False)

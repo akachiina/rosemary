@@ -26,7 +26,7 @@ import discord
 
 from rosemary.core.boost_roles import BoostRoleStore, parse_datetime
 from rosemary.core.cards import text_or
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui import boost_dm as dm
 from rosemary.ui.color_palette import COLOR_PALETTE
@@ -158,22 +158,12 @@ class _BaseMenu(MenuView):
         self.flash_color = color
 
     async def _log(self, key: str, *, color: str = "info", **kwargs: Any) -> None:
-        """Send a boost action to the configured log channel."""
-        description_key = f"boost.logs.{key}.description"
-        await send_channel_log(
-            self.bot,
-            self.guild_id,
-            await self._t(f"boost.logs.{key}.title"),
-            await text_or(
-                self.bot,
-                self.guild_id,
-                description_key,
-                await self._t(description_key, **kwargs),
-                **kwargs,
-            ),
-            color=color,
-            card_key=description_key,
-        )
+        """Send a boost action to the configured log channel.
+
+        ``color`` is accepted for old call sites; severity now comes from the
+        ``LogSpec`` registry.
+        """
+        await send_log(self.bot, self.guild_id, f"boost.logs.{key}", **kwargs)
 
     async def _actor_mention(self) -> str:
         return f"<@{self._uid()}>"

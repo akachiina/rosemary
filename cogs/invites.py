@@ -20,9 +20,8 @@ from datetime import UTC, datetime
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description
 from rosemary.core.command_guards import require_admin
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.invites import (
     FAKE,
     FLAGGED,
@@ -212,24 +211,16 @@ class InvitesCog(commands.Cog):
                 inviter_id = record.get("inviter_id") if record else None
             if inviter_id is None and await self.store.previous_record(guild.id, member.id) is None:
                 return
-            await send_channel_log(
+            await send_log(
                 self.bot,
                 guild.id,
-                await self.bot.translator.t(guild.id, "invites.logs.leave.title"),
-                await log_description(
-                    self.bot,
-                    guild.id,
-                    "invites.logs.leave.description",
-                    user=member.mention,
-                    inviter=(
-                        f"<@{inviter_id}>"
-                        if inviter_id
-                        else await self.bot.translator.t(guild.id, "invites.unknown")
-                    ),
+                "invites.logs.leave",
+                user=member.mention,
+                inviter=(
+                    f"<@{inviter_id}>"
+                    if inviter_id
+                    else await self.bot.translator.t(guild.id, "invites.unknown")
                 ),
-                color="info",
-                card_key="invites.logs.leave.description",
-                mention_user_ids=[member.id],
             )
         except Exception as exc:
             log.error("Invite leave tracking failed for %s: %s", member, exc)
@@ -248,28 +239,19 @@ class InvitesCog(commands.Cog):
             flags = await self.bot.translator.t(guild.id, "invites.flags.fake")
         elif status == FLAGGED:
             flags = await self.bot.translator.t(guild.id, "invites.flags.flagged")
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild.id,
-            await self.bot.translator.t(guild.id, "invites.logs.join.title"),
-            await log_description(
-                    self.bot,
-                    guild.id,
-                    "invites.logs.join.description",
-                    user=member.mention,
-                    code=code
-                    or await self.bot.translator.t(guild.id, "invites.unknown"),
-                    inviter=(
-                        f"<@{inviter_id}>"
-                        if inviter_id
-                        else await self.bot.translator.t(guild.id, "invites.unknown")
-                    ),
-                    label=f" ({label})" if label else "",
-                    flags=flags,
-                ),
-            color="info",
-            card_key="invites.logs.join.description",
-            mention_user_ids=[member.id, *( [inviter_id] if inviter_id else [])],
+            "invites.logs.join",
+            user=member.mention,
+            code=code or await self.bot.translator.t(guild.id, "invites.unknown"),
+            inviter=(
+                f"<@{inviter_id}>"
+                if inviter_id
+                else await self.bot.translator.t(guild.id, "invites.unknown")
+            ),
+            label=f" ({label})" if label else "",
+            flags=flags,
         )
 
     #: shared card builder -----------------------------------------------------
@@ -740,22 +722,14 @@ class InvitesCog(commands.Cog):
             )
         stats = await self.store.add_bonus(guild_id, member.id, amount)
         key = "invites.bonus.added" if amount > 0 else "invites.bonus.removed"
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(guild_id, "invites.logs.bonus.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "invites.logs.bonus.description",
-                moderator=ctx.author.mention,
-                user=member.mention,
-                amount=amount,
-                total=stats["total"],
-            ),
-            color="warning",
-            card_key="invites.logs.bonus.description",
-            mention_user_ids=[member.id, ctx.author.id],
+            "invites.logs.bonus",
+            moderator=ctx.author.mention,
+            user=member.mention,
+            amount=amount,
+            total=stats["total"],
         )
         await ctx.respond(
             await self.bot.translator.t(
@@ -784,20 +758,12 @@ class InvitesCog(commands.Cog):
         baseline = await self.store.reconcile_uses(guild.id, snapshots)
         self._cache[guild.id] = baseline
         self._cache_ts[guild.id] = time.monotonic()
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild.id,
-            await self.bot.translator.t(guild.id, "invites.logs.sync.title"),
-            await log_description(
-                self.bot,
-                guild.id,
-                "invites.logs.sync.description",
-                codes=len(baseline),
-                moderator=ctx.author.mention,
-            ),
-            color="info",
-            card_key="invites.logs.sync.description",
-            mention_user_ids=[ctx.author.id],
+            "invites.logs.sync",
+            codes=len(baseline),
+            moderator=ctx.author.mention,
         )
         await ctx.respond(
             await self.bot.translator.t(
@@ -973,19 +939,11 @@ class InvitesCog(commands.Cog):
 
         async def reset_all() -> str:
             await store.reset(guild_id)
-            await send_channel_log(
+            await send_log(
                 bot,
                 guild_id,
-                await t(guild_id, "invites.logs.reset.title"),
-                await log_description(
-                    bot,
-                    guild_id,
-                    "invites.logs.reset.description",
-                    moderator=ctx.author.mention,
-                ),
-                color="warning",
-                card_key="invites.logs.reset.description",
-                mention_user_ids=[ctx.author.id],
+                "invites.logs.reset",
+                moderator=ctx.author.mention,
             )
             return await t(guild_id, "invites.reset.success")
 

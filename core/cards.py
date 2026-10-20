@@ -317,13 +317,6 @@ async def text_or(
     return override if override is not None else translated
 
 
-async def log_description(bot, guild_id: int, key: str, **variables: Any) -> str:
-    """Translated-or-overridden body for one staff-log entry."""
-    return await text_or(
-        bot, guild_id, key, await bot.translator.t(guild_id, key, **variables), **variables
-    )
-
-
 def _walk_texts(items):
     for item in items:
         yield item

@@ -14,9 +14,8 @@ from dataclasses import dataclass, field
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import log_description
 from rosemary.core.command_guards import require_admin
-from rosemary.core.debug import send_channel_log
+from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 
 log = logging.getLogger(__name__)
@@ -81,21 +80,13 @@ class BroadcastCog(commands.Cog):
         )
         session.task = asyncio.create_task(self._fan_out(guild_id, header, session))
         await session.task
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(guild_id, "broadcast.logs.started.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "broadcast.logs.started.description",
-                moderator=ctx.author.mention,
-                title=title,
-                channel=ctx.channel.mention,
-            ),
-            color="info",
-            card_key="broadcast.logs.started.description",
-            mention_user_ids=[ctx.author.id],
+            "broadcast.logs.started",
+            moderator=ctx.author.mention,
+            title=title,
+            channel=ctx.channel.mention,
         )
         await ctx.respond(
             await self.bot.translator.t(
@@ -122,22 +113,14 @@ class BroadcastCog(commands.Cog):
             )
         if session.task is not None and not session.task.done():
             session.task.cancel()
-        await send_channel_log(
+        await send_log(
             self.bot,
             guild_id,
-            await self.bot.translator.t(guild_id, "broadcast.logs.ended.title"),
-            await log_description(
-                self.bot,
-                guild_id,
-                "broadcast.logs.ended.description",
-                moderator=ctx.author.mention,
-                relayed=session.relayed,
-                sent=session.sent,
-                failed=session.failed,
-            ),
-            color="info",
-            card_key="broadcast.logs.ended.description",
-            mention_user_ids=[ctx.author.id],
+            "broadcast.logs.ended",
+            moderator=ctx.author.mention,
+            relayed=session.relayed,
+            sent=session.sent,
+            failed=session.failed,
         )
         await ctx.respond(
             await self.bot.translator.t(
