@@ -228,6 +228,7 @@ class _ActionMember:
     def __init__(self, member_id: int) -> None:
         self.id = member_id
         self.mention = f"<@{member_id}>"
+        self.display_avatar = SimpleNamespace(url=f"https://cdn.example/{member_id}.png")
         self.sent: list[str] = []
         self.banned = False
         self.kicked = False
@@ -312,6 +313,35 @@ async def test_execute_action_never_crashes_and_formats(
     assert target.banned is (action == "ban")
     assert target.kicked is (action == "kick")
     assert target.timed_out is (action == "mute")
+
+
+async def test_ban_stamps_audit_before_the_api_call(tmp_path) -> None:
+    """The audit gateway card must see the stamp before on_member_ban fires."""
+    from rosemary.cogs.audit import AuditCog
+
+    events: list[str] = []
+
+    class _OrderedAudit(AuditCog):
+        def note_bot_ban(self, guild_id: int, user_id: int) -> None:
+            events.append("stamp")
+            super().note_bot_ban(guild_id, user_id)
+
+    cog = _real_cog(tmp_path, "pt-BR")
+    audit = _OrderedAudit(SimpleNamespace())
+    cog.bot.get_cog = lambda name: audit if name == "AuditCog" else None
+
+    target = _ActionMember(200)
+    original_ban = target.ban
+
+    async def ban(reason: str | None = None) -> None:
+        events.append("ban")
+        await original_ban(reason=reason)
+
+    target.ban = ban
+    await cog._execute_action(
+        1, "TestGuild", _ActionMember(100), target, "ban", "Spam", None, False
+    )
+    assert events == ["stamp", "ban"]
 
 
 @pytest.mark.parametrize("language", ["pt-BR", "en-US"])

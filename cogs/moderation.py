@@ -393,19 +393,23 @@ class ModerationCog(commands.Cog):
         await self._send_view(ctx, view)
 
     def _stamp_bot_action(self, guild_id: int, user_id: int, kind: str) -> None:
-        """Stamp an action this cog is about to execute (kick/timeout).
+        """Stamp an action this cog is about to execute (ban/kick/timeout).
 
         The feature posts its own log card with the real moderator, so the
-        gateway cards (audit timeout, welcome leave) would only duplicate it.
-        Stamped BEFORE the API call: delivery order is not guaranteed and the
-        stamp window covers a slow call.
+        gateway cards (audit ban, audit timeout, welcome leave) would only
+        duplicate it. Stamped BEFORE the API call: delivery order is not
+        guaranteed and the stamp window covers a slow call.
         """
         from rosemary.cogs.audit import AuditCog
 
         get_cog = getattr(self.bot, "get_cog", None)
         audit = get_cog("AuditCog") if callable(get_cog) else None
         if isinstance(audit, AuditCog):
-            noter = {"kick": audit.note_bot_kick, "timeout": audit.note_bot_timeout}.get(kind)
+            noter = {
+                "ban": audit.note_bot_ban,
+                "kick": audit.note_bot_kick,
+                "timeout": audit.note_bot_timeout,
+            }.get(kind)
             if noter is not None:
                 noter(guild_id, user_id)
 
@@ -450,15 +454,10 @@ class ModerationCog(commands.Cog):
                 await target.send(dm_text)
 
         if action == "ban":
+            # Stamp before the API call: this ban posts its own log card below
+            # and the gateway audit card must not race in first.
+            self._stamp_bot_action(guild_id, target.id, "ban")
             await target.ban(reason=reason)
-            # This ban posts its own log card below (with the real moderator);
-            # stamp the audit cog so the gateway's generic card skips it.
-            from rosemary.cogs.audit import AuditCog
-
-            get_cog = getattr(self.bot, "get_cog", None)
-            audit = get_cog("AuditCog") if callable(get_cog) else None
-            if isinstance(audit, AuditCog):
-                audit.note_bot_ban(guild_id, target.id)
         elif action == "kick":
             self._stamp_bot_action(guild_id, target.id, "kick")
             await target.kick(reason=reason)
@@ -476,6 +475,7 @@ class ModerationCog(commands.Cog):
             f"moderation.logs.{action}",
             member=target.mention,
             member_id=str(target.id),
+            user_avatar=target.display_avatar.url,
             moderator=moderator.mention,
             reason=reason,
             duration=(
@@ -496,13 +496,8 @@ class ModerationCog(commands.Cog):
                 self.bot.storage, guild_id, "moderation.auto_ban_enabled"
             ):
                 try:
+                    self._stamp_bot_action(guild_id, target.id, "ban")
                     await target.ban(reason=reason)
-                    from rosemary.cogs.audit import AuditCog
-
-                    get_cog = getattr(self.bot, "get_cog", None)
-                    audit = get_cog("AuditCog") if callable(get_cog) else None
-                    if isinstance(audit, AuditCog):
-                        audit.note_bot_ban(guild_id, target.id)
                     result += "\n" + await t(guild_id, "moderation.auto_ban_applied", limit=limit)
                 except (discord.Forbidden, discord.HTTPException) as exc:
                     log.warning("Auto-ban failed for %s: %s", target, exc)

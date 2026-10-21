@@ -41,7 +41,8 @@ class LogSpec:
     the fallback for the ``sentence`` layout and the template used by a legacy
     per-body theme override. ``fields`` drives the ``fields`` layout; when a
     legacy body override exists it wins over the fields, so old guild themes
-    keep their exact copy.
+    keep their exact copy. ``avatar_var`` switches the default frame to the
+    audit-style section with a thumbnail on the right.
     """
 
     event: str
@@ -53,6 +54,7 @@ class LogSpec:
     fields: tuple[LogField, ...] = ()
     mention_default: str = "none"
     actor_var: str | None = None
+    avatar_var: str | None = None
     footer: FooterMode = "system"
     legacy_key: str | None = None
     legacy_labels: tuple[tuple[str, str], ...] = ()
@@ -73,7 +75,11 @@ def _f(
     *,
     optional: bool = False,
 ) -> LogField:
-    return LogField(label=f"log.field.{label or variable}", variable=variable, optional=optional)
+    return LogField(
+        label=f"log.field.{label or variable}.label",
+        variable=variable,
+        optional=optional,
+    )
 
 
 #: Old body-card variable contracts. Kept as the source of truth for the
@@ -201,16 +207,16 @@ _LEGACY_VARIABLES: dict[str, tuple[str, ...]] = {
 #: that customized the old body card still renders its labels, even though the
 #: new send sites no longer pass them.
 _MODERATION_LABELS = (
-    ("member_label", "log.field.target"),
-    ("member_id_label", "log.field.member_id"),
-    ("moderator_label", "log.field.moderator"),
-    ("reason_label", "log.field.reason"),
+    ("member_label", "log.field.target.label"),
+    ("member_id_label", "log.field.member_id.label"),
+    ("moderator_label", "log.field.moderator.label"),
+    ("reason_label", "log.field.reason.label"),
 )
-_MUTE_LABELS = _MODERATION_LABELS + (("duration_label", "log.field.duration"),)
+_MUTE_LABELS = _MODERATION_LABELS + (("duration_label", "log.field.duration.label"),)
 _TRAP_LABELS = (
-    ("user_label", "log.field.target"),
-    ("action_label", "log.field.consequence"),
-    ("reason_label", "log.field.reason"),
+    ("user_label", "log.field.target.label"),
+    ("action_label", "log.field.consequence.label"),
+    ("reason_label", "log.field.reason.label"),
 )
 
 
@@ -222,6 +228,7 @@ def _spec(
     layout: Layout = "sentence",
     fields: tuple[LogField, ...] = (),
     actor_var: str | None = None,
+    avatar_var: str | None = None,
     footer: FooterMode | None = None,
     title_key: str | None = None,
     body_key: str | None = None,
@@ -234,6 +241,8 @@ def _spec(
         base.append("timestamp")
     if actor_var is not None and "actor" not in base:
         base.append("actor")
+    if avatar_var is not None and avatar_var not in base:
+        base.append(avatar_var)
     return LogSpec(
         event=event,
         category=category,
@@ -243,6 +252,7 @@ def _spec(
         body_key=body_key or f"{event}.description",
         fields=fields,
         actor_var=actor_var,
+        avatar_var=avatar_var,
         footer=footer or ("actor" if actor_var else "system"),
         legacy_key=legacy_key,
         legacy_labels=legacy_labels,
@@ -321,6 +331,7 @@ def _build_specs() -> dict[str, LogSpec]:
                 _f("reason"),
             ),
             actor_var="moderator",
+            avatar_var="user_avatar",
             title_key="moderation.logs.ban.title",
             legacy_labels=_MODERATION_LABELS,
         ),
@@ -336,6 +347,7 @@ def _build_specs() -> dict[str, LogSpec]:
                 _f("reason"),
             ),
             actor_var="moderator",
+            avatar_var="user_avatar",
             title_key="moderation.logs.kick.title",
             legacy_labels=_MODERATION_LABELS,
         ),
@@ -352,6 +364,7 @@ def _build_specs() -> dict[str, LogSpec]:
                 _f("reason"),
             ),
             actor_var="moderator",
+            avatar_var="user_avatar",
             title_key="moderation.logs.mute.title",
             legacy_labels=_MUTE_LABELS,
         ),
@@ -367,6 +380,7 @@ def _build_specs() -> dict[str, LogSpec]:
                 _f("reason"),
             ),
             actor_var="moderator",
+            avatar_var="user_avatar",
             title_key="moderation.logs.warn.title",
             legacy_labels=_MODERATION_LABELS,
         ),

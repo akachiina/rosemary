@@ -246,6 +246,11 @@ class TrapCog(commands.Cog):
         audit = self.bot.get_cog("AuditCog")
         if action == "ban":
             if bot_permissions.ban_members:
+                if isinstance(audit, AuditCog):
+                    # The audit.trap card below already reports this ban with
+                    # the ID; stamp before the API call so the gateway card
+                    # cannot race in first.
+                    audit.note_bot_ban(guild_id, member.id)
                 with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                     await guild.ban(
                         member,
@@ -253,10 +258,6 @@ class TrapCog(commands.Cog):
                         delete_message_seconds=seconds or None,
                     )
                     acted = True
-                if acted and isinstance(audit, AuditCog):
-                    # The audit.trap card below already reports this ban with
-                    # the ID; the gateway card would only duplicate it.
-                    audit.note_bot_ban(guild_id, member.id)
             if not acted:
                 failure = await t(guild_id, "trap.failure.no_ban")
         elif action == "softban":
@@ -264,6 +265,8 @@ class TrapCog(commands.Cog):
                 failure = await t(guild_id, "trap.failure.no_ban")
             else:
                 banned = False
+                if isinstance(audit, AuditCog):
+                    audit.note_bot_ban(guild_id, member.id)
                 with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                     await guild.ban(
                         member,
@@ -271,8 +274,6 @@ class TrapCog(commands.Cog):
                         delete_message_seconds=seconds or None,
                     )
                     banned = True
-                if banned and isinstance(audit, AuditCog):
-                    audit.note_bot_ban(guild_id, member.id)
                 if banned:
                     if await self._unban(guild, member.id):
                         acted = True

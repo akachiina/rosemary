@@ -90,26 +90,47 @@ async def default_log_document(
     spec: LogSpec,
     **variables: Any,
 ) -> dict[str, Any]:
-    """Assemble the default document for one log event."""
+    """Assemble the default document for one log event.
+
+    Events that declare ``avatar_var`` use the audit-style frame: a section
+    with the target avatar on the right, title and content on the left. A
+    missing avatar falls back to plain text so a theme preview or a partial
+    send never renders an empty accessory.
+    """
     title = await _text(bot, guild_id, spec.title_key, fallback=spec.title_key)
     heading = _title_markdown(theme_for(bot, guild_id), title)
-    children: list[dict[str, Any]] = [{"type": "text", "body": heading}]
+    content: list[dict[str, Any]] = [{"type": "text", "body": heading}]
+    gallery: dict[str, Any] | None = None
 
     body = await _legacy_body(bot, guild_id, spec, variables)
     if body:
-        children.append({"type": "text", "body": body})
+        content.append({"type": "text", "body": body})
     elif spec.layout == "fields":
         lines = await _field_lines(bot, guild_id, spec, variables)
         if lines:
-            children.append({"type": "text", "body": "\n".join(lines)})
+            content.append({"type": "text", "body": "\n".join(lines)})
     else:
         body_key = variables.get("body_key") or spec.body_key
         body = await _text(bot, guild_id, str(body_key), fallback=str(body_key))
-        children.append({"type": "text", "body": body})
+        content.append({"type": "text", "body": body})
         if spec.layout == "media":
             image_url = variables.get("image_url")
             if image_url:
-                children.append({"type": "gallery", "urls": [str(image_url)]})
+                gallery = {"type": "gallery", "urls": [str(image_url)]}
+
+    avatar_url = variables.get(spec.avatar_var) if spec.avatar_var else None
+    if isinstance(avatar_url, str) and avatar_url.strip():
+        children: list[dict[str, Any]] = [
+            {
+                "type": "section",
+                "accessory": {"type": "thumbnail", "url": avatar_url.strip()},
+                "children": content,
+            }
+        ]
+    else:
+        children = content
+    if gallery is not None:
+        children.append(gallery)
 
     if spec.footer != "none":
         actor = variables.get("actor")

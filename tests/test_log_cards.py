@@ -11,11 +11,17 @@ from rosemary.ui.theme import load_theme
 
 
 class _Translator:
+    def __init__(self, words=None) -> None:
+        self.words = words or {}
+
     async def t(self, guild_id, key, **kwargs):
+        found = self.words.get(key)
+        if found is not None:
+            return found
         return f"{key}:{kwargs}" if kwargs else key
 
     async def raw(self, guild_id, key):
-        return key
+        return self.words.get(key, key)
 
 
 class _ThemeStore:
@@ -52,9 +58,57 @@ async def test_fields_log_uses_a_timestamp_only_footer():
     children = _children(doc)
     assert children[0]["body"] == "# moderation.logs.ban.title"
     fields = children[1]["body"]
-    assert "**log.field.target:** <@2>" in fields
-    assert "**log.field.moderator:** <@3>" in fields
+    assert "**log.field.target.label:** <@2>" in fields
+    assert "**log.field.moderator.label:** <@3>" in fields
     assert children[-1]["body"] == "-# {timestamp}"
+
+
+async def test_moderation_log_uses_the_avatar_section():
+    doc = await default_log_document(
+        _Bot(),
+        1,
+        LOG_SPECS["moderation.logs.warn"],
+        member="<@2>",
+        member_id="2",
+        user_avatar="https://cdn.example/2.png",
+        moderator="<@3>",
+        reason="spam",
+    )
+    children = _children(doc)
+    section = children[0]
+    assert section["type"] == "section"
+    assert section["accessory"] == {
+        "type": "thumbnail",
+        "url": "https://cdn.example/2.png",
+    }
+    assert section["children"][0]["body"] == "# moderation.logs.warn.title"
+    assert "**log.field.target.label:** <@2>" in section["children"][1]["body"]
+    assert children[-1]["body"] == "-# {timestamp}"
+
+
+async def test_field_labels_resolve_catalog_keys():
+    bot = _Bot()
+    bot.translator = _Translator(
+        {
+            "log.field.target.label": "{people} Alvo",
+            "log.field.member_id.label": "{numbers} ID do membro",
+            "log.field.moderator.label": "{gear} Moderador(a)",
+            "log.field.reason.label": "{scroll} Motivo",
+        }
+    )
+    doc = await default_log_document(
+        bot,
+        1,
+        LOG_SPECS["moderation.logs.ban"],
+        member="<@2>",
+        member_id="2",
+        moderator="<@3>",
+        reason="spam",
+    )
+    fields = _children(doc)[1]["body"]
+    assert "**{people} Alvo:** <@2>" in fields
+    assert "**{gear} Moderador(a):** <@3>" in fields
+    assert "log.field." not in fields
 
 
 async def test_log_title_uses_the_theme_title_preset():

@@ -124,7 +124,7 @@ async def test_send_log_injects_actor_labels_and_body_variant(monkeypatch):
     assert sent is True
     assert captured["event"] == "moderation.logs.ban"
     assert captured["actor"] == "<@3>"
-    assert captured["member_label"] == "log.field.target"
+    assert captured["member_label"] == "log.field.target.label"
     assert captured["body_key"] == "moderation.logs.ban.description"
     assert captured["channel"] is channel
     assert "timestamp" in captured
