@@ -377,7 +377,7 @@ settings:
     description: Role pinged on partnership expiry.
   partnerships.invite_text:
     label: Partnership invite text
-    description: 'Text posted by /partnerships_invite. Placeholders: {{rep}} and {{ping_role}}.'
+    description: 'Text posted by /partnerships invite. Placeholders: {{rep}} and {{ping_role}}.'
   partnerships.renewal_days:
     label: Renewal period (days)
     description: Days before a partnership ad expires (1-90).
@@ -722,7 +722,7 @@ boost:
 
       The role @{role_name} was added to you successfully.
 
-      -# To leave the role at any time, use `/boost`.
+      -# To leave the role at any time, use `/boost panel`.
 
       '
     declined: '{info} Invite Declined
@@ -1026,7 +1026,7 @@ bump:
       > **Next bump:** <t:{next_bump_timestamp}:R>
 
 
-      {trophy} **|** Use `/bump_leaderboard` to check the weekly rank and compete for **Bump-MVP!**
+      {trophy} **|** Use `/bump leaderboard` to check the weekly rank and compete for **Bump-MVP!**
 
       '
     reminder_title: '{clock} Bump Time!'
@@ -1049,7 +1049,7 @@ bump:
 
       **{gift} Prize:** Customizable **{role_name}** role for 1 week!
 
-      -# Use `/boost` to customize name, color, emoji and invite members.
+      -# Use `/boost panel` to customize name, color, emoji and invite members.
 
 
       {leaderboard_list}
@@ -1076,7 +1076,7 @@ bump:
 
       ### {palette} Customize your role
 
-      Use `/boost` to customize:
+      Use `/boost panel` to customize:
 
       > {pencil} Name and emoji
 
@@ -1463,7 +1463,7 @@ partnerships:
 
       ### How to renew
 
-      > Use the `/partnerships_renew` command on the server before the deadline.
+      > Use the `/partnerships renew` command on the server before the deadline.
 
 
       ### {warning} Deadline

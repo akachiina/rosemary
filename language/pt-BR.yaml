@@ -377,7 +377,7 @@ settings:
     description: Cargo mencionado na expiração.
   partnerships.invite_text:
     label: Texto do convite de parceria
-    description: 'Texto postado por /enviar_convite_parceria. Placeholders: {{rep}} e {{ping_role}}.'
+    description: 'Texto postado por /parcerias convidar. Placeholders: {{rep}} e {{ping_role}}.'
   partnerships.renewal_days:
     label: Prazo de renovação (dias)
     description: Dias até o anúncio expirar (1-90).
@@ -722,7 +722,7 @@ boost:
 
       O cargo @{role_name} foi adicionado a você com sucesso.
 
-      -# Para sair do cargo a qualquer momento, use `/cargo_boost`.
+      -# Para sair do cargo a qualquer momento, use `/boost painel`.
 
       '
     declined: '{info} Convite Recusado
@@ -958,7 +958,7 @@ colors:
     sage_light: Sálvia Claro
     sage_dark: Sálvia Escuro
   error_disabled: '{error} O painel de cores está desativado neste servidor.'
-  error_no_panel: '{warning} Configure o canal do painel em /settings antes de publicá-lo.'
+  error_no_panel: '{warning} Configure o canal do painel em /configuracoes antes de publicá-lo.'
   error_no_perms: '{error} Preciso da permissão **Gerenciar Cargos** para isso.'
   error_full: '{warning} Limite de {max} cores atingido. Remova uma antes de adicionar outra.'
   error_bad_hex: '{error} Cor inválida. Use o formato hexadecimal, ex: `#FFB7C5`.'
@@ -969,7 +969,7 @@ colors:
   panel_posted: '{check} Painel de cores publicado!'
   list_title: Cores Disponíveis
   list_current: ' (sua cor atual)'
-  list_empty: '{warning} Nenhuma cor configurada ainda. Um admin pode configurar em /settings.'
+  list_empty: '{warning} Nenhuma cor configurada ainda. Um admin pode configurar em /configuracoes.'
   manager:
     title: Gerenciar Cores
     hint: 'Cores: {count}/{max}. ↑/↓ reordenam (afetam a imagem e os botões); editar muda nome e hexadecimal.'
@@ -1026,7 +1026,7 @@ bump:
       > **Próximo bump:** <t:{next_bump_timestamp}:R>
 
 
-      {trophy} **|** Use `/bump_leaderboard` para ver o placar e disputar o **Bump-MVP!**
+      {trophy} **|** Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP!**
 
       '
     reminder_title: '{clock} Hora do Bump!'
@@ -1049,7 +1049,7 @@ bump:
 
       **{gift} Prêmio:** Cargo **{role_name}** customizável por 1 semana!
 
-      -# Use `/cargo_boost` para personalizar nome, cor, emoji e convidar membros.
+      -# Use `/boost painel` para personalizar nome, cor, emoji e convidar membros.
 
 
       {leaderboard_list}
@@ -1076,7 +1076,7 @@ bump:
 
       ### {palette} Personalize seu cargo
 
-      Use `/cargo_boost` para customizar:
+      Use `/boost painel` para customizar:
 
       > {pencil} Nome e emoji
 
@@ -1170,7 +1170,7 @@ bump:
     close_message_default: '{lock} O canal de bump está fechado. Voltamos às 06:00!'
   anti_camping:
     message_default: '{lock} O canal foi bloqueado temporariamente. O bump estará disponível em instantes!'
-  error_no_channel: '{error} O canal de bump não está configurado. Configure-o em `/settings`.'
+  error_no_channel: '{error} O canal de bump não está configurado. Configure-o em `/configuracoes`.'
   error_no_role: '{error} O cargo de Bump-MVP não está configurado.'
   error_role_not_found: '{error} O cargo de vencedor configurado não foi encontrado no servidor.'
   error_leaderboard_disabled: '{error} O placar semanal de bumps está desativado.'
@@ -1463,7 +1463,7 @@ partnerships:
 
       ### Como renovar
 
-      > Use o comando `/renovar_parceria` no servidor antes do prazo acabar.
+      > Use o comando `/parcerias renovar` no servidor antes do prazo acabar.
 
 
       ### {warning} Prazo
