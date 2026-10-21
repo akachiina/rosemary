@@ -21,6 +21,9 @@ class FakeTranslator:
     async def t(self, guild_id, key, **variables):
         return key
 
+    async def raw(self, guild_id, key):
+        return key
+
 
 class OrderResponse:
     def __init__(self, order: list[str]) -> None:

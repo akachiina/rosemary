@@ -12,6 +12,9 @@ language:
   command:
     name: language
     description: Set the server language
+    options:
+      language:
+        description: Language code (e.g. en-US, pt-BR)
   title: Language
   text: Choose the language used by the bot in this server.
   updated: '{success} Language set to **{language}**.'
@@ -25,6 +28,9 @@ themes:
   command:
     name: themes
     description: Manage this server's themes
+    options:
+      attachment:
+        description: Optional theme YAML file to import
   title: Themes
   hint: Import a theme file, pick the active one, or export/download what is installed.
   active_none: Built-in default
@@ -386,6 +392,7 @@ settings:
     description: Whether bot events are posted to a log channel.
   logging.channel:
     label: Log channel
+    description: Channel where staff logs and event cards are posted.
   debug.card_paths:
     label: Card path tracing
     description: Post each card send's path and origin (theme or default) to the log channel.
@@ -1219,11 +1226,11 @@ bump_stats:
   command:
     name: stats
     description: Show your bump statistics
-test_bump:
+bump_test:
   command:
     name: test
     description: '[ADMIN] Simulate a bump to test the system'
-test_bump_reminder:
+bump_test_reminder:
   command:
     name: test_reminder
     description: '[ADMIN] Send the bump reminder immediately'
@@ -1231,18 +1238,23 @@ bump_status:
   command:
     name: status
     description: '[ADMIN] Show the bump system status'
-test_bump_leaderboard:
+bump_admin_test_leaderboard:
   command:
     name: test_leaderboard
     description: '[ADMIN] Force the weekly leaderboard calculation'
-reset_bump_week:
+bump_admin_reset_week:
   command:
     name: reset_week
     description: '[ADMIN] Manually reset the bump week'
-add_test_bumps:
+bump_admin_add_test:
   command:
     name: add_test
     description: '[ADMIN] Add test bumps for a user'
+    options:
+      user:
+        description: Member to add bumps to
+      count:
+        description: Number of bumps to add
 ping:
   command:
     name: ping
@@ -1265,18 +1277,30 @@ info_user:
   command:
     name: user
     description: Show member information
+    options:
+      member:
+        description: Member to inspect
 info_emoji:
   command:
     name: emoji
     description: Show emoji or sticker information
+    options:
+      emoji:
+        description: Custom or unicode emoji, a message link/ID, or a sticker ID
 info_role:
   command:
     name: role
     description: Show role information
+    options:
+      role:
+        description: Role to inspect
 info_channel:
   command:
     name: channel
     description: Show channel information
+    options:
+      channel:
+        description: Channel to inspect
 info_server:
   command:
     name: server
@@ -1306,6 +1330,17 @@ limpar:
   command:
     name: limpar
     description: Delete messages by word, regex or amount
+    options:
+      palavra:
+        description: Word or phrase to purge
+      regex:
+        description: Regex pattern (Python) to purge
+      last:
+        description: Limit to the N most recent matches
+      canal:
+        description: Restrict to a channel
+      autor:
+        description: Only messages from this author
 update:
   command:
     name: update
@@ -1335,10 +1370,16 @@ partnerships_admin_add:
   command:
     name: add
     description: '[ADMIN] Add a partnership'
+    options:
+      member:
+        description: Partner representative
 partnerships_admin_remove:
   command:
     name: remove
     description: '[ADMIN] Remove a partnership'
+    options:
+      member:
+        description: Partner representative
 partnerships_renew:
   command:
     name: renew
@@ -1347,6 +1388,11 @@ partnerships_admin_invite:
   command:
     name: invite
     description: '[ADMIN] Post the partnership invite text'
+    options:
+      channel:
+        description: 'Channel to post the invite (default: current)'
+      representative:
+        description: 'Rep mentioned via {{rep}} (default: you)'
 partnerships_admin_list:
   command:
     name: list
@@ -1684,10 +1730,18 @@ reminders_save:
   command:
     name: save
     description: '[ADMIN] Save a reminder message'
+    options:
+      name:
+        description: Short name
+      message:
+        description: Message text
 reminders_delete:
   command:
     name: delete
     description: '[ADMIN] Delete a reminder message'
+    options:
+      name:
+        description: Short name
 reminders_list:
   command:
     name: list
@@ -1696,6 +1750,9 @@ reminders_send:
   command:
     name: send
     description: '[ADMIN] DM a reminder to every member'
+    options:
+      name:
+        description: Short name
 reminders:
   command:
     name: reminders
@@ -1715,6 +1772,9 @@ broadcast_start:
   command:
     name: start
     description: '[ADMIN] Start a live broadcast from this channel'
+    options:
+      title:
+        description: Broadcast title
 broadcast_stop:
   command:
     name: stop
@@ -1849,6 +1909,9 @@ invites_stats:
   command:
     name: stats
     description: Show invite stats for yourself or another member
+    options:
+      member:
+        description: Member to inspect
 invites_leaderboard:
   command:
     name: leaderboard
@@ -1857,10 +1920,16 @@ who_invited:
   command:
     name: who_invited
     description: Show who invited a member
+    options:
+      member:
+        description: Member to inspect
 invited:
   command:
     name: invited
     description: List members invited by someone
+    options:
+      member:
+        description: Inviter to inspect
 my_invite:
   command:
     name: my_invite
@@ -1873,6 +1942,11 @@ invites_admin_bonus:
   command:
     name: bonus
     description: '[ADMIN] Add or remove bonus invites'
+    options:
+      member:
+        description: Member to adjust
+      amount:
+        description: Between -100 and 100, excluding 0
 invites_admin_sync:
   command:
     name: sync
@@ -1885,6 +1959,15 @@ invites_admin_blacklist:
   command:
     name: blacklist
     description: '[ADMIN] Manage the invite blacklist'
+    options:
+      action:
+        description: add, remove or list
+      kind:
+        description: users, roles or hidden
+      member:
+        description: User
+      role:
+        description: Role (for roles)
 invites_admin_reset:
   command:
     name: reset
@@ -1893,6 +1976,11 @@ invites_admin_label:
   command:
     name: label
     description: '[ADMIN] Label an invite code'
+    options:
+      code:
+        description: Invite code
+      label:
+        description: Label (omit to clear)
 boost_admin:
   command:
     name: admin
@@ -1901,6 +1989,11 @@ ban:
   command:
     name: ban
     description: Ban a member
+    options:
+      member:
+        description: Member to ban
+      reason:
+        description: Reason
   confirm_title: Ban this member?
   success: '{success} {member} was banned.'
   dm: 'You were banned from **{guild}** by {moderator}.
@@ -1910,6 +2003,11 @@ kick:
   command:
     name: kick
     description: Kick a member
+    options:
+      member:
+        description: Member to kick
+      reason:
+        description: Reason
   confirm_title: Kick this member?
   success: '{success} {member} was kicked.'
   dm: 'You were kicked from **{guild}** by {moderator}.
@@ -1919,6 +2017,13 @@ mute:
   command:
     name: mute
     description: Mute a member for a duration
+    options:
+      member:
+        description: Member to mute
+      duration:
+        description: Duration (e.g. 10m, 2h, 3d)
+      reason:
+        description: Reason
   confirm_title: Mute this member?
   success: '{success} {member} was muted for {duration}.'
   dm: 'You were muted in **{guild}** for {duration} by {moderator}.
@@ -1934,6 +2039,11 @@ warn:
   command:
     name: warn
     description: Warn a member
+    options:
+      member:
+        description: Member to warn
+      reason:
+        description: Reason
   confirm_title: Warn this member?
   success: '{success} Warning recorded for {member} ({count}/{limit}).'
   dm: 'You received a warning in **{guild}** from {moderator}.
@@ -1943,6 +2053,9 @@ warnings:
   command:
     name: warnings
     description: List a member's warnings
+    options:
+      member:
+        description: Member to inspect
   title: Warnings for {member}
   none: '{success} This member has no warnings.'
   entry: '{reason} (by {moderator}, {date})'
@@ -1950,6 +2063,11 @@ unwarn:
   command:
     name: unwarn
     description: Remove a warning
+    options:
+      member:
+        description: Member to un-warn
+      index:
+        description: Warning number (omit to clear all)
   clear_all_title: Clear all warnings?
   clear_all_summary: Remove every warning from {member}?
   cleared: '{success} Removed {count} warning(s) from {member}.'
@@ -3400,10 +3518,20 @@ suggest_admin_approve:
   command:
     name: approve
     description: '[ADMIN] Approve a suggestion by number'
+    options:
+      number:
+        description: Suggestion number
+      reason:
+        description: Reason shown to the author
 suggest_admin_reject:
   command:
     name: reject
     description: '[ADMIN] Reject a suggestion by number'
+    options:
+      number:
+        description: Suggestion number
+      reason:
+        description: Reason shown to the author
 suggestions:
   logs:
     created:
@@ -3490,14 +3618,29 @@ confess_send:
   command:
     name: send
     description: Send an anonymous confession
+confess_reply:
+  command:
+    name: reply
+    description: Reply anonymously to a confession
+    options:
+      number:
+        description: Confession number
 confess_ban:
   command:
     name: ban
     description: '[ADMIN] Ban a member from confessions'
+    options:
+      member:
+        description: Member to ban
+      reason:
+        description: Reason shown to the member
 confess_unban:
   command:
     name: unban
     description: '[ADMIN] Unban a member from confessions'
+    options:
+      member:
+        description: Member to unban
 confess_banned:
   command:
     name: banned
@@ -3553,6 +3696,13 @@ birthday_set:
   command:
     name: set
     description: Register a birthday; admins may set other members.
+    options:
+      day:
+        description: Day of the month
+      month:
+        description: Month number
+      member:
+        description: Another member (admin only)
 birthday_list:
   command:
     name: list
@@ -3614,50 +3764,86 @@ roleplay_hug:
   command:
     name: hug
     description: Send a hug gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_kiss:
   command:
     name: kiss
     description: Send a kiss gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_pat:
   command:
     name: pat
     description: Send a headpat gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_slap:
   command:
     name: slap
     description: Send a slap gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_bite:
   command:
     name: bite
     description: Send a bite gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_punch:
   command:
     name: punch
     description: Send a punch gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_attack:
   command:
     name: attack
     description: Send an attack gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_poke:
   command:
     name: poke
     description: Send a poke gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_dance:
   command:
     name: dance
     description: Send a dance gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_highfive:
   command:
     name: highfive
     description: Send a high-five gif card to someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_stare:
   command:
     name: stare
     description: Send a stare gif card at someone
+    options:
+      member:
+        description: Who receives the action
 roleplay_cuddle:
   command:
     name: cuddle
     description: Send a cuddle gif card to someone
+    options:
+      member:
+        description: Who receives the action
 log:
   field:
     target:

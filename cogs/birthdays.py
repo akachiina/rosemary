@@ -7,8 +7,6 @@ celebrant, granting the configured role for the day. The announcement is a
 customizable card (``birthdays.announce``) edited through /customize.
 """
 
-from __future__ import annotations
-
 import logging
 from datetime import datetime
 

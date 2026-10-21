@@ -12,6 +12,9 @@ language:
   command:
     name: idioma
     description: Define o idioma do servidor
+    options:
+      language:
+        description: 'Código do idioma (ex.: en-US, pt-BR)'
   title: Idioma
   text: Escolha o idioma usado pelo bot neste servidor.
   updated: '{success} Idioma definido para **{language}**.'
@@ -25,6 +28,9 @@ themes:
   command:
     name: temas
     description: Gerencia os temas deste servidor
+    options:
+      attachment:
+        description: Arquivo YAML de tema opcional para importar
   title: Temas
   hint: Importe um arquivo de tema, escolha o ativo ou exporte/baixe os instalados.
   active_none: Padrão embutido
@@ -386,6 +392,7 @@ settings:
     description: Define se os eventos do bot são enviados a um canal de log.
   logging.channel:
     label: Canal de log
+    description: Canal onde os logs da equipe e os cards de eventos são publicados.
   debug.card_paths:
     label: Rastreio de caminho de cards
     description: Publica no canal de log o caminho e a origem de cada card enviado.
@@ -1219,11 +1226,11 @@ bump_stats:
   command:
     name: stats
     description: Mostra suas estatísticas de bumps
-test_bump:
+bump_test:
   command:
     name: test
     description: '[ADMIN] Simula um bump para testar o sistema'
-test_bump_reminder:
+bump_test_reminder:
   command:
     name: test_reminder
     description: '[ADMIN] Envia o lembrete de bump imediatamente'
@@ -1231,18 +1238,23 @@ bump_status:
   command:
     name: status
     description: '[ADMIN] Mostra o status do sistema de bump'
-test_bump_leaderboard:
+bump_admin_test_leaderboard:
   command:
     name: test_leaderboard
     description: '[ADMIN] Força o cálculo do placar semanal'
-reset_bump_week:
+bump_admin_reset_week:
   command:
     name: reset_week
     description: '[ADMIN] Reseta a semana de bump manualmente'
-add_test_bumps:
+bump_admin_add_test:
   command:
     name: add_test
     description: '[ADMIN] Adiciona bumps de teste para um usuário'
+    options:
+      user:
+        description: Membro para adicionar bumps
+      count:
+        description: Número de bumps a adicionar
 ping:
   command:
     name: ping
@@ -1265,18 +1277,30 @@ info_user:
   command:
     name: usuario
     description: Mostra informações de um membro
+    options:
+      member:
+        description: Membro a inspecionar
 info_emoji:
   command:
     name: emoji
     description: Mostra informações de um emoji, sticker ou mensagem
+    options:
+      emoji:
+        description: Emoji customizado ou unicode, link/ID de mensagem ou ID de sticker
 info_role:
   command:
     name: cargo
     description: Mostra informações de um cargo
+    options:
+      role:
+        description: Cargo a inspecionar
 info_channel:
   command:
     name: canal
     description: Mostra informações de um canal
+    options:
+      channel:
+        description: Canal a inspecionar
 info_server:
   command:
     name: servidor
@@ -1306,6 +1330,17 @@ limpar:
   command:
     name: limpar
     description: Apaga mensagens por palavra, regex ou quantidade
+    options:
+      palavra:
+        description: Palavra ou frase para limpar
+      regex:
+        description: Padrão regex (Python) para limpar
+      last:
+        description: Limitar às N correspondências mais recentes
+      canal:
+        description: Restringir a um canal
+      autor:
+        description: Somente mensagens deste autor
 update:
   command:
     name: update
@@ -1335,10 +1370,16 @@ partnerships_admin_add:
   command:
     name: adicionar
     description: '[ADMIN] Adiciona uma parceria'
+    options:
+      member:
+        description: Representante da parceria
 partnerships_admin_remove:
   command:
     name: remover
     description: '[ADMIN] Remove uma parceria'
+    options:
+      member:
+        description: Representante da parceria
 partnerships_renew:
   command:
     name: renovar
@@ -1347,6 +1388,11 @@ partnerships_admin_invite:
   command:
     name: convidar
     description: '[ADMIN] Posta o texto de convite'
+    options:
+      channel:
+        description: 'Canal para publicar o convite (padrão: atual)'
+      representative:
+        description: 'Representante mencionado via {{rep}} (padrão: você)'
 partnerships_admin_list:
   command:
     name: listar
@@ -1684,10 +1730,18 @@ reminders_save:
   command:
     name: salvar
     description: '[ADMIN] Salva uma mensagem de lembrete'
+    options:
+      name:
+        description: Nome curto
+      message:
+        description: Texto da mensagem
 reminders_delete:
   command:
     name: apagar
     description: '[ADMIN] Apaga uma mensagem de lembrete'
+    options:
+      name:
+        description: Nome curto
 reminders_list:
   command:
     name: listar
@@ -1696,6 +1750,9 @@ reminders_send:
   command:
     name: enviar
     description: '[ADMIN] Envia lembrete por DM a todos'
+    options:
+      name:
+        description: Nome curto
 reminders:
   command:
     name: lembretes
@@ -1715,6 +1772,9 @@ broadcast_start:
   command:
     name: iniciar
     description: '[ADMIN] Inicia broadcast ao vivo neste canal'
+    options:
+      title:
+        description: Título do anúncio
 broadcast_stop:
   command:
     name: parar
@@ -1849,6 +1909,9 @@ invites_stats:
   command:
     name: stats
     description: Mostra stats de convites seus ou de outro membro
+    options:
+      member:
+        description: Membro a inspecionar
 invites_leaderboard:
   command:
     name: ranking
@@ -1857,10 +1920,16 @@ who_invited:
   command:
     name: autor
     description: Mostra quem convidou um membro
+    options:
+      member:
+        description: Membro a inspecionar
 invited:
   command:
     name: convidados
     description: Lista membros convidados por alguém
+    options:
+      member:
+        description: Convidador a inspecionar
 my_invite:
   command:
     name: convite
@@ -1873,6 +1942,11 @@ invites_admin_bonus:
   command:
     name: bonus
     description: '[ADMIN] Adiciona ou remove bônus de convites'
+    options:
+      member:
+        description: Membro a ajustar
+      amount:
+        description: Entre -100 e 100, excluindo 0
 invites_admin_sync:
   command:
     name: sincronizar
@@ -1885,6 +1959,15 @@ invites_admin_blacklist:
   command:
     name: bloqueados
     description: '[ADMIN] Gerencia a blacklist de convites'
+    options:
+      action:
+        description: adicionar, remover ou listar
+      kind:
+        description: usuários, cargos ou ocultos
+      member:
+        description: Usuário
+      role:
+        description: Cargo (para cargos)
 invites_admin_reset:
   command:
     name: resetar
@@ -1893,6 +1976,11 @@ invites_admin_label:
   command:
     name: rotular
     description: '[ADMIN] Rotula um código de convite'
+    options:
+      code:
+        description: Código do convite
+      label:
+        description: Rótulo (omita para limpar)
 boost_admin:
   command:
     name: admin
@@ -1901,6 +1989,11 @@ ban:
   command:
     name: banir
     description: Banir um membro
+    options:
+      member:
+        description: Membro a banir
+      reason:
+        description: Motivo
   confirm_title: Banir este membro?
   success: '{success} {member} foi banido.'
   dm: 'Você foi banido de **{guild}** por {moderator}.
@@ -1910,6 +2003,11 @@ kick:
   command:
     name: expulsar
     description: Expulsar um membro
+    options:
+      member:
+        description: Membro a expulsar
+      reason:
+        description: Motivo
   confirm_title: Expulsar este membro?
   success: '{success} {member} foi expulso.'
   dm: 'Você foi expulso de **{guild}** por {moderator}.
@@ -1919,6 +2017,13 @@ mute:
   command:
     name: silenciar
     description: Silenciar um membro por um período
+    options:
+      member:
+        description: Membro a silenciar
+      duration:
+        description: 'Duração (ex.: 10m, 2h, 3d)'
+      reason:
+        description: Motivo
   confirm_title: Silenciar este membro?
   success: '{success} {member} foi silenciado por {duration}.'
   dm: 'Você foi silenciado em **{guild}** por {duration} pelo {moderator}.
@@ -1934,6 +2039,11 @@ warn:
   command:
     name: warn
     description: Aplicar um warn a um membro
+    options:
+      member:
+        description: Membro a advertir
+      reason:
+        description: Motivo
   confirm_title: Aplicar warn a este membro?
   success: '{success} Warn registrado para {member} ({count}/{limit}).'
   dm: 'Você recebeu um warn em **{guild}** de {moderator}.
@@ -1943,6 +2053,9 @@ warnings:
   command:
     name: warnlist
     description: Lista os warns de um membro
+    options:
+      member:
+        description: Membro a inspecionar
   title: Warns de {member}
   none: '{success} Este membro não tem warns.'
   entry: '{reason} (por {moderator}, {date})'
@@ -1950,6 +2063,11 @@ unwarn:
   command:
     name: remover_warn
     description: Remove um warn
+    options:
+      member:
+        description: Membro para remover advertência
+      index:
+        description: Número da advertência (omita para limpar todas)
   clear_all_title: Limpar todos os warns?
   clear_all_summary: Remover todos os warns de {member}?
   cleared: '{success} Removidos {count} warn(s) de {member}.'
@@ -3400,10 +3518,20 @@ suggest_admin_approve:
   command:
     name: aprovar
     description: '[ADMIN] Aprova uma sugestão pelo número'
+    options:
+      number:
+        description: Número da sugestão
+      reason:
+        description: Motivo mostrado ao autor
 suggest_admin_reject:
   command:
     name: recusar
     description: '[ADMIN] Recusa uma sugestão pelo número'
+    options:
+      number:
+        description: Número da sugestão
+      reason:
+        description: Motivo mostrado ao autor
 suggestions:
   logs:
     created:
@@ -3490,14 +3618,29 @@ confess_send:
   command:
     name: enviar
     description: Envie uma confissão anônima
+confess_reply:
+  command:
+    name: responder
+    description: Responda anonimamente a uma confissão
+    options:
+      number:
+        description: Número da confissão
 confess_ban:
   command:
     name: banir
     description: '[ADMIN] Bane um membro das confissões'
+    options:
+      member:
+        description: Membro a banir
+      reason:
+        description: Motivo mostrado ao membro
 confess_unban:
   command:
     name: desbanir
     description: '[ADMIN] Desbane um membro das confissões'
+    options:
+      member:
+        description: Membro a desbanir
 confess_banned:
   command:
     name: banidos
@@ -3553,6 +3696,13 @@ birthday_set:
   command:
     name: definir
     description: Registra um aniversário; admins podem registrar de outros membros.
+    options:
+      day:
+        description: Dia do mês
+      month:
+        description: Número do mês
+      member:
+        description: Outro membro (somente admin)
 birthday_list:
   command:
     name: listar
@@ -3614,50 +3764,86 @@ roleplay_hug:
   command:
     name: abracar
     description: Manda um card de abraço com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_kiss:
   command:
     name: beijar
     description: Manda um card de beijo com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_pat:
   command:
     name: cafune
     description: Manda um card de cafuné com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_slap:
   command:
     name: bofetada
     description: Manda um card de tapa com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_bite:
   command:
     name: morder
     description: Manda um card de mordida com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_punch:
   command:
     name: socar
     description: Manda um card de soco com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_attack:
   command:
     name: atacar
     description: Manda um card de ataque com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_poke:
   command:
     name: cutucar
     description: Manda um card de cutucada com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_dance:
   command:
     name: dancar
     description: Manda um card de dança com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_highfive:
   command:
     name: toque_aqui
     description: Manda um card de toque aqui (high five) com gif
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_stare:
   command:
     name: encarar
     description: Manda um card de encarada com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
 roleplay_cuddle:
   command:
     name: dormir_junto
     description: Manda um card de dormir abraçado com gif
+    options:
+      member:
+        description: Quem recebe a ação
 log:
   field:
     target:

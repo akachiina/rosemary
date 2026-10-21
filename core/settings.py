@@ -79,6 +79,10 @@ class SettingSpec:
     #: instead of the 100-char single-line one. Message-template settings
     #: (e.g. partnership invite texts) need real newlines and links.
     multiline: bool = False
+    #: STRING only: catalog key whose localized text is the effective default.
+    #: Used by the settings UI so a pt-BR guild never sees the English literal
+    #: baked into ``default`` before the setting is first saved.
+    default_catalog_key: str | None = None
     #: CHANNEL_LIST only: a renamed-away scalar setting whose stored value
     #: seeds the list until the menu saves it canonically (see get_setting).
     legacy_single_key: str | None = None
@@ -733,12 +737,14 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.BUMP,
             SettingType.STRING,
             "🔓 The bump channel is open! Use `/bump` to help the server!",
+            default_catalog_key="bump.schedule.open_message_default",
         ),
         _spec(
             "bump.schedule.close_message",
             SettingCategory.BUMP,
             SettingType.STRING,
             "🔒 The bump channel is closed. Back at 06:00!",
+            default_catalog_key="bump.schedule.close_message_default",
         ),
         _spec(
             "bump.anti_camping.enabled",
@@ -769,6 +775,7 @@ SETTINGS: dict[str, SettingSpec] = {
             SettingCategory.BUMP,
             SettingType.STRING,
             "🔒 The channel is temporarily locked. Bump will be available shortly!",
+            default_catalog_key="bump.anti_camping.message_default",
         ),
         _spec(
             "bump.detection_text",

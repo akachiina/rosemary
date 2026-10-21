@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
+import discord
 import pytest
 from discord.ext import commands
 
@@ -169,42 +170,60 @@ async def test_invalid_localized_name_falls_back_to_base() -> None:
 def _register_all(bot: commands.Bot) -> None:
     """Register every cog the way ``RosemaryBot._setup`` does."""
     from rosemary.cogs.about import AboutCog
+    from rosemary.cogs.anti_invite import AntiInviteCog
+    from rosemary.cogs.audit import AuditCog
     from rosemary.cogs.birthdays import BirthdayCog
     from rosemary.cogs.boost_roles import BoostRolesCog
     from rosemary.cogs.broadcast import BroadcastCog
     from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
     from rosemary.cogs.bump_reminder import BumpReminderCog
     from rosemary.cogs.cleaner import CleanerCog
+    from rosemary.cogs.colors import ColorsCog
+    from rosemary.cogs.confessions import ConfessionsCog
     from rosemary.cogs.debug import DebugCog
+    from rosemary.cogs.info import InfoCog
     from rosemary.cogs.invites import InvitesCog
     from rosemary.cogs.language import LanguageCog
     from rosemary.cogs.moderation import ModerationCog
     from rosemary.cogs.partnerships import PartnershipsCog
     from rosemary.cogs.reminders import RemindersCog
+    from rosemary.cogs.roleplay import RoleplayCog
     from rosemary.cogs.settings import SettingsCog
     from rosemary.cogs.starboard import StarboardCog
+    from rosemary.cogs.suggestions import SuggestionsCog
+    from rosemary.cogs.themes import ThemesCog
     from rosemary.cogs.tickets import TicketsCog
+    from rosemary.cogs.trap import TrapCog
     from rosemary.cogs.updater import UpdaterCog
     from rosemary.cogs.utility import UtilityCog
     from rosemary.cogs.welcome import WelcomeCog
 
     for cog_class in (
         AboutCog,
+        AntiInviteCog,
+        AuditCog,
         BirthdayCog,
         BoostRolesCog,
         BroadcastCog,
         BumpLeaderboardCog,
         BumpReminderCog,
         CleanerCog,
+        ColorsCog,
+        ConfessionsCog,
         DebugCog,
+        InfoCog,
         InvitesCog,
         LanguageCog,
         ModerationCog,
         PartnershipsCog,
         RemindersCog,
+        RoleplayCog,
         SettingsCog,
         StarboardCog,
+        SuggestionsCog,
+        ThemesCog,
         TicketsCog,
+        TrapCog,
         UpdaterCog,
         UtilityCog,
         WelcomeCog,
@@ -278,6 +297,100 @@ async def test_every_command_localizes_to_valid_discord_name(language: str) -> N
     assert invalid == []
 
 
+@pytest.mark.parametrize("language", ["en-US", "pt-BR"])
+async def test_every_option_has_a_localized_description(language: str) -> None:
+    """Slash option descriptions are command payload, not card copy.
+
+    They must resolve from the same ``<command>.command`` key used for the
+    command name/description, and ``_sync_guild_commands`` must mutate the
+    shared option object for the guild being synced. A missing key leaks the
+    raw dotted key into Discord's option picker.
+    """
+    from rosemary.bot import _walk_subcommands
+
+    bot = RosemaryBot()
+    bot.storage = GuildStorage(tempfile.mkdtemp())
+    bot.theme = load_theme()
+    _register_all(bot)
+
+    translator = Translator(
+        LANG_DIR, resolver=_resolver(language), default_placeholders=bot.theme.emojis
+    )
+    bot.translator = translator
+
+    async def resolve_key(candidates: tuple[str, ...]) -> str | None:
+        for candidate in candidates:
+            if await translator.t(1, f"{candidate}.name") != f"{candidate}.name":
+                return candidate
+        return None
+
+    targets: list[tuple[object, str, list[tuple[object, str]]]] = []
+    for cmd in bot.pending_application_commands:
+        key = f"{cmd.name}.command"
+        targets.append((cmd, key, list(getattr(cmd, "options", None) or [])))
+        if isinstance(cmd, discord.SlashCommandGroup):
+            for sub in _walk_subcommands(cmd):
+                sub_key = await resolve_key(
+                    (f"{cmd.name}_{sub.name}.command", f"{sub.name}.command")
+                )
+                assert sub_key is not None, (
+                    f"{language}: {cmd.name} {sub.name} has no command catalog key"
+                )
+                targets.append(
+                    (sub, sub_key, list(getattr(sub, "options", None) or []))
+                )
+
+    saved = [
+        (
+            target,
+            target.name,
+            target.description,
+            [(option, option.description) for option in options],
+        )
+        for target, _key, options in targets
+    ]
+    bot._command_base_keys = {cmd.name: cmd for cmd in bot.pending_application_commands}
+    bot._subcommand_base_keys = {
+        id(sub): sub.name
+        for cmd in bot.pending_application_commands
+        for sub in _walk_subcommands(cmd)
+    }
+    bot._option_base_descriptions = {
+        id(option): option.description
+        for _target, _key, options in targets
+        for option in options
+    }
+    bot.synced = []
+
+    async def sync_commands(*, guild_ids=None, **kwargs):
+        bot.synced.append(list(guild_ids or []))
+
+    bot.sync_commands = sync_commands
+
+    try:
+        await RosemaryBot._sync_guild_commands(bot, SimpleNamespace(id=1))
+        for _target, key, options in targets:
+            for option in options:
+                raw = f"{key}.options.{option.name}.description"
+                expected = await translator.t(1, raw)
+                assert expected != raw, (
+                    f"{language}: missing catalog key {raw} for "
+                    f"{option.name!r}"
+                )
+                assert len(expected) <= 100, (
+                    f"{language}: {raw} exceeds Discord's 100-char option limit"
+                )
+                assert option.description == expected, (
+                    f"{language}: {raw} was not applied to the live option"
+                )
+    finally:
+        for target, name, description, options in saved:
+            target.name = name
+            target.description = description
+            for option, option_description in options:
+                option.description = option_description
+
+
 @pytest.mark.parametrize(
     "language,group_name,sub_name",
     [("pt-BR", "roleplay", "beijar"), ("en-US", "roleplay", "kiss")],
@@ -311,7 +424,12 @@ async def test_group_subcommands_localize_per_guild(
     bot.sync_commands = sync_commands  # type: ignore[method-assign]
 
     saved = [
-        (cmd, cmd.name, cmd.description)
+        (
+            cmd,
+            cmd.name,
+            cmd.description,
+            [(option, option.description) for option in getattr(cmd, "options", None) or []],
+        )
         for cmd in (roleplay_group, *_walk_subcommands(roleplay_group))
     ]
     try:
@@ -323,7 +441,13 @@ async def test_group_subcommands_localize_per_guild(
             if "kiss" in (s.name, bot._subcommand_base_keys.get(id(s), ""))
         )
         assert kiss.name == sub_name, kiss.name
+        option = next(o for o in kiss.options if o.name == "member")
+        assert option.description == (
+            "Quem recebe a ação" if language == "pt-BR" else "Who receives the action"
+        )
     finally:
-        for cmd, name, description in saved:
+        for cmd, name, description, options in saved:
             cmd.name = name
             cmd.description = description
+            for option, option_description in options:
+                option.description = option_description

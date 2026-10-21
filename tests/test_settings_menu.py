@@ -6,8 +6,10 @@ import discord
 
 import rosemary.core.card_specs  # noqa: F401  (populates the customize button)
 from rosemary.core.settings import (
+    SETTINGS,
     SettingCategory,
     get_setting,
+    set_setting,
     settings_for_category,
 )
 from rosemary.core.storage import GuildStorage
@@ -17,6 +19,9 @@ from rosemary.ui.theme import load_theme
 
 class FakeTranslator:
     async def t(self, guild_id, key, **variables):
+        return key
+
+    async def raw(self, guild_id, key):
         return key
 
 
@@ -39,6 +44,19 @@ class FakeBot:
 
     def get_cog(self, name):
         return None
+
+
+class LocalizedDefaultTranslator(FakeTranslator):
+    async def t(self, guild_id, key, **variables):
+        return key
+
+    async def raw(self, guild_id, key):
+        return {
+            "bump.schedule.open_message_default": (
+                "{unlock} O canal de bump está aberto! {ping_role} "
+                "Use `/bump` para ajudar o servidor!"
+            )
+        }.get(key, key)
 
 
 async def test_settings_menu_home_builds(tmp_path):
@@ -167,6 +185,45 @@ async def test_non_duration_setting_skips_localized_aliases(tmp_path):
 
     await view._apply_value(FakeInteraction(), "general.timezone", "UTC-3")
     assert await get_setting(bot.storage, 1, "general.timezone") == "UTC-3"
+
+
+async def test_unsaved_message_setting_uses_localized_catalog_default(tmp_path):
+    """pt-BR must never see the English literal baked into ``SettingSpec``."""
+    bot = FakeBot(GuildStorage(tmp_path))
+    bot.translator = LocalizedDefaultTranslator()
+    view = SettingsMenuView(bot, 1, owner_id=1)
+    spec = SETTINGS["bump.schedule.open_message"]
+
+    value, stored = await view._setting_value(spec)
+    assert stored is False
+    assert value.startswith("🔓 O canal de bump está aberto!")
+    assert "{ping_role}" in value
+    assert "{unlock}" not in value
+
+    class FakeResponse:
+        async def send_modal(self, modal) -> None:
+            self.modal = modal
+
+    class FakeInteraction:
+        response = FakeResponse()
+
+    interaction = FakeInteraction()
+    await view._open_modal(interaction, spec)
+    field = interaction.response.modal.children[0].item
+    assert field.value.startswith("🔓 O canal de bump está aberto!")
+    assert "{ping_role}" in field.value
+
+
+async def test_saved_message_setting_wins_over_localized_default(tmp_path):
+    bot = FakeBot(GuildStorage(tmp_path))
+    bot.translator = LocalizedDefaultTranslator()
+    view = SettingsMenuView(bot, 1, owner_id=1)
+    spec = SETTINGS["bump.schedule.close_message"]
+    await set_setting(bot.storage, 1, spec.key, "custom close text")
+
+    value, stored = await view._setting_value(spec)
+    assert stored is True
+    assert value == "custom close text"
 
 
 #: Discord 40-component limit regression (error 50035) -----------------------

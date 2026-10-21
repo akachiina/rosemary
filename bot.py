@@ -119,6 +119,7 @@ class RosemaryBot(commands.Bot):
         self.theme: Theme | None = None
         self._command_base_keys: dict[str, ApplicationCommand] = {}
         self._subcommand_base_keys: dict[int, str] = {}
+        self._option_base_descriptions: dict[int, str] = {}
         self._setup_done = False
         self.start_time: float | None = None
 
@@ -249,6 +250,11 @@ class RosemaryBot(commands.Bot):
         for cmd in self.pending_application_commands:
             for sub in _walk_subcommands(cmd):
                 self._subcommand_base_keys.setdefault(id(sub), sub.name)
+            for target in (cmd, *_walk_subcommands(cmd)):
+                for option in getattr(target, "options", None) or []:
+                    self._option_base_descriptions.setdefault(
+                        id(option), option.description
+                    )
         self._rebind_shared_group_commands()
         self._setup_done = True
         log.info("Rosemary loaded: cogs registered")
@@ -280,11 +286,13 @@ class RosemaryBot(commands.Bot):
                 desc = await t(guild.id, f"{key}.description")
                 if desc != f"{key}.description":
                     cmd.description = desc
+                await self._localize_options(guild.id, key, cmd)
                 for sub in _walk_subcommands(cmd):
                     await self._localize_subcommand(guild.id, base_name, sub)
                 continue
             cmd.name = await self._localized_name(guild.id, key, base_name, base_name)
             cmd.description = await t(guild.id, f"{key}.description")
+            await self._localize_options(guild.id, key, cmd)
         await self.sync_commands(guild_ids=[guild.id])
 
     async def _localized_name(
@@ -327,6 +335,27 @@ class RosemaryBot(commands.Bot):
         desc = await t(guild_id, f"{key}.description")
         if desc != f"{key}.description":
             sub.description = desc
+        await self._localize_options(guild_id, key, sub)
+
+    async def _localize_options(self, guild_id: int, key: str, command) -> None:
+        """Localize one command's option descriptions for a guild.
+
+        Option descriptions are part of the command payload, not the card
+        catalogs; mutable per-guild objects let the same command carry the
+        guild's language at sync time. A missing key keeps the decorator
+        description instead of leaking a raw dotted key into Discord.
+        """
+        base = getattr(self, "_option_base_descriptions", {})
+        t = self.translator.t
+        for option in getattr(command, "options", None) or []:
+            raw = f"{key}.options.{option.name}.description"
+            desc = await t(guild_id, raw)
+            if desc != raw:
+                option.description = desc
+            else:
+                fallback = base.get(id(option))
+                if fallback:
+                    option.description = fallback
 
     async def reapply_command_localization(self) -> None:
         """Re-register slash commands with names/descriptions in each guild's

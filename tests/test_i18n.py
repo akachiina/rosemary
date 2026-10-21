@@ -94,6 +94,53 @@ def test_settings_descriptions_fit_modal_placeholder():
                 )
 
 
+def test_every_setting_has_catalog_copy():
+    """Every registry entry needs label/description (and choice labels).
+
+    ``/settings`` renders these keys directly; a missing entry falls back to
+    the raw dotted key instead of a user-facing string.
+    """
+    from rosemary.core.settings import SETTINGS
+
+    for code in ("en-US", "pt-BR"):
+        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+        catalog = data.get("settings") or {}
+        for key, spec in SETTINGS.items():
+            entry = catalog.get(key)
+            assert isinstance(entry, dict), f"{code} settings.{key} is missing"
+            for field in ("label", "description"):
+                value = entry.get(field)
+                assert isinstance(value, str) and value.strip(), (
+                    f"{code} settings.{key}.{field} is missing"
+                )
+            choices = entry.get("choices") or {}
+            for choice in spec.choices:
+                assert choice in choices, (
+                    f"{code} settings.{key}.choices.{choice} is missing"
+                )
+
+
+async def test_default_catalog_keys_resolve():
+    """Message-template defaults must exist in both catalogs.
+
+    ``SettingsMenuView`` resolves ``default_catalog_key`` before the first
+    save; a missing key would show the raw dotted key instead of the default.
+    """
+    from rosemary.core.settings import SETTINGS
+
+    tr = Translator(LANG_DIR)
+    for code in ("en-US", "pt-BR"):
+        tr.resolver = _resolver(code)
+        for spec in SETTINGS.values():
+            if not spec.default_catalog_key:
+                continue
+            value = await tr.raw(1, spec.default_catalog_key)
+            assert isinstance(value, str) and value != spec.default_catalog_key, (
+                f"{code} lacks {spec.default_catalog_key}"
+            )
+
+
 async def test_t_default():
     tr = Translator(LANG_DIR, resolver=_resolver("en-US"))
     assert await tr.t(1, "about.title") == "About Rosemary"
@@ -245,6 +292,24 @@ async def test_invalid_message_multiline_available():
     assert "Disponíveis:" in message
     assert "\n- 🇺🇸 English\n- 🇧🇷 Português do Brasil" in message
     assert message.startswith(theme.emojis["error"])
+
+
+def test_every_log_field_label_resolves_in_both_catalogs():
+    """A missing ``log.field.*.label`` leaks the raw key into live log cards."""
+    from rosemary.core.log_specs import LOG_SPECS
+
+    for code in ("en-US", "pt-BR"):
+        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+        missing = []
+        for spec in LOG_SPECS.values():
+            for field in spec.fields:
+                node = data
+                for part in field.label.split("."):
+                    node = node.get(part) if isinstance(node, dict) else None
+                if not isinstance(node, str) or not node.strip():
+                    missing.append(f"{code}:{spec.event}:{field.label}")
+        assert missing == []
 
 
 def test_field_lines_carry_theme_emoji_token():

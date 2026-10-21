@@ -40,11 +40,13 @@ def _all_commands(bot: _Bot) -> list:
 
 def test_command_option_raw_types_are_classes() -> None:
     bot = _Bot()
+    from rosemary.cogs.birthdays import BirthdayCog
     from rosemary.cogs.boost_roles import BoostRolesCog
     from rosemary.cogs.debug import DebugCog
     from rosemary.cogs.moderation import ModerationCog
     from rosemary.cogs.settings import SettingsCog
 
+    bot.add_cog(BirthdayCog(bot))
     bot.add_cog(BoostRolesCog(bot))
     bot.add_cog(DebugCog(bot))
     bot.add_cog(SettingsCog(bot))
@@ -74,6 +76,9 @@ def test_command_option_raw_types_are_classes() -> None:
     assert commands_, "expected the new slash commands to be registered"
     assert {
         "ban",
+        "birthday set",
+        "birthday list",
+        "birthday clear",
         "kick",
         "mute",
         "warn",

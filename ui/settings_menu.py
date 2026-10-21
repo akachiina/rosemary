@@ -14,11 +14,13 @@ from typing import Any
 
 import discord
 
+from rosemary.core.cards import safe_format
 from rosemary.core.debug import send_log
 from rosemary.core.log_specs import SETTINGS_LOG_EVENT
 from rosemary.core.settings import (
     CATEGORIES,
     SETTINGS,
+    FormattedValue,
     SettingCategory,
     SettingSpec,
     SettingType,
@@ -342,11 +344,34 @@ class SettingsMenuView(MenuView):
             self.editing_key = None
         await self.rerender(interaction)
 
+    async def _setting_value(self, spec: SettingSpec) -> tuple[Any, bool]:
+        """``(effective value, stored?)`` with catalog-localized defaults.
+
+        A setting that was never saved still has a user-facing default. Message
+        templates carry an English literal in ``spec.default`` for persistence,
+        so the UI resolves ``default_catalog_key`` instead (pt-BR guilds must
+        not see the English fallback in the menu or edit modal).
+        """
+        data = await self.bot.storage.get(self.guild_id)
+        stored = spec.key in data
+        value = await get_setting(self.bot.storage, self.guild_id, spec.key)
+        if not stored and spec.default_catalog_key:
+            key = spec.default_catalog_key
+            localized = await self.bot.translator.raw(self.guild_id, key)
+            if isinstance(localized, str) and localized != key:
+                # Defaults are message templates: resolve theme emojis but keep
+                # unknown placeholders such as ``{ping_role}`` visible. Going
+                # through ``t()`` would abort the whole format on the first
+                # unknown placeholder and leak ``{unlock}`` into the field.
+                emojis = self.bot.theme.emojis if self.bot.theme else {}
+                value = safe_format(localized, emojis)
+        return value, stored
+
     async def _open_modal(
         self, interaction: discord.Interaction, spec: SettingSpec
     ) -> None:
         t = self.bot.translator.t
-        current = await get_setting(self.bot.storage, self.guild_id, spec.key)
+        current, _stored = await self._setting_value(spec)
         if spec.is_duration and current is not None:
             field_value = TimeParser.format_duration(timedelta(seconds=int(current)))
         else:
@@ -525,9 +550,18 @@ class SettingsMenuView(MenuView):
         sections = []
         for spec in page_settings:
             label = await t(self.guild_id, f"settings.{spec.key}.label")
-            formatted = format_value(
-                spec, await get_setting(self.bot.storage, self.guild_id, spec.key)
-            )
+            value, stored = await self._setting_value(spec)
+            formatted = format_value(spec, value)
+            if not stored and spec.default_catalog_key:
+                # The literal default is English; the catalog default is the
+                # user-facing text. Keep the "default" badge even though the
+                # localized string differs from ``spec.default``.
+                formatted = FormattedValue(
+                    formatted.display,
+                    formatted.translate,
+                    is_default=True,
+                    preview=formatted.preview,
+                )
             value_text = (
                 await t(self.guild_id, formatted.display)
                 if formatted.translate
