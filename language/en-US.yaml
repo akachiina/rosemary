@@ -1775,6 +1775,10 @@ broadcast_start:
     options:
       title:
         description: Broadcast title
+      role:
+        description: 'Role that receives this session (default: server setting)'
+      delay:
+        description: 'Seconds between DMs (default: server setting)'
 broadcast_stop:
   command:
     name: stop
@@ -1786,8 +1790,9 @@ broadcast:
   error_disabled: '{error} Broadcasts are disabled on this server.'
   error_active: '{error} A broadcast is already running.'
   error_none: '{error} No broadcast is running.'
+  target_all: all members
   header: '**{title}** (from {server})'
-  started: '{success} Broadcast header sent to {sent} member(s) ({failed} failed). Now post in this channel to relay.'
+  started: '{success} Broadcast started in {channel} for {target}. Post there to relay.'
   ended: '{success} Broadcast ended: {relayed} message(s) relayed ({sent} DMs, {failed} failed).'
   logs:
     started:

@@ -1775,6 +1775,10 @@ broadcast_start:
     options:
       title:
         description: Título do anúncio
+      role:
+        description: 'Cargo que recebe esta sessão (padrão: config do servidor)'
+      delay:
+        description: 'Segundos entre DMs (padrão: config do servidor)'
 broadcast_stop:
   command:
     name: parar
@@ -1786,8 +1790,9 @@ broadcast:
   error_disabled: '{error} Broadcasts estão desativados neste servidor.'
   error_active: '{error} Já há um broadcast rolando.'
   error_none: '{error} Nenhum broadcast rolando.'
+  target_all: todos os membros
   header: '**{title}** (de {server})'
-  started: '{success} Abertura enviada para {sent} membro(s) ({failed} falharam). Poste neste canal para replicar.'
+  started: '{success} Broadcast iniciado em {channel} para {target}. Poste lá para replicar.'
   ended: '{success} Broadcast encerrado: {relayed} mensagem(ns) ({sent} DMs, {failed} falharam).'
   logs:
     started:

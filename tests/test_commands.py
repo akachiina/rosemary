@@ -42,12 +42,14 @@ def test_command_option_raw_types_are_classes() -> None:
     bot = _Bot()
     from rosemary.cogs.birthdays import BirthdayCog
     from rosemary.cogs.boost_roles import BoostRolesCog
+    from rosemary.cogs.broadcast import BroadcastCog
     from rosemary.cogs.debug import DebugCog
     from rosemary.cogs.moderation import ModerationCog
     from rosemary.cogs.settings import SettingsCog
 
     bot.add_cog(BirthdayCog(bot))
     bot.add_cog(BoostRolesCog(bot))
+    bot.add_cog(BroadcastCog(bot))
     bot.add_cog(DebugCog(bot))
     bot.add_cog(SettingsCog(bot))
     bot.add_cog(ModerationCog(bot))
@@ -109,6 +111,8 @@ def test_command_option_raw_types_are_classes() -> None:
         "roleplay hug",
         "roleplay kiss",
         "roleplay cuddle",
+        "broadcast start",
+        "broadcast stop",
     } <= {c.qualified_name for c in commands_}
 
     for cmd in commands_:
