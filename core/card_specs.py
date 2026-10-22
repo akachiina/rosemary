@@ -17,6 +17,11 @@ BOOST_DMS = [
     "registered",
     "transferred",
     "auto_transferred",
+    "auto_created",
+    "auto_restored",
+    "unboost_deleted",
+    "unboost_removed",
+    "unboost_kept",
     "invite",
     "accepted",
     "declined",
@@ -164,6 +169,11 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "boost.dm.registered": ("mention", "role_name", "server_name", "members", "max_members"),
     "boost.dm.transferred": ("mention", "role_name", "server_name", "members", "max_members"),
     "boost.dm.auto_transferred": ("mention", "role_name", "server_name"),
+    "boost.dm.auto_created": ("mention", "role_name", "server_name", "max_members"),
+    "boost.dm.auto_restored": ("mention", "role_name", "server_name", "max_members"),
+    "boost.dm.unboost_deleted": ("mention", "role_name", "server_name"),
+    "boost.dm.unboost_removed": ("mention", "role_name", "server_name"),
+    "boost.dm.unboost_kept": ("mention", "role_name", "server_name"),
     "boost.dm.invite": (
         "mention", "user", "role_name", "server_name", "inviter_mention", "expires"
     ),

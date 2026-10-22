@@ -10,6 +10,14 @@ The cog also reconciles the stored data with reality: when a member leaves the
 server their owned roles are auto-transferred to the first member (or unregistered),
 their memberships are dropped, and a periodic task expires stale invites. Persistent
 invite buttons are re-registered on every ready so DMs keep working after restarts.
+
+Auto-created boost roles: while ``boost.auto_create.enabled`` is on, a member who
+starts boosting gets a role created below ``boost.auto_create.below_role`` and
+registered with them as the owner. When the boost ends the ``boost.auto_create.
+unboost_action`` setting decides whether the role is deleted (archived in the
+store so the next boost restores it with its members), removed from its holders
+while the registration stays, or kept as is. A boot-time catch-up covers boosts
+that happened while the bot was offline.
 """
 
 from __future__ import annotations
@@ -61,8 +69,26 @@ class BoostRolesCog(commands.Cog):
             await self._register_persistent_views()
             self._views_registered = True
             await self._remove_legacy_settings_keys()
+            await self._catchup_boosters()
         if self._cleanup_task is None or self._cleanup_task.done():
             self._cleanup_task = self.bot.loop.create_task(self._cleanup_loop())
+
+    async def _catchup_boosters(self) -> None:
+        """Create the auto boost role for boosters who started while offline.
+
+        Runs once per process, only for guilds that were already present at
+        boot (never on ``on_guild_join``: a newly added server must not wake
+        up to a batch of fresh roles).
+        """
+        for guild in self.bot.guilds:
+            with contextlib.suppress(Exception):
+                if not await self._auto_create_enabled(guild.id):
+                    continue
+                for member in list(guild.members):
+                    if member.bot or member.premium_since is None:
+                        continue
+                    with contextlib.suppress(Exception):
+                        await self._auto_create_for(guild, member)
 
     async def _remove_legacy_settings_keys(self) -> None:
         """Drop boost keys that were once stored in the /settings file.
@@ -165,6 +191,265 @@ class BoostRolesCog(commands.Cog):
             )
         for role_id_str in await self.store.get_roles_as_member(guild_id, member.id):
             await self.store.remove_member(guild_id, int(role_id_str), member.id)
+
+    @commands.Cog.listener()
+    async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
+        """Auto-create or handle the auto boost role when the boost state flips."""
+        if before.premium_since == after.premium_since:
+            return
+        if after.premium_since is not None:
+            await self._handle_boost_start(after)
+        else:
+            await self._handle_boost_end(after)
+
+    #: auto-created roles ---------------------------------------------------
+
+    async def _auto_create_enabled(self, guild_id: int) -> bool:
+        if not await get_setting(self.bot.storage, guild_id, "boost.enabled"):
+            return False
+        return await get_setting(self.bot.storage, guild_id, "boost.auto_create.enabled")
+
+    async def _handle_boost_start(self, member: discord.Member) -> None:
+        if member.bot or not await self._auto_create_enabled(member.guild.id):
+            return
+        try:
+            await self._auto_create_for(member.guild, member)
+        except Exception as exc:  # noqa: BLE001
+            log.error("Boost auto-create failed for %s in %s: %s", member.id, member.guild.id, exc)
+
+    async def _auto_create_for(self, guild: discord.Guild, member: discord.Member) -> None:
+        """Create, restore or re-apply the auto boost role of ``member``."""
+        archive = await self.store.get_archive(guild.id, member.id)
+        if archive is not None:
+            await self._restore_archived_role(guild, member, archive)
+            return
+        owned = await self.store.get_auto_role_by_owner(guild.id, member.id)
+        if owned is not None:
+            await self._reapply_auto_role(guild, member, owned[0], owned[1])
+            return
+        if await self.store.get_roles_by_owner(guild.id, member.id):
+            return  # already owns a manually registered boost role
+        await self._create_auto_role_for(guild, member)
+
+    async def _create_auto_role_for(self, guild: discord.Guild, member: discord.Member) -> None:
+        """Fresh boost: create the role, register it and notify the owner."""
+        role = await self._create_boost_role(guild, name=self._auto_role_name(member))
+        if role is None:
+            return
+        await self.store.add_role(guild.id, role.id, member.id, self.bot.user.id, auto=True)
+        with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+            await member.add_roles(role, reason="Boost role owner")
+        data = await self.store.get_role(guild.id, role.id) or {}
+        await self._dm_auto_owner(member, "boost.dm.auto_created", role, data)
+        await send_log(
+            self.bot,
+            guild.id,
+            "boost.logs.auto_create",
+            role=f"<@&{role.id}>",
+            owner=member.mention,
+        )
+
+    async def _restore_archived_role(
+        self, guild: discord.Guild, member: discord.Member, archive: dict
+    ) -> None:
+        """Boost back after a delete: recreate the archived role with its members."""
+        role = await self._create_boost_role(
+            guild,
+            name=str(archive.get("role_name") or self._auto_role_name(member)),
+            color=int(archive.get("color") or 0),
+            emoji=archive.get("emoji"),
+        )
+        if role is None:
+            return
+        await self.store.add_role(guild.id, role.id, member.id, self.bot.user.id, auto=True)
+        await self.store.pop_archive(guild.id, member.id)
+        previous = list(archive.get("members", []))
+        await self._give_role_back(guild, member, role, previous)
+        max_members = await get_setting(self.bot.storage, guild.id, "boost.max_members")
+        for user_id in previous:
+            await self.store.add_member(guild.id, role.id, user_id, max_members)
+        data = await self.store.get_role(guild.id, role.id) or {}
+        await self._dm_auto_owner(member, "boost.dm.auto_restored", role, data)
+        await send_log(
+            self.bot,
+            guild.id,
+            "boost.logs.auto_create",
+            role=f"<@&{role.id}>",
+            owner=member.mention,
+        )
+
+    async def _reapply_auto_role(
+        self, guild: discord.Guild, member: discord.Member, role_id: int, data: dict
+    ) -> None:
+        """Boost back after a remove/keep: hand the existing role to its holders."""
+        role = guild.get_role(role_id)
+        if role is None or role in member.roles:
+            return  # role vanished, or was never taken away
+        await self._give_role_back(guild, member, role, list(data.get("members", [])))
+        await self._dm_auto_owner(member, "boost.dm.auto_restored", role, data)
+
+    async def _handle_boost_end(self, member: discord.Member) -> None:
+        """Apply ``boost.auto_create.unboost_action`` to the member's auto role."""
+        guild = member.guild
+        if not await self._auto_create_enabled(guild.id):
+            return
+        owned = await self.store.get_auto_role_by_owner(guild.id, member.id)
+        if owned is None:
+            return
+        role_id, data = owned
+        role = guild.get_role(role_id)
+        role_name = role.name if role is not None else str(role_id)
+        color = role.colour.value if role is not None else 0
+        emoji = role.unicode_emoji if role is not None else None
+        action = await get_setting(self.bot.storage, guild.id, "boost.auto_create.unboost_action")
+        if action == "delete":
+            if role is not None:
+                with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                    await role.delete(reason="Boost ended")
+            await self.store.archive_role(
+                guild.id, role_id, role_name=role_name, color=color, emoji=emoji
+            )
+            for invite_id in list((await self.store.get_invites_by_role(guild.id, role_id)).keys()):
+                await self.store.remove_invite(guild.id, invite_id)
+            dm_key = "boost.dm.unboost_deleted"
+        elif action == "remove":
+            if role is not None:
+                await self._take_role_from(guild, member, role, list(data.get("members", [])))
+            dm_key = "boost.dm.unboost_removed"
+        else:
+            dm_key = "boost.dm.unboost_kept"
+        with contextlib.suppress(discord.Forbidden):
+            await dm.send(
+                self.bot,
+                member,
+                guild.id,
+                dm_key,
+                mention=member.mention,
+                role_name=role_name,
+                server_name=guild.name,
+            )
+        action_label = await self.bot.translator.t(
+            guild.id, f"settings.boost.auto_create.unboost_action.choices.{action}"
+        )
+        await send_log(
+            self.bot,
+            guild.id,
+            "boost.logs.unboost",
+            role=f"<@&{role_id}>",
+            owner=member.mention,
+            action=action_label,
+        )
+
+    async def _create_boost_role(
+        self,
+        guild: discord.Guild,
+        *,
+        name: str,
+        color: int = 0,
+        emoji: str | None = None,
+    ) -> discord.Role | None:
+        """Create the boost role below the configured anchor; ``None`` on failure."""
+        try:
+            role = await guild.create_role(
+                name=name,
+                colour=discord.Colour(color),
+                mentionable=True,
+                reason="Boost role auto-created",
+            )
+        except discord.Forbidden:
+            log.error("Missing permission to create the auto boost role in %s", guild.id)
+            return None
+        except discord.HTTPException as exc:
+            log.error("Auto boost role creation failed in %s: %s", guild.id, exc)
+            return None
+        if emoji:
+            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                await role.edit(unicode_emoji=emoji, reason="Boost role emoji restored")
+        await self._place_below_anchor(guild, role)
+        return role
+
+    async def _place_below_anchor(self, guild: discord.Guild, role: discord.Role) -> None:
+        """Move ``role`` right below the anchor configured in the settings.
+
+        No anchor, an anchor at the very bottom or missing permissions keep the
+        role where Discord created it (bottom of the list), still below the
+        anchor, so failures never break the creation.
+        """
+        anchor_id = await get_setting(self.bot.storage, guild.id, "boost.auto_create.below_role")
+        if not anchor_id:
+            return
+        anchor = guild.get_role(anchor_id)
+        if anchor is None or anchor.is_default() or anchor.position < 2:
+            return
+        try:
+            await role.edit(position=anchor.position - 1, reason="Boost role position")
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            log.warning(
+                "Could not place auto boost role below %s in %s: %s", anchor_id, guild.id, exc
+            )
+
+    async def _give_role_back(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+        role: discord.Role,
+        member_ids: list[int],
+    ) -> None:
+        """Give the role to the owner and back to the previous members."""
+        with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+            await member.add_roles(role, reason="Boost role owner")
+        for user_id in member_ids:
+            other = guild.get_member(user_id)
+            if other is None or other.id == member.id:
+                continue
+            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                await other.add_roles(role, reason="Boost role member restored")
+
+    async def _take_role_from(
+        self,
+        guild: discord.Guild,
+        member: discord.Member,
+        role: discord.Role,
+        member_ids: list[int],
+    ) -> None:
+        """Take the role away from the owner and its members (registration stays)."""
+        with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+            await member.remove_roles(role, reason="Boost ended")
+        for user_id in member_ids:
+            other = guild.get_member(user_id)
+            if other is None or other.id == member.id:
+                continue
+            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                await other.remove_roles(role, reason="Boost ended")
+
+    async def _dm_auto_owner(
+        self,
+        member: discord.Member,
+        key: str,
+        role: discord.Role,
+        data: dict,
+    ) -> None:
+        """DM the new owner with the card and the themed role preview."""
+        guild_id = member.guild.id
+        max_members = await get_setting(self.bot.storage, guild_id, "boost.max_members")
+        with contextlib.suppress(discord.Forbidden):
+            await dm.send(
+                self.bot,
+                member,
+                guild_id,
+                key,
+                mention=member.mention,
+                role_name=role.name,
+                server_name=member.guild.name,
+                max_members=max_members,
+            )
+            await dm.send_preview(self.bot, member, guild_id, role, data)
+
+    @staticmethod
+    def _auto_role_name(member: discord.Member) -> str:
+        """The auto role name: the member's display name, sanitized."""
+        name = " ".join(str(member.display_name or "").split())[:100]
+        return name or member.name
 
     #: helpers ------------------------------------------------------------
 

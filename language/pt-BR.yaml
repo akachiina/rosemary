@@ -408,6 +408,19 @@ settings:
   boost.max_pending_invites:
     label: Limite de convites pendentes
     description: Máximo de convites pendentes por cargo boost (1-20).
+  boost.auto_create.enabled:
+    label: Criar cargo automaticamente
+    description: Cria automaticamente um cargo boost para quem dá boost no servidor.
+  boost.auto_create.below_role:
+    label: Criar abaixo do cargo
+    description: Cargos automáticos são criados logo abaixo deste cargo. O cargo do bot deve estar acima dele.
+  boost.auto_create.unboost_action:
+    label: Ação ao fim do boost
+    description: O que acontece com o cargo automático quando o boost do membro termina.
+    choices:
+      delete: Deletar (volta no próximo boost)
+      remove: Retirar dos membros
+      keep: Manter
   events.enabled:
     label: Anúncios ativados
     description: Envia mensagens de entrada, saída e banimento.
@@ -703,6 +716,52 @@ boost:
       Use o painel de cargos boost para gerenciar seu cargo.
 
       '
+    auto_created: '{crown} Você recebeu um Cargo Boost!
+
+      Olá, {mention}! O cargo boost @{role_name} foi criado para você no **{server_name}** porque você deu boost no servidor.
+
+
+      {pencil} Renomeie e escolha um emoji
+
+      {palette} Mude a cor
+
+      {members} Convide até **{max_members}** membros
+
+      {swap} Transfira a posse
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    auto_restored: '{crown} Seu Cargo Boost Voltou!
+
+      Olá, {mention}! Seu cargo boost @{role_name} está ativo de novo no **{server_name}**, incluindo os membros anteriores.
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    unboost_deleted: '{warning} Seu cargo boost foi removido
+
+      Olá, {mention}! Seu boost terminou, então o cargo boost @{role_name} foi removido do **{server_name}**.
+
+      -# Dê boost no servidor de novo e o cargo volta automaticamente, com os membros.
+
+      '
+    unboost_removed: '{warning} Seu cargo boost foi retirado
+
+      Olá, {mention}! Seu boost terminou, então o cargo boost @{role_name} foi retirado de você e dos membros no **{server_name}**. O cargo continua existindo.
+
+      -# Dê boost no servidor de novo para recebê-lo de volta.
+
+      '
+    unboost_kept: '{info} Seu boost terminou
+
+      Olá, {mention}! Seu boost terminou, mas o cargo boost @{role_name} continua com você no **{server_name}**.
+
+      -# Só a equipe do servidor pode removê-lo.
+
+      '
     invite: '{love_letter} Convite para Cargo Boost!
 
       Olá, {mention}! Você recebeu um convite para fazer parte de um cargo boost no **{server_name}**.
@@ -927,6 +986,21 @@ boost:
     orphan_remove:
       title: '{ban} Cargo Órfão Removido'
       description: '**{tag} Cargo:** {role} de {owner} foi removido do sistema.'
+    auto_create:
+      title: '{crown} Cargo Boost Criado Automaticamente'
+      description: '**{tag} Cargo:** {role}
+
+        **{crown} Dono:** {owner}
+
+
+        O cargo foi criado automaticamente porque o dono deu boost no servidor.'
+    unboost:
+      title: '{warning} Boost Terminou'
+      description: '**{tag} Cargo:** {role}
+
+        **{crown} Dono:** {owner}
+
+        **{gear} Ação:** {action}'
   error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
 boost_panel:
   command:
@@ -2921,6 +2995,21 @@ card:
       auto_transferred:
         title: 'DM: transferência automática'
         placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
+      auto_created:
+        title: 'DM: cargo boost criado automaticamente'
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
+      auto_restored:
+        title: 'DM: cargo boost restaurado'
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
+      unboost_deleted:
+        title: 'DM: boost terminou, cargo deletado'
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
+      unboost_removed:
+        title: 'DM: boost terminou, cargo retirado'
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
+      unboost_kept:
+        title: 'DM: boost terminou, cargo mantido'
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
       invite:
         title: 'DM: convite de cargo'
         placeholders: '{{expires}}, {{inviter_mention}}, {{mention}}, {{role_name}}, {{server_name}}, {{tag}}, {{user}}'
@@ -2997,6 +3086,12 @@ card:
       auto_transfer:
         title: 'Log: transferência automática'
         placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
+      auto_create:
+        title: 'Log: cargo boost criado automaticamente'
+        placeholders: '{{owner}}, {{role}}'
+      unboost:
+        title: 'Log: boost terminou'
+        placeholders: '{{action}}, {{owner}}, {{role}}'
       invite_declined:
         title: 'Log: convite recusado'
         placeholders: '{{inviter}}, {{member}}, {{role}}, {{timestamp}}, {{actor}}'
@@ -3922,5 +4017,7 @@ log:
       label: '{bar_chart} Bumps'
     previous:
       label: '{pencil} Anterior'
+    action:
+      label: '{gear} Ação'
   actor_footer: -# por {actor} · {timestamp}
   system_footer: -# {timestamp}

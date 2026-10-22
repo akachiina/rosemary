@@ -103,6 +103,8 @@ _LEGACY_VARIABLES: dict[str, tuple[str, ...]] = {
     "boost.logs.invite_expired": ("invitee", "inviter", "role"),
     "boost.logs.orphan_remove": ("owner", "role"),
     "boost.logs.auto_transfer": ("new_owner", "old_owner", "role"),
+    "boost.logs.auto_create": ("owner", "role"),
+    "boost.logs.unboost": ("action", "owner", "role"),
     "bump.logs.channel_locked": ("channel",),
     "bump.logs.channel_unlocked": ("channel",),
     "bump.logs.schedule_opened": ("channel",),
@@ -404,6 +406,8 @@ def _build_specs() -> dict[str, LogSpec]:
         "invite_expired": (_f("role"), _f("invitee"), _f("inviter")),
         "orphan_remove": (_f("role"), _f("owner")),
         "auto_transfer": (_f("role"), _f("old_owner"), _f("new_owner")),
+        "auto_create": (_f("role"), _f("owner")),
+        "unboost": (_f("role"), _f("owner"), _f("action")),
     }
     boost_actor = {
         "register": "actor",
@@ -438,6 +442,8 @@ def _build_specs() -> dict[str, LogSpec]:
         "invite_expired": "warning",
         "orphan_remove": "danger",
         "auto_transfer": "warning",
+        "auto_create": "success",
+        "unboost": "warning",
     }
     for name, fields in boost_fields.items():
         specs.append(

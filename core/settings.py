@@ -688,6 +688,25 @@ SETTINGS: dict[str, SettingSpec] = {
             max_value=20,
         ),
         _spec(
+            "boost.auto_create.enabled",
+            SettingCategory.BOOST,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
+            "boost.auto_create.below_role",
+            SettingCategory.BOOST,
+            SettingType.ROLE,
+            None,
+        ),
+        _spec(
+            "boost.auto_create.unboost_action",
+            SettingCategory.BOOST,
+            SettingType.CHOICE,
+            "delete",
+            choices=("delete", "remove", "keep"),
+        ),
+        _spec(
             "bump.enabled",
             SettingCategory.BUMP,
             SettingType.BOOLEAN,

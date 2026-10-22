@@ -56,6 +56,7 @@ async def test_role_roundtrip(tmp_path):
     data = await store.get_role(1, 10)
     assert data["owner_id"] == 100
     assert data["members"] == []
+    assert data["auto"] is False
     assert "created_at" in data
 
     assert (await store.get_roles_by_owner(1, 100)).get("10")
@@ -67,6 +68,47 @@ async def test_role_roundtrip(tmp_path):
     assert await store.remove_role(1, 10) is True
     assert await store.role_exists(1, 10) is False
     assert await store.remove_role(1, 10) is False
+
+
+async def test_auto_flag_marks_bot_created_roles(tmp_path):
+    store = _store(tmp_path)
+    await store.add_role(1, 10, owner_id=100, created_by=42, auto=True)
+    await store.add_role(1, 20, owner_id=100, created_by=7, auto=False)
+
+    assert (await store.get_role(1, 10))["auto"] is True
+    assert (await store.get_role(1, 20))["auto"] is False
+
+    assert await store.get_auto_role_by_owner(1, 100) == (10, await store.get_role(1, 10))
+    assert await store.get_auto_role_by_owner(1, 999) is None
+
+
+async def test_archive_roundtrip(tmp_path):
+    store = _store(tmp_path)
+    await store.add_role(1, 10, owner_id=100, created_by=42, auto=True)
+    await store.add_member(1, 10, 200, max_members=5)
+    assert await store.get_archive(1, 100) is None
+
+    entry = await store.archive_role(
+        1, 10, role_name="Rosa", color=0xFFB7C5, emoji="🌹"
+    )
+    assert entry is not None
+    assert entry["role_name"] == "Rosa"
+    assert entry["color"] == 0xFFB7C5
+    assert entry["emoji"] == "🌹"
+    assert entry["members"] == [200]
+    assert "archived_at" in entry
+
+    # the registration is gone, the memory stays
+    assert await store.role_exists(1, 10) is False
+    assert await store.get_archive(1, 100) == entry
+
+    popped = await store.pop_archive(1, 100)
+    assert popped == entry
+    assert await store.get_archive(1, 100) is None
+    assert await store.pop_archive(1, 100) is None
+
+    # archiving an unknown role is a no-op
+    assert await store.archive_role(1, 77, role_name="x", color=0, emoji=None) is None
 
 
 async def test_role_members(tmp_path):

@@ -1,11 +1,15 @@
 """Boost role persistence and helpers for Rosemary.
 
 Data lives per guild in its own JSON file (``data/<guild_id>/boost_roles.json``)
-so it never mixes with the /settings file. It holds two flat keys:
+so it never mixes with the /settings file. It holds three flat keys:
 
-* ``boost_roles``  : ``{role_id: {"owner_id", "members", "created_at", "created_by"}}``
+* ``boost_roles``  : ``{role_id: {"owner_id", "members", "created_at", "created_by",
+  "auto"}}`` where ``auto`` marks roles the bot created on boost
 * ``boost_invites`` : ``{invite_id: {"role_id", "inviter_id", "invitee_id",
   "created_at", "expires_at"}}``
+* ``boost_archived`` : ``{owner_id: {"role_name", "color", "emoji", "members",
+  "archived_at"}}``, the memory of auto-created roles deleted when a boost
+  ended, so they are restored (members included) on the next boost
 
 Values are read/written with ``storage.get``/``storage.set`` like the ``warnings``
 store in :mod:`rosemary.cogs.moderation`, so persistence is atomic and per guild.
@@ -28,6 +32,7 @@ log = logging.getLogger(__name__)
 
 _ROLES_KEY = "boost_roles"
 _INVITES_KEY = "boost_invites"
+_ARCHIVED_KEY = "boost_archived"
 _BOOST_FILE = "boost_roles.json"
 
 
@@ -94,14 +99,36 @@ class BoostRoleStore:
             if user_id in data.get("members", [])
         }
 
-    async def add_role(self, guild_id: int, role_id: int, owner_id: int, created_by: int) -> None:
-        """Register a new boost role owned by ``owner_id``."""
+    async def get_auto_role_by_owner(
+        self, guild_id: int, user_id: int
+    ) -> tuple[int, dict[str, Any]] | None:
+        """Return ``(role_id, data)`` for the auto-created role owned by ``user_id``."""
+        for role_id, data in (await self.get_roles_by_owner(guild_id, user_id)).items():
+            if data.get("auto"):
+                return int(role_id), data
+        return None
+
+    async def add_role(
+        self,
+        guild_id: int,
+        role_id: int,
+        owner_id: int,
+        created_by: int,
+        *,
+        auto: bool = False,
+    ) -> None:
+        """Register a new boost role owned by ``owner_id``.
+
+        ``auto`` marks roles the bot created automatically on boost; only
+        those are ever touched by the unboost handling.
+        """
         roles = await self.get_roles(guild_id)
         roles[str(role_id)] = {
             "owner_id": owner_id,
             "members": [],
             "created_at": datetime.now(UTC).isoformat(),
             "created_by": created_by,
+            "auto": auto,
         }
         await self._set(guild_id, _ROLES_KEY, roles)
 
@@ -185,6 +212,52 @@ class BoostRoleStore:
         if changed:
             await self._set(guild.id, _ROLES_KEY, roles)
         return changed
+
+    #: archive --------------------------------------------------------------
+
+    async def archive_role(
+        self,
+        guild_id: int,
+        role_id: int,
+        *,
+        role_name: str,
+        color: int,
+        emoji: str | None,
+    ) -> dict[str, Any] | None:
+        """Move a deleted auto role into the archive keyed by its owner.
+
+        Keeps the role name, color, emoji and member list so the next boost
+        can restore the role exactly as it was. The registration is removed
+        from ``boost_roles``.
+        """
+        roles = await self.get_roles(guild_id)
+        data = roles.pop(str(role_id), None)
+        if data is None:
+            return None
+        entry = {
+            "role_name": role_name,
+            "color": color,
+            "emoji": emoji,
+            "members": list(data.get("members", [])),
+            "archived_at": datetime.now(UTC).isoformat(),
+        }
+        archive = await self._get(guild_id, _ARCHIVED_KEY)
+        archive[str(data.get("owner_id"))] = entry
+        await self._set(guild_id, _ROLES_KEY, roles)
+        await self._set(guild_id, _ARCHIVED_KEY, archive)
+        return entry
+
+    async def get_archive(self, guild_id: int, owner_id: int) -> dict[str, Any] | None:
+        """Return the archived auto-role data for ``owner_id``, if any."""
+        return (await self._get(guild_id, _ARCHIVED_KEY)).get(str(owner_id))
+
+    async def pop_archive(self, guild_id: int, owner_id: int) -> dict[str, Any] | None:
+        """Remove and return the archived auto-role data for ``owner_id``."""
+        archive = await self._get(guild_id, _ARCHIVED_KEY)
+        entry = archive.pop(str(owner_id), None)
+        if entry is not None:
+            await self._set(guild_id, _ARCHIVED_KEY, archive)
+        return entry
 
     #: invites ------------------------------------------------------------
 

@@ -408,6 +408,19 @@ settings:
   boost.max_pending_invites:
     label: Pending invites limit
     description: Maximum pending invites per boost role (1-20).
+  boost.auto_create.enabled:
+    label: Auto-create boost role
+    description: Automatically create a boost role for members who boost the server.
+  boost.auto_create.below_role:
+    label: Create below role
+    description: New auto-created roles are placed right below this role. My role must be above it.
+  boost.auto_create.unboost_action:
+    label: Action when the boost ends
+    description: What happens to the auto-created role when the member's boost ends.
+    choices:
+      delete: Delete (back on the next boost)
+      remove: Remove from members
+      keep: Keep
   events.enabled:
     label: Announcements enabled
     description: Send welcome, leave and ban messages.
@@ -703,6 +716,52 @@ boost:
       Use the boost roles panel to manage your role.
 
       '
+    auto_created: '{crown} You received a Boost Role!
+
+      Hello, {mention}! The boost role @{role_name} was created for you on **{server_name}** because you boosted the server.
+
+
+      {pencil} Rename and pick an emoji
+
+      {palette} Change the color
+
+      {members} Invite up to **{max_members}** members
+
+      {swap} Transfer ownership
+
+
+      Use the boost roles panel to manage everything.
+
+      '
+    auto_restored: '{crown} Your Boost Role is Back!
+
+      Hello, {mention}! Your boost role @{role_name} is active again on **{server_name}**, including its previous members.
+
+
+      Use the boost roles panel to manage everything.
+
+      '
+    unboost_deleted: '{warning} Your boost role was removed
+
+      Hello, {mention}! Your boost ended, so the boost role @{role_name} was removed from **{server_name}**.
+
+      -# Boost the server again and the role comes back automatically, with its members.
+
+      '
+    unboost_removed: '{warning} Your boost role was taken away
+
+      Hello, {mention}! Your boost ended, so the boost role @{role_name} was taken away from you and its members on **{server_name}**. The role still exists.
+
+      -# Boost the server again to receive it back.
+
+      '
+    unboost_kept: '{info} Your boost ended
+
+      Hello, {mention}! Your boost ended, but the boost role @{role_name} stays with you on **{server_name}**.
+
+      -# Only the server staff can remove it.
+
+      '
     invite: '{love_letter} Boost Role Invite!
 
       Hello, {mention}! You have been invited to join a boost role on **{server_name}**.
@@ -927,6 +986,21 @@ boost:
     orphan_remove:
       title: '{ban} Orphan Role Removed'
       description: '**{tag} Role:** {role} from {owner} was removed from the system.'
+    auto_create:
+      title: '{crown} Boost Role Created Automatically'
+      description: '**{tag} Role:** {role}
+
+        **{crown} Owner:** {owner}
+
+
+        The role was created automatically because the owner boosted the server.'
+    unboost:
+      title: '{warning} Boost Ended'
+      description: '**{tag} Role:** {role}
+
+        **{crown} Owner:** {owner}
+
+        **{gear} Action:** {action}'
   error_disabled: '{error} The boost roles system is disabled in this server.'
 boost_panel:
   command:
@@ -2921,6 +2995,21 @@ card:
       auto_transferred:
         title: 'DM: automatic transfer'
         placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
+      auto_created:
+        title: 'DM: boost role auto-created'
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
+      auto_restored:
+        title: 'DM: boost role restored'
+        placeholders: '{{max_members}}, {{mention}}, {{role_name}}, {{server_name}}'
+      unboost_deleted:
+        title: 'DM: boost ended, role deleted'
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
+      unboost_removed:
+        title: 'DM: boost ended, role removed'
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
+      unboost_kept:
+        title: 'DM: boost ended, role kept'
+        placeholders: '{{mention}}, {{role_name}}, {{server_name}}'
       invite:
         title: 'DM: role invite'
         placeholders: '{{expires}}, {{inviter_mention}}, {{mention}}, {{role_name}}, {{server_name}}, {{tag}}, {{user}}'
@@ -2997,6 +3086,12 @@ card:
       auto_transfer:
         title: 'Log: automatic transfer'
         placeholders: '{{new_owner}}, {{old_owner}}, {{role}}'
+      auto_create:
+        title: 'Log: boost role auto-created'
+        placeholders: '{{owner}}, {{role}}'
+      unboost:
+        title: 'Log: boost ended'
+        placeholders: '{{action}}, {{owner}}, {{role}}'
       invite_declined:
         title: 'Log: invite declined'
         placeholders: '{{inviter}}, {{member}}, {{role}}, {{timestamp}}, {{actor}}'
@@ -3922,5 +4017,7 @@ log:
       label: '{bar_chart} Bumps'
     previous:
       label: '{pencil} Previous'
+    action:
+      label: '{gear} Action'
   actor_footer: -# by {actor} · {timestamp}
   system_footer: -# {timestamp}
