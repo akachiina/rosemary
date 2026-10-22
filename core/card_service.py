@@ -34,7 +34,7 @@ from rosemary.core.cards import (
     resolve_embed,
     safe_format,
 )
-from rosemary.core.themes import card_document, card_origin, theme_for
+from rosemary.core.themes import card_origin, theme_for
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -56,11 +56,6 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
         "brand",
         "bump.messages.reminder_title",
         ("bump.messages.reminder_description",),
-    ),
-    "bump.thank_you": (
-        "brand",
-        "bump.messages.thank_you_title",
-        ("bump.messages.thank_you_description",),
     ),
     # bump.leaderboard and bump.thank_you own a registered default builder
     # (core/bump_cards.py: winner/user avatar + author footer). No seed here:
@@ -107,7 +102,9 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     "partnerships.list": ("info", "partnerships.list_title", ("{body}",)),
     "partnerships.audit": ("warning", "partnerships.audit_title", ("{body}",)),
     "moderation.warnings": ("brand", None, ("{title}", "{body}")),
-    "bump.stats": (None, None, ("{title}", "{body}")),
+    # The container color must match the code fallback (style bump_leaderboard)
+    # so both render paths of the same card agree.
+    "bump.stats": ("warning", None, ("{title}", "{body}")),
     "bump.status": ("info", None, ("{title}", "{body}")),
     "colors.list": ("info", None, ("{title}", "{body}")),
     "invites.codes": ("info", None, ("{title}", "{body}")),
@@ -307,6 +304,11 @@ async def get_effective_document(
     variables: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Themed override, else the feature's default document (or ``None``)."""
+    # Local import on purpose (same as core.cards._override_document):
+    # ``rosemary.core.themes.card_document`` stays the single canonical
+    # symbol, so tests (and plugins) can patch that one target.
+    from rosemary.core.themes import card_document
+
     themed = await card_document(bot, guild_id, key)
     if themed is not None:
         return copy.deepcopy(themed)

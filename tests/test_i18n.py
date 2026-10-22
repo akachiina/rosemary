@@ -236,12 +236,12 @@ async def test_leaderboard_week_end_timestamp_renders():
     assert "<@1>" in desc
     assert mentions.get("winner_mention") == ("user", 1)
     assert await pt.t(1, "bump.stats.week_end", next_reset_ts=444) == (
-        "⏳ A semana termina em: <t:444:R>"
+        "**⏳ A semana termina em:** <t:444:R>"
     )
 
     en = Translator(LANG_DIR, resolver=_resolver("en-US"), default_placeholders=theme.emojis)
     assert await en.t(1, "bump.stats.week_end", next_reset_ts=444) == (
-        "⏳ The week ends in: <t:444:R>"
+        "**⏳ The week ends in:** <t:444:R>"
     )
 
 

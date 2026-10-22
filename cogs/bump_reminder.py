@@ -546,7 +546,7 @@ class BumpReminderCog(commands.Cog):
 
         from rosemary.core.card_service import CardPayload, render_card_message
 
-        payload, _allowed = await render_card_message(
+        payload, card_allowed = await render_card_message(
             self.bot,
             guild_id,
             "bump.reminder",
@@ -560,11 +560,13 @@ class BumpReminderCog(commands.Cog):
         try:
             from rosemary.core.mentions import allowed_for_ids
 
+            # The role ping is plain content sent ahead of the card; the card
+            # itself carries no mention tokens, so its allowed stays
+            # content-driven from the render above.
             ping_allowed = await allowed_for_ids(
                 self.bot, guild_id, "bump.reminder",
                 role_ids=[ping_role_id] if ping_role_id else [],
             )
-            card_allowed = await allowed_for_ids(self.bot, guild_id, "bump.reminder")
         except Exception as exc:
             log.error("Failed to prepare bump reminder in %s: %s", guild_id, exc)
             return
@@ -652,7 +654,7 @@ class BumpReminderCog(commands.Cog):
         from rosemary.core.card_service import CardPayload, render_card_message
 
         member = guild.get_member(user_id)
-        payload, _allowed = await render_card_message(
+        payload, allowed = await render_card_message(
             self.bot,
             guild_id,
             "bump.thank_you",
@@ -678,16 +680,14 @@ class BumpReminderCog(commands.Cog):
                     int(next_bump_time.timestamp()),
                 )
             )
-
-        try:
             from rosemary.core.mentions import allowed_for_ids
 
-            await channel.send(
-                **payload.message_kwargs(),
-                allowed_mentions=await allowed_for_ids(
-                    self.bot, guild_id, "bump.thank_you", user_ids=[user_id],
-                ),
+            allowed = await allowed_for_ids(
+                self.bot, guild_id, "bump.thank_you", user_ids=[user_id],
             )
+
+        try:
+            await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
         except Exception as exc:
             log.error("Failed to send bump thank you in %s: %s", guild_id, exc)
 
@@ -927,6 +927,8 @@ class BumpReminderCog(commands.Cog):
 
         last_bump = await self.store.get_last_bump_time(guild_id)
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
+        state_on = await t(guild_id, "bump.status.state_on")
+        state_off = await t(guild_id, "bump.status.state_off")
 
         none_text = await t(guild_id, "bump.status.none")
         next_bump = none_text
@@ -938,12 +940,16 @@ class BumpReminderCog(commands.Cog):
         else:
             last_bump_display = await t(guild_id, "bump.status.last_bump_na")
         lines = [
-            await t(guild_id, "bump.status.enabled", enabled=enabled),
+            await t(guild_id, "bump.status.enabled", enabled=state_on if enabled else state_off),
             await t(
-                guild_id, "bump.status.channel_locked", locked=state.get("channel_locked", False)
+                guild_id,
+                "bump.status.channel_locked",
+                locked=state_on if state.get("channel_locked", False) else state_off,
             ),
             await t(
-                guild_id, "bump.status.reminder_sent", sent=state.get("reminder_sent", True)
+                guild_id,
+                "bump.status.reminder_sent",
+                sent=state_on if state.get("reminder_sent", True) else state_off,
             ),
             last_bump_display,
             await t(guild_id, "bump.status.next_reminder", next=next_bump),

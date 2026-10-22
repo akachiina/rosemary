@@ -136,6 +136,17 @@ async def test_seed_documents_render():
         assert view.children, f"{key}: rendered no items"
 
 
+async def test_bump_stats_seed_carries_container_color():
+    """/bump stats renders through the seed in production: a colorless seed
+    produced floating text with no container while the code fallback showed
+    one. The seed color must match the fallback (style bump_leaderboard)."""
+    bot = make_bot()
+    doc = await default_document(bot, 1, "bump.stats", {"title": "T", "body": "B"})
+    container = doc["blocks"][0]
+    assert container["type"] == "container"
+    assert container["color"] == bot.theme.style("bump_leaderboard").color
+
+
 async def test_starboard_card_resolves_via_builder_not_seed():
     """The builder owns the starboard default; a seed entry here would shadow
     it with bare {title}/{body}: the exact bug that made live posts plain

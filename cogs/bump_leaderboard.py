@@ -18,7 +18,6 @@ from discord.ext import commands, tasks
 
 from rosemary.core.boost_roles import BoostRoleStore
 from rosemary.core.bump import BumpStore
-from rosemary.core.cards import maybe_view
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
@@ -264,14 +263,11 @@ class BumpLeaderboardCog(commands.Cog):
         from rosemary.core.card_service import render_card_message
         from rosemary.core.mentions import allowed_for_ids
 
-        override, _allowed = await render_card_message(
+        payload, allowed = await render_card_message(
             self.bot, guild.id, "bump.no_bumps"
         )
-        if override is not None:
-            await channel.send(
-                **override.message_kwargs(),
-                allowed_mentions=await allowed_for_ids(self.bot, guild.id, "bump.no_bumps"),
-            )
+        if payload is not None:
+            await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
             return
 
         from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
@@ -345,17 +341,15 @@ class BumpLeaderboardCog(commands.Cog):
             "next_reset_timestamp": int(next_reset.timestamp()),
         }
 
-    async def _post_leaderboard(
+    async def _leaderboard_payload(
         self,
         guild: discord.Guild,
-        channel: discord.TextChannel,
         sorted_lb: list[tuple[int, int]],
         winner_id: int,
         winner_count: int,
         role_name: str | None = None,
-    ) -> None:
-        from rosemary.core.mentions import allowed_for_ids
-
+    ) -> dict:
+        """Send-site variables every ``bump.leaderboard`` render path shares."""
         context = await self._leaderboard_context(
             guild, sorted_lb, winner_id, winner_count, role_name
         )
@@ -367,18 +361,39 @@ class BumpLeaderboardCog(commands.Cog):
         )
         context["user"] = f"<@{winner_id}>"
         context["timestamp"] = discord.utils.format_dt(discord.utils.utcnow(), style="R")
-        view = await maybe_view(self.bot, guild.id, "bump.leaderboard", context)
-        if view is None:
-            view = await self._build_leaderboard_view(
-                guild, sorted_lb, winner_id, winner_count, role_name, context,
+        return context
+
+    async def _post_leaderboard(
+        self,
+        guild: discord.Guild,
+        channel: discord.TextChannel,
+        sorted_lb: list[tuple[int, int]],
+        winner_id: int,
+        winner_count: int,
+        role_name: str | None = None,
+    ) -> None:
+        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.mentions import allowed_for_ids
+
+        context = await self._leaderboard_payload(
+            guild, sorted_lb, winner_id, winner_count, role_name
+        )
+        payload, allowed = await render_card_message(
+            self.bot, guild.id, "bump.leaderboard", context
+        )
+        if payload is None:
+            payload = CardPayload(
+                view=await self._build_leaderboard_view(
+                    guild, sorted_lb, winner_id, winner_count, role_name, context,
+                )
             )
-        await channel.send(
-            view=view,
-            allowed_mentions=await allowed_for_ids(
+            # Mentions stay content-driven on the fallback too: the description
+            # carries the winner token, so the policy is the same either way.
+            allowed = await allowed_for_ids(
                 self.bot, guild.id, "bump.leaderboard",
                 user_ids=[winner_id],
-            ),
-        )
+            )
+        await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
 
     async def _build_leaderboard_view(
         self,
@@ -572,18 +587,23 @@ class BumpLeaderboardCog(commands.Cog):
         role = guild.get_role(role_id) if role_id else None
         role_name = role.name if role else None
 
-        view = await self._build_leaderboard_view(
-            guild, sorted_lb, winner_id, winner_count, role_name,
-        )
-        from rosemary.core.mentions import allowed_for_ids
+        from rosemary.core.card_service import CardPayload, render_card_message
 
-        await ctx.respond(
-            view=view,
-            allowed_mentions=await allowed_for_ids(
-                self.bot, guild.id, "bump.leaderboard",
-                user_ids=[winner_id], silent=True,
-            ),
+        context = await self._leaderboard_payload(
+            guild, sorted_lb, winner_id, winner_count, role_name
         )
+        # Manual posts never ping (``winner_auto``): the card is identical to
+        # the weekly auto-post (themed override included), only silent.
+        payload, allowed = await render_card_message(
+            self.bot, guild.id, "bump.leaderboard", context, silent=True
+        )
+        if payload is None:
+            payload = CardPayload(
+                view=await self._build_leaderboard_view(
+                    guild, sorted_lb, winner_id, winner_count, role_name, context,
+                )
+            )
+        await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
     @bump_group.command(
         name="stats",

@@ -1016,31 +1016,31 @@ bump:
     name: bump
     description: Disboard bump leaderboard
   messages:
-    anti_camping: 🔒 **|** The channel is temporarily locked. Bump will be available shortly!
+    anti_camping: '{lock} The channel is temporarily locked. Bump will be available shortly!'
     thank_you_title: '{tada} Bump Recorded!'
     thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining. {cup}
 
 
-      {clock} **|** I''ll remind you in **{cooldown}!**
+      **{clock} Next bump:** <t:{next_bump_timestamp}:R>
 
-      > **Next bump:** <t:{next_bump_timestamp}:R>
+      **{hourglass} Reminder:** I''ll be back to remind you in **{cooldown}!**
 
 
-      {trophy} **|** Use `/bump leaderboard` to check the weekly rank and compete for **Bump-MVP!**
+      -# {trophy} Use `/bump leaderboard` to check the weekly rank and compete for **Bump-MVP**!
 
       '
     reminder_title: '{clock} Bump Time!'
     reminder_description: 'The {cooldown} cooldown has passed since the last bump!
 
 
-      How about helping us welcome new visitors? Use `/bump` and earn a point!
+      **{rocket} Your turn to help:** use `/bump` and earn a point on the board!
 
       '
     leaderboard_title: '{trophy} Weekly Bump Leaderboard'
     leaderboard_description: 'Check out who helped the server the most this week!
 
 
-      **{calendar} Period:** <t:{start_timestamp}:d> - <t:{end_timestamp}:d>
+      **{calendar} Period:** <t:{start_timestamp}:d> to <t:{end_timestamp}:d>
 
       **{hourglass} The week ends in:** <t:{next_reset_timestamp}:R>
 
@@ -1055,11 +1055,12 @@ bump:
       {leaderboard_list}
 
       '
-    leaderboard_line: '{medal} **{position}º** - {user_mention} **{bump_count}** bumps'
-    no_bumps_title: '{bar_chart} Weekly Bump Leaderboard'
+    leaderboard_line: '{medal} **#{position}** · {user_mention} **{bump_count}** bumps'
+    no_bumps_title: '{trophy} Weekly Bump Leaderboard'
     no_bumps_description: 'Nobody bumped the server this week! {cry}
 
-      Be the first to help out by using `/bump`!
+
+      **{rocket} Be the first:** use `/bump` in the bump channel and earn a point!
 
       '
     no_bumps_you: '{bar_chart} You haven''t bumped this week yet! Use `/bump` in the bump channel.'
@@ -1069,20 +1070,20 @@ bump:
       Hello, {mention}! Your dedication kept the server shining. Thank you!
 
 
-      > **{bar_chart} Weekly bumps:** `{bump_count}`
+      **{bar_chart} Weekly bumps:** {bump_count}
 
-      > **{trophy} Role:** `{role_name}`
+      **{trophy} Role:** {role_name}
 
 
       ### {palette} Customize your role
 
       Use `/boost panel` to customize:
 
-      > {pencil} Name and emoji
+      - {pencil} Name and emoji
 
-      > {palette} Color
+      - {palette} Color
 
-      > {members} Invite up to **{max_members}** members
+      - {members} Invite up to **{max_members}** members
 
 
       -# Your customizations are saved and will return if you win again!
@@ -1096,9 +1097,9 @@ bump:
       Hello, {mention}! You''ve reclaimed the title. Your dedication is admirable!
 
 
-      > **{bar_chart} Weekly bumps:** `{bump_count}`
+      **{bar_chart} Weekly bumps:** {bump_count}
 
-      > **{trophy} Total wins:** `{total_wins}`
+      **{trophy} Total wins:** {total_wins}
 
 
       Your role **{role_name}** has been restored with your previous customizations!
@@ -1112,9 +1113,9 @@ bump:
       Hello, {mention}! This week another member claimed the title. Don''t be discouraged!
 
 
-      > **{bar_chart} Your bumps:** `{bump_count}`
+      **{bar_chart} Your bumps:** {bump_count}
 
-      > **{crown} New winner:** {winner_mention}
+      **{crown} New winner:** {winner_mention}
 
 
       -# Your customizations were saved and will return if you win again!
@@ -1180,15 +1181,17 @@ bump:
     reminder_sent: '{success} Reminder sent successfully.'
   status:
     card_title: '{rocket} Bump Status'
-    enabled: '**Enabled:** {enabled}'
-    channel_locked: '**Channel Locked:** {locked}'
-    reminder_sent: '**Reminder Sent:** {sent}'
-    last_bump: '**Last Bump:** <t:{timestamp}:R>'
-    last_bump_na: '**Last Bump:** N/A'
-    next_reminder: '**Next Reminder:** {next}'
+    state_on: "Yes"
+    state_off: "No"
+    enabled: '**{success} Enabled:** {enabled}'
+    channel_locked: '**{lock} Channel locked:** {locked}'
+    reminder_sent: '**{clock} Reminder sent:** {sent}'
+    last_bump: '**{rocket} Last bump:** <t:{timestamp}:R>'
+    last_bump_na: '**{rocket} Last bump:** N/A'
+    next_reminder: '**{clock} Next reminder:** {next}'
     none: N/A
-    last_reset: '**Last Reset:** {when} by {author} ({reason})'
-    last_reset_na: '**Last Reset:** N/A'
+    last_reset: '**{refresh} Last reset:** {when} by {author} ({reason})'
+    last_reset_na: '**{refresh} Last reset:** N/A'
     reset_actor_automatic: automatic
     reset_reason:
       scheduler: automatic reset
@@ -1202,22 +1205,22 @@ bump:
     bumps_added: '{success} {count} bump(s) added for {user_mention}! Weekly total: {total}.'
   stats:
     title: '{bar_chart} Your Bump Statistics'
-    this_week: '**{calendar} This Week:**
+    this_week: '**{calendar} This week:**
 
-      > {trophy} **Position:** #{position}
+      **{trophy} Leaderboard position:** #{position}
 
-      > {rocket} **Bumps:** {bumps}
+      **{rocket} Bumps:** {bumps}
 
-      > {members} **Total bumps:** {total_bumps}
+      **{members} Server total:** {total_bumps} bumps
 
       '
     history: '**{crown} History:**
 
-      > **{trophy} Wins:** {wins}
+      **{trophy} Wins:** {wins}
 
       '
-    week_start: 'Week started: <t:{week_start_ts}:d>'
-    week_end: '{hourglass} The week ends in: <t:{next_reset_ts}:R>'
+    week_start: '**{calendar} Week started:** <t:{week_start_ts}:d>'
+    week_end: '**{hourglass} The week ends in:** <t:{next_reset_ts}:R>'
 bump_leaderboard:
   command:
     name: leaderboard
