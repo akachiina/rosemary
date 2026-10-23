@@ -115,7 +115,6 @@ async def test_seed_documents_render():
         "birthdays.list",
         "partnerships.list",
         "partnerships.audit",
-        "moderation.warnings",
         "bump.stats",
         "settings.title",
         "themes.title",

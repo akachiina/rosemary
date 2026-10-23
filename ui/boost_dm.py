@@ -22,9 +22,17 @@ async def send(
     destination,
     guild_id: int,
     key: str,
+    *,
+    default_key: str | None = None,
     **variables: Any,
 ) -> discord.Message:
-    """Send a translated plain-text DM, honoring a card override when set."""
+    """Send a translated plain-text DM, honoring a card override when set.
+
+    Plain documents stay plain messages; rich compositions go out as V2.
+    ``default_key`` translates the fallback copy when the card key itself is
+    a catalog section (``trap.dm`` -> ``trap.dm.text``); without it the card
+    key is translated directly.
+    """
     # Plain documents stay plain messages; rich compositions go out as V2.
     override = await maybe_text(bot, guild_id, key, **variables)
     if override is not None:
@@ -32,7 +40,7 @@ async def send(
     override_view = await maybe_view(bot, guild_id, key, variables)
     if override_view is not None:
         return await destination.send(view=override_view)
-    content = await bot.translator.t(guild_id, key, **variables)
+    content = await bot.translator.t(guild_id, default_key or key, **variables)
     return await destination.send(content)
 
 

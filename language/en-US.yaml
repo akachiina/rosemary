@@ -2078,9 +2078,9 @@ ban:
         description: Reason
   confirm_title: Ban this member?
   success: '{success} {member} was banned.'
-  dm: 'You were banned from **{guild}** by {moderator}.
+  dm: '{ban} You were banned from **{guild}** by {moderator}!
 
-    Reason: {reason}'
+    **{scroll} Reason:** {reason}'
 kick:
   command:
     name: kick
@@ -2092,9 +2092,9 @@ kick:
         description: Reason
   confirm_title: Kick this member?
   success: '{success} {member} was kicked.'
-  dm: 'You were kicked from **{guild}** by {moderator}.
+  dm: '{kick} You were kicked from **{guild}** by {moderator}!
 
-    Reason: {reason}'
+    **{scroll} Reason:** {reason}'
 mute:
   command:
     name: mute
@@ -2108,15 +2108,17 @@ mute:
         description: Reason
   confirm_title: Mute this member?
   success: '{success} {member} was muted for {duration}.'
-  dm: 'You were muted in **{guild}** for {duration} by {moderator}.
+  dm: '{mute} You were muted in **{guild}** by {moderator}!
 
-    Reason: {reason}'
+    **{clock} Duration:** {duration}
+
+    **{scroll} Reason:** {reason}'
   invalid_duration: '{error} Invalid duration. Use formats like 10m, 2h or 3d.'
   summary: '{member}
 
-    Reason: {reason}
+    **{clock} Duration:** {duration}
 
-    Duration: {duration}'
+    **{scroll} Reason:** {reason}'
 warn:
   command:
     name: warn
@@ -2128,9 +2130,9 @@ warn:
         description: Reason
   confirm_title: Warn this member?
   success: '{success} Warning recorded for {member} ({count}/{limit}).'
-  dm: 'You received a warning in **{guild}** from {moderator}.
+  dm: '{warning} You received a warning in **{guild}** from {moderator}!
 
-    Reason: {reason}'
+    **{scroll} Reason:** {reason}'
 warnings:
   command:
     name: warnings
@@ -2140,7 +2142,9 @@ warnings:
         description: Member to inspect
   title: Warnings for {member}
   none: '{success} This member has no warnings.'
-  entry: '{reason} (by {moderator}, {date})'
+  entry: '{reason}
+
+    -# by {moderator} · {date}'
 unwarn:
   command:
     name: unwarn
@@ -2168,10 +2172,10 @@ moderation:
   no_reason: No reason provided
   summary: '{member}
 
-    Reason: {reason}'
+    **{scroll} Reason:** {reason}'
   multi_summary: '{targets}
 
-    Reason: {reason}'
+    **{scroll} Reason:** {reason}'
   error_disabled: '{error} Moderation commands are disabled in this server.'
   error_no_members: '{error} Mention at least one member.'
   error_self: '{error} You cannot use moderation commands on yourself.'
@@ -2218,7 +2222,7 @@ moderation:
         **{moderator_label}:** {moderator}
 
         **{reason_label}:** {reason}'
-      title: '{pencil} Warn'
+      title: '{warning} Warn'
 debug:
   command:
     name: debug
@@ -2353,6 +2357,9 @@ variables:
   duration:
     label: Duration
     description: Duration text
+  has_warnings:
+    label: Has warnings
+    description: Whether the member has recorded warnings (drives the card color)
   channel:
     label: Channel
     description: Mention of the channel
@@ -3255,7 +3262,7 @@ card:
   moderation:
     warnings:
       title: Warning list
-      placeholders: '{{user}}, {{title}}, {{body}}'
+      placeholders: '{{user}}, {{user_avatar}}, {{has_warnings}}, {{title}}, {{body}}, {{timestamp}}'
     logs:
       ban:
         title: 'Log: member banned'

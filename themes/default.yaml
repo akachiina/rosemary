@@ -125,6 +125,7 @@ styles:
   bump_leaderboard: { extends: base, color: "warning" }
   bump_no_data: { extends: base, color: "info" }
   bump_test: { extends: base, color: "brand" }
+  moderation_warnings: { extends: base, color: "warning" }
   # Starboard: cor contínua por estrelas (rampa amarela, do fraco ao forte).
   # `star_ramp.limit` é a contagem de estrelas que atinge o tom forte; a partir
   # dela a cor para de mudar. `star_tier_1` continua como fallback para temas

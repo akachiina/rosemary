@@ -8,7 +8,9 @@ resolution, mentions and rendering are shared infrastructure.
 
 from __future__ import annotations
 
+import rosemary.core.bump_cards  # noqa: F401  (registers the bump card builders)
 import rosemary.core.debug_cards  # noqa: F401  (registers the /debug panel builder)
+import rosemary.core.moderation_cards  # noqa: F401  (registers the moderation builders)
 from rosemary.core.cards import CardSpec, register_cards
 from rosemary.core.log_cards import register_log_builders
 from rosemary.core.log_specs import LOG_SPECS
@@ -142,7 +144,9 @@ CONTENT_CARDS = {
     "birthdays.list": ("body",),
     "partnerships.list": ("title", "body"),
     "partnerships.audit": ("title", "body"),
-    "moderation.warnings": ("user", "title", "body"),
+    "moderation.warnings": (
+        "user", "user_avatar", "has_warnings", "title", "body", "timestamp",
+    ),
     "bump.stats": ("title", "body"),
     # Interactive menus expose only their heading block: selects and buttons
     # are code (Discord needs registered callbacks), so a theme can restyle

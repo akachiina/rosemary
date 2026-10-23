@@ -140,18 +140,23 @@ class ConfirmView(MenuView):
         await self.rerender(interaction)
         self.stop()
 
+    def _container_color(self, name: str):
+        """Resolve a state color through the theme style (never a raw token)."""
+        theme = self.bot.theme
+        return theme.color(theme.style(name).color)
+
     async def build_items(self) -> list[discord.ui.ViewItem]:
         if self.result is not None:
             return [
                 designer_container(
-                    self.bot.theme.color(self.result_state or "info"),
+                    self._container_color(self.result_state or "info"),
                     *await self.question_items(),
                     TextDisplay(self.result),
                 )
             ]
         return [
             designer_container(
-                self.bot.theme.color(self.question_color),
+                self._container_color(self.question_color),
                 *await self.question_items(),
             ),
             *await self.action_rows(),

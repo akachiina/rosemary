@@ -320,16 +320,20 @@ class TrapCog(commands.Cog):
         """Best-effort DM explaining the trap, gated by ``trap.dm_enabled``."""
         if not await get_setting(self.bot.storage, guild_id, "trap.dm_enabled"):
             return
-        from rosemary.core.cards import text_or
+        from rosemary.ui.boost_dm import send as send_dm
 
         common = {
             "server": member.guild.name,
             "action": await self.bot.translator.t(guild_id, f"trap.dm.action.{action}"),
         }
-        translated = await self.bot.translator.t(guild_id, "trap.dm.text", **common)
-        text = await text_or(self.bot, guild_id, "trap.dm.text", translated, **common)
+        # The card key is the spec's (``trap.dm``): themed overrides written
+        # through the editor resolve here. The fallback copy lives in the
+        # ``trap.dm.text`` sub-key, so it is translated explicitly.
         with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-            await member.send(text)
+            await send_dm(
+                self.bot, member, guild_id, "trap.dm",
+                default_key="trap.dm.text", **common,
+            )
 
     async def _log_trap(
         self, guild: discord.Guild, member: discord.Member, action: str, acted: bool,

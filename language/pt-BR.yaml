@@ -2078,9 +2078,9 @@ ban:
         description: Motivo
   confirm_title: Banir este membro?
   success: '{success} {member} foi banido.'
-  dm: 'Você foi banido de **{guild}** por {moderator}.
+  dm: '{ban} Você foi banido de **{guild}** por {moderator}!
 
-    Motivo: {reason}'
+    **{scroll} Motivo:** {reason}'
 kick:
   command:
     name: expulsar
@@ -2092,9 +2092,9 @@ kick:
         description: Motivo
   confirm_title: Expulsar este membro?
   success: '{success} {member} foi expulso.'
-  dm: 'Você foi expulso de **{guild}** por {moderator}.
+  dm: '{kick} Você foi expulso de **{guild}** por {moderator}!
 
-    Motivo: {reason}'
+    **{scroll} Motivo:** {reason}'
 mute:
   command:
     name: silenciar
@@ -2108,15 +2108,17 @@ mute:
         description: Motivo
   confirm_title: Silenciar este membro?
   success: '{success} {member} foi silenciado por {duration}.'
-  dm: 'Você foi silenciado em **{guild}** por {duration} pelo {moderator}.
+  dm: '{mute} Você foi silenciado em **{guild}** por {moderator}!
 
-    Motivo: {reason}'
+    **{clock} Duração:** {duration}
+
+    **{scroll} Motivo:** {reason}'
   invalid_duration: '{error} Duração inválida. Use formatos como 10m, 2h ou 3d.'
   summary: '{member}
 
-    Motivo: {reason}
+    **{clock} Duração:** {duration}
 
-    Duração: {duration}'
+    **{scroll} Motivo:** {reason}'
 warn:
   command:
     name: warn
@@ -2128,9 +2130,9 @@ warn:
         description: Motivo
   confirm_title: Aplicar warn a este membro?
   success: '{success} Warn registrado para {member} ({count}/{limit}).'
-  dm: 'Você recebeu um warn em **{guild}** de {moderator}.
+  dm: '{warning} Você recebeu um warn em **{guild}** de {moderator}!
 
-    Motivo: {reason}'
+    **{scroll} Motivo:** {reason}'
 warnings:
   command:
     name: warnlist
@@ -2140,7 +2142,9 @@ warnings:
         description: Membro a inspecionar
   title: Warns de {member}
   none: '{success} Este membro não tem warns.'
-  entry: '{reason} (por {moderator}, {date})'
+  entry: '{reason}
+
+    -# por {moderator} · {date}'
 unwarn:
   command:
     name: remover_warn
@@ -2168,10 +2172,10 @@ moderation:
   no_reason: Nenhum motivo informado
   summary: '{member}
 
-    Motivo: {reason}'
+    **{scroll} Motivo:** {reason}'
   multi_summary: '{targets}
 
-    Motivo: {reason}'
+    **{scroll} Motivo:** {reason}'
   error_disabled: '{error} Os comandos de moderação estão desativados neste servidor.'
   error_no_members: '{error} Mencione pelo menos um membro.'
   error_self: '{error} Você não pode usar comandos de moderação em si mesmo.'
@@ -2218,7 +2222,7 @@ moderation:
         **{moderator_label}:** {moderator}
 
         **{reason_label}:** {reason}'
-      title: '{pencil} Warn'
+      title: '{warning} Warn'
 debug:
   command:
     name: debug
@@ -2353,6 +2357,9 @@ variables:
   duration:
     label: Duração
     description: Texto da duração
+  has_warnings:
+    label: Tem warns
+    description: Se o membro tem warns registrados (muda a cor do card)
   channel:
     label: Canal
     description: Menção do canal
@@ -3193,7 +3200,7 @@ card:
   moderation:
     warnings:
       title: Lista de warns
-      placeholders: '{{user}}, {{title}}, {{body}}'
+      placeholders: '{{user}}, {{user_avatar}}, {{has_warnings}}, {{title}}, {{body}}, {{timestamp}}'
     logs:
       ban:
         title: 'Log: membro banido'

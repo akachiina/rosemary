@@ -97,11 +97,13 @@ SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
     # avatar, gallery, author footer; serverinfo: icon thumbnail, columns,
     # banner). A seed here would shadow the builder: the exact bug that
     # made live posts bare.
+    # moderation.warnings is absent for the same reason: its builder
+    # (core/moderation_cards.py) picks the state-driven color and adds the
+    # member avatar thumbnail + author footer.
     "utility.ping": ("info", "ping.title", ("ping.latency",)),
     "birthdays.list": ("info", "birthdays.list_title", ("{body}",)),
     "partnerships.list": ("info", "partnerships.list_title", ("{body}",)),
     "partnerships.audit": ("warning", "partnerships.audit_title", ("{body}",)),
-    "moderation.warnings": ("brand", None, ("{title}", "{body}")),
     # The container color must match the code fallback (style bump_leaderboard)
     # so both render paths of the same card agree.
     "bump.stats": ("warning", None, ("{title}", "{body}")),

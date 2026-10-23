@@ -264,8 +264,12 @@ class ModerationCog(commands.Cog):
     #: helpers -----------------------------------------------------------
 
     def _response_view(self, title: str, *, color: str = "info") -> discord.ui.DesignerView:
+        """One-line ack view; the container color follows the theme style."""
+        theme = self.bot.theme
         view = discord.ui.DesignerView(store=False)
-        view.add_item(designer_container(self.bot.theme.color(color), header_display(title)))
+        view.add_item(
+            designer_container(theme.color(theme.style(color).color), header_display(title))
+        )
         return view
 
     def _ctx_guild_id(self, ctx) -> int | None:
@@ -428,30 +432,20 @@ class ModerationCog(commands.Cog):
         moderator_tag = str(moderator)
 
         if notify:
-            from rosemary.core.cards import text_or
+            from rosemary.ui.boost_dm import send as send_dm
 
-            # Only mute carries a duration; ban/kick/warn pass None.
-            duration_display = (
-                TimeParser.format_duration(duration) if duration is not None else None
-            )
-            common = {"guild": guild_name, "moderator": moderator.mention, "reason": reason}
-            dm_template_key = f"{action}.dm"
-            translated = (
-                await t(
-                    guild_id,
-                    "mute.dm",
-                    duration=duration_display,
-                    **common,
-                )
-                if action == "mute"
-                else await t(guild_id, dm_template_key, **common)
-            )
-            variables = {**common}
-            if duration_display is not None:
-                variables["duration"] = duration_display
-            dm_text = await text_or(self.bot, guild_id, dm_template_key, translated, **variables)
+            # Themed overrides resolve through the shared DM pipeline: plain
+            # docs stay plain, rich docs go out as Components V2. Only mute
+            # carries a duration; ban/kick/warn pass None.
+            variables: dict[str, Any] = {
+                "guild": guild_name,
+                "moderator": moderator.mention,
+                "reason": reason,
+            }
+            if action == "mute" and duration is not None:
+                variables["duration"] = TimeParser.format_duration(duration)
             with contextlib.suppress(discord.Forbidden):
-                await target.send(dm_text)
+                await send_dm(self.bot, target, guild_id, f"{action}.dm", **variables)
 
         if action == "ban":
             # Stamp before the API call: this ban posts its own log card below
@@ -633,7 +627,7 @@ class ModerationCog(commands.Cog):
             + await t(
                 guild_id,
                 "warnings.entry",
-                reason=entry.get("reason") or await t(guild_id, "invites.unknown"),
+                reason=entry.get("reason") or await t(guild_id, "moderation.no_reason"),
                 moderator=f"<@{entry.get('moderator_id', 0) or 0}>",
                 date=_local_date(entry.get("timestamp", "")),
             )
@@ -641,7 +635,7 @@ class ModerationCog(commands.Cog):
         ]
         title = await t(guild_id, "warnings.title", member=member.mention)
         body = (
-            "\n".join(lines)
+            "\n\n".join(lines)
             if entries
             else await t(guild_id, "warnings.none")
         )
@@ -652,14 +646,24 @@ class ModerationCog(commands.Cog):
             self.bot,
             guild_id,
             "moderation.warnings",
-            {"user": member.mention, "title": title, "body": body},
+            {
+                "user": member.mention,
+                "user_avatar": (
+                    member.display_avatar.url if member.display_avatar else ""
+                ),
+                "has_warnings": bool(entries),
+                "title": title,
+                "body": body,
+                "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
+            },
         )
         if payload is None:
             parts = [TextDisplay(theme.md("title", title=title)), TextDisplay(body)]
             view = discord.ui.DesignerView(store=False)
+            state_style = "success" if not entries else "moderation_warnings"
             view.add_item(
                 designer_container(
-                    theme.color("success" if not entries else "brand"), *parts
+                    theme.color(theme.style(state_style).color), *parts
                 )
             )
             payload = CardPayload(view=view)

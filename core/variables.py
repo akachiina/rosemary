@@ -71,6 +71,7 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("invitee", "<@0>", "mention"),
         _v("reason", "…"),
         _v("duration", "…"),
+        _v("has_warnings", True, "bool"),
         _v("channel", "#…"),
         _v("version", "v1.0.0"),
         _v("role", "…"),
