@@ -101,6 +101,7 @@ TICKETS_CARDS = [
 PARTNERSHIPS_DMS = [
     "added",
     "removed",
+    "rep_changed",
     "warning",
     "expired",
     "expired_admin",
@@ -262,6 +263,7 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "partnerships.invite": ("server",),
     "partnerships.dm.added": ("server", "mention"),
     "partnerships.dm.removed": ("server", "mention"),
+    "partnerships.dm.rep_changed": ("server", "mention"),
     "partnerships.dm.warning": ("days", "server", "mention"),
     "partnerships.dm.expired": ("server", "mention"),
     "partnerships.dm.expired_admin": ("rep", "server", "days", "invite", "mention"),
@@ -362,7 +364,7 @@ def _build() -> list[CardSpec]:
     specs += [_spec("confessions.dm.rejected", "confessions")]
     specs += [_spec("confessions.dm.response", "confessions")]
     specs += [
-        _spec("partnerships.invite", "partnerships", rich=True)
+        _spec("partnerships.invite", "partnerships", rich=True, mention_default="role")
     ]
     specs += [
         _spec(f"partnerships.dm.{name}", "partnerships", mention_default="single")

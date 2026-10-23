@@ -36,6 +36,7 @@ class PartnershipStore:
         message_id: int | None,
         content: str,
         attachments: list[str],
+        raw_text: str = "",
     ) -> None:
         doc = await self._doc(guild_id)
         doc["partnerships"][str(partner_id)] = {
@@ -43,11 +44,48 @@ class PartnershipStore:
             "adder_id": adder_id,
             "message_id": message_id,
             "content": content,
+            "raw_text": raw_text,
             "attachments": attachments,
             "last_renewed_at": datetime.now(UTC).isoformat(),
             "warning_sent": False,
         }
         await self._save(guild_id, doc)
+
+    async def edit(
+        self,
+        guild_id: int,
+        partner_id: int,
+        *,
+        content: str,
+        raw_text: str,
+        message_id: int | None,
+        new_rep_id: int | None = None,
+    ) -> bool:
+        """Update a partnership's ad and optionally move it to a new rep.
+
+        An edit is not a renewal: ``last_renewed_at``, ``warning_sent``,
+        ``attachments`` and ``adder_id`` stay untouched. A ``new_rep_id``
+        re-keys the record (the key is the rep's id, which
+        ``/partnerships renew`` looks up by author). Returns ``False`` when
+        the record is missing or the target key is already taken; callers
+        should check the collision first, this stays defensive.
+        """
+        doc = await self._doc(guild_id)
+        entry = doc["partnerships"].get(str(partner_id))
+        if not isinstance(entry, dict):
+            return False
+        swapping = new_rep_id is not None and new_rep_id != partner_id
+        if swapping and str(new_rep_id) in doc["partnerships"]:
+            return False
+        entry["content"] = content
+        entry["raw_text"] = raw_text
+        entry["message_id"] = message_id
+        if swapping:
+            entry["rep_id"] = new_rep_id
+            doc["partnerships"].pop(str(partner_id))
+            doc["partnerships"][str(new_rep_id)] = entry
+        await self._save(guild_id, doc)
+        return True
 
     async def get(self, guild_id: int, partner_id: int) -> dict[str, Any] | None:
         doc = await self._doc(guild_id)

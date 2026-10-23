@@ -191,6 +191,7 @@ _LEGACY_VARIABLES: dict[str, tuple[str, ...]] = {
     "confessions.logs.banned": ("moderator", "user", "reason"),
     "partnerships.logs.added": ("user", "author"),
     "partnerships.logs.removed": ("user", "author"),
+    "partnerships.logs.edited": ("user", "rep", "moderator"),
     "partnerships.logs.renewed": ("user",),
     "partnerships.logs.warning_sent": ("days", "user"),
     "partnerships.logs.expired": ("user", "ping"),
@@ -606,6 +607,22 @@ def _build_specs() -> dict[str, LogSpec]:
                 actor_var=actor,
             )
         )
+    # The edit log is a fields layout so the new-representative row only
+    # appears on an actual swap (optional field, skipped when empty).
+    specs.append(
+        _spec(
+            "partnerships.logs.edited",
+            "partnerships",
+            severity="info",
+            layout="fields",
+            fields=(
+                _f("user", "member"),
+                _f("rep", "new_rep", optional=True),
+                _f("moderator"),
+            ),
+            actor_var="moderator",
+        )
+    )
 
     specs += [
         _spec(

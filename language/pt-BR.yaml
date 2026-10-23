@@ -1450,6 +1450,15 @@ partnerships_admin_add:
     options:
       member:
         description: Representante da parceria
+partnerships_admin_edit:
+  command:
+    name: editar
+    description: '[ADMIN] Edita o anúncio e/ou o representante'
+    options:
+      member:
+        description: Representante da parceria
+      new_rep:
+        description: 'Novo representante (omita para manter o atual)'
 partnerships_admin_remove:
   command:
     name: remover
@@ -1492,8 +1501,13 @@ partnerships:
     title: Anúncio de parceria
     label: Texto do anúncio
     placeholder: Escreva o anúncio. Use {{rep}} e {{ping_role}} onde quiser.
+  edit_modal:
+    title: Editar Anúncio de Parceria
+    label: Texto do anúncio
+    placeholder: Edite o anúncio. Use {{rep}} e {{ping_role}} onde quiser.
   error_not_found: '{error} Sem parceria para {user}.'
   error_not_rep: '{error} Você não representa nenhuma parceria aqui.'
+  error_rep_has_partnership: '{error} {user} já representa uma parceria aqui.'
   list_empty: Sem parcerias ainda.
   list_title: Parcerias
   list_line: '- {user} ({days}d restantes){warned}'
@@ -1532,6 +1546,24 @@ partnerships:
 
 
       -# Esta é uma notificação automática da parceria.'
+    rep_changed: '# {crown} Você Agora Representa uma Parceria!
+
+
+      Olá, {mention}! A parceria com **{server}** agora é representada por você. O anúncio foi atualizado e o cargo de parceiro foi transferido.
+
+
+      ### {scroll} Suas responsabilidades
+
+      > Manter seu servidor seguro, ativo e acolhedor
+
+      > Seguir as regras de parceria do canal correspondente
+
+      > Representar as duas comunidades com respeito
+
+
+      {tada} Bem-vindo(a) à parceria!
+
+      -# Dúvidas? Fale com a equipe de moderação!'
     warning: '# {clock} Renovação de Parceria Necessária!
 
 
@@ -1589,6 +1621,8 @@ partnerships:
     renewed: '{success} Parceria renovada.'
     invite_posted: '{success} Convite de parceria postado.'
     cleaned: '{success} {count} parceria(s) órfã(s) removidas.'
+    edited: '{success} Anúncio de parceria de {user} atualizado.'
+    edited_rep: '{success} Anúncio atualizado e representação transferida de {user} para {rep}.'
   logs:
     added:
       title: '{plus} Parceria Adicionada'
@@ -1596,6 +1630,8 @@ partnerships:
     removed:
       title: '{minus} Parceria Removida'
       description: '{author} removeu a parceria de {user}.'
+    edited:
+      title: '{pencil} Parceria Editada'
     renewed:
       title: '{refresh} Parceria Renovada'
       description: '{user} renovou a parceria.'
@@ -3427,6 +3463,9 @@ card:
       removed:
         title: 'DM: parceria removida'
         placeholders: '{{server}}, {{mention}}'
+      rep_changed:
+        title: 'DM: representante trocado'
+        placeholders: '{{server}}, {{mention}}'
       warning:
         title: 'DM: aviso de parceria'
         placeholders: '{{days}}, {{server}}, {{mention}}'
@@ -3443,6 +3482,9 @@ card:
       removed:
         title: 'Log: parceria removida'
         placeholders: '{{author}}, {{user}}'
+      edited:
+        title: 'Log: parceria editada'
+        placeholders: '{{moderator}}, {{rep}}, {{user}}'
       renewed:
         title: 'Log: parceria renovada'
         placeholders: '{{user}}'
@@ -3988,6 +4030,8 @@ log:
       label: '{palette} Emoji'
     member:
       label: '{people} Membro'
+    new_rep:
+      label: '{people} Novo representante'
     invitee:
       label: '{user} Convidado(a)'
     inviter:

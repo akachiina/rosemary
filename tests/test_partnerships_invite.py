@@ -17,6 +17,7 @@ import discord
 import yaml
 
 import rosemary.cogs.partnerships as partnerships_module
+import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
 from rosemary.cogs.partnerships import PartnershipsCog
 from rosemary.core.storage import GuildStorage
 from rosemary.core.themes import ThemeStore
@@ -209,20 +210,26 @@ async def test_invite_rep_defaults_to_command_author(tmp_path, monkeypatch):
 
 
 async def test_invite_post_uses_allowed_mentions_from_text(tmp_path):
-    """The send resolves AllowedMentions from the text, never wide-open."""
+    """The send resolves AllowedMentions from the text, never wide-open.
+
+    The card pings by default (mention_default="role"): the rep user token
+    and the configured ping role both notify, everyone never does.
+    """
     cog = _cog(tmp_path)
-    await cog.bot.storage.set(1, "partnerships.invite_text", "fale com {rep}")
     chan = _channel(42)
     guild = _guild()
 
-    async def fake_channel(g):
-        return None
-
-    monkey_target = chan
-    await cog._post_ad(guild, "fale com <@100>", [], channel=monkey_target)
+    await cog._post_ad(guild, "fale com <@100>", [], channel=chan)
     _, kwargs = chan.send.await_args
     allowed = kwargs["allowed_mentions"]
-    # partnerships.invite has no pings override and the default policy for it
-    # resolves off here, so the send carries none(): never wide-open.
     assert isinstance(allowed, discord.AllowedMentions)
-    assert not allowed.users and not allowed.roles and not allowed.everyone
+    assert [obj.id for obj in (allowed.users or [])] == [100]
+    assert not allowed.roles
+    assert not allowed.everyone
+
+    await cog._post_ad(guild, "<@&777> fale com <@100>", [], channel=chan)
+    _, kwargs = chan.send.await_args
+    allowed = kwargs["allowed_mentions"]
+    assert [obj.id for obj in (allowed.users or [])] == [100]
+    assert [obj.id for obj in (allowed.roles or [])] == [777]
+    assert not allowed.everyone

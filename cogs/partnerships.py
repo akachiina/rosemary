@@ -300,7 +300,7 @@ class PartnershipsCog(commands.Cog):
             message = await self._post_ad(guild, text, [])
             await self.store.add(
                 guild.id, member.id, member.id, interaction.user.id,
-                message.id if message else None, text, [],
+                message.id if message else None, text, [], raw_text=raw_text,
             )
             await self._assign_role(guild, member.id)
             await self._dm(guild, member.id, "added", server=guild.name)
@@ -322,6 +322,134 @@ class PartnershipsCog(commands.Cog):
             placeholder=await self.bot.translator.t(
                 guild.id, "partnerships.modal.placeholder"
             ),
+            max_length=2000,
+            style=discord.InputTextStyle.paragraph,
+            on_submit=submit,
+        )
+        await ctx.send_modal(modal)
+
+    @partnerships_admin_group.command(
+        name="edit",
+        description="[ADMIN] Edit a partnership ad and/or its representative",
+        default_member_permissions=discord.Permissions(administrator=True),
+    )
+    async def partnerships_edit(
+        self,
+        ctx: discord.ApplicationContext,
+        member: discord.Option(discord.Member, description="Partner representative"),
+        new_rep: discord.Option(
+            discord.Member,
+            description="New representative (omit to keep the current one)",
+            required=False,
+        ) = None,
+    ) -> None:
+        """Edit an ad's text and/or swap its representative (modal pre-filled)."""
+        if not await require_admin(ctx):
+            return
+        from rosemary.core.cards import safe_format
+        from rosemary.ui.modals import make_text_modal
+
+        guild = ctx.guild
+        if not await get_setting(self.bot.storage, guild.id, "partnerships.enabled"):
+            return await ctx.respond(
+                await self.bot.translator.t(guild.id, "partnerships.error_disabled"),
+                ephemeral=True,
+            )
+        if await self._channel(guild) is None:
+            return await ctx.respond(
+                await self.bot.translator.t(guild.id, "partnerships.error_no_channel"),
+                ephemeral=True,
+            )
+        entry = await self.store.get(guild.id, member.id)
+        if entry is None:
+            return await ctx.respond(
+                await self.bot.translator.t(
+                    guild.id, "partnerships.error_not_found", user=member.mention
+                ),
+                ephemeral=True,
+            )
+        swapping = new_rep is not None and new_rep.id != member.id
+        if swapping and await self.store.get(guild.id, new_rep.id) is not None:
+            # One record per rep: re-keying onto an existing partnership would
+            # silently overwrite it.
+            return await ctx.respond(
+                await self.bot.translator.t(
+                    guild.id,
+                    "partnerships.error_rep_has_partnership",
+                    user=new_rep.mention,
+                ),
+                ephemeral=True,
+            )
+
+        t = self.bot.translator.t
+        rep = new_rep or member
+        # The raw template keeps {rep}/{ping_role} intact for future edits;
+        # legacy records only ever stored the resolved text.
+        current_text = str(entry.get("raw_text") or entry.get("content") or "")
+
+        async def submit(interaction: discord.Interaction, raw_text: str) -> None:
+            # ACK first: delete, post, store, roles, DM and log are HTTP round
+            # trips; past 3s Discord discards the interaction (404 10062).
+            await interaction.response.defer(ephemeral=True)
+            ping_role_id = await get_setting(
+                self.bot.storage, guild.id, "partnerships.ping_role"
+            )
+            text = safe_format(
+                raw_text,
+                {
+                    **(self.bot.theme.emojis if self.bot.theme else {}),
+                    "rep": rep.mention,
+                    "ping_role": (
+                        f"<@&{ping_role_id}>" if ping_role_id else ""
+                    ),
+                },
+            )
+            if swapping:
+                # Legacy ads stored the resolved text: rewrite the old
+                # representative's mention so the reposted ad names the new
+                # one even without a raw template.
+                for token in (f"<@{member.id}>", f"<@!{member.id}>"):
+                    text = text.replace(token, rep.mention)
+            await self._delete_ad(guild, entry)
+            message = await self._post_ad(
+                guild, text, entry.get("attachments") or []
+            )
+            await self.store.edit(
+                guild.id,
+                member.id,
+                content=text,
+                raw_text=raw_text,
+                message_id=message.id if message else None,
+                new_rep_id=new_rep.id if swapping else None,
+            )
+            if swapping:
+                await self._strip_role(guild, member.id)
+                await self._assign_role(guild, new_rep.id)
+                await self._dm(guild, new_rep.id, "rep_changed", server=guild.name)
+            await self._log(
+                guild.id, "edited", "info", [member.id, interaction.user.id],
+                user=member.mention,
+                rep=new_rep.mention if swapping else "",
+                moderator=interaction.user.mention,
+            )
+            await interaction.followup.send(
+                await t(
+                    guild.id,
+                    "partnerships.success.edited_rep" if swapping else (
+                        "partnerships.success.edited"
+                    ),
+                    user=member.mention,
+                    rep=new_rep.mention if swapping else "",
+                ),
+                ephemeral=True,
+            )
+
+        modal = make_text_modal(
+            title=await t(guild.id, "partnerships.edit_modal.title"),
+            custom_id="partnerships_edit_modal",
+            label=await t(guild.id, "partnerships.edit_modal.label"),
+            placeholder=await t(guild.id, "partnerships.edit_modal.placeholder"),
+            value=current_text[:2000],
             max_length=2000,
             style=discord.InputTextStyle.paragraph,
             on_submit=submit,

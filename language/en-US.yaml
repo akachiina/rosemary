@@ -1450,6 +1450,15 @@ partnerships_admin_add:
     options:
       member:
         description: Partner representative
+partnerships_admin_edit:
+  command:
+    name: edit
+    description: '[ADMIN] Edit the ad and/or the representative'
+    options:
+      member:
+        description: Partner representative
+      new_rep:
+        description: 'New representative (omit to keep the current one)'
 partnerships_admin_remove:
   command:
     name: remove
@@ -1492,8 +1501,13 @@ partnerships:
     title: Partnership ad
     label: Ad text
     placeholder: Write the ad. Use {{rep}} and {{ping_role}} anywhere.
+  edit_modal:
+    title: Edit Partnership Ad
+    label: Ad text
+    placeholder: Edit the ad. Use {{rep}} and {{ping_role}} anywhere.
   error_not_found: '{error} No partnership for {user}.'
   error_not_rep: '{error} You do not represent any partnership here.'
+  error_rep_has_partnership: '{error} {user} already represents a partnership here.'
   list_empty: No partnerships yet.
   list_title: Partnerships
   list_line: '- {user} ({days}d left){warned}'
@@ -1532,6 +1546,24 @@ partnerships:
 
 
       -# This is an automated partnership notification.'
+    rep_changed: '# {crown} You Now Represent a Partnership!
+
+
+      Hello, {mention}! The partnership with **{server}** is now represented by you. The ad was updated and the partner role was transferred.
+
+
+      ### {scroll} Your responsibilities
+
+      > Keep your server safe, active and welcoming
+
+      > Follow the partnership rules of the corresponding channel
+
+      > Represent both communities with respect
+
+
+      {tada} Welcome to the partnership!
+
+      -# Questions? Talk to the moderation team!'
     warning: '# {clock} Partnership Renewal Required!
 
 
@@ -1589,6 +1621,8 @@ partnerships:
     renewed: '{success} Partnership renewed.'
     invite_posted: '{success} Partnership invite posted.'
     cleaned: '{success} Removed {count} orphan partnership(s).'
+    edited: '{success} Partnership ad of {user} updated.'
+    edited_rep: '{success} Ad updated and representation transferred from {user} to {rep}.'
   logs:
     added:
       title: '{plus} Partnership Added'
@@ -1596,6 +1630,8 @@ partnerships:
     removed:
       title: '{minus} Partnership Removed'
       description: '{author} removed the partnership of {user}.'
+    edited:
+      title: '{pencil} Partnership Edited'
     renewed:
       title: '{refresh} Partnership Renewed'
       description: '{user} renewed their partnership.'
@@ -3427,6 +3463,9 @@ card:
       removed:
         title: 'DM: partnership removed'
         placeholders: '{{server}}, {{mention}}'
+      rep_changed:
+        title: 'DM: representative changed'
+        placeholders: '{{server}}, {{mention}}'
       warning:
         title: 'DM: partnership warning'
         placeholders: '{{days}}, {{server}}, {{mention}}'
@@ -3443,6 +3482,9 @@ card:
       removed:
         title: 'Log: partnership removed'
         placeholders: '{{author}}, {{user}}'
+      edited:
+        title: 'Log: partnership edited'
+        placeholders: '{{moderator}}, {{rep}}, {{user}}'
       renewed:
         title: 'Log: partnership renewed'
         placeholders: '{{user}}'
@@ -3988,6 +4030,8 @@ log:
       label: '{palette} Emoji'
     member:
       label: '{people} Member'
+    new_rep:
+      label: '{people} New representative'
     invitee:
       label: '{user} Invitee'
     inviter:
