@@ -7,7 +7,16 @@ about:
     description: Sobre a Rosemary
   title: Sobre a Rosemary
   text: A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.
-  version: 'Versão: {version} ({channel})'
+  version: 'Versão: `{version}` (`{channel}`)'
+help:
+  title: '{scroll} Comandos'
+  body: 'Comandos de texto deste servidor, todos digitados com o prefixo `{prefix}`.'
+  group_moderation: Moderação
+  group_info: Informações
+  group_general: Geral
+  group_interactions: Interações
+  roleplay_description: 'Interações de roleplay com gif. Use uma com um membro: `{prefix}hug @membro`'
+  self_description: Mostra esta lista de comandos
 language:
   command:
     name: idioma
@@ -2224,7 +2233,7 @@ moderation:
     ban:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2233,7 +2242,7 @@ moderation:
     kick:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2242,7 +2251,7 @@ moderation:
     mute:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2253,7 +2262,7 @@ moderation:
     warn:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2741,6 +2750,21 @@ variables:
   leaderboard_list:
     label: Placar
     description: Linhas do placar
+  prefix:
+    label: Prefixo
+    description: O prefixo dos comandos de texto do servidor
+  moderation_list:
+    label: Comandos de moderação
+    description: Entradas renderizadas dos comandos de moderação
+  info_list:
+    label: Comandos de informação
+    description: Entradas renderizadas dos comandos de informação
+  general_list:
+    label: Comandos gerais
+    description: Entradas renderizadas dos comandos gerais
+  interactions_list:
+    label: Bloco de interações
+    description: Entradas renderizadas das interações de roleplay
   position:
     label: Posição
     description: Posição no rank
@@ -2883,6 +2907,10 @@ card:
     list:
       title: Lista de cores
       placeholders: '{{title}}, {{body}}'
+  help:
+    card:
+      title: Card da lista de comandos
+      placeholders: '{{prefix}}, {{title}}, {{body}}, {{moderation_list}}, {{info_list}}, {{general_list}}, {{interactions_list}}'
   starboard:
     card:
       title: Post do Starboard

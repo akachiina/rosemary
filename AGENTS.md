@@ -139,6 +139,11 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
   format placeholder (explicit variables win, so never name an emoji token like a
   variable). Colors via `theme.color("<name>")`. Component `emoji=` must be
   RGI-valid or Discord 400s the whole payload.
+- **Machine values render as inline code in every card**: snowflake IDs, command
+  usages (`!ban`, `/configuracoes`), the text-command prefix, version/channel and
+  file names sit inside single backticks. Mentions, `<t:...>` timestamps, plain
+  counters and links never do. Swept in both catalogs and the info-family builder
+  footers by `tests/test_card_formatting.py`.
 - Panels (`core/panels.py`): panels register repaint callback + setting keys of
   interest; `on_theme_changed` repaints + re-syncs dispatch, `repaint_all` at boot.
   Every code path editing theme files must call `ThemeStore.invalidate_guild`

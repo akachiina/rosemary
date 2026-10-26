@@ -252,7 +252,9 @@ async def test_every_command_localizes_to_valid_discord_name(language: str) -> N
     return the raw dotted key, and Discord rejected the whole bulk sync with
     ``400 Invalid Form Body (In <n>.name)``.
     """
-    bot = commands.Bot(command_prefix="!")
+    # help_command=None mirrors RosemaryBot: a plain Bot auto-registers
+    # py-cord's default !help and collides with the themed one in AboutCog.
+    bot = commands.Bot(command_prefix="!", help_command=None)
     bot.storage = GuildStorage(tempfile.mkdtemp())
     bot.theme = load_theme()
     _register_all(bot)

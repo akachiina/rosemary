@@ -3,7 +3,7 @@
 Both are first-class CardSpecs (``utility.ping`` / ``utility.serverinfo``):
 a theme may restyle them, and ``debug.card_paths`` traces the path like any
 other send. The code below is the *default* layout used when the theme has
-no override.
+no override. ``!ping`` is the prefix alias of ``/ping``.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from discord.ext import commands
 
 from rosemary.core.card_service import CardPayload, render_card_message
 from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+from rosemary.ui.responses import PrefixContext
 
 
 async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
@@ -94,7 +95,7 @@ async def default_serverinfo_document(bot, guild_id: int, **variables) -> dict:
     if isinstance(variables.get("banner_url"), str) and variables["banner_url"].strip():
         children.append({"type": "gallery", "urls": ["{banner_url}"]})
     children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# {server_id}"})
+    children.append({"type": "text", "body": "-# `{server_id}`"})
     return {
         "v": 1,
         "blocks": [{"type": "container", "color": "brand", "children": children}],
@@ -146,5 +147,10 @@ class UtilityCog(commands.Cog):
             )
             payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
+
+    @commands.command(name="ping")
+    async def ping_prefix(self, ctx: commands.Context) -> None:
+        """Prefix alias: !ping"""
+        await self.ping(PrefixContext(ctx))
 
 

@@ -7,7 +7,16 @@ about:
     description: About Rosemary
   title: About Rosemary
   text: Rosemary is a minimal, multilingual Discord bot built with py-cord.
-  version: 'Version: {version} ({channel})'
+  version: 'Version: `{version}` (`{channel}`)'
+help:
+  title: '{scroll} Commands'
+  body: 'Text commands for this server, all typed with the prefix `{prefix}`.'
+  group_moderation: Moderation
+  group_info: Information
+  group_general: General
+  group_interactions: Interactions
+  roleplay_description: 'Roleplay interactions with a gif. Use one with a member: `{prefix}hug @member`'
+  self_description: Show this command list
 language:
   command:
     name: language
@@ -2224,7 +2233,7 @@ moderation:
     ban:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2233,7 +2242,7 @@ moderation:
     kick:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2242,7 +2251,7 @@ moderation:
     mute:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2253,7 +2262,7 @@ moderation:
     warn:
       description: '**{member_label}:** {member}
 
-        **{member_id_label}:** {member_id}
+        **{member_id_label}:** `{member_id}`
 
         **{moderator_label}:** {moderator}
 
@@ -2741,6 +2750,21 @@ variables:
   leaderboard_list:
     label: Leaderboard
     description: Ranking lines
+  prefix:
+    label: Prefix
+    description: The server's text-command prefix
+  moderation_list:
+    label: Moderation commands
+    description: Rendered moderation command entries
+  info_list:
+    label: Information commands
+    description: Rendered information command entries
+  general_list:
+    label: General commands
+    description: Rendered general command entries
+  interactions_list:
+    label: Interactions block
+    description: Rendered roleplay interaction entries
   position:
     label: Position
     description: Rank position
@@ -2883,6 +2907,10 @@ card:
     list:
       title: Color list
       placeholders: '{{title}}, {{body}}'
+  help:
+    card:
+      title: Command list card
+      placeholders: '{{prefix}}, {{title}}, {{body}}, {{moderation_list}}, {{info_list}}, {{general_list}}, {{interactions_list}}'
   starboard:
     card:
       title: Starboard post

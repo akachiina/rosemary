@@ -1,5 +1,9 @@
 """Moderation commands: /ban, /kick, /warn, /mute, /warnings, /unwarn.
 
+Every command also has a prefix alias (!ban, !kick, !warn, !mute, !warnings,
+!unwarn) that reuses the same handler, confirmation dialog and logs through
+:class:`rosemary.ui.responses.PrefixContext`.
+
 All user-facing strings are translation keys resolved through ``t()``. Actions
 are gated by a confirmation dialog (notify / silent / cancel) and logged to the
 guild's configured log channel via ``core.debug.send_log``.
@@ -30,6 +34,7 @@ from rosemary.ui.containers import (
     designer_container,
     header_display,
 )
+from rosemary.ui.responses import PrefixContext
 
 log = logging.getLogger(__name__)
 
@@ -768,6 +773,27 @@ class ModerationCog(commands.Cog):
         """Prefix alias: !mute @member... [duration] [reason]"""
         await self._prefix_action(ctx, "mute", members, reason, duration)
 
+    @commands.command(name="warnings")
+    async def warnings_prefix(
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+    ) -> None:
+        """Prefix alias: !warnings @member"""
+        # ``self.warnings`` is the WarningsStore instance attribute, so the
+        # slash command of the same name must come from the class.
+        await type(self).warnings(PrefixContext(ctx), member)
+
+    @commands.command(name="unwarn")
+    async def unwarn_prefix(
+        self,
+        ctx: commands.Context,
+        member: discord.Member,
+        index: int | None = None,
+    ) -> None:
+        """Prefix alias: !unwarn @member [index]"""
+        await self.unwarn(PrefixContext(ctx), member, index)
+
     async def _prefix_action(
         self,
         ctx: commands.Context,
@@ -788,13 +814,20 @@ class ModerationCog(commands.Cog):
         parsed = None
         if action == "mute":
             aliases = await localized_aliases(self.bot.translator, self._ctx_guild_id(ctx))
-            if not duration or TimeParser.parse(duration, aliases=aliases) is None:
-                return await self._respond(
-                    ctx,
-                    title=await t(self._ctx_guild_id(ctx), "mute.invalid_duration"),
-                    color="danger",
+            if duration:
+                parsed = TimeParser.parse(duration, aliases=aliases)
+                if parsed is None:
+                    return await self._respond(
+                        ctx,
+                        title=await t(self._ctx_guild_id(ctx), "mute.invalid_duration"),
+                        color="danger",
+                    )
+            else:
+                # Same default as /mute: the moderation.mute_seconds setting.
+                seconds = await get_setting(
+                    self.bot.storage, self._ctx_guild_id(ctx), "moderation.mute_seconds"
                 )
-            parsed = TimeParser.parse(duration, aliases=aliases)
+                parsed = timedelta(seconds=seconds)
         blocked: list[str] = []
         valid: list[discord.Member] = []
         for target in targets:

@@ -24,6 +24,7 @@ from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui.containers import ActionRow, TextDisplay, designer_container
 from rosemary.ui.menu import MenuView
+from rosemary.ui.responses import PrefixContext
 
 log = logging.getLogger(__name__)
 
@@ -505,6 +506,25 @@ class CleanerCog(commands.Cog):
         await trace_card_path(self.bot, guild_id, "cleaner.panel")
         await trace_card_path(self.bot, guild_id, "cleaner.confirm")
         await ctx.respond(view=view, ephemeral=True)
+
+    @commands.command(name="limpar")
+    @commands.has_permissions(manage_messages=True)
+    async def limpar_prefix(
+        self, ctx: commands.Context, last: int, autor: discord.User = None
+    ) -> None:
+        """Prefix alias: !limpar <amount> [@author].
+
+        The last-N subset of ``/limpar``; word and regex criteria stay
+        slash-only (a text syntax for them would be too brittle).
+        """
+        await self.limpar(
+            PrefixContext(ctx),
+            palavra=None,
+            regex=None,
+            last=last,
+            canal=None,
+            autor=autor,
+        )
 
     async def _error(self, ctx, guild_id: int, key: str, **fmt) -> None:
         """One ephemeral validation error, translated."""

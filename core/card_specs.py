@@ -269,6 +269,10 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     "partnerships.dm.expired_admin": ("rep", "server", "days", "invite", "mention"),
     "updater.confirm": ("target",),
     "about.card": ("version", "channel"),
+    "help.card": (
+        "prefix", "title", "body",
+        "moderation_list", "info_list", "general_list", "interactions_list",
+    ),
     # List/manager cards promoted during the UI audit: the send site passes
     # the rendered title/body plus card-specific variables (title/body seed).
     "colors.list": ("title", "body"),
@@ -379,6 +383,7 @@ def _build() -> list[CardSpec]:
     specs += [_spec("bump.status", "bump", rich=True)]
     specs += [_spec("reminders.list", "general", rich=True)]
     specs += [_spec("about.card", "general", rich=True)]
+    specs += [_spec("help.card", "general", rich=True)]
     specs += [_log_spec(event, spec) for event, spec in LOG_SPECS.items()]
     specs += [
         CardSpec(key=key, category="general", rich=True, variables=variables)

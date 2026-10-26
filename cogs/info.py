@@ -20,6 +20,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.card_service import CardPayload, render_card_message
+from rosemary.ui.responses import PrefixContext
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +132,7 @@ async def default_userinfo_document(bot, guild_id, **variables) -> dict:
     ]
     children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
     children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# {user_id}"})
+    children.append({"type": "text", "body": "-# `{user_id}`"})
     return {
         "v": 1,
         "blocks": [{"type": "container", "color": "brand", "children": children}],
@@ -159,7 +160,7 @@ async def default_emojiinfo_document(bot, guild_id, **variables) -> dict:
         children.append({"type": "text", "body": body})
     if variables.get("emoji_id"):
         children.append({"type": "divider"})
-        children.append({"type": "text", "body": "-# {emoji_id}"})
+        children.append({"type": "text", "body": "-# `{emoji_id}`"})
     return {
         "v": 1,
         "blocks": [{"type": "container", "color": "brand", "children": children}],
@@ -184,7 +185,7 @@ async def default_stickerinfo_document(bot, guild_id, **variables) -> dict:
     ]
     children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
     children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# {sticker_id}"})
+    children.append({"type": "text", "body": "-# `{sticker_id}`"})
     return {
         "v": 1,
         "blocks": [{"type": "container", "color": "brand", "children": children}],
@@ -211,7 +212,7 @@ async def default_roleinfo_document(bot, guild_id, **variables) -> dict:
     ]
     children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
     children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# {role_id}"})
+    children.append({"type": "text", "body": "-# `{role_id}`"})
     return {
         "v": 1,
         "blocks": [{"type": "container", "color": "brand", "children": children}],
@@ -238,7 +239,7 @@ async def default_channelinfo_document(bot, guild_id, **variables) -> dict:
     ]
     children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
     children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# {channel_id}"})
+    children.append({"type": "text", "body": "-# `{channel_id}`"})
     return {
         "v": 1,
         "blocks": [{"type": "container", "color": "brand", "children": children}],
@@ -766,6 +767,51 @@ class InfoCog(commands.Cog):
                 await t(guild_id, "card.utility.channelinfo.title")
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
+
+    #: prefix commands ---------------------------------------------------
+
+    @commands.command(name="serverinfo")
+    async def serverinfo_prefix(self, ctx: commands.Context) -> None:
+        """Prefix alias: !serverinfo"""
+        await self.serverinfo(PrefixContext(ctx))
+
+    @commands.command(name="userinfo")
+    async def userinfo_prefix(
+        self, ctx: commands.Context, member: discord.Member = None
+    ) -> None:
+        """Prefix alias: !userinfo [@member]"""
+        await self.userinfo(PrefixContext(ctx), member)
+
+    @commands.command(name="roleinfo")
+    async def roleinfo_prefix(
+        self, ctx: commands.Context, role: discord.Role = None
+    ) -> None:
+        """Prefix alias: !roleinfo [@role] (defaults to the author's top role)"""
+        await self.roleinfo(PrefixContext(ctx), role)
+
+    @commands.command(name="channelinfo")
+    async def channelinfo_prefix(
+        self, ctx: commands.Context, channel: str | None = None
+    ) -> None:
+        """Prefix alias: !channelinfo [#channel] (defaults to the current one).
+
+        ``#mention``/id are parsed by hand: py-cord has no classic converter
+        for the abstract ``discord.abc.GuildChannel`` the slash option accepts.
+        An unparseable argument falls through to the handler's own default
+        (the current channel) instead of erroring on a nicety command.
+        """
+        target = None
+        raw = (channel or "").strip()
+        if raw.startswith("<#") and raw.endswith(">"):
+            raw = raw[2:-1]
+        if raw.isdigit():
+            target = ctx.guild.get_channel_or_thread(int(raw))
+        await self.channelinfo(PrefixContext(ctx), target)
+
+    @commands.command(name="emoji")
+    async def emoji_prefix(self, ctx: commands.Context, emoji: str | None = None) -> None:
+        """Prefix alias: !emoji <custom emoji|message link|id>"""
+        await self.emojiinfo(PrefixContext(ctx), emoji)
 
 
 class _PartialRef:

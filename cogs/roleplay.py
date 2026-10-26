@@ -420,7 +420,7 @@ class RoleplayCog(commands.Cog):
         prefix = await get_setting(
             self.bot.storage, message.guild.id, "general.prefix"
         )
-        if not prefix or not message.content.startswith(prefix):
+        if not prefix or not message.content.lower().startswith(prefix.lower()):
             return
         parts = message.content[len(prefix):].strip().split()
         if len(parts) < 2:
@@ -435,7 +435,18 @@ class RoleplayCog(commands.Cog):
         if target_id is None:
             return
         target = message.guild.get_member(target_id)
-        if target is None or target.bot:
+        if target is None:
+            return
+        if target.bot:
+            # Same answer the slash command gives; silence here would look
+            # like a dead trigger.
+            with contextlib.suppress(discord.HTTPException):
+                await message.reply(
+                    await self.bot.translator.t(
+                        message.guild.id, "roleplay.error_bot"
+                    ),
+                    mention_author=False,
+                )
             return
         if target.id == message.author.id:
             with contextlib.suppress(discord.HTTPException):

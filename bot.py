@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 import re
@@ -113,7 +114,17 @@ class RosemaryBot(commands.Bot):
         intents.message_content = True
         # Prefix is resolved per guild from the general.prefix setting, so plain
         # chat text only triggers a command when it starts with the guild prefix.
-        super().__init__(command_prefix=self._get_prefix, intents=intents, description="Rosemary")
+        # case_insensitive lets "!BAN" match like "!ban"; strip_after_prefix
+        # tolerates "! ban". help_command=None removes py-cord's default English
+        # help (the themed !help command lives in cogs/about.py).
+        super().__init__(
+            command_prefix=self._get_prefix,
+            intents=intents,
+            description="Rosemary",
+            case_insensitive=True,
+            strip_after_prefix=True,
+            help_command=None,
+        )
         self.storage: GuildStorage | None = None
         self.translator: Translator | None = None
         self.theme: Theme | None = None
@@ -409,10 +420,35 @@ class RosemaryBot(commands.Bot):
 
     async def on_command_error(self, context, exception: Exception) -> None:
         """Prefix leftovers ("!") must not spam the traceback hook; real
-        prefix-command failures stay logged like application errors."""
+        prefix-command failures stay logged like application errors and the
+        invoker always gets a themed notice (a silent "nothing happened" is
+        the prefix twin of the interaction ACK timeout)."""
         if isinstance(exception, commands.CommandNotFound):
             return
-        log.error("Error in command %s: %s", context.command, exception)
+        original = getattr(exception, "original", exception)
+        log.error(
+            "Error in command %s: %s: %s",
+            context.command,
+            type(exception).__name__,
+            original,
+            exc_info=exception,
+        )
+        if getattr(self, "storage", None) is None or getattr(self, "translator", None) is None:
+            return
+        guild_id = context.guild.id if context.guild is not None else None
+        if isinstance(exception, commands.CheckFailure):
+            key, color = "general.no_permission", "warning"
+        else:
+            key, color = "general.unknown_error", "danger"
+        try:
+            from rosemary.ui.responses import notice_view
+
+            text = await self.translator.t(guild_id, key)
+            view = await notice_view(self, guild_id, text, color=color)
+            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                await context.reply(view=view, mention_author=False)
+        except Exception:  # noqa: BLE001
+            log.warning("Could not answer the failed prefix command", exc_info=True)
 
     async def on_application_command_error(
         self, context: discord.ApplicationContext, exception: Exception

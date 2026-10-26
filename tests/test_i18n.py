@@ -165,10 +165,10 @@ async def test_t_fallback_language():
 async def test_t_formatting():
     tr = Translator(LANG_DIR, resolver=_resolver("en-US"))
     assert await tr.t(1, "about.version", version="9.9.9", channel="stable") == (
-        "Version: 9.9.9 (stable)"
+        "Version: `9.9.9` (`stable`)"
     )
     # Missing variable: formatting error is swallowed, template returned unchanged.
-    assert await tr.t(1, "about.version") == "Version: {version} ({channel})"
+    assert await tr.t(1, "about.version") == "Version: `{version}` (`{channel}`)"
 
 
 async def test_missing_languages_dir_no_crash(tmp_path):
