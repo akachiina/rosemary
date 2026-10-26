@@ -240,17 +240,47 @@ def _footer_texts(doc) -> list[str]:
     ]
 
 
+def _view_texts(view) -> list[str]:
+    """Every TextDisplay content of a rendered card view (nested-safe)."""
+    texts: list[str] = []
+
+    def walk(node) -> None:
+        if hasattr(node, "content") and isinstance(node.content, str):
+            texts.append(node.content)
+        for child in (
+            list(getattr(node, "children", []) or [])
+            + list(getattr(node, "items", []) or [])
+            + list(getattr(node, "walk_children", lambda: [])())
+        ):
+            walk(child)
+
+    for item in view.children:
+        walk(item)
+    return texts
+
+
 async def test_every_audit_default_carries_author_footer():
-    """The standard footer (author + relative time) replaces the old server line."""
+    """The standard footer: author + relative time for member-driven events.
+
+    Actor events (ban / unban / bulk purge) resolve the attribution at build
+    time from the discovered moderator; without send-site variables they
+    degrade to the system-style timestamp-only line, so the event's *target*
+    never lands as the "por" mention (live that rendered
+    '@usuário-desconhecido' for viewers without the member cached).
+    """
     from rosemary.core.card_service import default_document
 
     bot = MagicMock()
     bot.theme = load_theme()
     bot.translator = FakeTranslator()
+    actor_events = {"ban", "unban", "bulk_delete"}
     for name, _ in AUDIT_CARDS:
         doc = await default_document(bot, 1, f"audit.{name}")
         footers = _footer_texts(doc)
-        assert footers == ["-# by {user} · {timestamp}"], name
+        if name in actor_events:
+            assert footers == ["-# {timestamp}"], name
+        else:
+            assert footers == ["-# by {user} · {timestamp}"], name
 
 
 def test_fence_wraps_and_neutralizes_backticks():
@@ -787,3 +817,122 @@ async def test_reason_and_moderator_lines_resolve_placeholders(tmp_path):
     assert "{gear}" not in moderator, moderator
     assert "{moderator}" not in moderator, moderator
     assert "@mod" in moderator, moderator
+
+
+async def test_file_line_resolves_nested_placeholders(tmp_path):
+    """Same nested-template class as until_line: ``file_line`` was passed raw
+    and the live purge card kept '{scroll} ... ({file_url})' literal."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    bot.translator = RealCatalogTranslator()
+    line = await cog._file_line(1, "https://cdn.example/purga.txt")
+    assert "{scroll}" not in line, line
+    assert "{file_url}" not in line, line
+    assert "[abrir arquivo](https://cdn.example/purga.txt)" in line, line
+
+
+async def test_purge_card_carries_resolved_transcript_link(tmp_path):
+    """End-to-end purge: the transcript link resolves inside the sent card."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    bot.translator = RealCatalogTranslator()
+    chan = MagicMock()
+    chan.mention = "<#7>"
+    chan.id = 7
+
+    def batch(n):
+        out = []
+        for i in range(n):
+            m = MagicMock(spec=discord.Message)
+            m.guild = guild
+            m.author = member(100 + i)
+            m.content = f"msg {i}"
+            m.channel = chan
+            m.created_at = MagicMock()
+            m.created_at.timestamp.return_value = 1700000000 + i
+            m.created_at.strftime.return_value = "2026-01-01 00:00:00"
+            out.append(m)
+        return out
+
+    cog._bulk_file = AsyncMock(return_value="https://cdn.example/purga.txt")
+    await cog.on_bulk_message_delete(batch(2))
+    await asyncio.sleep(3.6)
+    assert audit_channel.send.await_count == 1
+    joined = " ".join(_view_texts(audit_channel.send.await_args.kwargs["view"]))
+    assert "Transcrição completa:" in joined, joined
+    assert "(https://cdn.example/purga.txt)" in joined, joined
+    assert "{scroll}" not in joined, joined
+    assert "{file_url}" not in joined, joined
+
+
+async def test_ban_footer_names_the_moderator_not_the_target(tmp_path):
+    """Regression: 'por {user}' resolved the banned member, which every
+    viewer rendered as '@usuário-desconhecido'. The author footer now
+    carries the moderator the audit-log lookup found."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    bot.translator = RealCatalogTranslator()
+    cog._audit_log_context = AsyncMock(return_value=("<@777>", "raids"))
+    await cog.on_member_ban(guild, member())
+    assert audit_channel.send.await_count == 1
+    footers = [
+        t for t in _view_texts(audit_channel.send.await_args.kwargs["view"])
+        if t.startswith("-# ")
+    ]
+    assert footers, "the card must keep its author footer"
+    assert any("<@777>" in f for f in footers), footers
+    assert all("<@5>" not in f for f in footers), footers
+
+
+async def test_ban_footer_without_moderator_is_timestamp_only(tmp_path):
+    """Audit-log lookup failed: no attribution to invent, timestamp only."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    bot.translator = RealCatalogTranslator()
+    cog._audit_log_context = AsyncMock(return_value=("", ""))
+    await cog.on_member_ban(guild, member())
+    assert audit_channel.send.await_count == 1
+    footers = [
+        t for t in _view_texts(audit_channel.send.await_args.kwargs["view"])
+        if t.startswith("-# ")
+    ]
+    assert footers, "the card must still go out with a footer"
+    assert all("<@" not in f and "<t:" in f for f in footers), footers
+
+
+async def test_purge_footer_names_the_moderator_not_the_first_author(tmp_path):
+    """Attribution of a purge is the moderator, never a purged member."""
+    bot, guild, audit_channel, cog = make_world(tmp_path)
+    await cog._arm()
+    bot.translator = RealCatalogTranslator()
+
+    async def fake_moderator(_guild, _bucket):
+        return "<@777>"
+
+    cog._bulk_moderator = fake_moderator
+    cog._bulk_file = AsyncMock(return_value="")
+    await cog.on_bulk_message_delete([batch_of(guild, 100)])
+    await asyncio.sleep(3.6)
+    assert audit_channel.send.await_count == 1
+    footers = [
+        t for t in _view_texts(audit_channel.send.await_args.kwargs["view"])
+        if t.startswith("-# ")
+    ]
+    assert footers, "the card must keep its author footer"
+    assert any("<@777>" in f for f in footers), footers
+    assert all("<@100>" not in f for f in footers), footers
+
+
+def batch_of(guild, author_id):
+    """One purged fake message sharing the test-world guild shape."""
+    chan = MagicMock()
+    chan.mention = "<#7>"
+    chan.id = 7
+    m = MagicMock(spec=discord.Message)
+    m.guild = guild
+    m.author = member(author_id)
+    m.content = "msg"
+    m.channel = chan
+    m.created_at = MagicMock()
+    m.created_at.timestamp.return_value = 1700000000
+    m.created_at.strftime.return_value = "2026-01-01 00:00:00"
+    return m

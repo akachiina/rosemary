@@ -86,6 +86,35 @@ async def test_moderation_log_uses_the_avatar_section():
     assert children[-1]["body"] == "-# {timestamp}"
 
 
+async def test_invites_leave_log_uses_the_avatar_section():
+    bot = _Bot()
+    bot.translator = _Translator(
+        {
+            "invites.logs.leave.title": "{door} Membro Saiu",
+            "invites.logs.leave.description": "**Membro:** {user}\n**Convidador:** {inviter}",
+        }
+    )
+    doc = await default_log_document(
+        bot,
+        1,
+        LOG_SPECS["invites.logs.leave"],
+        user="<@2>",
+        user_avatar="https://cdn.example/left.png",
+        inviter="<@3>",
+    )
+    children = _children(doc)
+    section = children[0]
+    assert section["type"] == "section"
+    assert section["accessory"] == {
+        "type": "thumbnail",
+        "url": "https://cdn.example/left.png",
+    }
+    assert "Membro Saiu" in section["children"][0]["body"]
+    assert "{user}" in section["children"][1]["body"]
+    assert "{inviter}" in section["children"][1]["body"]
+    assert children[-1]["body"] == "-# {timestamp}"
+
+
 async def test_field_labels_resolve_catalog_keys():
     bot = _Bot()
     bot.translator = _Translator(

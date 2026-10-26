@@ -500,7 +500,15 @@ def _build_specs() -> dict[str, LogSpec]:
 
     specs += [
         _spec("invites.logs.join", "invites", severity="success"),
-        _spec("invites.logs.leave", "invites", severity="info"),
+        # The leave card is the visual twin of the join/ban family: its
+        # avatar (who left) goes on the right, so the spec declares
+        # ``user_avatar`` and the send site passes it.
+        _spec(
+            "invites.logs.leave",
+            "invites",
+            severity="info",
+            avatar_var="user_avatar",
+        ),
         _spec("invites.logs.bonus", "invites", severity="info", actor_var="moderator"),
         _spec("invites.logs.sync", "invites", severity="info", actor_var="moderator"),
         _spec("invites.logs.reset", "invites", severity="warning", actor_var="moderator"),

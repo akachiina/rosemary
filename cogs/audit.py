@@ -2,7 +2,7 @@
 
 One master channel (``audit.channel``), one toggle per event, one customizable
 card per event (``audit.<event>``). Default layouts follow the welcome-cog
-event style (avatar section, emoji title, divider, server footer); message
+event style (avatar section, emoji title, divider, author footer); message
 content travels in fenced blocks (```), added by the send site so theme
 overrides inherit it. Bot messages and the bot's own deletes are skipped.
 Bulk deletes coalesce for a few seconds into one card plus a ``.txt`` file
@@ -110,15 +110,37 @@ def _timeout_until(member):
 
 
 async def default_audit_document(
-    bot, guild_id: int, *, title_key: str, body_key: str, color: str, emoji_token: str
+    bot,
+    guild_id: int,
+    *,
+    title_key: str,
+    body_key: str,
+    color: str,
+    emoji_token: str,
+    actor_key: str | None = None,
+    **variables,
 ) -> dict:
     """Catalog-default audit card, mirroring the welcome-cog event layout.
 
-    Footer is the standard author attribution (``card.author_footer.text``):
-    the actor mention plus the relative event time: ``{user}`` and
-    ``{timestamp}`` resolve at render from the send-site variables.
+    Without ``actor_key`` the footer is the standard author attribution
+    (``card.author_footer.text``): ``{user}`` and ``{timestamp}`` stay
+    literal in the blocks and resolve at render from the send-site
+    variables. Events that declare ``actor_key`` (ban / unban / bulk purge)
+    carry their actor (the moderator) in ``variables[actor_key]``, so the
+    builder resolves the attribution itself with
+    :func:`~rosemary.core.cards.author_footer_text`: the event's *target*
+    (``{user}``) must never become the "por" mention, or viewers render
+    "@usuário-desconhecido" for anyone outside their member cache. With no
+    discovered moderator the footer degrades to the timestamp-only system
+    line instead of inventing an empty attribution.
     """
-    from rosemary.core.cards import ECHO_VARIABLES, author_footer_blocks, safe_format
+    from rosemary.core.cards import (
+        ECHO_VARIABLES,
+        author_footer_blocks,
+        author_footer_template,
+        author_footer_text,
+        safe_format,
+    )
 
     mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
 
@@ -133,25 +155,35 @@ async def default_audit_document(
         emoji = "" if already else bot.theme.emojis.get(emoji_token, "")
         title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
     body = await raw(body_key)
-    footer = await author_footer_blocks(bot, guild_id)
+    children: list[dict] = [
+        {
+            "type": "section",
+            "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
+            "children": [
+                {"type": "text", "body": title},
+                {"type": "text", "body": body},
+            ],
+        }
+    ]
+    if actor_key is None:
+        children.extend(await author_footer_blocks(bot, guild_id))
+    else:
+        template = await author_footer_template(bot, guild_id)
+        actor = str(variables.get(actor_key) or "").strip()
+        timestamp = str(variables.get("timestamp") or "").strip() or "{timestamp}"
+        footer = (
+            author_footer_text(template, actor, timestamp) if actor else timestamp
+        )
+        children.extend(
+            [
+                {"type": "divider"},
+                {"type": "text", "body": f"-# {footer}"},
+            ]
+        )
     return {
         "v": 1,
         "blocks": [
-            {
-                "type": "container",
-                "color": color,
-                "children": [
-                    {
-                        "type": "section",
-                        "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
-                        "children": [
-                            {"type": "text", "body": title},
-                            {"type": "text", "body": body},
-                        ],
-                    },
-                    *footer,
-                ],
-            }
+            {"type": "container", "color": color, "children": children}
         ],
     }
 
@@ -230,37 +262,74 @@ async def default_message_document(
 
 
 _AUDIT_EVENTS = (
-    ("ban", "card.audit.ban.title", "card.audit.ban.body", "danger", "ban"),
-    ("unban", "card.audit.unban.title", "card.audit.unban.body", "success", "check"),
+    ("ban", "card.audit.ban.title", "card.audit.ban.body", "danger", "ban", "moderator"),
+    (
+        "unban",
+        "card.audit.unban.title",
+        "card.audit.unban.body",
+        "success",
+        "check",
+        "moderator",
+    ),
     (
         "bulk_delete",
         "card.audit.bulk_delete.title",
         "card.audit.bulk_delete.body",
         "warning",
         "trash",
+        "moderator",
     ),
-    ("nickname", "card.audit.nickname.title", "card.audit.nickname.body", "info", "swap"),
-    ("avatar", "card.audit.avatar.title", "card.audit.avatar.body", "info", "frame"),
-    ("roles", "card.audit.roles.title", "card.audit.roles.body", "info", "tag"),
-    ("timeout", "card.audit.timeout.title", "card.audit.timeout.body", "danger", "mute"),
-    ("voice_join", "card.audit.voice_join.title", "card.audit.voice_join.body", "success", "door"),
-    ("voice_leave", "card.audit.voice_leave.title", "card.audit.voice_leave.body", "info", "door"),
-    ("trap", "card.audit.trap.title", "card.audit.trap.body", "danger", "lock"),
+    ("nickname", "card.audit.nickname.title", "card.audit.nickname.body", "info", "swap", None),
+    ("avatar", "card.audit.avatar.title", "card.audit.avatar.body", "info", "frame", None),
+    ("roles", "card.audit.roles.title", "card.audit.roles.body", "info", "tag", None),
+    ("timeout", "card.audit.timeout.title", "card.audit.timeout.body", "danger", "mute", None),
+    (
+        "voice_join",
+        "card.audit.voice_join.title",
+        "card.audit.voice_join.body",
+        "success",
+        "door",
+        None,
+    ),
+    (
+        "voice_leave",
+        "card.audit.voice_leave.title",
+        "card.audit.voice_leave.body",
+        "info",
+        "door",
+        None,
+    ),
+    ("trap", "card.audit.trap.title", "card.audit.trap.body", "danger", "lock", None),
 )
 
 
 def _register_default_builders() -> None:
     from rosemary.core.cards import set_default_builder
 
-    for name, title_key, body_key, color, emoji in _AUDIT_EVENTS:
+    for name, title_key, body_key, color, emoji, actor in _AUDIT_EVENTS:
 
         # Send-site variables flow through (``**_variables``); the layout is
         # fixed per event, so only the closure-bound keys matter here.
         async def _builder(
-            bot, guild_id, *, t=title_key, b=body_key, c=color, e=emoji, **_variables
+            bot,
+            guild_id,
+            *,
+            t=title_key,
+            b=body_key,
+            c=color,
+            e=emoji,
+            a=actor,
+            **_variables,
         ):
             return await default_audit_document(
-                bot, guild_id, title_key=t, body_key=b, color=c, emoji_token=e
+                bot,
+                guild_id,
+                title_key=t,
+                body_key=b,
+                color=c,
+                emoji_token=e,
+                actor_key=a,
+                **_variables,
             )
 
         set_default_builder(f"audit.{name}", _builder)
@@ -413,6 +482,24 @@ class AuditCog(commands.Cog):
 
         return "\n" + safe_format(
             template, {**self.bot.theme.emojis, "moderator": moderator}
+        )
+
+    async def _file_line(self, guild_id: int, file_url: str) -> str:
+        """``card.audit.bulk_delete.file_line`` prefixed with a newline, or empty.
+
+        Composed here, like ``_reason_line``: the template becomes a nested
+        value inside the body and a later render pass never re-formats
+        another substitution's value, so resolving the theme emoji and the
+        transcript URL first keeps ``{scroll}``/``{file_url}`` from leaking
+        into the live purge card.
+        """
+        template = await _line(self.bot, guild_id, "bulk_delete.file_line")
+        if not template:
+            return ""
+        from rosemary.core.cards import safe_format
+
+        return "\n" + safe_format(
+            template, {**self.bot.theme.emojis, "file_url": file_url}
         )
 
     async def _send(self, channel, guild_id: int, key: str, variables: dict) -> None:
@@ -723,9 +810,7 @@ class AuditCog(commands.Cog):
             if await self._on(guild_id, "audit.bulk_file_enabled"):
                 file_url = await self._bulk_file(channel, bucket)
                 if file_url:
-                    file_line = await _line(self.bot, guild_id, "bulk_delete.file_line")
-                    if file_line:
-                        file_line = "\n" + file_line
+                    file_line = await self._file_line(guild_id, file_url)
             await self._send(
                 channel,
                 guild_id,

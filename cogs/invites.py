@@ -216,6 +216,7 @@ class InvitesCog(commands.Cog):
                 guild.id,
                 "invites.logs.leave",
                 user=member.mention,
+                user_avatar=member.display_avatar.url,
                 inviter=(
                     f"<@{inviter_id}>"
                     if inviter_id
