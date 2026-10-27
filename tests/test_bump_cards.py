@@ -245,7 +245,7 @@ def _doc_texts(view) -> list[str]:
 
 
 @pytest.mark.parametrize(
-    ("builder", "key", "style", "avatar_var", "variables"),
+    ("builder", "key", "style", "avatar_var", "variables", "has_author_footer"),
     [
         (
             "default_bump_thank_you_document",
@@ -253,6 +253,7 @@ def _doc_texts(view) -> list[str]:
             "bump_reminder",
             "user_avatar",
             _THANK_YOU_VARS,
+            True,
         ),
         (
             "default_bump_leaderboard_document",
@@ -260,13 +261,19 @@ def _doc_texts(view) -> list[str]:
             "bump_leaderboard",
             "winner_avatar",
             _LEADERBOARD_VARS,
+            False,
         ),
     ],
 )
 async def test_bump_builder_document_layout_and_style(
-    builder, key, style, avatar_var, variables
+    builder, key, style, avatar_var, variables, has_author_footer
 ):
-    """Builders follow the theme styles and produce valid V2 documents."""
+    """Builders follow the theme styles and produce valid V2 documents.
+
+    The thank-you card keeps the author footer (``{user}`` is the bumper);
+    the leaderboard must not carry one: it is a bot-posted ranking, and the
+    footer used to credit whoever happened to be in first place.
+    """
     import rosemary.core.bump_cards as bump_cards
     from rosemary.core.card_service import render_document
 
@@ -281,13 +288,15 @@ async def test_bump_builder_document_layout_and_style(
     assert section["type"] == "section"
     assert section["accessory"]["url"] == variables[avatar_var]
     bodies = [c["body"] for c in container["children"] if c["type"] == "text"]
-    assert any("-#" in body for body in bodies)  # author footer block
+    # The leaderboard description itself ends with a "-# ..." hint line, so
+    # the check targets the author attribution, not just any small line.
+    assert any("-# por" in body for body in bodies) is has_author_footer
 
     view = await render_document(bot, doc, dict(variables), guild_id=1, card_key=key)
     _assert_valid_layout(view, key)
     texts = _doc_texts(view)
     assert any("Bump" in text for text in texts)  # resolved catalog copy
-    assert any("-# por <@" in text for text in texts)  # footer with the user
+    assert any("-# por <@" in text for text in texts) is has_author_footer
 
 
 @pytest.mark.parametrize(

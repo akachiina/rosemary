@@ -67,9 +67,13 @@ async def default_bump_thank_you_document(bot, guild_id: int, **variables) -> di
 
 
 async def default_bump_leaderboard_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default ``bump.leaderboard``: winner avatar + list + footer."""
-    from rosemary.core.cards import author_footer_blocks
+    """Catalog-default ``bump.leaderboard``: winner avatar + list.
 
+    No author footer: the leaderboard is a bot-posted ranking, not an action
+    by ``{user}``, and the winner is already named in the body. The send-site
+    variables keep carrying ``user``/``timestamp`` so a themed card override
+    can still reference them.
+    """
     theme = theme_for(bot, guild_id)
     avatar = str(variables.get("winner_avatar") or "")
     title = await bot.translator.t(guild_id, "bump.messages.leaderboard_title")
@@ -82,7 +86,6 @@ async def default_bump_leaderboard_document(bot, guild_id: int, **variables) -> 
     children: list[dict] = [section]
     if body:
         children.append({"type": "text", "body": body})
-    children.extend(await author_footer_blocks(bot, guild_id))
     return _container(_style_color(bot, guild_id, "bump_leaderboard"), children)
 
 
