@@ -3,8 +3,8 @@
 Snowflake IDs, command usages and the text-command prefix render as inline
 code (single backticks) in card text: machine values are monospace, while
 mentions, timestamps and plain counters are not. The catalogs are swept
-recursively and the code-built info-family ID footers are source-scanned,
-so a new card cannot regress the standard.
+recursively and the code-built ID footers (info family plus the welcome
+event cards) are source-scanned, so a new card cannot regress the standard.
 """
 
 from __future__ import annotations
@@ -17,11 +17,9 @@ import yaml
 #: Single-brace placeholders, the shape live card text uses.
 _PLACEHOLDER_RE = re.compile(r"\{([a-z0-9_]+)\}")
 
-#: Bare info-footer text (``-# {user_id}``) in the builder sources.
-_BARE_FOOTER_RE = re.compile(r'"-# \{[a-z0-9_]+_id\}"')
-
-#: Standard info footer: the ID placeholder inside an inline code span.
-_CODE_FOOTER_RE = re.compile(r'"-# `\{[a-z0-9_]+_id\}`"')
+#: Card-builder sources with code-built footers: the info family plus the
+#: welcome event cards.
+_FOOTER_SOURCES = ("cogs/info.py", "cogs/utility.py", "cogs/welcome.py")
 
 
 def _is_machine_value(name: str) -> bool:
@@ -69,8 +67,26 @@ def test_machine_values_are_inline_code_in_catalogs():
 
 
 def test_builder_id_footers_are_inline_code():
-    """The info-family ID footers are code-built text, so scan the sources."""
-    for rel in ("cogs/info.py", "cogs/utility.py"):
+    """The info-family ID footers are code-built text, so scan the sources.
+
+    The rule mirrors the catalog sweep: on every ``-# `` footer line, each
+    machine value must open inside an inline code span (odd backtick count
+    before it on the line; f-string composite footers included). The scan
+    also asserts each source still carries at least one backticked footer,
+    so deleting the footers cannot satisfy it.
+    """
+    for rel in _FOOTER_SOURCES:
         source = Path(rel).read_text(encoding="utf-8")
-        assert not _BARE_FOOTER_RE.findall(source), f"{rel}: ID footer without code"
-        assert _CODE_FOOTER_RE.search(source), f"{rel}: no backticked ID footer"
+        held = False
+        for line in source.splitlines():
+            if "-#" not in line:
+                continue
+            for match in _PLACEHOLDER_RE.finditer(line):
+                name = match.group(1)
+                if not _is_machine_value(name):
+                    continue
+                assert line[: match.start()].count("`") % 2 == 1, (
+                    f"{rel}: machine value outside inline code: {name}"
+                )
+                held = True
+        assert held, f"{rel}: no inline-code ID footer found"

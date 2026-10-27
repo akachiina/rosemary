@@ -74,7 +74,7 @@ async def default_event_document(
                      {"type": "text", "body": body},
                  ]},
                 {"type": "divider"},
-                {"type": "text", "body": f"-# {server} · #{count} · {{user_id}}"},
+                {"type": "text", "body": f"-# {server} · #{count} · `{{user_id}}`"},
             ]}
         ],
     }
