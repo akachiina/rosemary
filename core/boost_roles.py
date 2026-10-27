@@ -140,11 +140,22 @@ class BoostRoleStore:
         return False
 
     async def transfer_ownership(self, guild_id: int, role_id: int, new_owner_id: int) -> bool:
+        """Hand a role to ``new_owner_id``, who leaves the member list.
+
+        The store invariant is that the owner is never also a member
+        (:meth:`get_roles_as_member`): without this strip every transfer
+        double-lists the new owner in the ``/boost`` menus and keeps their
+        slot counted against ``max_members``.
+        """
         roles = await self.get_roles(guild_id)
         data = roles.get(str(role_id))
         if data is None:
             return False
         data["owner_id"] = new_owner_id
+        members = list(data.get("members", []))
+        if new_owner_id in members:
+            members.remove(new_owner_id)
+            data["members"] = members
         await self._set(guild_id, _ROLES_KEY, roles)
         return True
 

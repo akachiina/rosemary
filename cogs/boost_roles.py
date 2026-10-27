@@ -144,33 +144,47 @@ class BoostRolesCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member) -> None:
-        """Auto-transfer or unregister roles owned by a departed member."""
+        """Auto-transfer or unregister roles owned by a departed member.
+
+        A role with a live member becomes theirs: the registration survives,
+        so the new owner actually sees the role in the ``/boost`` "my roles"
+        screen. A role with nobody resolvable (no members, or everyone
+        listed has also departed) is unregistered and logged as an orphan.
+        Pending invites die with the old owner either way.
+        """
         guild = member.guild
         guild_id = guild.id
         owned = await self.store.get_roles_by_owner(guild_id, member.id)
         for role_id_str, data in owned.items():
             role_id = int(role_id_str)
-            members = list(data.get("members", []))
-            await self.store.remove_role(guild_id, role_id)
+            role = guild.get_role(role_id)
+            role_mention = role.mention if role else f"<@&{role_id}>"
             for invite_id in list((await self.store.get_invites_by_role(guild_id, role_id)).keys()):
                 await self.store.remove_invite(guild_id, invite_id)
-            role = guild.get_role(role_id)
-            if not members:
+            new_owner = None
+            for candidate_id in list(data.get("members", [])):
+                if candidate_id == member.id:
+                    # Legacy data may still list the departed owner as a
+                    # member of their own role; they can never inherit it.
+                    continue
+                candidate = guild.get_member(candidate_id)
+                if candidate is not None and not candidate.bot:
+                    new_owner = candidate
+                    break
+            if new_owner is None:
+                await self.store.remove_role(guild_id, role_id)
                 await send_log(
                     self.bot,
                     guild_id,
                     "boost.logs.orphan_remove",
-                    role=role.mention if role else f"<@&{role_id}>",
+                    role=role_mention,
                     owner=member.mention,
                 )
-                continue
-            new_owner = guild.get_member(members[0])
-            if new_owner is None:
                 continue
             await self.store.transfer_ownership(guild_id, role_id, new_owner.id)
             if role is not None:
                 with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-                    data = await self.store.get_role(guild_id, role_id) or {}
+                    preview_data = await self.store.get_role(guild_id, role_id) or {}
                     await dm.send(
                         self.bot,
                         new_owner,
@@ -180,12 +194,12 @@ class BoostRolesCog(commands.Cog):
                         role_name=role.name,
                         server_name=guild.name,
                     )
-                    await dm.send_preview(self.bot, new_owner, guild_id, role, data)
+                    await dm.send_preview(self.bot, new_owner, guild_id, role, preview_data)
             await send_log(
                 self.bot,
                 guild_id,
                 "boost.logs.auto_transfer",
-                role=role.mention if role else f"<@&{role_id}>",
+                role=role_mention,
                 old_owner=member.mention,
                 new_owner=new_owner.mention,
             )

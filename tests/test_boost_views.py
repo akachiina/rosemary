@@ -587,3 +587,49 @@ async def test_accept_registers_member_in_store(monkeypatch, bot):
     data = await store.get_role(1, 123)
     assert 555 in data["members"]
     assert await store.get_invite(1, "inv1") is None
+
+
+#: ownership transfer survives and reaches the new owner's screen -----------
+
+
+async def test_manual_transfer_then_my_roles_lists_role_once(monkeypatch, bot):
+    """The reported live bug: after an ownership transfer the new owner's
+    "my roles" screen must list the role exactly once (as owner, never also
+    as a member), with the registration intact."""
+    import rosemary.ui.boost_dm as boost_dm
+
+    async def noop(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(boost_dm, "send", noop)
+    monkeypatch.setattr(boost_dm, "send_preview", noop)
+
+    guild_bot = BotWithGuild(bot.storage)
+    guild_bot._guild.member = FakeMember()  # the transfer target, id 555
+    guild_bot._guild._role.guild = guild_bot._guild
+
+    admin = AdminBoostMenuView(guild_bot, 1, owner_id=1)
+    await admin.store.add_role(1, 123, owner_id=42, created_by=1)
+    await admin.store.add_member(1, 123, 555, max_members=5)
+
+    await admin._transfer_to(FakeInteraction(), 123, 555)
+
+    data = await admin.store.get_role(1, 123)
+    assert data is not None, "the registration must survive the transfer"
+    assert data["owner_id"] == 555
+    assert data["members"] == []
+
+    mine = BoostMenuView(guild_bot, 1, owner_id=555)
+    mine.screen = _Screen.MY_ROLES
+    await mine.prepare()
+    texts = [
+        getattr(item, "content", "")
+        for item in mine.walk_children()
+        if type(item).__name__ == "TextDisplay"
+    ]
+    assert "\n".join(texts).count("@test-role") == 1
+    custom_ids = [
+        item.custom_id for item in mine.walk_children() if getattr(item, "custom_id", None)
+    ]
+    assert "boost_manage:123" in custom_ids
+    assert "boost_leave_confirm:123" not in custom_ids
