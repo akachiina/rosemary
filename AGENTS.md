@@ -61,9 +61,19 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
   and only the `.cog` assignment re-runs option validation, which skips
   the leading `self`/`ctx` params).
 - Subcommand localization reuses keys: `{group}_{sub}.command` (legacy flat key)
-  then bare `{sub}.command`; group names localize like top-level names. Renamed
-  setting/card keys need lazy migration (`_RENAMED_KEYS` in settings,
+  then bare `{sub}.command`; group names localize like top-level names. A guild
+  without a catalog key resets the shared subcommand to its decorator base name.
+  Renamed setting/card keys need lazy migration (`_RENAMED_KEYS` in settings,
   `_RENAMED_CARDS` in themes, `_RENAMED_PINGS` in mentions).
+- **Groups must be `core.localized_group.LocalizedSlashCommandGroup`, never
+  `discord.SlashCommandGroup`**: one shared tree is renamed per guild before
+  each sync, so py-cord's live-name `find` in `_invoke` resolved only the last
+  synced guild (regression: `/boost painel` raised `'NoneType' object has no
+  attribute 'invoke'`). The subclass resolves the incoming name through
+  `bot._guild_subcommand_aliases`, built at sync time (stored only after a
+  successful sync) and pre-seeded at boot by `reapply_command_localization`;
+  `on_guild_remove` drops the guild map. `_sync_guild_commands` is serialized
+  by `_command_sync_lock` for the same shared-tree reason.
 - Persistence: one JSON file per guild, `data/<guild_id>/<filename>` via
   `GuildStorage`. Defaults merged on read (`use_defaults=False` skips even the
   `language` default). Writes are atomic (temp + rename).

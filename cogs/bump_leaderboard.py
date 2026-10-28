@@ -20,6 +20,7 @@ from rosemary.core.boost_roles import BoostRoleStore
 from rosemary.core.bump import BumpStore
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.timezone import resolve_timezone
 from rosemary.ui.boost_dm import send_preview
@@ -63,7 +64,7 @@ def _next_reset(now: datetime, reset_day: str, reset_hour: int, tz: tzinfo = UTC
 #: at class-definition time, freezing out subcommands attached later by the
 #: other module. ``bot._setup`` registers this live object explicitly and
 #: binds every subcommand to its owning cog (see ``_SHARED_SUBCOMMAND_OWNERS``).
-bump_group = discord.SlashCommandGroup(
+bump_group = LocalizedSlashCommandGroup(
     "bump",
     description="Disboard bump leaderboard",
     contexts={discord.InteractionContextType.guild},
@@ -78,7 +79,7 @@ class BumpLeaderboardCog(commands.Cog):
     #: ignored by the API, so the admin subcommands live in their own fully
     #: admin group instead of the public ``/bump``. Handlers still call
     #: ``require_admin`` for defense in depth.
-    bump_admin_group = discord.SlashCommandGroup(
+    bump_admin_group = LocalizedSlashCommandGroup(
         "bump_admin",
         description="Admin-only bump management",
         contexts={discord.InteractionContextType.guild},

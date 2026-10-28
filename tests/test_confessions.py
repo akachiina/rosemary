@@ -263,7 +263,7 @@ def test_group_registers_five_subcommands():
     subs = {
         sub.name
         for attr in vars(ConfessionsCog).values()
-        if type(attr).__name__ == "SlashCommandGroup"
+        if isinstance(attr, discord.SlashCommandGroup)
         for sub in (getattr(attr, "subcommands", None) or [])
     }
     assert subs == {"send", "ban", "unban", "banned", "reply"}

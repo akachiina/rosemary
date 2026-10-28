@@ -168,7 +168,7 @@ def test_group_registers_three_subcommands():
     subs = {
         sub.name
         for attr in vars(SuggestionsCog).values()
-        if type(attr).__name__ == "SlashCommandGroup"
+        if isinstance(attr, discord.SlashCommandGroup)
         for sub in (getattr(attr, "subcommands", None) or [])
     }
     assert subs == {"send", "approve", "reject"}

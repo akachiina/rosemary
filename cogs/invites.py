@@ -31,6 +31,7 @@ from rosemary.core.invites import (
     find_used_invite,
     join_status,
 )
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 
 log = logging.getLogger(__name__)
@@ -50,14 +51,14 @@ def _snapshot(invite: discord.Invite) -> InviteSnapshot:
 class InvitesCog(commands.Cog):
     """Invite attribution, stats, ranking and admin tools."""
 
-    invites_group = discord.SlashCommandGroup(
+    invites_group = LocalizedSlashCommandGroup(
         "invites",
         description="Show invite stats",
         contexts={discord.InteractionContextType.guild},
     )
     #: Admin-only subgroup (see bump_admin_group for why this needs its own
     #: top-level group: the API ignores subcommand-level permissions).
-    invites_admin_group = discord.SlashCommandGroup(
+    invites_admin_group = LocalizedSlashCommandGroup(
         "invites_admin",
         description="Admin-only invite management",
         contexts={discord.InteractionContextType.guild},
@@ -84,6 +85,11 @@ class InvitesCog(commands.Cog):
     async def _fetch_snapshots(self, guild: discord.Guild) -> list[InviteSnapshot] | None:
         try:
             invites = await guild.invites()
+        except discord.NotFound:
+            # py-cord can replay ``guild_join`` for a guild the bot already
+            # left; a missing guild has no invites to cache, so stay quiet.
+            log.debug("Guild %s is gone; skipped invite cache", guild.id)
+            return None
         except (discord.Forbidden, discord.HTTPException) as exc:
             log.warning("Could not fetch invites for %s: %s", guild.id, exc)
             return None

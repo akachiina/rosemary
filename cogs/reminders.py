@@ -11,6 +11,7 @@ from discord.ext import commands
 
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.reminders import ReminderStore
 from rosemary.core.settings import get_setting
 
@@ -21,7 +22,7 @@ class RemindersCog(commands.Cog):
     """Named DM reminders."""
 
 
-    reminders_group = discord.SlashCommandGroup(
+    reminders_group = LocalizedSlashCommandGroup(
         "reminders",
         description="Manage reminders",
         contexts={discord.InteractionContextType.guild},

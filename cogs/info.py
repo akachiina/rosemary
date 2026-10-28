@@ -20,6 +20,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.card_service import CardPayload, render_card_message
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.ui.responses import PrefixContext
 
 log = logging.getLogger(__name__)
@@ -263,7 +264,7 @@ class InfoCog(commands.Cog):
     """Member, emoji, sticker, role and channel info commands."""
 
     #: Single-cog group (birthday pattern): ``/info user``, ``/info server``...
-    info_group = discord.SlashCommandGroup(
+    info_group = LocalizedSlashCommandGroup(
         "info",
         description="Show information",
         contexts={discord.InteractionContextType.guild},

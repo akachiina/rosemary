@@ -23,6 +23,7 @@ from discord.ext import commands
 from rosemary.core.cards import maybe_view, text_or
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.tickets import CLOSED, OPEN, TicketStore
 from rosemary.ui.confirm import ConfirmView
@@ -57,14 +58,14 @@ class TicketsCog(commands.Cog):
     """Panel-driven ticket channels."""
 
 
-    tickets_group = discord.SlashCommandGroup(
+    tickets_group = LocalizedSlashCommandGroup(
         "tickets",
         description="Ticket panels",
         contexts={discord.InteractionContextType.guild},
     )
     #: Admin-only subgroup (see bump_admin_group for why this needs its own
     #: top-level group: the API ignores subcommand-level permissions).
-    tickets_admin_group = discord.SlashCommandGroup(
+    tickets_admin_group = LocalizedSlashCommandGroup(
         "tickets_admin",
         description="Admin-only ticket management",
         contexts={discord.InteractionContextType.guild},
@@ -475,7 +476,12 @@ class TicketsCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
-        await self._restore_guild(guild)
+        try:
+            await self._restore_guild(guild)
+        except Exception as exc:  # noqa: BLE001
+            # Mirrors the ``start()`` loop: one broken guild must never break
+            # the rest of the ready/join pipeline.
+            log.error("Ticket restore failed in %s: %s", guild.id, exc)
 
     @commands.Cog.listener()
     async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel) -> None:

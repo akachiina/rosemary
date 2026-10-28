@@ -24,6 +24,7 @@ from discord.ext import commands
 
 from rosemary.core.command_guards import require_permissions
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.suggestions import SuggestionStore
 from rosemary.ui.menu import MenuView
@@ -887,7 +888,7 @@ class SuggestionsCog(commands.Cog):
 
     #: Single-cog group: ``/suggest send`` opens the modal, staff decides
     #: with ``/suggest approve`` / ``/suggest reject`` by suggestion number.
-    suggest_group = discord.SlashCommandGroup(
+    suggest_group = LocalizedSlashCommandGroup(
         "suggest",
         description="Send server suggestions",
         contexts={discord.InteractionContextType.guild},
@@ -895,7 +896,7 @@ class SuggestionsCog(commands.Cog):
     #: Staff-only subgroup (manage_messages): see bump_admin_group for why
     #: this needs its own top-level group; the API ignores subcommand-level
     #: default_member_permissions.
-    suggest_admin_group = discord.SlashCommandGroup(
+    suggest_admin_group = LocalizedSlashCommandGroup(
         "suggest_admin",
         description="Staff-only suggestion moderation",
         contexts={discord.InteractionContextType.guild},

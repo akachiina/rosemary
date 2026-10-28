@@ -35,6 +35,7 @@ from discord.ext import commands
 
 from rosemary.core.card_service import CardPayload
 from rosemary.core.colors import PASTEL_SEEDS, ColorStore
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.ui.colors_panel import ColorPickerView, chunk_containers
 
@@ -56,7 +57,7 @@ class ColorsCog(commands.Cog):
     """Pickable color roles behind a public panel."""
 
 
-    colors_group = discord.SlashCommandGroup(
+    colors_group = LocalizedSlashCommandGroup(
         "colors",
         description="Color panel",
         contexts={discord.InteractionContextType.guild},

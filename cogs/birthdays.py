@@ -16,6 +16,7 @@ from discord.ext import commands
 
 from rosemary.core.birthdays import BirthdaysStore, validate_date
 from rosemary.core.cards import ECHO_VARIABLES, maybe_text, set_default_builder
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.timezone import resolve_timezone
 
@@ -163,7 +164,7 @@ class BirthdayCog(commands.Cog):
 
     #: slash commands ------------------------------------------------------
 
-    birthday_group = discord.SlashCommandGroup(
+    birthday_group = LocalizedSlashCommandGroup(
         "birthday",
         description="Register and list birthdays",
         contexts={discord.InteractionContextType.guild},

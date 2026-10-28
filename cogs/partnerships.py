@@ -16,6 +16,7 @@ from discord.ext import commands
 from rosemary.core.cards import text_or
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.partnerships import PartnershipStore
 from rosemary.core.settings import get_setting
 
@@ -25,14 +26,14 @@ log = logging.getLogger(__name__)
 class PartnershipsCog(commands.Cog):
     """Server partnership ads and renewal."""
 
-    partnerships_group = discord.SlashCommandGroup(
+    partnerships_group = LocalizedSlashCommandGroup(
         "partnerships",
         description="Manage server partnerships",
         contexts={discord.InteractionContextType.guild},
     )
     #: Admin-only subgroup (see bump_admin_group for why this needs its own
     #: top-level group: the API ignores subcommand-level permissions).
-    partnerships_admin_group = discord.SlashCommandGroup(
+    partnerships_admin_group = LocalizedSlashCommandGroup(
         "partnerships_admin",
         description="Admin-only partnership management",
         contexts={discord.InteractionContextType.guild},

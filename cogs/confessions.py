@@ -29,6 +29,7 @@ from discord.ext import commands
 
 from rosemary.core.confessions import ConfessionStore
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.ui.menu import MenuView
 
@@ -483,7 +484,7 @@ class ConfessionsCog(commands.Cog):
     """Anonymous confessions with staff review and threaded replies."""
 
     #: Single-cog group: ``/confissão enviar`` opens the intake modal.
-    confess_group = discord.SlashCommandGroup(
+    confess_group = LocalizedSlashCommandGroup(
         "confess",
         description="Send anonymous confessions",
         contexts={discord.InteractionContextType.guild},

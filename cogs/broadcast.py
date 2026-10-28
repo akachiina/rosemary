@@ -23,6 +23,7 @@ from discord.ext import commands
 from rosemary.core.broadcast import BroadcastSession, BroadcastStore
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.mass_dm import DmAttachment, fan_out, with_role
 from rosemary.core.settings import get_setting
 
@@ -46,7 +47,7 @@ class _Session(BroadcastSession):
 class BroadcastCog(commands.Cog):
     """Live mass-DM relay sessions."""
 
-    broadcast_group = discord.SlashCommandGroup(
+    broadcast_group = LocalizedSlashCommandGroup(
         "broadcast",
         description="Live broadcast sessions",
         contexts={discord.InteractionContextType.guild},

@@ -125,8 +125,9 @@ async def test_every_registered_command_has_a_valid_localized_name() -> None:
             ):
                 for attr in vars(obj).values():
                     name = getattr(attr, "name", None)
-                    kind = type(attr).__name__
-                    if not name or kind not in ("SlashCommand", "SlashCommandGroup"):
+                    if not name or not isinstance(
+                        attr, (discord.SlashCommand, discord.SlashCommandGroup)
+                    ):
                         continue
                     if getattr(attr, "parent", None) is not None:
                         continue  # group subcommand: never localized by name alone
@@ -453,3 +454,185 @@ async def test_group_subcommands_localize_per_guild(
             cmd.description = description
             for option, option_description in options:
                 option.description = option_description
+
+
+class _LangTranslator:
+    """Catalog lookup driven by guild id, like the real translator."""
+
+    def __init__(self, names: dict[int, dict[str, str]]) -> None:
+        self.names = names
+
+    async def t(self, guild_id, key, **variables):
+        return self.names.get(guild_id, {}).get(key, key)
+
+
+async def test_subcommand_dispatch_survives_cross_language_sync() -> None:
+    """Regression: sync guild A (pt-BR) first, guild B (en-US) last.
+
+    The shared tree always keeps the last synced guild's names, so py-cord's
+    ``find(lambda x: x.name == option["name"])`` returned ``None`` for A and
+    raised ``AttributeError: 'NoneType' object has no attribute 'invoke'``.
+    The per-guild alias map must dispatch A's localized name after B's sync.
+    """
+    from rosemary.core.localized_group import LocalizedSlashCommandGroup
+
+    group = LocalizedSlashCommandGroup("boost", "Boost roles")
+
+    @group.command(name="panel", description="Boost roles panel")
+    async def panel(ctx):
+        pass
+
+    sub = group.subcommands[0]
+    bot = RosemaryBot.__new__(RosemaryBot)
+    bot.translator = _LangTranslator(
+        {
+            1: {
+                "boost.command.name": "cargo_boost",
+                "boost.command.description": "Cargos Boost",
+                "boost_panel.command.name": "painel",
+                "boost_panel.command.description": "Painel de cargos boost",
+            },
+            2: {
+                "boost.command.name": "boost",
+                "boost.command.description": "Boost roles",
+                "boost_panel.command.name": "panel",
+                "boost_panel.command.description": "Boost roles panel",
+            },
+        }
+    )
+    bot._command_base_keys = {"boost": group}
+    bot._subcommand_base_keys = {id(sub): "panel"}
+    bot._option_base_descriptions = {}
+    bot.synced: list[list[int]] = []
+
+    async def sync_commands(*, guild_ids=None, **kwargs):
+        bot.synced.append(list(guild_ids or []))
+
+    bot.sync_commands = sync_commands
+
+    await bot._sync_guild_commands(SimpleNamespace(id=1))
+    await bot._sync_guild_commands(SimpleNamespace(id=2))
+    assert bot.synced == [[1], [2]]
+    # B was synced last, so the live object carries B's English name.
+    assert group.name == "boost"
+    assert sub.name == "panel"
+
+    # Both guilds resolve their own registered name to the same subcommand.
+    assert bot.resolve_subcommand_name(1, group, "painel") is sub
+    assert bot.resolve_subcommand_name(2, group, "panel") is sub
+    assert bot.resolve_subcommand_name(1, group, "panel") is None
+
+    called: list[int] = []
+
+    async def fake_invoke(context):
+        called.append(context.interaction.guild_id)
+
+    sub.invoke = fake_invoke  # type: ignore[method-assign]
+    ctx = SimpleNamespace(
+        bot=bot,
+        interaction=SimpleNamespace(guild_id=1, data={"options": [{"name": "painel"}]}),
+    )
+    await group._invoke(ctx)
+    assert called == [1]
+
+    ctx.interaction = SimpleNamespace(
+        guild_id=2, data={"options": [{"name": "panel"}]}
+    )
+    await group._invoke(ctx)
+    assert called == [1, 2]
+
+
+async def test_localize_subcommand_resets_name_when_key_is_missing() -> None:
+    """A guild without a catalog key must reset the shared object to its base
+    name; leaving the previous guild's localized name leaked across guilds."""
+    from rosemary.core.localized_group import LocalizedSlashCommandGroup
+
+    group = LocalizedSlashCommandGroup("boost", "Boost roles")
+
+    @group.command(name="panel", description="Boost roles panel")
+    async def panel(ctx):
+        pass
+
+    sub = group.subcommands[0]
+    sub.name = "painel"  # left over from the previously synced guild
+
+    bot = RosemaryBot.__new__(RosemaryBot)
+    bot.translator = _LangTranslator({})
+    bot._subcommand_base_keys = {id(sub): "panel"}
+    bot._option_base_descriptions = {}
+
+    name = await bot._localize_subcommand(3, "boost", sub)
+    assert name == "panel"
+    assert sub.name == "panel"
+
+
+class _RecordingLog:
+    def __init__(self) -> None:
+        self.records: list[tuple[str, str]] = []
+
+    def __getattr__(self, level: str):
+        def record(message: str, *args, **kwargs) -> None:
+            self.records.append((level, message % args if args else message))
+
+        return record
+
+
+@pytest.mark.parametrize(
+    "error,level,message",
+    [
+        (
+            discord.NotFound(
+                SimpleNamespace(status=404, reason="Not Found"),
+                {"message": "Unknown Guild", "code": 10004},
+            ),
+            "info",
+            "Guild 999 is gone; skipped command sync",
+        ),
+        (
+            discord.Forbidden(
+                SimpleNamespace(status=403, reason="Forbidden"),
+                {"message": "Missing Access", "code": 50001},
+            ),
+            "warning",
+            "Missing access to sync commands in guild 999",
+        ),
+    ],
+)
+async def test_guild_join_tolerates_vanished_or_forbidden_guild(
+    error: Exception,
+    level: str,
+    message: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """py-cord can replay ``guild_join`` for a guild the bot already left.
+
+    A missing guild is not a sync error (info), missing access is a warning,
+    and either way the theme preload must still run.
+    """
+    import rosemary.bot as bot_module
+    import rosemary.core.themes as themes_module
+
+    bot = _bot("en-US")
+
+    async def sync_commands(*, guild_ids=None, **kwargs):
+        raise error
+
+    bot.sync_commands = sync_commands
+    recorder = _RecordingLog()
+    preloaded: list[object] = []
+
+    async def fake_preload(target) -> None:
+        preloaded.append(target)
+
+    monkeypatch.setattr(bot_module, "log", recorder)
+    monkeypatch.setattr(themes_module, "preload_themes", fake_preload)
+
+    guild = SimpleNamespace(id=999)
+    await bot.on_guild_join(guild)
+
+    assert any(
+        logged_level == level and logged_message.startswith(message)
+        for logged_level, logged_message in recorder.records
+    ), recorder.records
+    assert not any(logged_level == "error" for logged_level, _ in recorder.records)
+    assert preloaded == [bot]

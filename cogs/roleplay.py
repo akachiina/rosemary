@@ -32,6 +32,7 @@ from discord.ext import commands
 
 from rosemary.core.card_service import CardPayload, render_card_message
 from rosemary.core.cards import safe_format
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.mentions import allowed_for_ids
 from rosemary.core.roleplay import (
     ACTIONS,
@@ -50,7 +51,7 @@ log = logging.getLogger(__name__)
 #: Subcommand localization reuses the legacy flat keys
 #: (``roleplay_hug.command``), so no catalog churn. The group name itself is
 #: fixed (never localized); only subcommand names/descriptions are per guild.
-roleplay_group = discord.SlashCommandGroup(
+roleplay_group = LocalizedSlashCommandGroup(
     "roleplay",
     description="Send a roleplay card",
     contexts={discord.InteractionContextType.guild},

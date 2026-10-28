@@ -31,6 +31,7 @@ from discord.ext import commands
 
 from rosemary.core.boost_roles import BoostRoleStore
 from rosemary.core.debug import send_log
+from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.ui import boost_dm as dm
 from rosemary.ui.boost_invite import BoostInviteView
@@ -45,7 +46,7 @@ class BoostRolesCog(commands.Cog):
     """Boost role management."""
 
 
-    boost_group = discord.SlashCommandGroup(
+    boost_group = LocalizedSlashCommandGroup(
         "boost",
         description="Boost roles panel",
         contexts={discord.InteractionContextType.guild},

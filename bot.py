@@ -51,6 +51,13 @@ def _walk_subcommands(cmd):
         yield from _walk_subcommands(sub)
 
 
+def _walk_subcommand_pairs(cmd):
+    """Yield ``(parent, subcommand)`` for every nested subcommand."""
+    for sub in getattr(cmd, "subcommands", None) or []:
+        yield cmd, sub
+        yield from _walk_subcommand_pairs(sub)
+
+
 #: Group name -> {subcommand base name -> owning cog class name}, for groups
 #: whose subcommands are defined across two cogs (``rebind_...``). Every
 #: subcommand of a shared group needs an entry: the live group object is
@@ -131,6 +138,15 @@ class RosemaryBot(commands.Bot):
         self._command_base_keys: dict[str, ApplicationCommand] = {}
         self._subcommand_base_keys: dict[int, str] = {}
         self._option_base_descriptions: dict[int, str] = {}
+        #: guild id -> {id(group): {localized subcommand name: subcommand}}.
+        #: Built from the catalog at sync time so group dispatch never depends
+        #: on the shared command objects' current (last-synced) names.
+        self._guild_subcommand_aliases: dict[
+            int, dict[int, dict[str, ApplicationCommand]]
+        ] = {}
+        #: One guild sync at a time: the command tree is shared, so overlapping
+        #: syncs could build one guild's payload from another guild's names.
+        self._command_sync_lock = asyncio.Lock()
         self._setup_done = False
         self.start_time: float | None = None
 
@@ -282,29 +298,46 @@ class RosemaryBot(commands.Bot):
         return prefix or _NO_PREFIX
 
     async def _sync_guild_commands(self, guild: discord.Guild) -> None:
-        """Localize slash command names/descriptions and sync them to one guild."""
-        t = self.translator.t
-        for base_name, cmd in self._command_base_keys.items():
-            key = f"{base_name}.command"
-            if isinstance(cmd, discord.SlashCommandGroup):
-                # Groups localize exactly like top-level commands (name +
-                # description); a fixed name in both catalogs (``roleplay``)
-                # simply never changes. Subcommand keys always derive from
-                # the decorator BASE names, never the localized ones.
-                cmd.name = await self._localized_name(
-                    guild.id, key, base_name, base_name
-                )
-                desc = await t(guild.id, f"{key}.description")
-                if desc != f"{key}.description":
-                    cmd.description = desc
+        """Localize slash command names/descriptions and sync them to one guild.
+
+        Serialized: every guild shares the same command objects, so two
+        overlapping syncs could build one guild's payload from another guild's
+        names. The dispatch alias map is stored only after a successful sync so
+        a failed sync keeps the map that matches the still-registered commands.
+        """
+        lock = getattr(self, "_command_sync_lock", None)
+        if lock is None:
+            lock = self._command_sync_lock = asyncio.Lock()
+        async with lock:
+            aliases: dict[int, dict[str, ApplicationCommand]] = {}
+            t = self.translator.t
+            for base_name, cmd in self._command_base_keys.items():
+                key = f"{base_name}.command"
+                if isinstance(cmd, discord.SlashCommandGroup):
+                    # Groups localize exactly like top-level commands (name +
+                    # description); a fixed name in both catalogs (``roleplay``)
+                    # simply never changes. Subcommand keys always derive from
+                    # the decorator BASE names, never the localized ones.
+                    cmd.name = await self._localized_name(
+                        guild.id, key, base_name, base_name
+                    )
+                    desc = await t(guild.id, f"{key}.description")
+                    if desc != f"{key}.description":
+                        cmd.description = desc
+                    await self._localize_options(guild.id, key, cmd)
+                    for parent, sub in _walk_subcommand_pairs(cmd):
+                        sub_name = await self._localize_subcommand(
+                            guild.id, base_name, sub
+                        )
+                        aliases.setdefault(id(parent), {})[sub_name] = sub
+                    continue
+                cmd.name = await self._localized_name(guild.id, key, base_name, base_name)
+                cmd.description = await t(guild.id, f"{key}.description")
                 await self._localize_options(guild.id, key, cmd)
-                for sub in _walk_subcommands(cmd):
-                    await self._localize_subcommand(guild.id, base_name, sub)
-                continue
-            cmd.name = await self._localized_name(guild.id, key, base_name, base_name)
-            cmd.description = await t(guild.id, f"{key}.description")
-            await self._localize_options(guild.id, key, cmd)
-        await self.sync_commands(guild_ids=[guild.id])
+            await self.sync_commands(guild_ids=[guild.id])
+            if not hasattr(self, "_guild_subcommand_aliases"):
+                self._guild_subcommand_aliases = {}
+            self._guild_subcommand_aliases[guild.id] = aliases
 
     async def _localized_name(
         self, guild_id: int, key: str, base_name: str, label: str
@@ -322,10 +355,10 @@ class RosemaryBot(commands.Bot):
             name = base_name
         return name
 
-    async def _localize_subcommand(
+    async def _resolve_sub_name(
         self, guild_id: int, group_base: str, sub
-    ) -> None:
-        """Localize one group subcommand for a guild.
+    ) -> tuple[str | None, str]:
+        """Resolve a subcommand's catalog key and name without mutating it.
 
         Key lookup: ``{group}_{sub}.command`` first (the legacy flat key for
         prefixed commands: ``roleplay_hug``, ``invites_leaderboard``), then
@@ -335,18 +368,74 @@ class RosemaryBot(commands.Bot):
         """
         t = self.translator.t
         sub_base = self._subcommand_base_keys.get(id(sub), sub.name)
-        key = None
         for candidate in (f"{group_base}_{sub_base}.command", f"{sub_base}.command"):
             if await t(guild_id, f"{candidate}.name") != f"{candidate}.name":
-                key = candidate
-                break
-        if key is None:
-            return
-        sub.name = await self._localized_name(guild_id, key, sub_base, key)
-        desc = await t(guild_id, f"{key}.description")
-        if desc != f"{key}.description":
-            sub.description = desc
-        await self._localize_options(guild_id, key, sub)
+                name = await self._localized_name(guild_id, candidate, sub_base, candidate)
+                return candidate, name
+        return None, sub_base
+
+    async def _localize_subcommand(
+        self, guild_id: int, group_base: str, sub
+    ) -> str:
+        """Localize one group subcommand and return its final name.
+
+        A missing catalog key resets the object to its decorator base name:
+        the tree is shared, so returning early would keep the previous guild's
+        localized name on the object.
+        """
+        key, name = await self._resolve_sub_name(guild_id, group_base, sub)
+        sub.name = name
+        if key is not None:
+            desc = await self.translator.t(guild_id, f"{key}.description")
+            if desc != f"{key}.description":
+                sub.description = desc
+            await self._localize_options(guild_id, key, sub)
+        return name
+
+    async def _refresh_subcommand_aliases(self, guild_id: int) -> None:
+        """Build a guild's dispatch map from the catalogs without mutating.
+
+        Used at boot before the first sync: the sync loop renames the shared
+        tree guild by guild, and an invocation in a guild whose turn has not
+        come yet must still resolve its localized subcommands.
+        """
+        aliases: dict[int, dict[str, ApplicationCommand]] = {}
+        for base_name, cmd in self._command_base_keys.items():
+            if not isinstance(cmd, discord.SlashCommandGroup):
+                continue
+            for parent, sub in _walk_subcommand_pairs(cmd):
+                _key, name = await self._resolve_sub_name(guild_id, base_name, sub)
+                aliases.setdefault(id(parent), {})[name] = sub
+        if not hasattr(self, "_guild_subcommand_aliases"):
+            self._guild_subcommand_aliases = {}
+        self._guild_subcommand_aliases[guild_id] = aliases
+
+    async def _seed_missing_subcommand_aliases(self) -> None:
+        """Build dispatch maps for every guild that does not have one yet.
+
+        Idempotent: existing maps are kept until their guild's sync succeeds
+        (a language change must not point dispatch at names Discord has not
+        registered yet). Called at boot before the theme snapshot (commands
+        from the previous run stay live while the shared tree is still in its
+        decorator state) and from ``reapply_command_localization``.
+        """
+        if not hasattr(self, "_guild_subcommand_aliases"):
+            self._guild_subcommand_aliases = {}
+        for guild in self.guilds:
+            if guild.id not in self._guild_subcommand_aliases:
+                await self._refresh_subcommand_aliases(guild.id)
+
+    def resolve_subcommand_name(self, guild_id: int | None, group, name: str):
+        """Return the subcommand registered as ``name`` in ``guild_id``.
+
+        The group dispatcher calls this before py-cord's live-name lookup, so
+        the answer comes from the invoking guild's catalog and not from
+        whichever guild was synced last.
+        """
+        if guild_id is None:
+            return None
+        aliases = getattr(self, "_guild_subcommand_aliases", None) or {}
+        return aliases.get(guild_id, {}).get(id(group), {}).get(name)
 
     async def _localize_options(self, guild_id: int, key: str, command) -> None:
         """Localize one command's option descriptions for a guild.
@@ -372,6 +461,7 @@ class RosemaryBot(commands.Bot):
         """Re-register slash commands with names/descriptions in each guild's
         language. Commands are synced per guild; on_ready and every /language
         change call this to keep the command list in sync with the guild."""
+        await self._seed_missing_subcommand_aliases()
         for guild in self.guilds:
             await self._sync_guild_commands(guild)
 
@@ -385,12 +475,29 @@ class RosemaryBot(commands.Bot):
             return
         try:
             await self._sync_guild_commands(guild)
+            log.info("Commands synced for joined guild %s", guild.id)
+        except discord.NotFound:
+            # py-cord can replay ``guild_join`` for a guild the bot already
+            # left (stale gateway cache); a missing guild is not a sync error.
+            log.info("Guild %s is gone; skipped command sync", guild.id)
+        except discord.Forbidden as exc:
+            log.warning("Missing access to sync commands in guild %s: %s", guild.id, exc)
+        except Exception as exc:  # noqa: BLE001
+            log.error("Failed to sync commands for joined guild %s: %s", guild.id, exc)
+        # Theme preload is independent of command sync: a guild we cannot sync
+        # still needs its theme snapshot for the panels sent later.
+        try:
             from rosemary.core.themes import preload_themes
 
             await preload_themes(self)
-            log.info("Commands synced for joined guild %s", guild.id)
-        except Exception as exc:
-            log.error("Failed to sync commands for joined guild %s: %s", guild.id, exc)
+        except Exception as exc:  # noqa: BLE001
+            log.error("Theme preload failed for joined guild %s: %s", guild.id, exc)
+
+    async def on_guild_remove(self, guild: discord.Guild) -> None:
+        """Drop the departed guild's dispatch map so a re-join starts clean."""
+        aliases = getattr(self, "_guild_subcommand_aliases", None)
+        if aliases is not None:
+            aliases.pop(guild.id, None)
 
     async def on_ready(self) -> None:
         """Register cogs on first ready, publish an explicit online presence
@@ -398,6 +505,10 @@ class RosemaryBot(commands.Bot):
         connected), then sync commands instantly per guild in its language."""
         if self._setup_done is False:
             self._setup()
+        # Seed dispatch maps before the theme snapshot: commands registered by
+        # the previous run stay live while the shared tree is still in its
+        # decorator (English) state, so a localized subcommand must resolve.
+        await self._seed_missing_subcommand_aliases()
 
         # Snapshot each guild's effective theme (theme_for is synchronous).
         from rosemary.core.themes import preload_themes
@@ -453,7 +564,28 @@ class RosemaryBot(commands.Bot):
     async def on_application_command_error(
         self, context: discord.ApplicationContext, exception: Exception
     ) -> None:
+        """Log every application-command failure and answer the interaction.
+
+        Without a response the invoker sees "The application did not respond"
+        after three seconds; ``respond`` uses the followup webhook when the
+        command already deferred, so a themed notice always reaches them.
+        """
         log.error("Error in command %s: %s", context.command, exception)
+        if getattr(self, "translator", None) is None:
+            return
+        guild_id = context.guild.id if context.guild is not None else None
+        if isinstance(exception, commands.CheckFailure):
+            key, color = "general.no_permission", "warning"
+        else:
+            key, color = "general.unknown_error", "danger"
+        try:
+            from rosemary.ui.responses import notice_view
+
+            text = await self.translator.t(guild_id, key)
+            view = await notice_view(self, guild_id, text, color=color)
+            await context.respond(view=view, ephemeral=True)
+        except Exception:  # noqa: BLE001
+            log.warning("Could not answer the failed application command", exc_info=True)
 
     async def on_view_error(
         self,
