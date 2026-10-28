@@ -800,7 +800,7 @@ class BumpReminderCog(commands.Cog):
         if not is_bump and (message.interaction_metadata or DISBOARD_MARKER in text):
             is_bump = True
 
-        log.info(
+        log.debug(
             "Disboard message in guild %s: content=%r embeds=%d interaction_metadata=%s "
             "marker=%r disboard_text=%s detected=%s",
             guild.id,
