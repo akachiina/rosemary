@@ -92,6 +92,11 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
   (`AuditCog.note_bot_ban/kick/timeout`) **before** the destructive API call:
   delivery order is not guaranteed and the stamp suppresses the duplicate
   generic card. Existing calls live in `cogs/moderation.py` and `cogs/trap.py`.
+- The stamp suppresses the **audit** card only. Event announcements
+  (`events.ban_channel`, `events.leave_channel`) still go out for our own
+  actions: the welcome cog skips them only when the event channel is the same
+  as the staff log channel (`logging.channel`), where the moderation card
+  already landed. A ban never posts the leave card (`_recently_banned`).
 
 ## i18n (`core/i18n.py`, `language/en-US.yaml` + `pt-BR.yaml`)
 

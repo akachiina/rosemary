@@ -2230,6 +2230,15 @@ moderation:
   error_hierarchy: '{error} Este membro tem um cargo igual ou superior ao meu.'
   error_bot_hierarchy: '{error} O cargo deste membro é igual ou superior ao do bot.'
   logs:
+    auto_ban:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{ban} Auto-ban aplicado'
     ban:
       description: '**{member_label}:** {member}
 
@@ -3266,6 +3275,9 @@ card:
       title: Lista de warns
       placeholders: '{{user}}, {{user_avatar}}, {{has_warnings}}, {{title}}, {{body}}, {{timestamp}}'
     logs:
+      auto_ban:
+        title: 'Log: auto-ban aplicado'
+        placeholders: ''
       ban:
         title: 'Log: membro banido'
         placeholders: ''

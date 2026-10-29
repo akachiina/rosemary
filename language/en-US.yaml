@@ -2230,6 +2230,15 @@ moderation:
   error_hierarchy: '{error} This member''s role is equal to or higher than yours.'
   error_bot_hierarchy: '{error} This member''s role is equal to or higher than the bot''s.'
   logs:
+    auto_ban:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{ban} Auto-ban applied'
     ban:
       description: '**{member_label}:** {member}
 
@@ -3328,6 +3337,9 @@ card:
       title: Warning list
       placeholders: '{{user}}, {{user_avatar}}, {{has_warnings}}, {{title}}, {{body}}, {{timestamp}}'
     logs:
+      auto_ban:
+        title: 'Log: auto-ban applied'
+        placeholders: ''
       ban:
         title: 'Log: member banned'
         placeholders: ''

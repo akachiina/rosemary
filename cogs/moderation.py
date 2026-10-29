@@ -494,12 +494,29 @@ class ModerationCog(commands.Cog):
             if count >= limit and await get_setting(
                 self.bot.storage, guild_id, "moderation.auto_ban_enabled"
             ):
+                banned = False
                 try:
                     self._stamp_bot_action(guild_id, target.id, "ban")
                     await target.ban(reason=reason)
-                    result += "\n" + await t(guild_id, "moderation.auto_ban_applied", limit=limit)
+                    banned = True
                 except (discord.Forbidden, discord.HTTPException) as exc:
                     log.warning("Auto-ban failed for %s: %s", target, exc)
+                if banned:
+                    result += "\n" + await t(guild_id, "moderation.auto_ban_applied", limit=limit)
+                    # Staff log card: the auto-ban reaches no moderation card
+                    # otherwise (the ban is the bot's own action, so the audit
+                    # gateway stays quiet too).
+                    await send_log(
+                        self.bot,
+                        guild_id,
+                        "moderation.logs.auto_ban",
+                        member=target.mention,
+                        member_id=str(target.id),
+                        user_avatar=target.display_avatar.url,
+                        moderator=moderator.mention,
+                        reason=reason,
+                    )
+                else:
                     result += "\n" + await t(guild_id, "moderation.auto_ban_failed")
             return result
         if action == "mute":

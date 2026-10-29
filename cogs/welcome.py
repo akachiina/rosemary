@@ -117,13 +117,20 @@ class WelcomeCog(commands.Cog):
 
     #: helpers -------------------------------------------------------------
 
-    def _audit(self):
-        """The audit cog, if registered (owns the bot-action stamps)."""
-        from rosemary.cogs.audit import AuditCog
+    async def _is_staff_log_channel(self, guild_id: int, channel_id: int) -> bool:
+        """Whether the channel is the staff log channel.
 
-        get_cog = getattr(self.bot, "get_cog", None)
-        audit = get_cog("AuditCog") if callable(get_cog) else None
-        return audit if isinstance(audit, AuditCog) else None
+        A bot action (our /ban, auto-ban, trap) already posts a moderation card
+        there; an event card in the same channel would duplicate it. Different
+        channels mean different audiences: the announcement still goes out.
+        """
+        staff = await get_setting(self.bot.storage, guild_id, "logging.channel")
+        if staff is None:
+            return False
+        try:
+            return int(staff) == int(channel_id)
+        except (TypeError, ValueError):
+            return False
 
     async def _t(self, guild_id: int, key: str, **variables) -> str:
         return await self.bot.translator.t(guild_id, key, **variables)
@@ -323,15 +330,12 @@ class WelcomeCog(commands.Cog):
             if member.id in self._recently_banned:
                 self._recently_banned.discard(member.id)
                 return
-            audit = self._audit()
-            if audit is not None and audit.has_bot_stamp(
-                member.guild.id, member.id, ("kick",)
-            ):
-                # Our own /kick or trap kick: moderation already logged it
-                # with the real moderator, a leave card would only duplicate.
-                return
             channel = await self._event_channel(member.guild, "events.leave_channel")
             if channel is None:
+                return
+            if await self._is_staff_log_channel(member.guild.id, channel.id):
+                # Our own /kick or trap kick already posted a moderation card
+                # in this same channel: a leave card would only duplicate it.
                 return
             variables = {
                 "user": member.mention,
@@ -359,14 +363,13 @@ class WelcomeCog(commands.Cog):
     async def on_member_ban(self, guild: discord.Guild, user: discord.User) -> None:
         try:
             self._recently_banned.add(user.id)
-            audit = self._audit()
-            if audit is not None and audit.has_bot_stamp(guild.id, user.id, ("ban",)):
-                # Our own /ban, auto-ban or trap ban: moderation posted its
-                # card with the real moderator. The audit listener consumes
-                # the stamp for its own card; this check never drops it.
-                return
             channel = await self._event_channel(guild, "events.ban_channel")
             if channel is None:
+                return
+            if await self._is_staff_log_channel(guild.id, channel.id):
+                # Our own /ban, auto-ban or trap ban already posted a
+                # moderation card in this same channel: the announcement
+                # would only duplicate it.
                 return
             variables = {
                 "user": user.mention,

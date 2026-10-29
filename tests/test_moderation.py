@@ -6,6 +6,7 @@ import logging
 from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import discord
 import pytest
@@ -376,3 +377,54 @@ async def test_warn_limit_auto_ban(tmp_path, language: str, auto_ban: bool) -> N
     )
     assert target.banned is auto_ban
     assert "{" not in result
+
+
+async def test_auto_ban_logs_the_ban_for_staff(tmp_path, monkeypatch) -> None:
+    """The auto-ban reaches the staff log: no moderation card otherwise.
+
+    The ban is the bot's own action, so the audit gateway stays quiet too:
+    without this card nobody would know the member was banned.
+    """
+    import rosemary.cogs.moderation as moderation_mod
+
+    spy = AsyncMock(return_value=True)
+    monkeypatch.setattr(moderation_mod, "send_log", spy)
+
+    cog = _real_cog(tmp_path, "pt-BR")
+    await cog.bot.storage.set(1, "moderation.warn_limit", 1)
+    await cog.bot.storage.set(1, "moderation.auto_ban_enabled", True)
+    target = _ActionMember(200)
+
+    await cog._execute_action(1, "G", _ActionMember(100), target, "warn", "Spam", None, False)
+
+    events = [call.args[2] for call in spy.await_args_list]
+    assert events == ["moderation.logs.warn", "moderation.logs.auto_ban"]
+    variables = spy.await_args_list[-1].kwargs
+    assert variables["member"] == target.mention
+    assert variables["moderator"] == "<@100>"
+    assert variables["reason"] == "Spam"
+
+
+async def test_failed_auto_ban_logs_no_ban_card(tmp_path, monkeypatch) -> None:
+    """A failed auto-ban must not claim the member was banned."""
+    import rosemary.cogs.moderation as moderation_mod
+
+    spy = AsyncMock(return_value=True)
+    monkeypatch.setattr(moderation_mod, "send_log", spy)
+
+    cog = _real_cog(tmp_path, "pt-BR")
+    await cog.bot.storage.set(1, "moderation.warn_limit", 1)
+    await cog.bot.storage.set(1, "moderation.auto_ban_enabled", True)
+    target = _ActionMember(200)
+
+    async def forbidden(reason: str | None = None) -> None:
+        raise discord.Forbidden(
+            SimpleNamespace(status=403, reason="Forbidden"),
+            {"message": "Missing Permissions", "code": 50013},
+        )
+
+    target.ban = forbidden
+    await cog._execute_action(1, "G", _ActionMember(100), target, "warn", "Spam", None, False)
+
+    events = [call.args[2] for call in spy.await_args_list]
+    assert "moderation.logs.auto_ban" not in events

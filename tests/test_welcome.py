@@ -32,14 +32,17 @@ class FakeBot:
 def make_world(tmp_path, *, welcome=True, leave=None, ban=None):
     bot = FakeBot(tmp_path)
     welcome_channel = AsyncMock(spec=discord.TextChannel)
+    welcome_channel.id = 111
     channels = {}
     if welcome:
         channels[111] = welcome_channel
     leave_channel = AsyncMock(spec=discord.TextChannel) if leave else None
     if leave_channel is not None:
+        leave_channel.id = 222
         channels[222] = leave_channel
     ban_channel = AsyncMock(spec=discord.TextChannel) if ban else None
     if ban_channel is not None:
+        ban_channel.id = 333
         channels[333] = ban_channel
 
     guild = MagicMock(spec=discord.Guild)
@@ -64,6 +67,13 @@ async def set_settings(bot, **values):
 
     for key, value in values.items():
         await set_setting(bot.storage, 1, f"events.{key}", value)
+
+
+async def set_staff_log(bot, channel_id: int | None) -> None:
+    """Point the staff log channel (where the bot's own card lands)."""
+    from rosemary.core.settings import set_setting
+
+    await set_setting(bot.storage, 1, "logging.channel", channel_id)
 
 
 def texts(view) -> str:
@@ -318,17 +328,31 @@ async def test_raid_protection_delays_welcomes(tmp_path, monkeypatch):
 #: bot-action stamps ------------------------------------------------------------
 
 
-async def test_bot_ban_skips_events_ban_but_keeps_leave_guard(tmp_path):
-    """Regression: /ban posted moderation log + events.ban (no stamp check)."""
+async def test_bot_ban_posts_events_ban(tmp_path):
+    """Regression: the audit stamp silenced the announcement of our own bans.
+
+    The staff log card lands in ``logging.channel``; the event card belongs to
+    ``events.ban_channel``. Different channels, different audiences: the
+    announcement must go out.
+    """
     bot, guild, member, _, _, ban_channel = make_world(tmp_path, ban=True)
     await set_settings(bot, ban_channel=333)
-    from rosemary.cogs.audit import AuditCog
+    cog = WelcomeCog(bot)
+    user = MagicMock(spec=discord.User)
+    user.id = 5
+    user.name = "Ana"
+    user.mention = "<@5>"
+    await cog.on_member_ban(guild, user)
+    assert ban_channel.send.await_count == 1
+    # The leave that follows a ban is still swallowed, not announced.
+    assert 5 in cog._recently_banned
 
-    audit = MagicMock(spec=AuditCog)
-    audit.has_bot_stamp.side_effect = (
-        lambda gid, uid, kinds=("ban", "unban"): (gid, uid) == (1, 5) and "ban" in kinds
-    )
-    bot.get_cog = MagicMock(return_value=audit)
+
+async def test_bot_ban_skips_events_ban_in_the_staff_log_channel(tmp_path):
+    """Same channel as the staff log: the moderation card already covers it."""
+    bot, guild, member, _, _, ban_channel = make_world(tmp_path, ban=True)
+    await set_settings(bot, ban_channel=333)
+    await set_staff_log(bot, 333)
     cog = WelcomeCog(bot)
     user = MagicMock(spec=discord.User)
     user.id = 5
@@ -336,18 +360,11 @@ async def test_bot_ban_skips_events_ban_but_keeps_leave_guard(tmp_path):
     user.mention = "<@5>"
     await cog.on_member_ban(guild, user)
     assert ban_channel.send.await_count == 0
-    # The leave that follows a ban is still swallowed, not announced.
-    assert 5 in cog._recently_banned
 
 
 async def test_manual_ban_still_posts_events_ban(tmp_path):
     bot, guild, member, _, _, ban_channel = make_world(tmp_path, ban=True)
     await set_settings(bot, ban_channel=333)
-    from rosemary.cogs.audit import AuditCog
-
-    audit = MagicMock(spec=AuditCog)
-    audit.has_bot_stamp.return_value = False
-    bot.get_cog = MagicMock(return_value=audit)
     cog = WelcomeCog(bot)
     user = MagicMock(spec=discord.User)
     user.id = 5
@@ -357,21 +374,21 @@ async def test_manual_ban_still_posts_events_ban(tmp_path):
     assert ban_channel.send.await_count == 1
 
 
-async def test_bot_kick_skips_leave_but_voluntary_leave_posts(tmp_path):
-    """Regression: /kick posted moderation log + events.leave."""
+async def test_bot_kick_posts_leave(tmp_path):
+    """Our own /kick announces the leave too: the moderation card lives in
+    another channel."""
     bot, guild, member, _, leave_channel, _ = make_world(tmp_path, leave=True)
     await set_settings(bot, leave_channel=222)
-    from rosemary.cogs.audit import AuditCog
+    cog = WelcomeCog(bot)
+    await cog.on_member_remove(member)
+    assert leave_channel.send.await_count == 1
 
-    audit = MagicMock(spec=AuditCog)
-    audit.has_bot_stamp.side_effect = (
-        lambda gid, uid, kinds=("ban", "unban"): (gid, uid) == (1, 5) and "kick" in kinds
-    )
-    bot.get_cog = MagicMock(return_value=audit)
+
+async def test_bot_kick_skips_leave_in_the_staff_log_channel(tmp_path):
+    """Same channel as the staff log: the moderation card already covers it."""
+    bot, guild, member, _, leave_channel, _ = make_world(tmp_path, leave=True)
+    await set_settings(bot, leave_channel=222)
+    await set_staff_log(bot, 222)
     cog = WelcomeCog(bot)
     await cog.on_member_remove(member)
     assert leave_channel.send.await_count == 0
-    audit.has_bot_stamp.side_effect = None
-    audit.has_bot_stamp.return_value = False
-    await cog.on_member_remove(member)
-    assert leave_channel.send.await_count == 1

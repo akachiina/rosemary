@@ -127,6 +127,16 @@ _LEGACY_VARIABLES: dict[str, tuple[str, ...]] = {
         "moderator_label",
         "reason_label",
     ),
+    "moderation.logs.auto_ban": (
+        "member",
+        "member_id",
+        "moderator",
+        "reason",
+        "member_label",
+        "member_id_label",
+        "moderator_label",
+        "reason_label",
+    ),
     "moderation.logs.kick": (
         "member",
         "member_id",
@@ -270,6 +280,7 @@ _ACTOR_IN_CONTENT = frozenset(
     {
         # moderation: the moderator is a labelled field.
         "moderation.logs.ban",
+        "moderation.logs.auto_ban",
         "moderation.logs.kick",
         "moderation.logs.mute",
         "moderation.logs.warn",
@@ -336,6 +347,22 @@ def _build_specs() -> dict[str, LogSpec]:
             actor_var="moderator",
             avatar_var="user_avatar",
             title_key="moderation.logs.ban.title",
+            legacy_labels=_MODERATION_LABELS,
+        ),
+        _spec(
+            "moderation.logs.auto_ban",
+            "moderation",
+            severity="danger",
+            layout="fields",
+            fields=(
+                _f("member", "target"),
+                _f("member_id"),
+                _f("moderator"),
+                _f("reason"),
+            ),
+            actor_var="moderator",
+            avatar_var="user_avatar",
+            title_key="moderation.logs.auto_ban.title",
             legacy_labels=_MODERATION_LABELS,
         ),
         _spec(
