@@ -138,7 +138,7 @@ class FakeResponse:
     def is_done(self) -> bool:
         return self._done
 
-    async def defer(self) -> None:
+    async def defer(self, *, ephemeral: bool = False) -> None:
         self._order.append("defer")
         self._done = True
 

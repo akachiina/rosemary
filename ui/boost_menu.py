@@ -136,16 +136,6 @@ class _BaseMenu(MenuView):
 
     #: small helpers ------------------------------------------------------
 
-    async def _ack(self, interaction: discord.Interaction) -> None:
-        """Acknowledge the component interaction immediately.
-
-        Handlers below perform slow IO (role edits, channel logs, DMs) before
-        their first ``edit``; Discord only accepts the initial response within
-        3s or the token is invalidated with ``Unknown interaction`` (10062).
-        """
-        if not interaction.response.is_done():
-            await interaction.response.defer()
-
     def _uid(self) -> int:
         """The id of the menu owner (whoever opened it)."""
         return self.author_id or 0

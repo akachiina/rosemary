@@ -17,6 +17,7 @@ from collections.abc import Awaitable, Callable
 
 import discord
 
+from rosemary.core.interactions import ack
 from rosemary.core.settings import MENU_TIMEOUT, get_setting
 
 log = logging.getLogger(__name__)
@@ -80,21 +81,25 @@ class MenuView(discord.ui.DesignerView):
         interaction: discord.Interaction,
         *,
         suppress_errors: bool = False,
-    ) -> None:
+    ) -> bool:
         """Defer once; safe to call even when the interaction is already ACKed.
 
-        Every handler starts with this: Discord shows "the application did
-        not respond" past 3s without an ACK. ``suppress_errors=True`` is for
+        Every handler starts with this: Discord shows "the application did not
+        respond" past 3s without an ACK. ``suppress_errors=True`` is for
         modal submits, where a failed defer must not mask the follow-up
         ``rerender`` (which handles HTTP failures itself).
+
+        Returns False when the interaction token is already dead (past
+        Discord's 15 minute window, or answered with 10062 after a gateway
+        RESUME replayed an old click): the handler must stop there, because
+        every followup would fail with the same token.
         """
-        if interaction.response.is_done():
-            return
         try:
-            await interaction.response.defer(ephemeral=True)
+            return await ack(interaction, ephemeral=True)
         except discord.HTTPException:
             if not suppress_errors:
                 raise
+            return False
 
     def make_button(
         self,

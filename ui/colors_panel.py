@@ -296,8 +296,11 @@ class ColorPickerView(MenuView):
         return await cog.store.get_color(self.guild_id, color_id)
 
     async def _pick_button(self, interaction: discord.Interaction) -> None:
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
+        # A dead token (expired after 15 minutes, or replayed by a gateway
+        # RESUME) cannot be answered: skip the role change too, so an old
+        # replayed click never overrides a newer, deliberate choice.
+        if not await self._ack(interaction):
+            return
         color_id = (interaction.custom_id or "").split(":", 1)[-1]
         entry = await self._entry_for(color_id)
         if entry is None:
@@ -307,8 +310,8 @@ class ColorPickerView(MenuView):
         await self._apply(interaction, entry)
 
     async def _pick_select(self, interaction: discord.Interaction) -> None:
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
+        if not await self._ack(interaction):
+            return
         values = (interaction.data or {}).get("values") or []
         if not values:
             return

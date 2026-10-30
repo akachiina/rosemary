@@ -172,6 +172,11 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
 - ACK every interaction (`defer()`/`send_message`/modal) before slow work; past 3s
   Discord shows "application did not respond". Guard with
   `if not interaction.response.is_done()`.
+- Interaction tokens live 15 minutes. A gateway RESUME replays the clicks made
+  while the bot was offline, and Discord answers 404/10062 ("Unknown
+  interaction") to those dead tokens. ACK through `core/interactions.ack()`
+  (or `MenuView._ack`): it returns False for a dead token, so the handler stops
+  before the work and the log shows a warning instead of a traceback.
 - py-cord `BaseView.on_error` only prints to stderr; `RosemaryBot.on_view_error`
   logs + ACKs `general.unknown_error`. Never swallow `discord.HTTPException`
   around `interaction.edit()` with bare `return`: a 400 looks like "click does nothing".

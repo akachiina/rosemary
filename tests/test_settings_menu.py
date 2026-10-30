@@ -173,7 +173,7 @@ async def test_non_duration_setting_skips_localized_aliases(tmp_path):
         def is_done(self) -> bool:
             return False
 
-        async def defer(self) -> None:
+        async def defer(self, *, ephemeral: bool = False) -> None:
             return None
 
     class FakeInteraction:

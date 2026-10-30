@@ -20,6 +20,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+from rosemary.core.interactions import is_dead_token, is_expired  # noqa: E402
 from rosemary.core.logging import setup_logging  # noqa: E402
 from rosemary.core.settings import get_setting  # noqa: E402
 from rosemary.core.themes import THEMES_DIR  # noqa: E402
@@ -599,6 +600,24 @@ class RosemaryBot(commands.Bot):
         custom_id = getattr(item, "custom_id", None) or "?"
         view = getattr(interaction, "view", None)
         view_name = type(view).__name__ if view is not None else "?"
+        user_id = getattr(getattr(interaction, "user", None), "id", None)
+        guild_id = getattr(interaction, "guild_id", None)
+        # A token Discord already forgot (10062) is expected, not a crash: a
+        # gateway RESUME replays the clicks made while the bot was offline and
+        # their 15 minute window is long gone. The interaction cannot be
+        # answered, so it is a warning and no traceback.
+        if is_dead_token(error) or (
+            isinstance(error, discord.HTTPException) and is_expired(interaction)
+        ):
+            log.warning(
+                "Stale interaction ignored (unknown interaction 10062): "
+                "view=%s custom_id=%r user=%s guild=%s",
+                view_name,
+                custom_id,
+                user_id,
+                guild_id,
+            )
+            return
         # exc_info=error (not log.exception): py-cord invokes this handler
         # outside the except block, so the active-exception context is empty
         # and log.exception would print a useless "NoneType: None".
@@ -606,8 +625,8 @@ class RosemaryBot(commands.Bot):
             "Component error in %s (custom_id=%r, user=%s, guild=%s)",
             view_name,
             custom_id,
-            getattr(getattr(interaction, "user", None), "id", None),
-            getattr(interaction, "guild_id", None),
+            user_id,
+            guild_id,
             exc_info=error,
         )
         try:

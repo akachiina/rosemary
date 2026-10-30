@@ -6,7 +6,9 @@ key shows up here instead of in production.
 
 from __future__ import annotations
 
+import datetime
 import io
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
@@ -314,6 +316,14 @@ def _interaction(member: FakeMember, color_id: str):
     return interaction
 
 
+def _dead_token_error() -> discord.NotFound:
+    """The error Discord answers when the interaction token is already dead."""
+    return discord.NotFound(
+        SimpleNamespace(status=404, reason="Not Found"),
+        {"code": 10062, "message": "Unknown interaction"},
+    )
+
+
 async def test_pick_applies_and_switches_and_toggles(tmp_path):
     from rosemary.cogs.colors import ColorsCog
     from rosemary.ui.colors_panel import ColorPickerView
@@ -405,6 +415,62 @@ async def test_pick_hierarchy_and_missing_role(tmp_path):
     await picker._pick_button(interaction2)
     text2 = interaction2.followup.send.call_args.args[0]
     assert "error_no_role" in text2
+
+
+async def test_pick_with_dead_token_changes_nothing(tmp_path):
+    """A click whose token died (replayed by a gateway RESUME) must not
+    crash and must not touch the member's roles (regression: 404/10062
+    traceback in the panel pick)."""
+    from rosemary.cogs.colors import ColorsCog
+    from rosemary.ui.colors_panel import ColorPickerView
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    entry = await cog.store.add_color(1, "A", "#111111", role_id=11)
+    role = FakeRole(11)
+    bot.guild.get_role = lambda role_id: role
+    bot.guild.me = FakeRole(1)
+    bot.guild.me.top_role = FakeRole(999)
+    member = FakeMember()
+    bot.guild.get_member = lambda user_id: member
+
+    picker = ColorPickerView(bot, 1, [entry])
+    interaction = _interaction(member, entry.id)
+    interaction.response.defer = AsyncMock(side_effect=_dead_token_error())
+    await picker._pick_button(interaction)
+    assert member.added == []
+    assert member.removed == []
+    interaction.followup.send.assert_not_awaited()
+
+
+async def test_pick_with_expired_token_is_not_acked(tmp_path):
+    """A token past Discord's 15 minute window is not even tried: the pick
+    stops before the defer, the role change and the followup."""
+    from rosemary.cogs.colors import ColorsCog
+    from rosemary.ui.colors_panel import ColorPickerView
+
+    bot = _bot(tmp_path)
+    cog = ColorsCog(bot)
+    bot.cog = cog
+    entry = await cog.store.add_color(1, "A", "#111111", role_id=11)
+    role = FakeRole(11)
+    bot.guild.get_role = lambda role_id: role
+    bot.guild.me = FakeRole(1)
+    bot.guild.me.top_role = FakeRole(999)
+    member = FakeMember()
+    bot.guild.get_member = lambda user_id: member
+
+    picker = ColorPickerView(bot, 1, [entry])
+    interaction = _interaction(member, entry.id)
+    interaction.created_at = datetime.datetime.now(datetime.UTC) - (
+        datetime.timedelta(minutes=20)
+    )
+    await picker._pick_button(interaction)
+    interaction.response.defer.assert_not_awaited()
+    assert member.added == []
+    assert member.removed == []
+    interaction.followup.send.assert_not_awaited()
 
 
 # == manager flows ==========================================================

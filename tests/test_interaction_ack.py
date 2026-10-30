@@ -8,10 +8,13 @@ happens before any network call, plus pin the Close-first nav order.
 
 from __future__ import annotations
 
+import datetime
+import logging
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import discord
+import pytest
 
 from rosemary.core.storage import GuildStorage
 from rosemary.ui.theme import load_theme
@@ -318,3 +321,106 @@ async def test_boost_pick_color_defers_first(tmp_path):
     await view._pick_color(interaction)
     assert order[0] == "defer"
     assert order.index("defer") < order.index("work")
+
+
+#: stale interactions (dead token) -----------------------------------------
+
+
+class DeadResponse:
+    """Response fake for an interaction whose token is already gone."""
+
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error = error
+        self.deferred = 0
+
+    def is_done(self) -> bool:
+        return False
+
+    async def defer(self, *, ephemeral: bool = False) -> None:
+        self.deferred += 1
+        if self.error is not None:
+            raise self.error
+
+
+def _not_found() -> discord.NotFound:
+    """The exact error Discord answers for a dead interaction token."""
+    return discord.NotFound(
+        SimpleNamespace(status=404, reason="Not Found"),
+        {"code": 10062, "message": "Unknown interaction"},
+    )
+
+
+def _interaction_at(age_seconds: int):
+    """An interaction created ``age_seconds`` ago (its token may be dead)."""
+    created = datetime.datetime.now(datetime.UTC) - datetime.timedelta(
+        seconds=age_seconds
+    )
+    interaction = SimpleNamespace(
+        id=discord.utils.time_snowflake(created),
+        created_at=created,
+        custom_id="colors_pick:abc",
+        user=SimpleNamespace(id=7),
+        guild_id=1,
+        data={},
+    )
+    interaction.response = DeadResponse()
+    interaction.followup = SimpleNamespace(send=AsyncMock())
+    return interaction
+
+
+async def test_expired_interaction_is_never_acked():
+    """A token past Discord's 15 minute window must not even be tried."""
+    from rosemary.core.interactions import TOKEN_TTL, ack, is_expired
+
+    interaction = _interaction_at(TOKEN_TTL + 60)
+    assert is_expired(interaction)
+    assert await ack(interaction) is False
+    assert interaction.response.deferred == 0
+    interaction.followup.send.assert_not_awaited()
+
+
+async def test_fresh_interaction_is_acked():
+    from rosemary.core.interactions import ack, is_expired
+
+    interaction = _interaction_at(5)
+    assert not is_expired(interaction)
+    assert await ack(interaction) is True
+    assert interaction.response.deferred == 1
+
+
+async def test_dead_token_error_is_swallowed():
+    """Discord answering 10062 (a click replayed after a RESUME) is not a crash."""
+    from rosemary.core.interactions import ack
+
+    interaction = _interaction_at(5)
+    interaction.response.error = _not_found()
+    assert await ack(interaction) is False
+    assert interaction.response.deferred == 1
+
+
+async def test_other_http_errors_still_propagate():
+    """A real HTTP failure stays visible: only the dead token is swallowed."""
+    from rosemary.core.interactions import ack
+
+    interaction = _interaction_at(5)
+    interaction.response.error = discord.Forbidden(
+        SimpleNamespace(status=403, reason="Forbidden"),
+        {"code": 50013, "message": "Missing permissions"},
+    )
+    with pytest.raises(discord.Forbidden):
+        await ack(interaction)
+
+
+async def test_view_error_stale_interaction_warns_without_answering(caplog):
+    """A dead token must not log an ERROR traceback nor a doomed answer."""
+    from rosemary.bot import RosemaryBot
+
+    bot = RosemaryBot.__new__(RosemaryBot)
+    interaction = _interaction_at(5)
+    item = SimpleNamespace(custom_id="colors_pick:abc")
+    with caplog.at_level(logging.WARNING):
+        await bot.on_view_error(_not_found(), item, interaction)
+    assert "Stale interaction ignored" in caplog.text
+    assert not [record for record in caplog.records if record.levelno >= logging.ERROR]
+    assert interaction.response.deferred == 0
+    interaction.followup.send.assert_not_awaited()

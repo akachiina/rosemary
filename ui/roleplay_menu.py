@@ -40,10 +40,6 @@ class RoleplayManagerView(MenuView):
         self.register("rp_mgr_restore", self._restore)
         self.register("rp_mgr_add_modal", self._add_submit)
 
-    async def _ack(self, interaction: discord.Interaction) -> None:
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
-
     #: navigation ------------------------------------------------------------
 
     async def _exit(self, interaction: discord.Interaction) -> None:

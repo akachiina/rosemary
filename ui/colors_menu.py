@@ -91,10 +91,6 @@ class ColorsManagerView(MenuView):
     async def _t(self, key: str, **kwargs) -> str:
         return await self.bot.translator.t(self.guild_id, key, **kwargs)
 
-    async def _ack(self, interaction: discord.Interaction) -> None:
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
-
     async def _exit(self, interaction: discord.Interaction) -> None:
         """Back to /settings: swap this view out on the same message."""
         from rosemary.ui.settings_menu import SettingsMenuView
