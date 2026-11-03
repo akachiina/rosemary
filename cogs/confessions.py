@@ -63,9 +63,6 @@ OP_EMOJI_ASSET = "emojis/op_emoji"
 #: every pseudonymous participant its name color.
 _CONFESSION_COLORS = PSEUDONYM_COLORS
 
-#: Characters Discord reads as markdown: escaped when a comment is quoted.
-_MD_SPECIALS = "\\`*_~|>[]()"
-
 
 def _safe_filename(name: str) -> str:
     """Attachment-safe filename (``attachment://`` URLs reject spaces)."""
@@ -97,14 +94,6 @@ def _image_url_for(attachments, filename: str) -> str:
         if getattr(attachment, "filename", "") == filename:
             return getattr(attachment, "url", "") or ""
     return ""
-
-
-def _preview(body: str, limit: int = 140) -> str:
-    """A one-line excerpt of a comment, safe to quote in markdown."""
-    flat = " ".join((body or "").split())
-    if len(flat) > limit:
-        flat = flat[:limit].rstrip() + "…"
-    return "".join("\\" + char if char in _MD_SPECIALS else char for char in flat)
 
 
 def _is_staff(guild: discord.Guild, user_id: int) -> bool:
@@ -199,8 +188,9 @@ async def default_confession_response_document(
     reply comes from the confession's own author) and the identicon is the
     section's thumbnail, exactly like the confession card. The footer
     follows the bot's standard: a divider and small (``-#``) lines with
-    the reference to the parent comment, the excerpt of it and the
-    numbered title. The ``OP`` emoji alone marks the confession's author.
+    the reference to the parent comment and the numbered title. The
+    parent's own text never rides the card (the reference links to it) and
+    the ``OP`` emoji alone marks the confession's author.
     """
     content: list[dict] = []
     if str(variables.get("alias_name") or "").strip():
@@ -225,8 +215,6 @@ async def default_confession_response_document(
     children.append({"type": "divider"})
     if str(variables.get("parent_line") or "").strip():
         children.append({"type": "text", "body": "-# {parent_line}"})
-    if str(variables.get("parent_preview") or "").strip():
-        children.append({"type": "text", "body": "-# {parent_preview}"})
     children.append({"type": "text", "body": "-# {title}"})
     return {
         "v": 1,
@@ -1589,7 +1577,6 @@ class ConfessionsCog(commands.Cog):
             identity = await self._identity(guild.id, number, author.id)
             op_emoji = await self._op_emoji(guild.id) if is_op else ""
             parent_line = ""
-            parent_preview = ""
             parent_link = ""
             if parent_index:
                 parent_ref = await self.bot.translator.t(
@@ -1612,7 +1599,6 @@ class ConfessionsCog(commands.Cog):
                 parent_line = await self.bot.translator.t(
                     guild.id, key, parent_ref=label
                 )
-                parent_preview = _preview(parent.get("body") or "") if parent else ""
             files: list[discord.File] = []
             image_url = ""
             image_name = ""
@@ -1636,7 +1622,6 @@ class ConfessionsCog(commands.Cog):
                 "alias_name": await self._alias_name(guild.id, identity.seed),
                 "avatar_url": f"attachment://{_identicon_filename(identity.seed)}",
                 "op_emoji": op_emoji,
-                "parent_preview": parent_preview,
                 "parent_link": parent_link,
             }
             from rosemary.core.card_service import render_card_message

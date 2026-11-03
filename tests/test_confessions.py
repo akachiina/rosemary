@@ -316,7 +316,7 @@ def test_card_specs_registered_with_exact_contracts():
     assert get_card("confessions.response").variables == (
         "confession_number", "reply_index", "title", "body", "parent_line",
         "color_hex", "image_url", "alias_name", "avatar_url", "op_emoji",
-        "parent_preview", "parent_link",
+        "parent_link",
     )
     for key in (
         "confessions.dm.approved", "confessions.dm.rejected",
@@ -849,8 +849,8 @@ async def test_card_shows_the_alias_as_title_and_the_number_as_footer():
 
 
 async def test_reply_card_moves_the_reference_to_the_footer():
-    """The reply keeps the alias as its title; the parent reference and the
-    excerpt move to the footer, as small (``-#``) lines like every card."""
+    """The reply keeps the alias as its title; the parent reference moves to
+    the footer, as a small (``-#``) line like every card."""
     from rosemary.cogs.confessions import default_confession_response_document
 
     doc = await default_confession_response_document(
@@ -866,7 +866,6 @@ async def test_reply_card_moves_the_reference_to_the_footer():
         alias_name="Anonymous K7Q",
         avatar_url="attachment://anonimo_K7Q.png",
         op_emoji="<:op_emoji:123>",
-        parent_preview="the parent text",
         parent_link="",
     )
     children = doc["blocks"][0]["children"]
@@ -879,11 +878,11 @@ async def test_reply_card_moves_the_reference_to_the_footer():
     }
     divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
     footer = children[divider + 1:]
-    # No quote marker and no "confession author" line: the OP emoji alone
-    # marks the author, and every footer line is small.
+    # Only the reference and the number: the parent's own text never rides
+    # the card (the reference links to it) and the OP emoji alone marks the
+    # author.
     assert footer == [
         {"type": "text", "body": "-# {parent_line}"},
-        {"type": "text", "body": "-# {parent_preview}"},
         {"type": "text", "body": "-# {title}"},
     ]
 
@@ -1007,7 +1006,12 @@ async def test_alias_is_stable_inside_one_thread(tmp_path):
     assert first_reply["alias"] != confession["alias"]
 
 
-async def test_nested_reply_quotes_the_parent_and_links_to_it(tmp_path):
+async def test_nested_reply_links_to_the_parent_without_quoting_it(tmp_path):
+    """The reply points at the parent comment; the parent's text stays there.
+
+    The card carries only the reference (a link to the parent), never a
+    copy of what the parent said.
+    """
     bot = FakeBot(tmp_path)
     cog = ConfessionsCog(bot)
     bot._cog = cog
@@ -1031,7 +1035,8 @@ async def test_nested_reply_quotes_the_parent_and_links_to_it(tmp_path):
     assert (await cog.post_reply(guild, 111, 901, other, "child comment"))[0] == "ok"
     texts = _texts(thread.send.await_args.kwargs["view"])
     assert any("#1-1" in text for text in texts), texts
-    assert any("parent comment" in text for text in texts), texts
     assert any(
         "discord.com/channels/1/777/901" in text for text in texts
     ), texts
+    # The parent's own text is not copied into the reply card.
+    assert not any("parent comment" in text for text in texts), texts

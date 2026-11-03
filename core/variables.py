@@ -49,7 +49,6 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("reply_index", 1, "number"),
         _v("color_hex", "#FFB7C5"),
         _v("parent_line", ""),
-        _v("parent_preview", ""),
         _v("parent_link", "https://example.com/message", "url"),
         _v("alias_name", "Anônimo K7Q"),
         _v("avatar_url", "attachment://anonimo_K7Q.png", "image"),

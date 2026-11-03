@@ -2876,9 +2876,6 @@ variables:
   parent_line:
     label: Parent line
     description: Reference line to the replied comment
-  parent_preview:
-    label: Parent preview
-    description: Excerpt of the comment being replied to
   parent_link:
     label: Parent link
     description: Link to the comment being replied to
@@ -2975,7 +2972,7 @@ card:
       placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}'
     response:
       title: Confession reply card
-      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{parent_preview}}, {{parent_link}}'
+      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{parent_link}}'
     logs:
       approved:
         title: 'Log: confession approved'

@@ -2876,9 +2876,6 @@ variables:
   parent_line:
     label: Linha de origem
     description: Linha de referência ao comentário respondido
-  parent_preview:
-    label: Trecho do comentário
-    description: Trecho do comentário que está sendo respondido
   parent_link:
     label: Link do comentário
     description: Link para o comentário que está sendo respondido
@@ -2975,7 +2972,7 @@ card:
       placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}'
     response:
       title: Card de resposta de confissão
-      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{parent_preview}}, {{parent_link}}'
+      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{parent_link}}'
     logs:
       approved:
         title: 'Log: confissão aprovada'
