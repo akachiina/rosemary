@@ -262,7 +262,12 @@ def _crop_bbox(
 #: Shared rasterizer (also used by core/chat_image.py): PDF bytes -> cropped
 #: transparent PNG at :data:`_ZOOM`, capped at :data:`_MAX_SIDE`.
 def rasterize_pdf(
-    pdf: bytes, *, full_width: bool = False, max_side: int = _MAX_SIDE
+    pdf: bytes,
+    *,
+    full_width: bool = False,
+    max_side: int = _MAX_SIDE,
+    max_width: int | None = None,
+    max_height: int | None = None,
 ) -> bytes | None:
     """PDF bytes to a cropped transparent PNG (``None`` when blank/failed).
 
@@ -273,6 +278,11 @@ def rasterize_pdf(
     width (vertical-only crop: fixed-width consumers need every PNG at the
     same scale) and ``max_side`` overrides the downscale cap. The final zoom
     stays at :data:`_ZOOM` unless the crop would exceed the cap.
+
+    ``max_width`` and ``max_height`` split that cap per axis: a tall page
+    (a long chat bubble) must not be shrunk to a thumbnail just because it
+    is long, so the consumer raises the height cap and keeps the width. A
+    dimension without its own cap uses ``max_side``.
     """
     try:
         import pymupdf
@@ -292,14 +302,13 @@ def rasterize_pdf(
             # Probe pixels -> page points (the probe rasterized at _ZOOM).
             x0, x1 = x0 / _ZOOM, x1 / _ZOOM
         rect = pymupdf.Rect(x0, y0 / _ZOOM, x1, y1 / _ZOOM)
+        width_cap = max_side if max_width is None else max_width
+        height_cap = max_side if max_height is None else max_height
         zoom = float(_ZOOM)
-        if (
-            rect.width * zoom > max_side
-            or rect.height * zoom > max_side
-        ):
+        if rect.width * zoom > width_cap or rect.height * zoom > height_cap:
             zoom = min(
-                max_side / max(rect.width, 1e-6),
-                max_side / max(rect.height, 1e-6),
+                width_cap / max(rect.width, 1e-6),
+                height_cap / max(rect.height, 1e-6),
                 _ZOOM,
             )
         pix = page.get_pixmap(

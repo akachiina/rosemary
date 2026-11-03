@@ -249,11 +249,12 @@ VARIABLES_BY_KEY: dict[str, tuple[str, ...]] = {
     ),
     "confessions.card": (
         "confession_number", "title", "body", "image_url", "color_hex",
-        "timestamp",
+        "timestamp", "alias_name", "avatar_url", "op_emoji",
     ),
     "confessions.response": (
         "confession_number", "reply_index", "title", "body", "parent_line",
-        "color_hex", "image_url",
+        "color_hex", "image_url", "alias_name", "avatar_url", "op_emoji",
+        "op_line", "parent_preview", "parent_link",
     ),
     "confessions.dm.approved": ("confession_number", "body", "message_link"),
     "confessions.dm.rejected": ("confession_number", "body", "reason"),

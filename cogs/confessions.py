@@ -5,11 +5,20 @@ on any public card); the post is anonymous everywhere except this guild's
 ``confessions.json``. With ``confessions.review_required`` the confession
 waits in the review channel (Approve / Deny / Ban, deny and ban through an
 optional-reason modal); otherwise it posts straight to the public channel.
+
 Approved posts carry a random stable color and two buttons (write another,
 reply anonymously); replies nest inside a lazily created thread as numbered
 ``#N-M`` cards, each with its own reply button. The author is DM'd on
 approval, denial and every reply; staff sees authors only with
 ``confessions.reveal_author`` on.
+
+The public post is a plain Discord card: the alias name is the card's title
+(in bold) with the generated identicon beside it, exactly like the audit
+logs put the member's avatar next to the title. The confession text keeps
+its normal weight and the numbered title ("Confissão (#60)") moves to the
+footer. The reply written by the confession's own author carries the ``OP``
+emoji (``confessions.mark_op``), an application emoji shipped in
+``assets/emojis/`` and referenced as ``{emojis/op_emoji}``.
 
 Note: this file intentionally does NOT import ``from __future__ import
 annotations``: py-cord inspects slash-command annotations with
@@ -30,6 +39,7 @@ from discord.ext import commands
 from rosemary.core.confessions import ConfessionStore
 from rosemary.core.debug import send_log
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
+from rosemary.core.pseudonym import PSEUDONYM_COLORS, Pseudonym, make_pseudonym, new_seed
 from rosemary.core.settings import get_setting
 from rosemary.ui.menu import MenuView
 
@@ -44,12 +54,17 @@ _APPROVE_ID = "confess_approve"
 _DENY_ID = "confess_deny"
 _BAN_ID = "confess_ban"
 
+#: The asset that marks the confession's own author (an application emoji
+#: shipped in ``assets/emojis/``): ``{emojis/op_emoji}``.
+OP_EMOJI_ASSET = "emojis/op_emoji"
+
 #: Stable pastel accents, one drawn per confession at post time and kept in
-#: the store so repaints never reshuffle the color.
-_CONFESSION_COLORS = (
-    "#FFB7C5", "#FFD8A8", "#FFF3B0", "#B5E48C", "#99E2B4",
-    "#88D8B0", "#90DBF4", "#A3C4F3", "#BDB2FF", "#FFC6FF",
-)
+#: the store so repaints never reshuffle the color. The same palette gives
+#: every pseudonymous participant its name color.
+_CONFESSION_COLORS = PSEUDONYM_COLORS
+
+#: Characters Discord reads as markdown: escaped when a comment is quoted.
+_MD_SPECIALS = "\\`*_~|>[]()"
 
 
 def _safe_filename(name: str) -> str:
@@ -58,12 +73,38 @@ def _safe_filename(name: str) -> str:
     return (clean or "confession.png")[:80]
 
 
+def _identicon_filename(seed: str) -> str:
+    """The filename of the generated identicon of an alias seed."""
+    return f"anonimo_{seed}.png"
+
+
 def _image_url_from(attachments) -> str:
     """First image attachment's CDN URL (empty when none)."""
     for attachment in attachments or []:
         if (getattr(attachment, "content_type", "") or "").startswith("image/"):
             return attachment.url
     return ""
+
+
+def _image_url_for(attachments, filename: str) -> str:
+    """The CDN URL of one named image attachment (empty when absent).
+
+    A confession message carries the identicon and the user's own picture:
+    picking by name keeps the store pointing at the real picture instead of
+    the identicon.
+    """
+    for attachment in attachments or []:
+        if getattr(attachment, "filename", "") == filename:
+            return getattr(attachment, "url", "") or ""
+    return ""
+
+
+def _preview(body: str, limit: int = 140) -> str:
+    """A one-line excerpt of a comment, safe to quote in markdown."""
+    flat = " ".join((body or "").split())
+    if len(flat) > limit:
+        flat = flat[:limit].rstrip() + "…"
+    return "".join("\\" + char if char in _MD_SPECIALS else char for char in flat)
 
 
 def _is_staff(guild: discord.Guild, user_id: int) -> bool:
@@ -77,22 +118,45 @@ def _is_staff(guild: discord.Guild, user_id: int) -> bool:
 async def default_confession_document(bot, guild_id: int, **variables) -> dict:
     """Catalog-default public card (``confessions.card``).
 
-    Numbered title, body, self-dropping image gallery. The container wears
-    the confession's stored random color (``color_hex``). Deliberately no
-    avatar thumbnail anywhere: the post is anonymous and the author's
-    avatar image would identify them.
+    The alias name is the card's title: in bold, with the ``OP`` emoji
+    beside it when the author is the confession's own, and the generated
+    identicon as the section's thumbnail (the same frame the audit logs
+    use for the member's avatar). The confession text keeps its normal
+    weight, the picture rides the self-dropping gallery and the numbered
+    title ("Confissão (#60)") is the footer.
+
+    Deliberately no real avatar anywhere: the post is anonymous and the
+    author's avatar image would identify them.
     """
+    content: list[dict] = []
+    if str(variables.get("alias_name") or "").strip():
+        content.append({"type": "text", "body": "**{alias_name}**{op_emoji}"})
+    if str(variables.get("body") or "").strip():
+        content.append({"type": "text", "body": "{body}"})
+    children: list[dict] = []
+    avatar = str(variables.get("avatar_url") or "").strip()
+    if avatar and content:
+        children.append(
+            {
+                "type": "section",
+                "accessory": {"type": "thumbnail", "url": "{avatar_url}"},
+                "children": content,
+            }
+        )
+    else:
+        children.extend(content)
+    image_url = str(variables.get("image_url") or "").strip()
+    if image_url:
+        children.append({"type": "gallery", "urls": [image_url]})
+    children.append({"type": "divider"})
+    children.append({"type": "text", "body": "{title}"})
     return {
         "v": 1,
         "blocks": [
             {
                 "type": "container",
                 "color": variables.get("color_hex") or "info",
-                "children": [
-                    {"type": "text", "body": "# {title}"},
-                    {"type": "text", "body": "{body}"},
-                    {"type": "gallery", "urls": ["{image_url}"]},
-                ],
+                "children": children,
             }
         ],
     }
@@ -107,7 +171,8 @@ async def default_confession_review_document(
     send site leaves empty unless ``reveal_author`` is on (an empty line
     renders nothing). No avatar thumbnail either: with reveal off, the
     author's avatar image would unmask them to staff. Buttons ride as
-    code, like every interactive row.
+    code, like every interactive row. The review stays plain text on
+    purpose: the staff must read, copy and search the confession.
     """
     children: list[dict] = [
         {"type": "text", "body": "# {title}"},
@@ -123,21 +188,43 @@ async def default_confession_review_document(
 
 
 async def default_confession_response_document(
-    bot, guild_id: int, **variables
-) -> dict:
+    bot, guild_id: int, **variables) -> dict:
     """Catalog-default reply card (``confessions.response``).
 
-    Numbered ``#N-M`` title, optional parent reference line (empty unless
-    the reply answers another reply), body, self-dropping image gallery.
-    Wears the confession's color.
+    The title is the alias name (bold, with the ``OP`` emoji when the
+    reply comes from the confession's own author) and the identicon is the
+    section's thumbnail, exactly like the confession card. The footer
+    carries the reference to the parent comment, the excerpt of it, the
+    "author of the confession" line and the numbered title.
     """
-    children: list[dict] = [
-        {"type": "text", "body": "# {title}"},
-        {"type": "text", "body": "{body}"},
-        {"type": "gallery", "urls": ["{image_url}"]},
-    ]
-    if variables.get("parent_line"):
-        children.insert(1, {"type": "text", "body": "{parent_line}"})
+    content: list[dict] = []
+    if str(variables.get("alias_name") or "").strip():
+        content.append({"type": "text", "body": "**{alias_name}**{op_emoji}"})
+    if str(variables.get("body") or "").strip():
+        content.append({"type": "text", "body": "{body}"})
+    children: list[dict] = []
+    avatar = str(variables.get("avatar_url") or "").strip()
+    if avatar and content:
+        children.append(
+            {
+                "type": "section",
+                "accessory": {"type": "thumbnail", "url": "{avatar_url}"},
+                "children": content,
+            }
+        )
+    else:
+        children.extend(content)
+    image_url = str(variables.get("image_url") or "").strip()
+    if image_url:
+        children.append({"type": "gallery", "urls": [image_url]})
+    children.append({"type": "divider"})
+    if str(variables.get("parent_line") or "").strip():
+        children.append({"type": "text", "body": "{parent_line}"})
+    if str(variables.get("parent_preview") or "").strip():
+        children.append({"type": "text", "body": "> {parent_preview}"})
+    if str(variables.get("op_line") or "").strip():
+        children.append({"type": "text", "body": "{op_line}"})
+    children.append({"type": "text", "body": "{title}"})
     return {
         "v": 1,
         "blocks": [
@@ -543,6 +630,89 @@ class ConfessionsCog(commands.Cog):
             await get_setting(self.bot.storage, guild_id, "confessions.review_required")
         )
 
+    async def _mark_op(self, guild_id: int) -> bool:
+        """Whether the ``OP`` emoji marks the public posts."""
+        return bool(await get_setting(self.bot.storage, guild_id, "confessions.mark_op"))
+
+    async def _op_emoji(self, guild_id: int) -> str:
+        """The ``OP`` emoji mention (empty when the marker is off).
+
+        The emoji is a real application emoji shipped in ``assets/emojis/``
+        and uploaded at startup, so it renders natively in the card.
+        """
+        if not await self._mark_op(guild_id):
+            return ""
+        assets = getattr(self.bot, "assets", None)
+        if assets is None:
+            return ""
+        return assets.mention(OP_EMOJI_ASSET)
+
+    async def _alias_name(self, guild_id: int, seed: str) -> str:
+        """The localized pseudonym of a seed ("Anonymous K7Q")."""
+        return await self.bot.translator.t(guild_id, "confess.alias", seed=seed)
+
+    async def _identity(
+        self, guild_id: int, number: int, user_id: int
+    ) -> Pseudonym:
+        """The pseudonymous identity of a user inside one confession thread.
+
+        The seed is stored per confession number: the same participant keeps
+        the same name and avatar for the whole thread (and gets a fresh one
+        in the next confession).
+        """
+        seed = await self.store.assign_alias(guild_id, number, user_id, new_seed())
+        return make_pseudonym(seed)
+
+    def _identicon_file(self, identity: Pseudonym) -> discord.File | None:
+        """The generated identicon of an alias (uploaded with the message).
+
+        ``None`` when the image could not be generated: the card then shows
+        the alias name without the thumbnail.
+        """
+        if not identity.avatar:
+            return None
+        filename = _identicon_filename(identity.seed)
+        return discord.File(io.BytesIO(identity.avatar), filename=filename)
+
+    def _message_link(self, guild_id: int, channel_id, message_id: int) -> str:
+        """The jump link of a message (empty when the ids are unknown)."""
+        if not channel_id or not message_id:
+            return ""
+        return f"https://discord.com/channels/{guild_id}/{channel_id}/{message_id}"
+
+    async def _recover_image(
+        self, guild: discord.Guild, message_id: int
+    ) -> tuple[bytes, str] | None:
+        """The picture of a posted message (the review post's attachment).
+
+        The approval re-posts the confession publicly: the picture travels
+        with the review message, so it is fetched before that message is
+        deleted.
+        """
+        channel = await self._review_channel(guild)
+        if channel is None:
+            return None
+        try:
+            message = await channel.get_partial_message(message_id).fetch()
+        except Exception as exc:
+            # A missing picture is not a failed approval: the post goes out
+            # without it (the confession itself is what matters).
+            log.info(
+                "Confession image recovery failed for %s: %s", message_id, exc
+            )
+            return None
+        for attachment in getattr(message, "attachments", None) or []:
+            if not (getattr(attachment, "content_type", "") or "").startswith("image/"):
+                continue
+            try:
+                data = await attachment.read()
+            except Exception as exc:
+                log.info("Confession image read failed: %s", exc)
+                return None
+            if data:
+                return bytes(data), _safe_filename(attachment.filename)
+        return None
+
     async def _title_for(self, guild_id: int, number: int) -> str:
         return await self.bot.translator.t(
             guild_id, "confess.card.title", confession_number=number
@@ -906,6 +1076,9 @@ class ConfessionsCog(commands.Cog):
     async def _public_variables(
         self, guild: discord.Guild, entry: dict, *, timestamp: str
     ) -> dict:
+        seed = str(entry.get("alias") or "")
+        alias_name = await self._alias_name(guild.id, seed) if seed else ""
+        avatar_url = f"attachment://{_identicon_filename(seed)}" if seed else ""
         return {
             "confession_number": entry.get("number", 0),
             "title": await self.bot.translator.t(
@@ -915,6 +1088,9 @@ class ConfessionsCog(commands.Cog):
             "image_url": entry.get("image_url") or "",
             "color_hex": entry.get("color_hex") or "",
             "timestamp": timestamp,
+            "alias_name": alias_name,
+            "avatar_url": avatar_url,
+            "op_emoji": str(entry.get("op_emoji") or ""),
         }
 
     async def _render_review(
@@ -945,9 +1121,7 @@ class ConfessionsCog(commands.Cog):
         )
         return CardPayload(view=view), discord.AllowedMentions.none()
 
-    async def _render_public(
-        self, guild: discord.Guild, entry: dict
-    ):
+    async def _render_public(self, guild: discord.Guild, entry: dict):
         """Themed public card (or code fallback) plus its mention policy."""
         from rosemary.core.card_service import CardPayload, render_card_message
 
@@ -957,7 +1131,10 @@ class ConfessionsCog(commands.Cog):
             ),
         )
         payload, allowed = await render_card_message(
-            self.bot, guild.id, "confessions.card", variables
+            self.bot,
+            guild.id,
+            "confessions.card",
+            variables,
         )
         if payload is not None:
             return payload, allowed
@@ -1014,11 +1191,14 @@ class ConfessionsCog(commands.Cog):
             return "no_channel", None
         files: list[discord.File] = []
         image_url = ""
+        image_name = ""
         if image is not None:
             data, name = image
             files.append(discord.File(io.BytesIO(data), filename=name))
             image_url = f"attachment://{name}"
+            image_name = name
         number = await self.store.next_number(guild.id)
+        identity = await self._identity(guild.id, number, author.id)
         draft = {
             "number": number,
             "author_id": author.id,
@@ -1027,6 +1207,8 @@ class ConfessionsCog(commands.Cog):
             "user_name": author.display_name,
             "user_avatar": author.display_avatar.url,
             "image_url": image_url,
+            "alias": identity.seed,
+            "alias_color": identity.color,
         }
         if await self._review_required(guild.id):
             review = await self._review_channel(guild)
@@ -1039,23 +1221,33 @@ class ConfessionsCog(commands.Cog):
                 payload, (await self._review_view(guild.id)).children[0]
             )
             send_kwargs = payload.message_kwargs()
+            if files:
+                send_kwargs["files"] = files
             sent = await review.send(**send_kwargs, allowed_mentions=allowed)
             await self.store.rekey(guild.id, 0, sent.id)
             return "review", sent
         color_hex = secrets.choice(_CONFESSION_COLORS)
-        payload, allowed = await self._render_public(guild, {**draft, "color_hex": color_hex})
+        entry = {
+            **draft,
+            "body": body,
+            "color_hex": color_hex,
+            "op_emoji": "",
+        }
+        payload, allowed = await self._render_public(guild, entry)
         payload = await self._row_into(
             payload, (await self._public_view(guild.id)).children[0]
         )
         send_kwargs = payload.message_kwargs()
-        if files:
-            send_kwargs["files"] = files
+        identicon = self._identicon_file(identity)
+        all_files = [*([identicon] if identicon else []), *files]
+        if all_files:
+            send_kwargs["files"] = all_files
         sent = await channel.send(**send_kwargs, allowed_mentions=allowed)
-        stored_image_url = _image_url_from(sent.attachments)
+        stored_image_url = _image_url_for(sent.attachments, image_name)
         if files and not stored_image_url:
             try:
                 fresh = await channel.fetch_message(sent.id)
-                stored_image_url = _image_url_from(fresh.attachments)
+                stored_image_url = _image_url_for(fresh.attachments, image_name)
             except discord.HTTPException:
                 stored_image_url = ""
         draft["image_url"] = stored_image_url
@@ -1078,30 +1270,68 @@ class ConfessionsCog(commands.Cog):
         if channel is None:
             return "no_channel", None
         number = int(entry.get("number") or 0)
+        author_id = int(entry.get("author_id") or 0)
         color_hex = secrets.choice(_CONFESSION_COLORS)
-        public_entry = {**entry, "color_hex": color_hex}
+        body = entry.get("body") or ""
+        # The picture lives in the review post: fetch it before that post
+        # is deleted, so the public message carries it too.
+        picture = await self._recover_image(guild, review_message_id)
+        image_url = ""
+        files: list[discord.File] = []
+        if picture is not None:
+            data, name = picture
+            files.append(discord.File(io.BytesIO(data), filename=name))
+            image_url = f"attachment://{name}"
+        seed = str(entry.get("alias") or "")
+        if not seed and author_id:
+            identity = await self._identity(guild.id, number, author_id)
+        else:
+            identity = make_pseudonym(seed or new_seed())
+        public_entry = {
+            **entry,
+            "body": body,
+            "color_hex": color_hex,
+            "image_url": image_url,
+            "op_emoji": "",
+        }
         payload, allowed = await self._render_public(guild, public_entry)
         payload = await self._row_into(
             payload, (await self._public_view(guild.id)).children[0]
         )
+        send_kwargs = payload.message_kwargs()
+        identicon = self._identicon_file(identity)
+        all_files = [*([identicon] if identicon else []), *files]
+        if all_files:
+            send_kwargs["files"] = all_files
         try:
             public = await channel.send(
-                **payload.message_kwargs(), allowed_mentions=allowed
+                **send_kwargs, allowed_mentions=allowed
             )
         except (discord.Forbidden, discord.HTTPException):
             return "no_channel", None
+        stored_image_url = ""
+        if picture is not None:
+            stored_image_url = _image_url_for(public.attachments, picture[1])
+            if not stored_image_url:
+                try:
+                    fresh = await channel.fetch_message(public.id)
+                    stored_image_url = _image_url_for(fresh.attachments, picture[1])
+                except discord.HTTPException:
+                    stored_image_url = ""
         await self.store.put(
             guild.id,
             public.id,
             number=number,
-            author_id=int(entry.get("author_id") or 0),
+            author_id=author_id,
             channel_id=channel.id,
-            body=entry.get("body") or "",
+            body=body,
             user_name=entry.get("user_name") or "",
             user_avatar=entry.get("user_avatar") or "",
-            image_url=entry.get("image_url") or "",
+            image_url=stored_image_url,
             color_hex=color_hex,
             status="open",
+            alias=identity.seed,
+            alias_color=identity.color,
         )
         await self.store.discard(guild.id, review_message_id)
         review_channel = await self._review_channel(guild)
@@ -1110,19 +1340,19 @@ class ConfessionsCog(commands.Cog):
                 await review_channel.get_partial_message(review_message_id).delete()
         await self._dm_card_send(
             guild,
-            int(entry.get("author_id") or 0),
+            author_id,
             "confessions.dm.approved",
             "success",
             {
                 "confession_number": number,
-                "body": entry.get("body") or "",
+                "body": body,
                 "message_link": public.jump_url,
             },
             "confess.dm.approved",
         )
         await self._log(
             guild.id, "approved", "success",
-            [int(entry.get("author_id") or 0)],
+            [author_id],
             moderator=moderator.mention, confession_number=number,
         )
         return "ok", public
@@ -1332,7 +1562,15 @@ class ConfessionsCog(commands.Cog):
             thread = await self._ensure_thread(guild, confession_id, entry)
             if thread is None:
                 return "thread", None
+            # Re-read inside the lock: the reply counter must be fresh or
+            # two quick replies would show the same number.
+            fresh_entry = await self.store.get(guild.id, confession_id)
+            if fresh_entry is not None:
+                entry = fresh_entry
+            number = int(entry.get("number") or 0)
+            author_id = int(entry.get("author_id") or 0)
             parent_index = 0
+            parent = None
             if parent_id:
                 parent = await self.store.get_reply(guild.id, parent_id)
                 if (
@@ -1341,36 +1579,74 @@ class ConfessionsCog(commands.Cog):
                 ):
                     parent_index = int(parent.get("index") or 0)
             index = int(entry.get("reply_count") or 0) + 1
+            # The confession's own author is flagged on their own reply: the
+            # OP emoji is the only public trace of who wrote the confession.
+            is_op = bool(author_id) and author.id == author_id
+            parent_is_op = bool(parent and parent.get("is_op"))
+            identity = await self._identity(guild.id, number, author.id)
+            op_emoji = await self._op_emoji(guild.id) if is_op else ""
             parent_line = ""
+            parent_preview = ""
+            parent_link = ""
             if parent_index:
-                parent_line = await self.bot.translator.t(
-                    guild.id, "confess.response.parent",
-                    confession_number=entry.get("number", 0),
+                parent_ref = await self.bot.translator.t(
+                    guild.id,
+                    "confess.response.parent_ref",
+                    confession_number=number,
                     parent_index=parent_index,
                 )
+                parent_link = self._message_link(
+                    guild.id,
+                    entry.get("thread_id") or entry.get("channel_id"),
+                    parent_id,
+                )
+                label = f"[{parent_ref}]({parent_link})" if parent_link else parent_ref
+                key = (
+                    "confess.response.parent_op"
+                    if parent_is_op
+                    else "confess.response.parent"
+                )
+                parent_line = await self.bot.translator.t(
+                    guild.id, key, parent_ref=label
+                )
+                parent_preview = _preview(parent.get("body") or "") if parent else ""
+            op_line = ""
+            if op_emoji:
+                op_line = await self.bot.translator.t(guild.id, "confess.op_line")
             files: list[discord.File] = []
             image_url = ""
+            image_name = ""
             if image is not None:
                 data, name = image
                 files.append(discord.File(io.BytesIO(data), filename=name))
                 image_url = f"attachment://{name}"
+                image_name = name
             variables = {
-                "confession_number": entry.get("number", 0),
+                "confession_number": number,
                 "reply_index": index,
                 "title": await self.bot.translator.t(
                     guild.id, "confess.response.title",
-                    confession_number=entry.get("number", 0),
+                    confession_number=number,
                     reply_index=index,
                 ),
                 "body": body,
                 "parent_line": parent_line,
                 "color_hex": entry.get("color_hex") or "",
                 "image_url": image_url,
+                "alias_name": await self._alias_name(guild.id, identity.seed),
+                "avatar_url": f"attachment://{_identicon_filename(identity.seed)}",
+                "op_emoji": op_emoji,
+                "op_line": op_line,
+                "parent_preview": parent_preview,
+                "parent_link": parent_link,
             }
             from rosemary.core.card_service import render_card_message
 
             payload, allowed = await render_card_message(
-                self.bot, guild.id, "confessions.response", variables
+                self.bot,
+                guild.id,
+                "confessions.response",
+                variables,
             )
             if payload is None:
                 from rosemary.ui.containers import (
@@ -1403,18 +1679,20 @@ class ConfessionsCog(commands.Cog):
             else:
                 payload.view.add_item(view.children[0])
             send_kwargs = payload.message_kwargs()
-            if files:
-                send_kwargs["files"] = files
+            identicon = self._identicon_file(identity)
+            all_files = [*([identicon] if identicon else []), *files]
+            if all_files:
+                send_kwargs["files"] = all_files
             sent = await thread.send(
                 **send_kwargs, allowed_mentions=allowed
             )
-            stored_image_url = _image_url_from(sent.attachments)
+            stored_image_url = _image_url_for(sent.attachments, image_name)
             if files and not stored_image_url:
                 # Same live gap as confession posts: the send response may
                 # omit attachments, so fetch for the signed CDN URL.
                 try:
                     fresh = await thread.fetch_message(sent.id)
-                    stored_image_url = _image_url_from(fresh.attachments)
+                    stored_image_url = _image_url_for(fresh.attachments, image_name)
                 except discord.HTTPException:
                     stored_image_url = ""
             stored = await self.store.add_reply(
@@ -1422,32 +1700,39 @@ class ConfessionsCog(commands.Cog):
                 parent_id=parent_id if parent_index else None,
                 parent_index=parent_index, author_id=author.id, body=body,
                 image_url=stored_image_url,
+                alias=identity.seed,
+                alias_color=identity.color,
+                is_op=is_op,
+                parent_is_op=parent_is_op,
             )
             if stored is None:
                 return "gone", None
-        await self._dm_card_send(
-            guild, int(entry.get("author_id") or 0),
-            "confessions.dm.response", "info",
-            {
-                "confession_number": entry.get("number", 0),
-                "reply_index": index,
-                "body": body,
-                "message_link": sent.jump_url,
-            },
-            "confess.dm.response",
-        )
+        # The author of the confession hears about every reply but their own:
+        # a DM about your own comment is noise.
+        if author_id and author.id != author_id:
+            await self._dm_card_send(
+                guild, author_id,
+                "confessions.dm.response", "info",
+                {
+                    "confession_number": number,
+                    "reply_index": index,
+                    "body": body,
+                    "message_link": sent.jump_url,
+                },
+                "confess.dm.response",
+            )
         if parent_index:
             parent = await self.store.get_reply(guild.id, parent_id)
             parent_author = int(parent.get("author_id") or 0) if parent else 0
             if (
                 parent_author
                 and parent_author != author.id
-                and parent_author != int(entry.get("author_id") or 0)
+                and parent_author != author_id
             ):
                 await self._dm_card_send(
                     guild, parent_author, "confessions.dm.response", "info",
                     {
-                        "confession_number": entry.get("number", 0),
+                        "confession_number": number,
                         "reply_index": index,
                         "body": body,
                         "message_link": sent.jump_url,
@@ -1456,7 +1741,7 @@ class ConfessionsCog(commands.Cog):
                 )
         await self._log(
             guild.id, "replied", "info", (),
-            confession_number=entry.get("number", 0), reply_index=index,
+            confession_number=number, reply_index=index,
         )
         return "ok", sent
 

@@ -34,6 +34,16 @@ def _resolver(language: str):
     return resolve
 
 
+class FakeAssets:
+    """The asset registry (the application emojis) with one known emoji."""
+
+    def __init__(self, mention: str = "<:op_emoji:123>") -> None:
+        self._mention = mention
+
+    def mention(self, key: str, *, guild_id: int | None = None) -> str:
+        return self._mention if key == "emojis/op_emoji" else ""
+
+
 class FakeBot:
     def __init__(self, tmp_path, language="en-US"):
         self.storage = GuildStorage(tmp_path)
@@ -43,6 +53,7 @@ class FakeBot:
             resolver=_resolver(language),
             default_placeholders=self.theme.emojis,
         )
+        self.assets = FakeAssets()
         self.guilds = []
         self.views = []
         self._cog = None
@@ -135,7 +146,7 @@ def make_upload(
     return upload
 
 
-async def _enable_confessions(bot, *, review=False, reveal=False):
+async def _enable_confessions(bot, *, review=False, reveal=False, mark_op=True):
     from rosemary.core.settings import set_setting
 
     await set_setting(bot.storage, 1, "confessions.enabled", True)
@@ -143,6 +154,7 @@ async def _enable_confessions(bot, *, review=False, reveal=False):
     await set_setting(bot.storage, 1, "confessions.review_channel", 43)
     await set_setting(bot.storage, 1, "confessions.review_required", review)
     await set_setting(bot.storage, 1, "confessions.reveal_author", reveal)
+    await set_setting(bot.storage, 1, "confessions.mark_op", mark_op)
 
 
 def _texts(view):
@@ -299,11 +311,12 @@ def test_card_specs_registered_with_exact_contracts():
     )
     assert get_card("confessions.card").variables == (
         "confession_number", "title", "body", "image_url", "color_hex",
-        "timestamp",
+        "timestamp", "alias_name", "avatar_url", "op_emoji",
     )
     assert get_card("confessions.response").variables == (
         "confession_number", "reply_index", "title", "body", "parent_line",
-        "color_hex", "image_url",
+        "color_hex", "image_url", "alias_name", "avatar_url", "op_emoji",
+        "op_line", "parent_preview", "parent_link",
     )
     for key in (
         "confessions.dm.approved", "confessions.dm.rejected",
@@ -447,7 +460,9 @@ async def test_nested_replies_number_and_dm_both_authors(tmp_path):
     ]
     assert any("#1-2" in text for view in views for text in _texts(view))
     assert any("#1-1" in text for view in views for text in _texts(view))
-    assert author.send.await_count == 2
+    # The confession's author hears about the other reply but not about
+    # their own one (a DM about your own comment is noise).
+    assert author.send.await_count == 1
     assert replier.send.await_count == 1
 
 
@@ -656,11 +671,13 @@ async def test_modal_submit_with_image_attaches(tmp_path):
     await _enable_confessions(bot)
     cdn = MagicMock()
     cdn.url = "https://cdn.discordapp.com/attachments/1/42/pic.png"
+    cdn.filename = "cat.png"
     sent.attachments = [cdn]
     interaction = make_click(guild, user_id=7)
     await cog._confess_submit(interaction, "with pic", [make_upload()])
     files = public.send.await_args.kwargs.get("files") or []
-    assert len(files) == 1
+    # The generated identicon rides with the message, plus the user's picture.
+    assert len(files) == 2, [f.filename for f in files]
     entry = await cog.store.get(1, 111)
     assert entry is not None
     assert entry["image_url"] == "https://cdn.discordapp.com/attachments/1/42/pic.png"
@@ -705,9 +722,9 @@ def _all_strings(view) -> list[str]:
     return found
 
 
-async def test_public_card_has_no_avatar_thumbnail(tmp_path):
-    """Regression (live 400 + identity leak): the anonymous card must not
-    carry the author's avatar anywhere, thumbnail or otherwise."""
+async def test_public_card_shows_the_identicon_but_not_the_real_avatar(tmp_path):
+    """Regression (live 400 + identity leak): the anonymous card shows the
+    GENERATED identicon, never the author's own avatar."""
     bot = FakeBot(tmp_path)
     cog = ConfessionsCog(bot)
     bot._cog = cog
@@ -715,9 +732,13 @@ async def test_public_card_has_no_avatar_thumbnail(tmp_path):
     await _enable_confessions(bot)
     await cog._confess_submit(make_click(guild, user_id=7), "secret", [])
     view = public.send.await_args.kwargs["view"]
-    assert not any(
-        isinstance(item, discord.ui.Thumbnail) for item in view.walk_children()
-    )
+    thumbnails = [
+        item for item in view.walk_children() if isinstance(item, discord.ui.Thumbnail)
+    ]
+    assert thumbnails, "the generated identicon must be the card thumbnail"
+    assert all(
+        item.url.startswith("attachment://anonimo_") for item in thumbnails
+    ), [item.url for item in thumbnails]
     avatar = "https://cdn.discordapp.com/embed/avatars/0.png"
     assert not any(avatar in text for text in _all_strings(view))
 
@@ -750,6 +771,7 @@ async def test_reply_with_image_attaches_and_persists(tmp_path):
     await cog.store.set_thread(1, 111, 777)
     cdn = MagicMock()
     cdn.url = "https://cdn.discordapp.com/attachments/1/42/reply.png"
+    cdn.filename = "cat.png"
     first_reply.attachments = [cdn]
     replier = make_member(9)
     guild.get_member.side_effect = lambda uid: {7: author, 9: replier}.get(uid)
@@ -757,7 +779,8 @@ async def test_reply_with_image_attaches_and_persists(tmp_path):
     interaction = make_click(guild, user_id=9)
     await cog._reply_submit(interaction, "look", [make_upload()])
     files = thread.send.await_args.kwargs.get("files") or []
-    assert len(files) == 1
+    # The generated identicon rides with the message, plus the user's picture.
+    assert len(files) == 2, [f.filename for f in files]
     reply = await cog.store.get_reply(1, 901)
     assert reply is not None
     assert reply["image_url"] == "https://cdn.discordapp.com/attachments/1/42/reply.png"
@@ -769,3 +792,222 @@ def _has_gallery(view) -> bool:
     return any(
         isinstance(item, discord.ui.MediaGallery) for item in view.walk_children()
     )
+
+
+#: card layout ----------------------------------------------------------------
+
+
+def _png_bytes(files) -> bytes:
+    """The bytes of the first attached file."""
+    assert files, "no file attached"
+    data = files[0].fp.read()
+    return data if isinstance(data, bytes) else data.read()
+
+
+def _identicon_file(files):
+    """The attached file whose name starts with ``anonimo_``."""
+    for file in files:
+        if file.filename.startswith("anonimo_"):
+            return file
+    return None
+
+
+async def test_card_shows_the_alias_as_title_and_the_number_as_footer():
+    """The alias name is the card title (bold); "Confession (#N)" is the footer."""
+    from rosemary.cogs.confessions import default_confession_document
+
+    doc = await default_confession_document(
+        None,
+        1,
+        confession_number=55,
+        title="Confession (#55)",
+        body="o texto",
+        image_url="",
+        color_hex="#FFB7C5",
+        timestamp="",
+        alias_name="Anonymous K7Q",
+        avatar_url="attachment://anonimo_K7Q.png",
+        op_emoji="",
+    )
+    children = doc["blocks"][0]["children"]
+    section = children[0]
+    assert section["type"] == "section"
+    assert section["accessory"] == {"type": "thumbnail", "url": "{avatar_url}"}
+    assert section["children"][0] == {
+        "type": "text",
+        "body": "**{alias_name}**{op_emoji}",
+    }
+    assert section["children"][1] == {"type": "text", "body": "{body}"}
+    # The numbered title is the footer, right after a divider.
+    divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
+    assert children[divider + 1] == {"type": "text", "body": "{title}"}
+    # No heading above the alias anymore.
+    assert not any(str(c.get("body", "")).startswith("# ") for c in children)
+
+
+async def test_reply_card_moves_the_reference_to_the_footer():
+    """The reply keeps the alias as its title; the parent reference and the
+    "confession author" line move to the footer."""
+    from rosemary.cogs.confessions import default_confession_response_document
+
+    doc = await default_confession_response_document(
+        None,
+        1,
+        confession_number=55,
+        reply_index=1,
+        title="Confession (#55-1)",
+        body="o texto",
+        parent_line="in reply to #55-1",
+        color_hex="#FFB7C5",
+        image_url="",
+        alias_name="Anonymous K7Q",
+        avatar_url="attachment://anonimo_K7Q.png",
+        op_emoji="<:op_emoji:123>",
+        op_line="Confession author",
+        parent_preview="the parent text",
+        parent_link="",
+    )
+    children = doc["blocks"][0]["children"]
+    section = children[0]
+    assert section["type"] == "section"
+    assert section["accessory"]["type"] == "thumbnail"
+    assert section["children"][0] == {
+        "type": "text",
+        "body": "**{alias_name}**{op_emoji}",
+    }
+    divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
+    footer = children[divider + 1:]
+    assert {"type": "text", "body": "{parent_line}"} in footer
+    assert {"type": "text", "body": "> {parent_preview}"} in footer
+    assert {"type": "text", "body": "{op_line}"} in footer
+    assert footer[-1] == {"type": "text", "body": "{title}"}
+
+
+async def test_public_card_attaches_the_identicon_and_keeps_the_text(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    await cog._confess_submit(make_click(guild, user_id=7), "my secret", [])
+    files = public.send.await_args.kwargs.get("files") or []
+    identicon = _identicon_file(files)
+    assert identicon is not None, [f.filename for f in files]
+    assert _png_bytes([identicon]).startswith(b"\x89PNG")
+    texts = _texts(public.send.await_args.kwargs["view"])
+    # The body is plain text in the card, not a rendered image.
+    assert any("my secret" in text for text in texts), texts
+    # The alias is the title, in bold, and the number is the footer.
+    assert any(text.startswith("**Anonymous") for text in texts), texts
+    assert any("Confession (#1)" in text for text in texts), texts
+    entry = await cog.store.get(1, 111)
+    assert entry is not None
+    assert len(entry["alias"]) == 3
+    assert entry["alias_color"].startswith("#")
+
+
+async def test_public_card_never_shows_the_real_identity(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    await cog._confess_submit(make_click(guild, user_id=7), "secret", [])
+    strings = _all_strings(public.send.await_args.kwargs["view"])
+    assert not any("User7" in text for text in strings), strings
+    assert not any("embed/avatars" in text for text in strings), strings
+
+
+async def test_reply_by_the_confession_author_is_flagged_op(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    await cog._confess_submit(make_click(guild, user_id=7), "mine", [])
+    thread, _reply = make_thread(901)
+    guild.get_thread.return_value = thread
+    await cog.store.set_thread(1, 111, 777)
+    outcome, _msg = await cog.post_reply(guild, 111, 0, author, "my own reply")
+    assert outcome == "ok"
+    stored = await cog.store.get_reply(1, 901)
+    assert stored is not None and stored["is_op"] is True
+    texts = _texts(thread.send.await_args.kwargs["view"])
+    # The OP emoji rides the alias name, the footer names the author.
+    assert any("<:op_emoji:123>" in text for text in texts), texts
+    assert any("Confession author" in text for text in texts), texts
+    # No DM about your own comment.
+    assert author.send.await_count == 0
+
+
+async def test_op_emoji_can_be_turned_off(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot, mark_op=False)
+    await cog._confess_submit(make_click(guild, user_id=7), "mine", [])
+    thread, _reply = make_thread(901)
+    guild.get_thread.return_value = thread
+    await cog.store.set_thread(1, 111, 777)
+    outcome, _msg = await cog.post_reply(guild, 111, 0, author, "my own reply")
+    assert outcome == "ok"
+    texts = _texts(thread.send.await_args.kwargs["view"])
+    assert not any("<:op_emoji" in text for text in texts), texts
+    assert not any("Confession author" in text for text in texts), texts
+
+
+async def test_alias_is_stable_inside_one_thread(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    await cog._confess_submit(make_click(guild, user_id=7), "mine", [])
+    thread, first = make_thread(901)
+    second = AsyncMock()
+    second.id = 902
+    second.jump_url = "https://discord.com/channels/1/777/902"
+    second.attachments = []
+    thread.send.side_effect = [first, second]
+    guild.get_thread.return_value = thread
+    await cog.store.set_thread(1, 111, 777)
+    replier = make_member(9)
+    guild.get_member.side_effect = lambda uid: {7: author, 9: replier}.get(uid)
+    assert (await cog.post_reply(guild, 111, 0, replier, "one"))[0] == "ok"
+    assert (await cog.post_reply(guild, 111, 901, replier, "two"))[0] == "ok"
+    first_reply = await cog.store.get_reply(1, 901)
+    second_reply = await cog.store.get_reply(1, 902)
+    assert first_reply["alias"] == second_reply["alias"]
+    confession = await cog.store.get(1, 111)
+    assert first_reply["alias"] != confession["alias"]
+
+
+async def test_nested_reply_quotes_the_parent_and_links_to_it(tmp_path):
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    await cog._confess_submit(make_click(guild, user_id=7), "mine", [])
+    thread, first = make_thread(901)
+    second = AsyncMock()
+    second.id = 902
+    second.jump_url = "https://discord.com/channels/1/777/902"
+    second.attachments = []
+    thread.send.side_effect = [first, second]
+    guild.get_thread.return_value = thread
+    await cog.store.set_thread(1, 111, 777)
+    replier = make_member(9)
+    other = make_member(10)
+    guild.get_member.side_effect = (
+        lambda uid: {7: author, 9: replier, 10: other}.get(uid)
+    )
+    assert (await cog.post_reply(guild, 111, 0, replier, "parent comment"))[0] == "ok"
+    assert (await cog.post_reply(guild, 111, 901, other, "child comment"))[0] == "ok"
+    texts = _texts(thread.send.await_args.kwargs["view"])
+    assert any("#1-1" in text for text in texts), texts
+    assert any("parent comment" in text for text in texts), texts
+    assert any(
+        "discord.com/channels/1/777/901" in text for text in texts
+    ), texts

@@ -222,7 +222,10 @@ color_panel:
 # preview within the page height budget (max-height caps tall scans:
 # WeasyPrint splits an overflowing bubble across PDF pages and the raster
 # drops the second page, the image included). No overflow rule: text is
-# pre-capped.
+# pre-capped. The message cell needs a max-width: an auto-width table sizes
+# itself to its content's MINIMUM width, so one long word (a URL) pushes the
+# table past the page and the raster crops the overflow (the text was cut
+# in half); the cap lets overflow-wrap break the word inside the bubble.
 snapshot:
   page: |
     <style>
@@ -233,7 +236,7 @@ snapshot:
   bubble: |
     <table class="bubble" style="background: #32353b; border-radius: 8px; margin: 0 0 12px 0; padding: 0; border-collapse: collapse; border-spacing: 0;"><tr>
     <td class="avatar" style="vertical-align: top; padding: 12px 0 12px 14px;"><img src="{author_avatar}" style="width: 40px; height: 40px; border-radius: 50%; display: block;" /></td>
-    <td class="body" style="padding: 10px 14px 12px 12px;">
+    <td class="body" style="padding: 10px 14px 12px 12px; max-width: 390px;">
       <div class="header" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; font-weight: 600; color: #ffffff;">{author_name}{bot}<span class="time" style="font-size: 12px; font-weight: 400; color: #949ba4; margin-left: 8px;">{time}</span></div>
       <div class="content" style="font-family: 'Segoe UI', 'Ubuntu', 'Noto Sans', sans-serif; font-size: 15px; line-height: 1.3; color: #dcddde; white-space: pre-wrap; overflow-wrap: break-word;">{content}{edited}</div>
       {image}

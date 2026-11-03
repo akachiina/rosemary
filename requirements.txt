@@ -6,3 +6,4 @@ python-dotenv
 PyNaCl
 WeasyPrint
 PyMuPDF
+Pillow

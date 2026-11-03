@@ -46,9 +46,14 @@ def test_escape_newlines_and_html():
 
 
 def test_capped_adds_ellipsis():
+    """The cap keeps the bubble readable; the full text rides the card.
+
+    A single huge PNG is useless, so the image shows the first 600 chars
+    and the log card carries the whole message as text.
+    """
     assert _capped("curto") == "curto"
-    long = "a" * 700
-    capped = _capped(long)
+    assert _capped("a" * 600) == "a" * 600  # nothing is cut
+    capped = _capped("a" * 5000)
     assert len(capped) == 601  # 600 chars + ellipsis
     assert capped.endswith("…")
 
@@ -281,6 +286,75 @@ def test_avatar_renders_at_css_size():
 def test_render_snapshot_empty_inputs_degrade_to_none():
     assert render_snapshot([]) is None
     assert render_snapshot([_info(content="")]) is not None  # empty bubble frame
+
+
+def _png_size(data: bytes) -> tuple[int, int]:
+    """The PNG dimensions (IHDR), without an image library."""
+    import struct
+
+    width, height = struct.unpack(">II", data[16:24])
+    return width, height
+
+
+def test_long_word_wraps_inside_the_bubble():
+    """Regression (live: the message was cut in half): a long unbroken word
+    (a URL, a wall of letters) must break inside the bubble.
+
+    An auto-width table sizes itself to its content's MINIMUM width, so the
+    word pushed the table past the page and the rasterizer cropped the
+    overflow. The body cell's ``max-width`` lets ``overflow-wrap`` break it.
+    The page height follows the content for the same reason: a page too
+    short paginates the bubble and the raster drops the second page.
+    """
+    short = render_snapshot([_info("teste")])
+    wall = render_snapshot([_info("A" * 300)])
+    spaced = render_snapshot([_info(" ".join(["A" * 10] * 30))])
+    assert short is not None and wall is not None and spaced is not None
+    short_w, short_h = _png_size(short)
+    wall_w, wall_h = _png_size(wall)
+    _, spaced_h = _png_size(spaced)
+    assert wall_w <= 960, "the bubble grew past the page"
+    # The word wrapped into several lines instead of overflowing sideways.
+    assert wall_h > short_h * 2, (wall_h, short_h)
+    # And nothing was cut: the wall of letters takes about the same room as
+    # the same text with natural break points.
+    assert wall_h >= spaced_h * 0.8, (wall_h, spaced_h)
+
+
+def test_long_message_keeps_its_width_and_grows_down():
+    """A long message must stay readable and must not lose its tail.
+
+    The rasterizer capped the LONGEST side at 960px, so a long message came
+    out 512px wide (the text was a smudge). The width and the height have
+    their own caps now: the bubble keeps its 960px width and grows down.
+    The tail matters too: the rasterizer drops a second PDF page, so the
+    whole text must fit on the first one.
+    """
+    from rosemary.core.chat_bubble import _page_height, bubble_markup, default_templates
+
+    body = " ".join(["A" * 10] * 59) + " FIM"  # 600 chars, the bubble's cap
+    png = render_snapshot([_info(body)])
+    assert png is not None
+    width, height = _png_size(png)
+    assert width == 960, width  # full width, not a thumbnail
+    assert height > 400, height  # tall: the whole message is there
+
+    # The PDF holds everything on ONE page (the raster drops the second).
+    page_template, bubble_template = default_templates()
+    info = _info(body)
+    items = bubble_markup(info, bubble_template, '<img src="{image}" />', {})
+    html = (
+        page_template.replace("__ITEMS__", items)
+        .replace("__PAGE_W__", "480")
+        .replace("__PAGE_H__", str(_page_height([info])))
+    )
+
+    import pymupdf
+    from weasyprint import HTML
+
+    doc = pymupdf.open(stream=HTML(string=html).write_pdf(), filetype="pdf")
+    assert doc.page_count == 1, doc.page_count
+    assert "FIM" in doc[0].get_text(), "the tail of the message was cut"
 
 
 def test_render_snapshot_broken_template_returns_none():

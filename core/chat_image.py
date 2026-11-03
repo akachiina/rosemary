@@ -1,5 +1,10 @@
 """Chat snapshot: a deleted/edited message rendered as a Discord-style image.
 
+The renderer itself lives in :mod:`rosemary.core.chat_bubble` (the bubble
+model, the theme templates and the rasterizer). This module keeps the
+Discord half: it resolves a real message (its author, its avatar, its
+attachments) into a :class:`Bubble` and drives the shared pipeline.
+
 The log card's look lives in a theme's ``snapshot`` section as two HTML
 templates: ``page`` (the frame) and ``bubble`` (one message bubble). The bot
 fills the placeholders, rasterizes the result through the same pipeline as
@@ -30,138 +35,49 @@ break a send.
 from __future__ import annotations
 
 import asyncio
-import html as _html
+import base64
+import io
 import logging
 import time
-from dataclasses import dataclass, replace
+from dataclasses import replace
 
-from rosemary.core.color_image import rasterize_pdf
+from rosemary.core.chat_bubble import (
+    DEFAULT_BUBBLE,
+    DEFAULT_BUBBLE_IMAGE,
+    DEFAULT_PAGE,
+    Bubble,
+    avatar_fallback,
+    bubble_markup,
+    cap_content,
+    css_color,
+    default_templates,
+    escape_content,
+    render_bubbles,
+)
 
 log = logging.getLogger(__name__)
-
-#: Hard content cap per bubble: Discord messages can be 4000 chars and a
-#: single huge PNG is useless; the full text rides the card's fenced block.
-_MAX_CONTENT = 600
-
-#: Per-image byte cap for embedded attachments (Discord serves stickers up
-#: to a few MB; embedding everything would blow the rasterizer's memory).
-_MAX_IMAGE_BYTES = 4_000_000
 
 #: Avatar download timeout (seconds) and LRU cache size (data URIs).
 _AVATAR_TIMEOUT = 8.0
 _AVATAR_CACHE_SIZE = 128
 
-#: PNG width cap before downscaling (Discord scales wide images down in
-#: cards; 960 = the fixed 480px page at the 4x raster zoom).
-_MAX_PNG_SIDE = 960
+#: Per-image byte cap for embedded attachments (Discord serves stickers up
+#: to a few MB; embedding everything would blow the rasterizer's memory).
+_MAX_IMAGE_BYTES = 4_000_000
 
-#: Fallback templates (the theme file ships the same content). WeasyPrint's
-#: CSS subset: no flexbox/grid; tables and inline-block work. No ``overflow``
-#: rule: WeasyPrint truncates overflow:hidden text silently.
-DEFAULT_PAGE = """<style>
-@page { size: __PAGE_W__px __PAGE_H__px; margin: 0; background: transparent; }
-html, body { margin: 0; padding: 0; background: transparent; }
-</style>
-<div class="page">__ITEMS__</div>"""
+#: The historical name of the bubble model (kept: the audit tests and any
+#: plugin import it).
+SnapshotMessage = Bubble
 
-DEFAULT_BUBBLE = (
-    '<table class="bubble" style="background: #32353b; border-radius: 8px; '
-    'margin: 0 0 12px 0; padding: 0; border-collapse: collapse; '
-    'border-spacing: 0;"><tr>\n'
-    '<td class="avatar" style="vertical-align: top; padding: 12px 0 12px 14px;">'
-    '<img src="{author_avatar}" '
-    'style="width: 40px; height: 40px; border-radius: 50%; display: block;" />'
-    '</td>\n'
-    '<td class="body" style="padding: 10px 14px 12px 12px;">\n'
-    '  <div class="header" style="font-family: \'Segoe UI\', \'Ubuntu\', '
-    '\'Noto Sans\', sans-serif; font-size: 15px; font-weight: 600; '
-    'color: #ffffff;">{author_name}{bot}'
-    '<span class="time" style="font-size: 12px; font-weight: 400; '
-    'color: #949ba4; margin-left: 8px;">{time}</span></div>\n'
-    '  <div class="content" style="font-family: \'Segoe UI\', \'Ubuntu\', '
-    '\'Noto Sans\', sans-serif; font-size: 15px; line-height: 1.3; '
-    'color: #dcddde; white-space: pre-wrap; overflow-wrap: break-word;">'
-    '{content}{edited}</div>\n'
-    '  {image}\n</td>\n</tr></table>'
-)
-
-# Attachment preview: max-width AND max-height (ratio preserved, like
-# Discord's own chat previews). A tall manga scan at a bare width would
-# need ~500px of bubble: past the page budget WeasyPrint splits the table
-# across PDF pages and the atomic image jumps to page 2, which the
-# rasterizer drops (live: a tall EMPTY bubble in the card).
-DEFAULT_BUBBLE_IMAGE = (
-    '<img class="attachment" src="{image}" style="border-radius: 4px; '
-    'margin-top: 8px; max-width: 320px; max-height: 240px;" />'
-)
-
-_SVG_AVATAR = (
-    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' "
-    "width='48' height='48'><rect width='48' height='48' rx='24' "
-    "fill='%235865F2'/><text x='24' y='32' font-family='sans-serif' "
-    "font-size='21' fill='white' text-anchor='middle'>{initial}</text></svg>"
-)
-
-_BOT_BADGE = (
-    '<span style="background: #5865F2; color: white; font-family: sans-serif; '
-    'font-size: 10px; padding: 1px 4px; border-radius: 3px; margin-left: 4px; '
-    'vertical-align: 2px;">APP</span>'
-)
-
-#: The Discord-style ``(editado)`` suffix after the content (one meaning, one
-#: emoji rule does not apply: this is a marker, not a labeled field).
-_EDITED_BADGE = (
-    '<span style="font-family: \'Segoe UI\', \'Ubuntu\', \'Noto Sans\', sans-serif; '
-    'font-size: 10px; color: #949ba4;"> {marker}</span>'
-)
-
-
-@dataclass(frozen=True)
-class SnapshotMessage:
-    """Everything the templates need about one message (resolved values)."""
-
-    author_name: str
-    author_color: str  # "#rrggbb", neutral gray when unresolvable
-    author_avatar: str  # data URI (avatar or SVG fallback)
-    is_bot: bool
-    timestamp: float
-    content: str  # already HTML-escaped with <br>, capped
-    image_data_uri: str  # "" when there is nothing visual to embed
-    edited: bool = False  # renders the localized ``(editado)`` marker
-
+#: Backwards-compatible aliases of the helpers that moved to the shared
+#: bubble module.
+_avatar_fallback = avatar_fallback
+_bubble_markup = bubble_markup
+_capped = cap_content
+_css_color = css_color
+_escape = escape_content
 
 _avatar_cache: dict[str, str] = {}
-
-
-def default_templates() -> tuple[str, str]:
-    """The built-in ``(page, bubble)`` pair (theme fallback)."""
-    return DEFAULT_PAGE, DEFAULT_BUBBLE
-
-
-def _escape(text: str) -> str:
-    """HTML-escape message content, newlines become ``<br>``."""
-    return _html.escape(text or "", quote=False).replace("\n", "<br>")
-
-
-def _capped(text: str) -> str:
-    """Content capped at :data:`_MAX_CONTENT` chars with an ellipsis."""
-    if len(text) <= _MAX_CONTENT:
-        return text
-    return text[:_MAX_CONTENT] + "…"
-
-
-def _css_color(value: str) -> str:
-    """Normalize a role color to ``#rrggbb`` (neutral gray when invalid)."""
-    token = (value or "").strip().lstrip("#")
-    if len(token) == 6 and all(c in "0123456789abcdefABCDEF" for c in token):
-        return f"#{token.lower()}"
-    return "#99aab5"
-
-
-def _avatar_fallback(name: str) -> str:
-    """SVG data URI with the author's initial (no download, no deps)."""
-    initial = _html.escape((name or "?")[:1].upper(), quote=True) or "?"
-    return _SVG_AVATAR.format(initial=initial)
 
 
 def _download_bytes(url: str, *, timeout: float, max_bytes: int) -> bytes | None:
@@ -202,11 +118,7 @@ def _normalize_image(data: bytes, mime: str, label: str) -> str:
     blank rectangle. The first frame of an animated gif is fine for a
     screenshot-style log.
     """
-    import base64
-
     try:
-        import io
-
         from PIL import Image
 
         with Image.open(io.BytesIO(data)) as img:
@@ -224,7 +136,7 @@ async def _avatar_data_uri(bot, author) -> str:
     """The author's avatar as a data URI, SVG fallback when unavailable."""
     url = getattr(getattr(author, "display_avatar", None), "url", "") or ""
     if not url:
-        return _avatar_fallback(getattr(author, "display_name", None) or "?")
+        return avatar_fallback(getattr(author, "display_name", None) or "?")
     cached = _avatar_cache.get(url)
     if cached is not None:
         return cached
@@ -237,12 +149,12 @@ async def _avatar_data_uri(bot, author) -> str:
         data = await asyncio.wait_for(loop.run_in_executor(None, _fetch), _AVATAR_TIMEOUT + 2)
     except Exception as exc:
         log.info("snapshot avatar fetch failed for %s: %s", url, exc)
-        return _avatar_fallback(getattr(author, "display_name", None) or "?")
+        return avatar_fallback(getattr(author, "display_name", None) or "?")
     if not data:
-        return _avatar_fallback(getattr(author, "display_name", None) or "?")
+        return avatar_fallback(getattr(author, "display_name", None) or "?")
     data_uri = _normalize_image(data, _extension_to_mime(url), f"avatar {url}")
     if not data_uri:
-        return _avatar_fallback(getattr(author, "display_name", None) or "?")
+        return avatar_fallback(getattr(author, "display_name", None) or "?")
     if len(_avatar_cache) >= _AVATAR_CACHE_SIZE:
         _avatar_cache.clear()  # crude LRU: one flush, cheap and bounded
     _avatar_cache[url] = data_uri
@@ -291,8 +203,6 @@ async def _image_data_uri(message) -> str:
         except Exception as exc:
             log.info("snapshot sticker fetch failed for %s: %s", url, exc)
             continue
-        if not data:
-            continue
         uri = _normalize_image(data, _extension_to_mime(url), f"sticker {url}")
         if uri:
             return uri
@@ -301,8 +211,8 @@ async def _image_data_uri(message) -> str:
 
 async def build_snapshot_message(
     bot, message, *, before=None
-) -> SnapshotMessage:
-    """Resolve one message (or a before/after pair) into template values.
+) -> Bubble:
+    """Resolve one message (or a before/after pair) into bubble values.
 
     With ``before`` (message_edit) the bubble shows the OLD content with the
     author identity from ``before``: that is the state the log documents.
@@ -322,12 +232,12 @@ async def build_snapshot_message(
     stamp = moment.timestamp() if moment is not None else time.time()
     # True epoch: the bubble renders it in the bot host's local wall clock
     # (a chat screenshot shows local time, like Discord's own tooltips).
-    content = _capped(_escape(source.content or ""))
+    content = cap_content(escape_content(source.content or ""))
     image_uri = await _image_data_uri(message)
     avatar_uri = await _avatar_data_uri(bot, author)
-    return SnapshotMessage(
+    return Bubble(
         author_name=getattr(author, "display_name", None) or author.name,
-        author_color=_css_color(color_value),
+        author_color=css_color(color_value),
         author_avatar=avatar_uri,
         is_bot=bool(getattr(author, "bot", False)),
         timestamp=stamp,
@@ -336,40 +246,8 @@ async def build_snapshot_message(
     )
 
 
-def _bubble_markup(
-    info: SnapshotMessage,
-    bubble_template: str,
-    image_template: str,
-    emojis: dict[str, str],
-    edited_marker: str = "",
-) -> str:
-    """One bubble's HTML from the resolved values (``{name}`` placeholders)."""
-    from rosemary.core.cards import safe_format
-
-    mapping = {
-        "author_name": _html.escape(info.author_name, quote=True),
-        "author_color": info.author_color,
-        "author_avatar": info.author_avatar,
-        "bot": _BOT_BADGE if info.is_bot else "",
-        "time": time.strftime("%d/%m/%Y %H:%M:%S", time.localtime(info.timestamp)),
-        "content": info.content,
-        "image": (
-            image_template.format(image=info.image_data_uri)
-            if info.image_data_uri
-            else ""
-        ),
-        "edited": (
-            _EDITED_BADGE.format(marker=_html.escape(edited_marker, quote=True))
-            if info.edited and edited_marker
-            else ""
-        ),
-        **emojis,
-    }
-    return safe_format(bubble_template, mapping)
-
-
 def render_snapshot(
-    infos: list[SnapshotMessage],
+    infos: list[Bubble],
     template: str | None = None,
     bubble: str | None = None,
     image: str | None = None,
@@ -378,64 +256,17 @@ def render_snapshot(
 ) -> bytes | None:
     """Rasterize the chat snapshot for the resolved bubbles (or ``None``).
 
-    Same contract as :func:`rosemary.core.color_image.render_panel`: PNG
-    bytes or ``None`` (no content, missing renderer, broken template) and
-    callers degrade to a text-only card. Content-less bubbles render an
-    em-space so the bubble frame still shows (a message can be image-only).
-    ``edited_marker`` is the localized ``(editado)`` text for bubbles flagged
-    ``edited`` (empty disables the marker entirely).
+    Thin wrapper over :func:`rosemary.core.chat_bubble.render_bubbles`: the
+    audit logs never quote a parent, but they share the whole pipeline.
     """
-    if not infos:
-        return None
-    base_template, base_bubble = default_templates()
-    base_template = template if template else base_template
-    base_bubble = bubble if bubble else base_bubble
-    image_template = image if image else DEFAULT_BUBBLE_IMAGE
-    emojis = emojis or {}
-
-    def render_one(info: SnapshotMessage) -> str:
-        filled = info
-        if not info.content.strip():
-            filled = SnapshotMessage(
-                author_name=info.author_name,
-                author_color=info.author_color,
-                author_avatar=info.author_avatar,
-                is_bot=info.is_bot,
-                timestamp=info.timestamp,
-                content="&#8203;",  # zero-width space keeps the frame visible
-                image_data_uri=info.image_data_uri,
-                edited=info.edited,
-            )
-        return _bubble_markup(
-            filled, base_bubble, image_template, emojis, edited_marker
-        )
-
-    items = "".join(render_one(info) for info in infos)
-    # Fixed-width page (480 CSS px): the PNG keeps every snapshot at the
-    # same scale, so Discord renders them all at the same visual size no
-    # matter the message (the variable-width crop made each card a
-    # different zoom). Height is a BUDGET, not a target: it must hold the
-    # worst bubble (capped content plus the 240px image preview) or
-    # WeasyPrint paginates the overflow onto a second PDF page, which the
-    # rasterizer drops (the live empty-bubble bug); the crop trims whatever
-    # the actual content leaves unused.
-    width_px = 480
-    height_px = 560 * len(infos) + 80
-    from weasyprint import HTML
-
-    try:
-        pdf = (
-            HTML(
-                string=base_template.replace("__ITEMS__", items)
-                .replace("__PAGE_W__", str(width_px))
-                .replace("__PAGE_H__", str(height_px))
-            )
-            .write_pdf()
-        )
-    except Exception:
-        log.warning("chat snapshot HTML render failed", exc_info=True)
-        return None
-    return rasterize_pdf(pdf, full_width=True, max_side=_MAX_PNG_SIDE)
+    return render_bubbles(
+        infos,
+        template=template,
+        bubble=bubble,
+        image=image,
+        emojis=emojis,
+        edited_marker=edited_marker,
+    )
 
 
 async def render_message_snapshot(
@@ -449,8 +280,6 @@ async def render_message_snapshot(
     it from the catalogs; this module stays i18n-free like color_image).
     """
     try:
-        theme = bot.theme
-        templates = {}
         from rosemary.core.themes import theme_for
 
         theme = theme_for(bot, getattr(message, "guild_id", None))
@@ -476,3 +305,15 @@ async def render_message_snapshot(
     except Exception:
         log.warning("chat snapshot render failed", exc_info=True)
         return None
+
+
+__all__ = [
+    "DEFAULT_BUBBLE",
+    "DEFAULT_BUBBLE_IMAGE",
+    "DEFAULT_PAGE",
+    "SnapshotMessage",
+    "build_snapshot_message",
+    "default_templates",
+    "render_message_snapshot",
+    "render_snapshot",
+]

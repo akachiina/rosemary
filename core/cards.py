@@ -21,7 +21,9 @@ Document schema (``v`` 1)::
 Block types: ``text``, ``divider``, ``gallery``, ``row`` and the two
 composites ``container``/``section``. Every text field supports placeholders:
 known names resolve from the caller-supplied variables plus theme emojis,
-unknown ones stay visible so admins can spot typos.
+unknown ones stay visible so admins can spot typos. Asset references
+(``{emojis/op_emoji}``) are not variables: they resolve to the real
+application emoji shipped in ``assets/``, and an unknown one renders empty.
 
 Colors are *theme token names* (see ``ui/theme.yaml``), never raw hex: the
 visual identity stays in one place. Rendering validates against Discord's V2
@@ -40,6 +42,7 @@ from typing import Any
 
 import discord
 
+from rosemary.core.assets import resolve_refs
 from rosemary.ui.containers import ActionRow, Container, Section, Separator, TextDisplay
 
 DOCUMENT_VERSION = 1
@@ -366,10 +369,15 @@ def spec_variables(spec: CardSpec) -> tuple[str, ...]:
 
 
 def safe_format(template: str, mapping: dict[str, Any]) -> str:
-    """Substitute ``{name}`` placeholders, leaving unknown ones untouched."""
+    """Substitute ``{name}`` placeholders, leaving unknown ones untouched.
+
+    Asset references (``{emojis/op_emoji}``) are resolved first: they are
+    not variables but real Discord emojis shipped in ``assets/``.
+    """
+    text = resolve_refs(template)
     return _PLACEHOLDER_RE.sub(
         lambda match: str(mapping[match.group(1)]) if match.group(1) in mapping else match.group(0),
-        template,
+        text,
     )
 
 

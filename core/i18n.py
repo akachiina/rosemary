@@ -15,6 +15,8 @@ from typing import Any
 
 import yaml
 
+from rosemary.core.assets import resolve_refs
+
 log = logging.getLogger(__name__)
 
 FALLBACK_LANGUAGE = "en-US"
@@ -102,13 +104,17 @@ class Translator:
 
         Missing keys fall back like :meth:`t` and ultimately return the key
         itself. Theme emojis are NOT injected: callers decide how to render.
+        Asset references (``{emojis/op_emoji}``) ARE resolved: they are
+        real Discord emojis, not variables.
         """
         language = await self.resolve_async(guild_id)
         catalog = self._catalogs.get(language, {})
         template = catalog.get(key)
         if template is None and language != FALLBACK_LANGUAGE:
             template = self._catalogs.get(FALLBACK_LANGUAGE, {}).get(key)
-        return template if template is not None else key
+        if template is None:
+            return key
+        return resolve_refs(template) if isinstance(template, str) else template
 
     async def t(self, guild_id: int | None, key: str, **variables: Any) -> str:
         """Translate ``key`` for the given guild's language.
@@ -122,7 +128,7 @@ class Translator:
             return template
         try:
             variables = {**self._default_placeholders, **variables}
-            return template.format(**variables)
+            return resolve_refs(template.format(**variables))
         except (AttributeError, KeyError, IndexError, TypeError, ValueError) as exc:
             log.warning("Failed to format translation %r: %s", key, exc)
             return template

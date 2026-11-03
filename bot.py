@@ -20,6 +20,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+from rosemary.core.assets import REGISTRY  # noqa: E402
 from rosemary.core.interactions import is_dead_token, is_expired  # noqa: E402
 from rosemary.core.logging import setup_logging  # noqa: E402
 from rosemary.core.settings import get_setting  # noqa: E402
@@ -136,6 +137,9 @@ class RosemaryBot(commands.Bot):
         self.storage: GuildStorage | None = None
         self.translator: Translator | None = None
         self.theme: Theme | None = None
+        #: The shipped assets (``assets/``): the application emojis uploaded
+        #: at startup and the ``{emojis/...}`` references every text resolves.
+        self.assets = REGISTRY
         self._command_base_keys: dict[str, ApplicationCommand] = {}
         self._subcommand_base_keys: dict[int, str] = {}
         self._option_base_descriptions: dict[int, str] = {}
@@ -208,6 +212,10 @@ class RosemaryBot(commands.Bot):
             resolver=_resolver,
             default_placeholders=self.theme.emojis,
         )
+        # Index the shipped assets (assets/emojis): the application emojis
+        # are uploaded at startup, and every {emojis/...} reference resolves
+        # through this registry.
+        self.assets.scan()
 
         self.add_cog(AboutCog(self))
         self.add_cog(LanguageCog(self))
@@ -290,6 +298,24 @@ class RosemaryBot(commands.Bot):
     def _rebind_shared_group_commands(self) -> None:
         """Point shared-group subcommands at their owning cog instance."""
         rebind_shared_group_commands(self)
+
+    async def _sync_assets(self) -> None:
+        """Upload the application emojis the bot does not have yet.
+
+        The Discord API is the source of truth: an emoji the application
+        already owns is adopted as-is, so a restart uploads nothing. Runs
+        once per process (a reconnect must not re-upload).
+        """
+        if getattr(self, "_assets_synced", False):
+            return
+        self._assets_synced = True
+        try:
+            sent = await self.assets.sync(self)
+        except Exception as exc:
+            log.warning("Asset emoji sync failed: %s", exc)
+            return
+        if sent:
+            log.info("Uploaded %d asset emoji(s)", sent)
 
     async def _get_prefix(self, bot, message) -> str:
         """Resolve the guild-scoped command prefix for a message."""
@@ -506,6 +532,7 @@ class RosemaryBot(commands.Bot):
         connected), then sync commands instantly per guild in its language."""
         if self._setup_done is False:
             self._setup()
+        await self._sync_assets()
         # Seed dispatch maps before the theme snapshot: commands registered by
         # the previous run stay live while the shared tree is still in its
         # decorator (English) state, so a localized subcommand must resolve.

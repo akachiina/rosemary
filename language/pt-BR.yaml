@@ -538,6 +538,9 @@ settings:
   confessions.reveal_author:
     label: Revelar autor
     description: Mostra quem escreveu cada confissão para a staff.
+  confessions.mark_op:
+    label: Marcar o autor da confissão
+    description: Marca as respostas escritas pelo autor da própria confissão.
   birthdays.enabled:
     label: Aniversários ativados
     description: Registra aniversários e posta anúncios.
@@ -2873,6 +2876,24 @@ variables:
   parent_line:
     label: Linha de origem
     description: Linha de referência ao comentário respondido
+  parent_preview:
+    label: Trecho do comentário
+    description: Trecho do comentário que está sendo respondido
+  parent_link:
+    label: Link do comentário
+    description: Link para o comentário que está sendo respondido
+  alias_name:
+    label: Nome anônimo
+    description: Nome pseudônimo mostrado como título do card da confissão
+  avatar_url:
+    label: Avatar gerado
+    description: Identicon gerada mostrada ao lado do nome anônimo
+  op_emoji:
+    label: Emoji de autor
+    description: Emoji que marca o autor da confissão
+  op_line:
+    label: Linha de autor
+    description: Linha do rodapé mostrada quando a resposta é do autor da confissão
   author_line:
     label: Linha de autor
     description: Linha revelando quem escreveu (só a staff)
@@ -2954,10 +2975,10 @@ card:
       placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{author_line}}, {{timestamp}}'
     card:
       title: Card de confissão
-      placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}'
+      placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}'
     response:
       title: Card de resposta de confissão
-      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}'
+      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{op_line}}, {{parent_preview}}, {{parent_link}}'
     logs:
       approved:
         title: 'Log: confissão aprovada'
@@ -3755,6 +3776,8 @@ confess:
     title: Motivo
     label: Motivo (opcional)
     placeholder: Por quê? (opcional, mostrado ao autor)
+  alias: 'Anônimo {seed}'
+  op_line: '{pencil} {emojis/op_emoji} Autor da confissão'
   card:
     title: Confissão (#{confession_number})
   review:
@@ -3762,7 +3785,9 @@ confess:
     author: '{user} escreveu esta confissão'
   response:
     title: Confissão (#{confession_number}-{reply_index})
-    parent: 'em resposta a #{confession_number}-{parent_index}'
+    parent: 'em resposta a {parent_ref}'
+    parent_ref: '#{confession_number}-{parent_index}'
+    parent_op: 'em resposta a {parent_ref} (autor da confissão)'
   thread_name: 'Respostas da confissão #{confession_number}'
   buttons:
     new: Escrever confissão

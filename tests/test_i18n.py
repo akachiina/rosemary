@@ -209,6 +209,23 @@ async def test_theme_emojis_are_auto_injected():
     assert await tr.t(1, "language.updated", language="en-US") == "✅ Language set to **en-US**."
 
 
+async def test_asset_references_resolve_in_the_catalogs(monkeypatch):
+    """A catalog may reference a shipped asset: it is an emoji, not a variable.
+
+    ``str.format`` would choke on ``{emojis/op_emoji}``, so the reference is
+    resolved before the format: an unknown one renders as nothing.
+    """
+    from rosemary.core import assets
+
+    theme = load_theme()
+    monkeypatch.setitem(assets.REGISTRY._mentions, "emojis/op_emoji", "<:op_emoji:7>")
+    tr = Translator(LANG_DIR, resolver=_resolver("en-US"), default_placeholders=theme.emojis)
+    assert await tr.t(1, "confess.op_line") == "✏️ <:op_emoji:7> Confession author"
+
+    monkeypatch.delitem(assets.REGISTRY._mentions, "emojis/op_emoji")
+    assert await tr.t(1, "confess.op_line") == "✏️  Confession author"
+
+
 async def test_leaderboard_week_end_timestamp_renders():
     """The 'week ends in' line renders a relative timestamp in both catalogs."""
     from rosemary.core.cards import safe_format_mentions

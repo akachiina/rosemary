@@ -625,6 +625,12 @@ SETTINGS: dict[str, SettingSpec] = {
             False,
         ),
         _spec(
+            "confessions.mark_op",
+            SettingCategory.CONFESSIONS,
+            SettingType.BOOLEAN,
+            True,
+        ),
+        _spec(
             "birthdays.enabled",
             SettingCategory.BIRTHDAYS,
             SettingType.BOOLEAN,
