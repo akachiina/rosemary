@@ -209,7 +209,7 @@ async def test_theme_emojis_are_auto_injected():
     assert await tr.t(1, "language.updated", language="en-US") == "✅ Language set to **en-US**."
 
 
-async def test_asset_references_resolve_in_the_catalogs(monkeypatch):
+async def test_asset_references_resolve_in_any_catalog(tmp_path, monkeypatch):
     """A catalog may reference a shipped asset: it is an emoji, not a variable.
 
     ``str.format`` would choke on ``{emojis/op_emoji}``, so the reference is
@@ -217,13 +217,18 @@ async def test_asset_references_resolve_in_the_catalogs(monkeypatch):
     """
     from rosemary.core import assets
 
-    theme = load_theme()
+    (tmp_path / "en-US.yaml").write_text(
+        "mark: 'OP {emojis/op_emoji}'\nmissing: 'OP {emojis/nope}'\n",
+        encoding="utf-8",
+    )
     monkeypatch.setitem(assets.REGISTRY._mentions, "emojis/op_emoji", "<:op_emoji:7>")
-    tr = Translator(LANG_DIR, resolver=_resolver("en-US"), default_placeholders=theme.emojis)
-    assert await tr.t(1, "confess.op_line") == "✏️ <:op_emoji:7> Confession author"
+    tr = Translator(tmp_path, resolver=_resolver("en-US"))
+    assert await tr.t(1, "mark") == "OP <:op_emoji:7>"
 
     monkeypatch.delitem(assets.REGISTRY._mentions, "emojis/op_emoji")
-    assert await tr.t(1, "confess.op_line") == "✏️  Confession author"
+    assert await tr.t(1, "mark") == "OP "
+    # An unknown reference never leaks its raw text.
+    assert await tr.t(1, "missing") == "OP "
 
 
 async def test_leaderboard_week_end_timestamp_renders():

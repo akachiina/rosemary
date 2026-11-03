@@ -316,7 +316,7 @@ def test_card_specs_registered_with_exact_contracts():
     assert get_card("confessions.response").variables == (
         "confession_number", "reply_index", "title", "body", "parent_line",
         "color_hex", "image_url", "alias_name", "avatar_url", "op_emoji",
-        "op_line", "parent_preview", "parent_link",
+        "parent_preview", "parent_link",
     )
     for key in (
         "confessions.dm.approved", "confessions.dm.rejected",
@@ -813,7 +813,10 @@ def _identicon_file(files):
 
 
 async def test_card_shows_the_alias_as_title_and_the_number_as_footer():
-    """The alias name is the card title (bold); "Confession (#N)" is the footer."""
+    """The alias name is the card title (bold); "Confession (#N)" is the footer.
+
+    The footer follows the bot's standard: a small (``-#``) line.
+    """
     from rosemary.cogs.confessions import default_confession_document
 
     doc = await default_confession_document(
@@ -840,14 +843,14 @@ async def test_card_shows_the_alias_as_title_and_the_number_as_footer():
     assert section["children"][1] == {"type": "text", "body": "{body}"}
     # The numbered title is the footer, right after a divider.
     divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
-    assert children[divider + 1] == {"type": "text", "body": "{title}"}
+    assert children[divider + 1] == {"type": "text", "body": "-# {title}"}
     # No heading above the alias anymore.
     assert not any(str(c.get("body", "")).startswith("# ") for c in children)
 
 
 async def test_reply_card_moves_the_reference_to_the_footer():
     """The reply keeps the alias as its title; the parent reference and the
-    "confession author" line move to the footer."""
+    excerpt move to the footer, as small (``-#``) lines like every card."""
     from rosemary.cogs.confessions import default_confession_response_document
 
     doc = await default_confession_response_document(
@@ -863,7 +866,6 @@ async def test_reply_card_moves_the_reference_to_the_footer():
         alias_name="Anonymous K7Q",
         avatar_url="attachment://anonimo_K7Q.png",
         op_emoji="<:op_emoji:123>",
-        op_line="Confession author",
         parent_preview="the parent text",
         parent_link="",
     )
@@ -877,10 +879,32 @@ async def test_reply_card_moves_the_reference_to_the_footer():
     }
     divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
     footer = children[divider + 1:]
-    assert {"type": "text", "body": "{parent_line}"} in footer
-    assert {"type": "text", "body": "> {parent_preview}"} in footer
-    assert {"type": "text", "body": "{op_line}"} in footer
-    assert footer[-1] == {"type": "text", "body": "{title}"}
+    # No quote marker and no "confession author" line: the OP emoji alone
+    # marks the author, and every footer line is small.
+    assert footer == [
+        {"type": "text", "body": "-# {parent_line}"},
+        {"type": "text", "body": "-# {parent_preview}"},
+        {"type": "text", "body": "-# {title}"},
+    ]
+
+
+async def test_review_card_closes_with_the_standard_footer():
+    """The staff card ends with the bot's standard small timestamp line."""
+    from rosemary.cogs.confessions import default_confession_review_document
+
+    doc = await default_confession_review_document(
+        None,
+        1,
+        confession_number=60,
+        title="Confession (#60) · Review",
+        body="o texto",
+        image_url="",
+        author_line="",
+        timestamp="2 minutes ago",
+    )
+    children = doc["blocks"][0]["children"]
+    divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
+    assert children[divider + 1] == {"type": "text", "body": "-# {timestamp}"}
 
 
 async def test_public_card_attaches_the_identicon_and_keeps_the_text(tmp_path):
@@ -933,9 +957,9 @@ async def test_reply_by_the_confession_author_is_flagged_op(tmp_path):
     stored = await cog.store.get_reply(1, 901)
     assert stored is not None and stored["is_op"] is True
     texts = _texts(thread.send.await_args.kwargs["view"])
-    # The OP emoji rides the alias name, the footer names the author.
+    # The OP emoji rides the alias name: it is the only mark left.
     assert any("<:op_emoji:123>" in text for text in texts), texts
-    assert any("Confession author" in text for text in texts), texts
+    assert not any("Confession author" in text for text in texts), texts
     # No DM about your own comment.
     assert author.send.await_count == 0
 

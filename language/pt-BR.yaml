@@ -2891,9 +2891,6 @@ variables:
   op_emoji:
     label: Emoji de autor
     description: Emoji que marca o autor da confissão
-  op_line:
-    label: Linha de autor
-    description: Linha do rodapé mostrada quando a resposta é do autor da confissão
   author_line:
     label: Linha de autor
     description: Linha revelando quem escreveu (só a staff)
@@ -2978,7 +2975,7 @@ card:
       placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}'
     response:
       title: Card de resposta de confissão
-      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{op_line}}, {{parent_preview}}, {{parent_link}}'
+      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{parent_preview}}, {{parent_link}}'
     logs:
       approved:
         title: 'Log: confissão aprovada'
@@ -3777,7 +3774,6 @@ confess:
     label: Motivo (opcional)
     placeholder: Por quê? (opcional, mostrado ao autor)
   alias: 'Anônimo {seed}'
-  op_line: '{pencil} {emojis/op_emoji} Autor da confissão'
   card:
     title: Confissão (#{confession_number})
   review:

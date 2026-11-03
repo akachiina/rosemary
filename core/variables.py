@@ -54,7 +54,6 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("alias_name", "Anônimo K7Q"),
         _v("avatar_url", "attachment://anonimo_K7Q.png", "image"),
         _v("op_emoji", "<:op_emoji:123456789>"),
-        _v("op_line", ""),
         _v("author_line", ""),
         _v("matched", 1, "number"),
         _v("criterion", "com a palavra “spam”"),

@@ -2891,9 +2891,6 @@ variables:
   op_emoji:
     label: OP emoji
     description: Emoji that marks the author of the confession
-  op_line:
-    label: Author tag
-    description: Footer line shown when the reply comes from the confession's author
   author_line:
     label: Author line
     description: Line revealing who wrote the confession (staff only)
@@ -2978,7 +2975,7 @@ card:
       placeholders: '{{confession_number}}, {{title}}, {{body}}, {{image_url}}, {{color_hex}}, {{timestamp}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}'
     response:
       title: Confession reply card
-      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{op_line}}, {{parent_preview}}, {{parent_link}}'
+      placeholders: '{{confession_number}}, {{reply_index}}, {{title}}, {{body}}, {{parent_line}}, {{color_hex}}, {{image_url}}, {{alias_name}}, {{avatar_url}}, {{op_emoji}}, {{parent_preview}}, {{parent_link}}'
     logs:
       approved:
         title: 'Log: confession approved'
@@ -3777,7 +3774,6 @@ confess:
     label: Reason (optional)
     placeholder: Why? (optional, shown to the author)
   alias: 'Anonymous {seed}'
-  op_line: '{pencil} {emojis/op_emoji} Confession author'
   card:
     title: Confession (#{confession_number})
   review:

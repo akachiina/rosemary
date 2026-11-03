@@ -123,7 +123,8 @@ async def default_confession_document(bot, guild_id: int, **variables) -> dict:
     identicon as the section's thumbnail (the same frame the audit logs
     use for the member's avatar). The confession text keeps its normal
     weight, the picture rides the self-dropping gallery and the numbered
-    title ("Confissão (#60)") is the footer.
+    title ("Confissão (#60)") closes the card as the small (``-#``)
+    footer, the standard every other card uses.
 
     Deliberately no real avatar anywhere: the post is anonymous and the
     author's avatar image would identify them.
@@ -149,7 +150,7 @@ async def default_confession_document(bot, guild_id: int, **variables) -> dict:
     if image_url:
         children.append({"type": "gallery", "urls": [image_url]})
     children.append({"type": "divider"})
-    children.append({"type": "text", "body": "{title}"})
+    children.append({"type": "text", "body": "-# {title}"})
     return {
         "v": 1,
         "blocks": [
@@ -172,7 +173,8 @@ async def default_confession_review_document(
     renders nothing). No avatar thumbnail either: with reveal off, the
     author's avatar image would unmask them to staff. Buttons ride as
     code, like every interactive row. The review stays plain text on
-    purpose: the staff must read, copy and search the confession.
+    purpose: the staff must read, copy and search the confession. It
+    closes with the bot's standard small (``-#``) timestamp footer.
     """
     children: list[dict] = [
         {"type": "text", "body": "# {title}"},
@@ -181,6 +183,8 @@ async def default_confession_review_document(
     ]
     if variables.get("author_line"):
         children.append({"type": "text", "body": "{author_line}"})
+    children.append({"type": "divider"})
+    children.append({"type": "text", "body": "-# {timestamp}"})
     return {
         "v": 1,
         "blocks": [{"type": "container", "color": "info", "children": children}],
@@ -194,8 +198,9 @@ async def default_confession_response_document(
     The title is the alias name (bold, with the ``OP`` emoji when the
     reply comes from the confession's own author) and the identicon is the
     section's thumbnail, exactly like the confession card. The footer
-    carries the reference to the parent comment, the excerpt of it, the
-    "author of the confession" line and the numbered title.
+    follows the bot's standard: a divider and small (``-#``) lines with
+    the reference to the parent comment, the excerpt of it and the
+    numbered title. The ``OP`` emoji alone marks the confession's author.
     """
     content: list[dict] = []
     if str(variables.get("alias_name") or "").strip():
@@ -219,12 +224,10 @@ async def default_confession_response_document(
         children.append({"type": "gallery", "urls": [image_url]})
     children.append({"type": "divider"})
     if str(variables.get("parent_line") or "").strip():
-        children.append({"type": "text", "body": "{parent_line}"})
+        children.append({"type": "text", "body": "-# {parent_line}"})
     if str(variables.get("parent_preview") or "").strip():
-        children.append({"type": "text", "body": "> {parent_preview}"})
-    if str(variables.get("op_line") or "").strip():
-        children.append({"type": "text", "body": "{op_line}"})
-    children.append({"type": "text", "body": "{title}"})
+        children.append({"type": "text", "body": "-# {parent_preview}"})
+    children.append({"type": "text", "body": "-# {title}"})
     return {
         "v": 1,
         "blocks": [
@@ -1610,9 +1613,6 @@ class ConfessionsCog(commands.Cog):
                     guild.id, key, parent_ref=label
                 )
                 parent_preview = _preview(parent.get("body") or "") if parent else ""
-            op_line = ""
-            if op_emoji:
-                op_line = await self.bot.translator.t(guild.id, "confess.op_line")
             files: list[discord.File] = []
             image_url = ""
             image_name = ""
@@ -1636,7 +1636,6 @@ class ConfessionsCog(commands.Cog):
                 "alias_name": await self._alias_name(guild.id, identity.seed),
                 "avatar_url": f"attachment://{_identicon_filename(identity.seed)}",
                 "op_emoji": op_emoji,
-                "op_line": op_line,
                 "parent_preview": parent_preview,
                 "parent_link": parent_link,
             }
