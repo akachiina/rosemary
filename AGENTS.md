@@ -180,6 +180,11 @@ Components V2 everywhere; classic embeds exist only as a per-card theme alternat
 - py-cord `BaseView.on_error` only prints to stderr; `RosemaryBot.on_view_error`
   logs + ACKs `general.unknown_error`. Never swallow `discord.HTTPException`
   around `interaction.edit()` with bare `return`: a 400 looks like "click does nothing".
+- Modal submits follow the same rule: ACK through `core/interactions.ack()` and
+  stop when it returns False (a replayed submit must not post). The modals built
+  by `ui/modals.py` carry `report_modal_error`, which routes the failure to
+  `RosemaryBot.on_modal_error` (log + ACK) instead of py-cord's raw
+  "Ignoring exception in modal" print.
 - When a click "does nothing" offline-green, check `bot.log` first: raw
   `Select`/`Button` without bound callback (use `MenuView.make_*` factories),
   `cardact:` id divergence, or dispatch views with no real children (py-cord's

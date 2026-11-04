@@ -5,13 +5,22 @@ instance ``callback``, so cogs never subclass ``Modal``. Builders here cover the
 two patterns every feature needs: free-text input and file upload (Discord's
 native modal file-upload component). ``Label`` wraps each field so no modal has
 bare ``InputText`` children.
+
+Every modal also gets :func:`report_modal_error` as its error handler:
+py-cord's default only prints the traceback to stderr, so a failure (a dead
+interaction token, 10062, is the usual one) would leave no trace in the bot log
+and no answer for the user.
 """
 
 from __future__ import annotations
 
+import inspect
+import logging
 from collections.abc import Awaitable, Callable
 
 import discord
+
+log = logging.getLogger(__name__)
 
 SubmitHandler = Callable[[discord.Interaction, str], Awaitable[None]]
 TextFileSubmitHandler = Callable[
@@ -19,6 +28,22 @@ TextFileSubmitHandler = Callable[
 ]
 TwoFieldSubmitHandler = Callable[[discord.Interaction, str, str], Awaitable[None]]
 FileSubmitHandler = Callable[[discord.Interaction, list[discord.Attachment]], Awaitable[None]]
+
+
+async def report_modal_error(error: Exception, interaction: discord.Interaction) -> None:
+    """Route a modal callback failure to the bot's own error handling.
+
+    py-cord's ``BaseModal.on_error`` only prints the traceback to stderr, so
+    a failure would never reach ``bot.log`` and the user would see nothing.
+    The bot's ``on_modal_error`` logs the failure (a dead token, 10062, is a
+    warning, not a crash) and answers the user when the interaction still can.
+    """
+    client = getattr(interaction, "client", None)
+    handler = getattr(client, "on_modal_error", None)
+    if inspect.iscoroutinefunction(handler):
+        await handler(error, interaction)
+        return
+    log.error("Modal callback failed", exc_info=error)
 
 
 def make_text_modal(
@@ -62,6 +87,7 @@ def make_text_modal(
         await on_submit(interaction, field.value)
 
     modal.callback = submit
+    modal.on_error = report_modal_error
     return modal
 
 
@@ -108,6 +134,7 @@ def make_two_field_modal(
         await on_submit(interaction, first.value, second.value)
 
     modal.callback = submit
+    modal.on_error = report_modal_error
     return modal
 
 
@@ -160,6 +187,7 @@ def make_text_file_modal(
         await on_submit(interaction, field.value, list(upload.values or []))
 
     modal.callback = submit
+    modal.on_error = report_modal_error
     return modal
 
 
@@ -209,4 +237,5 @@ def make_file_modal(
         await on_submit(interaction, upload.values or [])
 
     modal.callback = submit
+    modal.on_error = report_modal_error
     return modal

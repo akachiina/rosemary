@@ -24,6 +24,7 @@ from discord.ext import commands
 
 from rosemary.core.command_guards import require_permissions
 from rosemary.core.debug import send_log
+from rosemary.core.interactions import ack
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.suggestions import SuggestionStore
@@ -926,13 +927,19 @@ class SuggestionsCog(commands.Cog):
         raw_text: str,
         attachments: list[discord.Attachment],
     ) -> None:
-        """Validate modal text and image, then post the suggestion."""
+        """Validate modal text and image, then post the suggestion.
+
+        The submit is ACKed through :func:`ack`: a submit replayed by a
+        gateway RESUME carries a token Discord already forgot (10062), and
+        the suggestion must not post behind a dead interaction.
+        """
         guild = interaction.guild
         if guild is None:
-            await interaction.response.defer(ephemeral=True)
+            await ack(interaction, ephemeral=True)
             return
         t = self.bot.translator.t
-        await interaction.response.defer(ephemeral=True)
+        if not await ack(interaction, ephemeral=True):
+            return
         body = (raw_text or "").strip()
         if not body:
             return await interaction.followup.send(

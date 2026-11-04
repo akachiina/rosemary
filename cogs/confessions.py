@@ -38,6 +38,7 @@ from discord.ext import commands
 
 from rosemary.core.confessions import ConfessionStore
 from rosemary.core.debug import send_log
+from rosemary.core.interactions import ack
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.pseudonym import PSEUDONYM_COLORS, Pseudonym, make_pseudonym, new_seed
 from rosemary.core.settings import get_setting
@@ -836,13 +837,19 @@ class ConfessionsCog(commands.Cog):
         raw_text: str,
         attachments: list[discord.Attachment],
     ) -> None:
-        """Validate intake and post straight to review or public."""
+        """Validate intake and post straight to review or public.
+
+        The submit is ACKed through :func:`ack`: a submit replayed by a
+        gateway RESUME carries a token Discord already forgot (10062), and
+        the confession must not post behind a dead interaction.
+        """
         guild = interaction.guild
         if guild is None:
-            await interaction.response.defer(ephemeral=True)
+            await ack(interaction, ephemeral=True)
             return
         t = self.bot.translator.t
-        await interaction.response.defer(ephemeral=True)
+        if not await ack(interaction, ephemeral=True):
+            return
         if await self.store.is_banned(guild.id, interaction.user.id):
             return await interaction.followup.send(
                 await t(guild.id, "confess.error_banned"), ephemeral=True
@@ -912,13 +919,18 @@ class ConfessionsCog(commands.Cog):
         raw_text: str,
         attachments: list[discord.Attachment],
     ) -> None:
-        """Validate an anonymous response and post it in the thread."""
+        """Validate an anonymous response and post it in the thread.
+
+        Like the confession intake, the submit is ACKed through
+        :func:`ack`: a dead token (10062) stops the reply before it posts.
+        """
         guild = interaction.guild
         if guild is None:
-            await interaction.response.defer(ephemeral=True)
+            await ack(interaction, ephemeral=True)
             return
         t = self.bot.translator.t
-        await interaction.response.defer(ephemeral=True)
+        if not await ack(interaction, ephemeral=True):
+            return
         context = self._modal_context.pop(interaction.user.id, None)
         if context is None or context[0] != "reply":
             return await interaction.followup.send(
@@ -991,13 +1003,18 @@ class ConfessionsCog(commands.Cog):
     async def _reason_submit(
         self, interaction: discord.Interaction, raw_text: str
     ) -> None:
-        """Consume a deny/ban reason modal (optional text)."""
+        """Consume a deny/ban reason modal (optional text).
+
+        The submit is ACKed through :func:`ack`, so a replayed modal with a
+        dead token (10062) never reaches the moderation action.
+        """
         guild = interaction.guild
         if guild is None:
-            await interaction.response.defer(ephemeral=True)
+            await ack(interaction, ephemeral=True)
             return
         t = self.bot.translator.t
-        await interaction.response.defer(ephemeral=True)
+        if not await ack(interaction, ephemeral=True):
+            return
         context = self._modal_context.pop(interaction.user.id, None)
         if context is None or context[0] not in ("deny", "ban"):
             return await interaction.followup.send(

@@ -674,6 +674,57 @@ class RosemaryBot(commands.Bot):
         except Exception:
             log.debug("view_error ACK fallback also failed", exc_info=True)
 
+    async def on_modal_error(
+        self,
+        error: Exception,
+        interaction: discord.Interaction,
+    ) -> None:
+        """Log every modal-callback failure (py-cord only prints to stderr).
+
+        The same treatment as :meth:`on_view_error`: a token Discord already
+        forgot (10062) is a warning, not a crash (a gateway RESUME replays
+        the submits made while the bot was offline and their 15 minute window
+        is long gone). Anything else is an error in ``bot.log``, and the user
+        gets the generic notice when the interaction still answers.
+        """
+        custom_id = getattr(interaction, "custom_id", None) or "?"
+        user_id = getattr(getattr(interaction, "user", None), "id", None)
+        guild_id = getattr(interaction, "guild_id", None)
+        if is_dead_token(error) or (
+            isinstance(error, discord.HTTPException) and is_expired(interaction)
+        ):
+            log.warning(
+                "Stale interaction ignored (unknown interaction 10062): "
+                "modal custom_id=%r user=%s guild=%s",
+                custom_id,
+                user_id,
+                guild_id,
+            )
+            return
+        # exc_info=error (not log.exception): py-cord invokes this handler
+        # outside the except block, so the active-exception context is empty
+        # and log.exception would print a useless "NoneType: None".
+        log.error(
+            "Modal error (custom_id=%r, user=%s, guild=%s)",
+            custom_id,
+            user_id,
+            guild_id,
+            exc_info=error,
+        )
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(
+                    await self.translator.t(guild_id, "general.unknown_error"),
+                    ephemeral=True,
+                )
+            else:
+                await interaction.response.send_message(
+                    await self.translator.t(guild_id, "general.unknown_error"),
+                    ephemeral=True,
+                )
+        except Exception:
+            log.debug("modal_error ACK fallback also failed", exc_info=True)
+
 
 def main() -> None:
     """Boot the bot: load ``.env``, require ``BOT_TOKEN``, then run."""

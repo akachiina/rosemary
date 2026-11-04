@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
@@ -126,7 +127,9 @@ def make_click(guild, user_id=9, message=None):
     interaction.user.id = user_id
     interaction.message = message
     interaction.response = AsyncMock()
-    interaction.response.is_done.return_value = False
+    # ``is_done`` is synchronous in discord.py: an AsyncMock child would
+    # return a coroutine (always truthy) and skip every guard.
+    interaction.response.is_done = MagicMock(return_value=False)
     interaction.followup = AsyncMock()
     return interaction
 
@@ -1040,3 +1043,72 @@ async def test_nested_reply_links_to_the_parent_without_quoting_it(tmp_path):
     ), texts
     # The parent's own text is not copied into the reply card.
     assert not any("parent comment" in text for text in texts), texts
+
+
+#: stale interactions (dead token) ---------------------------------------------
+
+
+def _dead_token() -> discord.NotFound:
+    """The error Discord answers when the interaction token is already gone."""
+    return discord.NotFound(
+        SimpleNamespace(status=404, reason="Not Found"),
+        {"code": 10062, "message": "Unknown interaction"},
+    )
+
+
+async def test_confess_submit_with_a_dead_token_posts_nothing(tmp_path):
+    """A submit replayed after a RESUME must not post behind a dead token.
+
+    Discord answers 404/10062 to the defer, the handler stops there and no
+    traceback reaches the console.
+    """
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    interaction = make_click(guild, user_id=7)
+    interaction.response.defer = AsyncMock(side_effect=_dead_token())
+    await cog._confess_submit(interaction, "my secret", [])
+    public.send.assert_not_awaited()
+    assert await cog.store.get(1, 111) is None
+    interaction.followup.send.assert_not_awaited()
+
+
+async def test_reply_submit_with_a_dead_token_posts_nothing(tmp_path):
+    """The same for the reply modal: nothing is posted behind a dead token."""
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, _public, _review, author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    await cog._confess_submit(make_click(guild, user_id=7), "reply me", [])
+    thread, _reply = make_thread()
+    guild.get_thread.return_value = thread
+    await cog.store.set_thread(1, 111, 777)
+    replier = make_member(9)
+    guild.get_member.side_effect = lambda uid: {7: author, 9: replier}.get(uid)
+    cog._modal_context[9] = ("reply", 111, 0)
+    interaction = make_click(guild, user_id=9)
+    interaction.response.defer = AsyncMock(side_effect=_dead_token())
+    await cog._reply_submit(interaction, "my take", [])
+    thread.send.assert_not_awaited()
+    interaction.followup.send.assert_not_awaited()
+
+
+async def test_reason_submit_with_a_dead_token_moderates_nothing(tmp_path):
+    """A replayed deny/ban modal never reaches the moderation action."""
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, _public, review, _author, moderator, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot, review=True)
+    await cog._confess_submit(make_click(guild, user_id=7), "deny me", [])
+    cog._modal_context[70] = ("deny", 555, 0)
+    interaction = make_click(guild, user_id=70)
+    interaction.response.defer = AsyncMock(side_effect=_dead_token())
+    await cog._reason_submit(interaction, "because")
+    review.get_partial_message.return_value.delete.assert_not_awaited()
+    entry = await cog.store.get(1, 555)
+    assert entry["status"] == "pending"
+    interaction.followup.send.assert_not_awaited()

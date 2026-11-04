@@ -424,3 +424,71 @@ async def test_view_error_stale_interaction_warns_without_answering(caplog):
     assert not [record for record in caplog.records if record.levelno >= logging.ERROR]
     assert interaction.response.deferred == 0
     interaction.followup.send.assert_not_awaited()
+
+
+async def test_modal_error_stale_interaction_warns_without_answering(caplog):
+    """The modal path is a warning too, never a raw traceback."""
+    from rosemary.bot import RosemaryBot
+
+    bot = RosemaryBot.__new__(RosemaryBot)
+    interaction = _interaction_at(5)
+    with caplog.at_level(logging.WARNING):
+        await bot.on_modal_error(_not_found(), interaction)
+    assert "Stale interaction ignored" in caplog.text
+    assert not [record for record in caplog.records if record.levelno >= logging.ERROR]
+    assert interaction.response.deferred == 0
+    interaction.followup.send.assert_not_awaited()
+
+
+async def test_modal_builders_report_failures_to_the_bot():
+    """Every modal routes its callback failure to the bot's own handler.
+
+    py-cord's default only prints the traceback to stderr, so a failure
+    would leave no trace in the bot log.
+    """
+    from rosemary.ui.modals import (
+        make_file_modal,
+        make_text_file_modal,
+        make_text_modal,
+        make_two_field_modal,
+        report_modal_error,
+    )
+
+    async def submit(*_args):
+        return None
+
+    modals = [
+        make_text_modal(
+            title="t", custom_id="c", label="l", on_submit=submit
+        ),
+        make_two_field_modal(
+            title="t",
+            custom_id="c",
+            first_label="a",
+            second_label="b",
+            on_submit=submit,
+        ),
+        make_text_file_modal(
+            title="t",
+            custom_id="c",
+            label="l",
+            file_label="f",
+            on_submit=submit,
+        ),
+        make_file_modal(
+            title="t", custom_id="c", label="l", on_submit=submit
+        ),
+    ]
+    for modal in modals:
+        assert modal.on_error is report_modal_error
+
+
+async def test_report_modal_error_calls_the_bot_handler():
+    """The bot's handler is the one that logs and answers the user."""
+    from rosemary.ui.modals import report_modal_error
+
+    bot = SimpleNamespace(on_modal_error=AsyncMock())
+    interaction = SimpleNamespace(client=bot)
+    error = ValueError("boom")
+    await report_modal_error(error, interaction)
+    bot.on_modal_error.assert_awaited_once_with(error, interaction)

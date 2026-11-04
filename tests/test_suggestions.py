@@ -6,6 +6,7 @@ import asyncio
 import inspect
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
@@ -590,7 +591,9 @@ def make_click(guild, user_id=9, message=None):
     interaction.user.id = user_id
     interaction.message = message
     interaction.response = AsyncMock()
-    interaction.response.is_done.return_value = False
+    # ``is_done`` is synchronous in discord.py: an AsyncMock child would
+    # return a coroutine (always truthy) and skip every guard.
+    interaction.response.is_done = MagicMock(return_value=False)
     interaction.followup = AsyncMock()
     return interaction
 
@@ -652,6 +655,29 @@ async def test_modal_submit_rejects_empty(tmp_path):
     interaction = make_click(guild, user_id=7)
     await cog._modal_submit(interaction, "   ", [])
     channel.send.assert_not_awaited()
+
+
+async def test_modal_submit_with_a_dead_token_posts_nothing(tmp_path):
+    """A submit replayed after a RESUME must not post behind a dead token.
+
+    Discord answers 404/10062 to the defer, the handler stops there and no
+    traceback reaches the console.
+    """
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, _member, _sent = make_guild()
+    await _enable_suggestions(bot)
+    interaction = make_click(guild, user_id=7)
+    interaction.response.defer = AsyncMock(
+        side_effect=discord.NotFound(
+            SimpleNamespace(status=404, reason="Not Found"),
+            {"code": 10062, "message": "Unknown interaction"},
+        )
+    )
+    await cog._modal_submit(interaction, "fresh idea", [])
+    channel.send.assert_not_awaited()
+    interaction.followup.send.assert_not_awaited()
 
 
 #: images -------------------------------------------------------------------
