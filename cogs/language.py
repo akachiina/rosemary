@@ -84,6 +84,7 @@ class LanguageCog(commands.Cog):
             ctx.guild_id,
             message,
             style="success" if language in available else "error",
+            icon="speech" if language in available else "error",
         )
 
         if language in available:

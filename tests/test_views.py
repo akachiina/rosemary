@@ -113,7 +113,9 @@ async def test_on_check_failure_responds_ephemeral(bot):
     view = SettingsMenuView(bot, 1, owner_id=1)
     response = FakeResponse()
     await view.on_check_failure(FakeInteraction(response))
-    assert response.sent == [("menu.owner_only", True)]
+    (content, ephemeral) = response.sent[0]
+    assert content == "🔒 menu.owner_only"
+    assert ephemeral is True
 
 
 async def test_prepare_applies_configured_menu_timeout(bot):

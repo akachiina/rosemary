@@ -7,8 +7,8 @@ language:
         description: Language code (e.g. en-US, pt-BR)
   title: Language
   text: Choose the language used by the bot in this server.
-  updated: '{success} Language set to **{language}**.'
-  invalid: '{error} Unknown language ''{language}''.
+  updated: 'Language set to **{language}**.'
+  invalid: '**Unknown** language ''{language}''.
 
     Available:
 

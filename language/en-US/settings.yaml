@@ -53,7 +53,7 @@ settings:
     empty: 'No setting found for **{query}**.'
     pick: Pick a setting
   reset: Restore default
-  reset_done: '{success} {setting} is back to its default.'
+  reset_done: '{success} **{setting}** is back to its default.'
   colors.enabled:
     label: Color Panel Enabled
     description: Enables the color panel (colored roles any member can pick).
@@ -173,8 +173,8 @@ settings:
   next: Next
   edit_title: 'Edit: {setting}'
   select_value: Choose a new value.
-  saved: '{success} Value set for {setting}.'
-  invalid_value: '{error} Invalid value for {setting}.'
+  saved: '{success} Value set for **{setting}**.'
+  invalid_value: '{error} **Invalid** value for {setting}.'
   default_value: 'Default: {value}'
   preview_value: 'Preview: {value}…'
   test:

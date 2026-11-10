@@ -33,6 +33,19 @@ _PREVIEW_FORMS = ("text", "embed", "card")
 #: How many cards the preview select offers (Discord's select cap).
 _MAX_PREVIEW_CARDS = 25
 
+#: The icon of the verb each flash reports (the notice layer owns the icon:
+#: the copy never brings one of its own). A failure has no verb, so it keeps
+#: the icon of its tone.
+_FLASH_ICONS: dict[str, str] = {
+    "themes.imported": "register",
+    "themes.selected": "palette",
+    "themes.removed": "trash",
+    "themes.removed_active": "trash",
+    "themes.reset_done": "reset",
+    "themes.reloaded": "refresh",
+    "themes.validate_ok": "check",
+}
+
 
 def _file(data: bytes, filename: str) -> discord.File:
     return discord.File(io.BytesIO(data), filename=filename)
@@ -114,6 +127,16 @@ class ThemesMenuView(Panel):
         except (ThemeError, OSError):
             return None
 
+    async def set_flash(self, key: str, color: str = "success", **variables) -> None:
+        """Set the one-shot flash: the copy, the tone and the verb's icon.
+
+        The notice layer owns the icon (the copy never brings one of its own),
+        so the panel names the verb of the action here.
+        """
+        self.flash = await self.bot.translator.t(self.guild_id, key, **variables)
+        self.flash_color = color
+        self.flash_icon = _FLASH_ICONS.get(key)
+
     async def _rerender_with_snapshot(self, interaction: discord.Interaction) -> None:
         """Apply + snapshot + redraw: selection changes never need a restart."""
         from rosemary.core.panels import on_theme_changed
@@ -137,13 +160,9 @@ class ThemesMenuView(Panel):
         try:
             await self.bot._theme_store.set_active(self.guild_id, name)
         except Exception:
-            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
-            self.flash_color = "danger"
+            await self.set_flash("themes.not_found", "danger")
         else:
-            self.flash = await self.bot.translator.t(
-                self.guild_id, "themes.selected", theme=name
-            )
-            self.flash_color = "success"
+            await self.set_flash("themes.selected", "success", theme=name)
         await self._rerender_with_snapshot(interaction)
 
     async def _export(self, interaction: discord.Interaction) -> None:
@@ -155,15 +174,13 @@ class ThemesMenuView(Panel):
         name = str(values[0])
         payload = self.bot._theme_store.export_theme(self.guild_id, name)
         if payload is None:
-            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
-            self.flash_color = "danger"
+            await self.set_flash("themes.not_found", "danger")
             return await self.rerender(interaction)
         filename, data = payload
         try:
             await interaction.followup.send(file=_file(data, filename), ephemeral=True)
         except discord.HTTPException:
-            self.flash = await self.bot.translator.t(self.guild_id, "themes.export_failed")
-            self.flash_color = "danger"
+            await self.set_flash("themes.export_failed", "danger")
         await self._rerender_with_snapshot(interaction)
 
     async def _remove(self, interaction: discord.Interaction) -> None:
@@ -176,20 +193,17 @@ class ThemesMenuView(Panel):
         was_active = self._active == name
         removed = await self.bot._theme_store.remove_guild_theme(self.guild_id, name)
         if not removed:
-            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
-            self.flash_color = "danger"
+            await self.set_flash("themes.not_found", "danger")
         else:
             key = "themes.removed_active" if was_active else "themes.removed"
-            self.flash = await self.bot.translator.t(self.guild_id, key, theme=name)
-            self.flash_color = "success"
+            await self.set_flash(key, "success", theme=name)
         await self._rerender_with_snapshot(interaction)
 
     async def _reset(self, interaction: discord.Interaction) -> None:
         if not await self._ack(interaction):
             return
         await self.bot._theme_store.clear_active(self.guild_id)
-        self.flash = await self.bot.translator.t(self.guild_id, "themes.reset_done")
-        self.flash_color = "success"
+        await self.set_flash("themes.reset_done", "success")
         await self._rerender_with_snapshot(interaction)
 
     async def _reload(self, interaction: discord.Interaction) -> None:
@@ -197,8 +211,7 @@ class ThemesMenuView(Panel):
         if not await self._ack(interaction):
             return
         self.bot._theme_store.invalidate_guild(self.guild_id)
-        self.flash = await self.bot.translator.t(self.guild_id, "themes.reloaded")
-        self.flash_color = "success"
+        await self.set_flash("themes.reloaded", "success")
         await self._rerender_with_snapshot(interaction)
 
     async def _close(self, interaction: discord.Interaction) -> None:
@@ -251,21 +264,14 @@ class ThemesMenuView(Panel):
 
         theme = self._inspected_theme()
         if theme is None:
-            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
-            self.flash_color = "danger"
+            await self.set_flash("themes.not_found", "danger")
             return await self.rerender(interaction)
         issues = await validate_theme(self.bot, self.guild_id, theme)
         name = self._inspect or ""
         if not issues:
-            self.flash = await self.bot.translator.t(
-                self.guild_id, "themes.validate_ok", theme=name
-            )
-            self.flash_color = "success"
+            await self.set_flash("themes.validate_ok", "success", theme=name)
             return await self.rerender(interaction)
-        self.flash = await self.bot.translator.t(
-            self.guild_id, "themes.validate_failed", theme=name, count=len(issues)
-        )
-        self.flash_color = "danger"
+        await self.set_flash("themes.validate_failed", "danger", theme=name, count=len(issues))
         t = self.bot.translator.t
         lines = [await t(self.guild_id, "themes.validate_title", theme=name)]
         for issue in issues[:10]:
@@ -289,8 +295,7 @@ class ThemesMenuView(Panel):
 
         theme = self._inspected_theme()
         if theme is None:
-            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
-            self.flash_color = "danger"
+            await self.set_flash("themes.not_found", "danger")
             return await self.rerender(interaction)
         diff = diff_theme(theme, self.bot.theme)
         name = self._inspect or ""
@@ -342,8 +347,7 @@ class ThemesMenuView(Panel):
 
         key = self._preview_key
         if not key:
-            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
-            self.flash_color = "danger"
+            await self.set_flash("themes.not_found", "danger")
             return await self.rerender(interaction)
         payload, _allowed = await preview_card(
             self.bot,
@@ -353,22 +357,20 @@ class ThemesMenuView(Panel):
             theme=self._inspected_theme(),
         )
         if payload is None:
-            self.flash = await self.bot.translator.t(
-                self.guild_id,
+            await self.set_flash(
                 "themes.preview_failed",
+                "danger",
                 form=await self._form_label(self._preview_form),
             )
-            self.flash_color = "danger"
             return await self.rerender(interaction)
         try:
             await interaction.followup.send(**payload.message_kwargs(), ephemeral=True)
         except discord.HTTPException:
-            self.flash = await self.bot.translator.t(
-                self.guild_id,
+            await self.set_flash(
                 "themes.preview_failed",
+                "danger",
                 form=await self._form_label(self._preview_form),
             )
-            self.flash_color = "danger"
         await self.rerender(interaction)
 
     async def _say(self, interaction: discord.Interaction, text: str) -> None:
@@ -561,7 +563,7 @@ class ThemesCog(commands.Cog):
         """Open the theme panel; with a ``.yaml`` attachment, import it first."""
         if not ctx.response.is_done():
             await ctx.response.defer(ephemeral=True)
-        import_flash = None
+        imported = None
         if attachment is not None:
             filename = attachment.filename or "theme.yaml"
             store = self.bot._theme_store
@@ -570,23 +572,26 @@ class ThemesCog(commands.Cog):
                 name = await store.import_theme(ctx.guild_id, filename, payload)
             except Exception as exc:
                 reason = await self._rejection_reason(ctx.guild_id, exc)
-                await ctx.respond(
+                from rosemary.core.feedback import respond as respond_line
+
+                await respond_line(
+                    ctx,
+                    self.bot,
+                    ctx.guild_id,
                     await self.bot.translator.t(
                         ctx.guild_id, "themes.rejected", reason=reason
                     ),
+                    style="danger",
                     ephemeral=True,
                 )
                 return
-            import_flash = await self.bot.translator.t(
-                ctx.guild_id, "themes.imported", theme=name
-            )
+            imported = name
             from rosemary.core.panels import on_theme_changed
 
             await on_theme_changed(self.bot, ctx.guild_id)
         view = ThemesMenuView(self.bot, ctx.guild_id, owner_id=ctx.author.id)
-        if import_flash:
-            view.flash = import_flash
-            view.flash_color = "success"
+        if imported:
+            await view.set_flash("themes.imported", "success", theme=imported)
         await view.prepare()
         from rosemary.core.debug import trace_card_path
 

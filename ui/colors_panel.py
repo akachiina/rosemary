@@ -240,10 +240,17 @@ class ColorPickerView(MenuView):
         guild = self.bot.get_guild(self.guild_id)
         member = guild.get_member(interaction.user.id) if guild else None
         if cog is None or guild is None or member is None:
-            await interaction.followup.send(
-                await self._t("general.unknown_error"), ephemeral=True
+            from rosemary.core.feedback import respond as respond_line
+
+            return await respond_line(
+                interaction,
+                self.bot,
+                self.guild_id,
+                await self._t("general.unknown_error"),
+                style="danger",
+                icon="error",
+                ephemeral=True,
             )
-            return
         color_entries = await cog.store.list_colors(self.guild_id)
         linked = {entry.role_id for entry in color_entries if entry.role_id}
         color_roles = [role for role in member.roles if role.id in linked]
@@ -281,8 +288,16 @@ class ColorPickerView(MenuView):
             )
         except discord.HTTPException as exc:
             log.warning("color pick failed in %s: %s", self.guild_id, exc)
-            return await interaction.followup.send(
-                await self._t("general.unknown_error"), ephemeral=True
+            from rosemary.core.feedback import respond as respond_line
+
+            return await respond_line(
+                interaction,
+                self.bot,
+                self.guild_id,
+                await self._t("general.unknown_error"),
+                style="danger",
+                icon="error",
+                ephemeral=True,
             )
         key = "colors.panel.removed" if wearing else "colors.panel.applied"
         await interaction.followup.send(

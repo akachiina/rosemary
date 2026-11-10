@@ -87,7 +87,7 @@ async def test_administrator_denied_responds_ephemeral() -> None:
     # The denial is a plain notice line: the theme prefix plus the copy.
     (content,) = ctx.responded["args"]
     assert content.endswith("DENIED_TEXT")
-    assert content.startswith("⚠️ ")
+    assert content.startswith("🔒 ")
     assert "**|**" not in content
     # The notice never notifies (it is plain content now, not a component).
     mentions = ctx.responded["kwargs"]["allowed_mentions"]

@@ -118,17 +118,20 @@ async def notice(
     key: str,
     *,
     style: str = "info",
+    icon: str | None = None,
     ephemeral: bool = True,
     **variables: Any,
 ) -> None:
     """One translated notice line (the theme's prefix, never a ping).
 
     The copy comes from the catalog (``key``); the tone picks the theme's
-    prefix. The notice never notifies: the copy may name the member the bot
-    is about to ban.
+    prefix and ``icon`` names the verb of the action. The notice never
+    notifies: the copy may name the member the bot is about to ban.
     """
     text = await bot.translator.t(guild_id, key, **variables)
-    await respond_notice(ctx, bot, guild_id, text, style=style, ephemeral=ephemeral)
+    await respond_notice(
+        ctx, bot, guild_id, text, style=style, icon=icon, ephemeral=ephemeral
+    )
 
 
 async def _safe_notice(
@@ -138,10 +141,14 @@ async def _safe_notice(
     key: str,
     style: str,
     ephemeral: bool,
+    *,
+    icon: str | None = None,
 ) -> None:
     """Answer the failure, but never fail while answering it."""
     try:
-        await notice(ctx, bot, guild_id, key, style=style, ephemeral=ephemeral)
+        await notice(
+            ctx, bot, guild_id, key, style=style, icon=icon, ephemeral=ephemeral
+        )
     except Exception:  # noqa: BLE001
         log.warning("Could not answer the failed command", exc_info=True)
 
@@ -158,21 +165,29 @@ async def run(ctx: Any, surface: Surface, handler: Handler) -> None:
     ephemeral = ephemeral_for(ctx, surface)
     try:
         if surface.permission and not has_permission(ctx, surface.permission):
-            await _safe_notice(ctx, bot, guild_id, NO_PERMISSION, "warning", ephemeral)
+            await _safe_notice(
+                ctx, bot, guild_id, NO_PERMISSION, "warning", ephemeral, icon="lock"
+            )
             return
         if surface.defer and is_application(ctx):
             await ctx.defer(ephemeral=ephemeral)
         await handler()
     except commands.CheckFailure:
-        await _safe_notice(ctx, bot, guild_id, NO_PERMISSION, "warning", ephemeral)
+        await _safe_notice(
+            ctx, bot, guild_id, NO_PERMISSION, "warning", ephemeral, icon="lock"
+        )
     except discord.Forbidden:
         log.warning(
             "The bot lacks the permission for %s (guild %s)", surface.card_key, guild_id
         )
-        await _safe_notice(ctx, bot, guild_id, BOT_NO_PERMISSION, "danger", ephemeral)
+        await _safe_notice(
+            ctx, bot, guild_id, BOT_NO_PERMISSION, "danger", ephemeral, icon="lock"
+        )
     except Exception:
         log.exception("Command %s failed (guild %s)", surface.card_key, guild_id)
-        await _safe_notice(ctx, bot, guild_id, surface.card_key, "danger", ephemeral)
+        await _safe_notice(
+            ctx, bot, guild_id, surface.card_key, "danger", ephemeral, icon="error"
+        )
 
 
 __all__ = [

@@ -42,7 +42,15 @@ async def require_permissions(
     text = await ctx.bot.translator.t(ctx.guild_id, "general.no_permission")
     from rosemary.core.feedback import respond as respond_line
 
-    await respond_line(ctx, ctx.bot, ctx.guild_id, text, style="warning", ephemeral=True)
+    await respond_line(
+        ctx,
+        ctx.bot,
+        ctx.guild_id,
+        text,
+        style="warning",
+        icon="lock",
+        ephemeral=True,
+    )
     return False
 
 

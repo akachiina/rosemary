@@ -48,6 +48,23 @@ log = logging.getLogger(__name__)
 
 _LIST_PAGE_SIZE = 5
 
+#: The icon of the verb a flash reports (the notice layer owns the icon: the
+#: copy never brings one of its own).
+_FLASH_ICONS: dict[str, str] = {
+    "boost.success.role_registered": "register",
+    "boost.success.role_removed": "trash",
+    "boost.success.ownership_transferred": "swap",
+    "boost.success.role_renamed": "pencil",
+    "boost.success.color_changed": "palette",
+    "boost.success.emoji_set": "tag",
+    "boost.success.icon_set": "frame",
+    "boost.success.member_added": "plus",
+    "boost.success.member_removed": "minus",
+    "boost.success.invite_sent": "love_letter",
+    "boost.success.invite_cancelled": "lock",
+    "boost.success.left_role": "door",
+}
+
 _EMOJI_RE = re.compile(
     r"\A[\U0001F300-\U0001FAFF\U00002600-\U000027BF\U0001F1E6-\U0001F1FF"
     r"\U00002B00-\U00002BFF\U0000FE0F\u200D]+\Z"
@@ -192,6 +209,7 @@ class _BaseMenu(Panel):
     async def _flash(self, key: str, *, color: str = "success", **kwargs: Any) -> None:
         self.flash = await self._t(key, **kwargs)
         self.flash_color = color
+        self.flash_icon = _FLASH_ICONS.get(key)
 
     async def _log(self, key: str, *, color: str = "info", **kwargs: Any) -> None:
         """Send a boost action to the configured log channel.

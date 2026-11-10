@@ -14,16 +14,16 @@ ban:
       reason:
         description: Reason
   confirm_title: Ban this member?
-  success: '{success} {member} was banned.'
+  success: '{member} was **banned**.'
   dm: 'You were banned from **{guild}** by {moderator}!
 
     • **{scroll} Reason:** {reason}'
 cleaner:
-  error_disabled: '{error} The message cleaner is disabled on this server.'
-  error_no_mode: '{error} Give me a word, a regex or how many messages to purge (last N).'
-  error_conflict: '{error} Use a word OR a regex, not both.'
-  error_bad_regex: '{error} Invalid regex: {reason}'
-  error_last_range: '{error} The last-N limit must be between 1 and 1000.'
+  error_disabled: 'The message cleaner is **disabled** on this server.'
+  error_no_mode: 'Give me **a word, a regex or how many messages to purge** (last N).'
+  error_conflict: 'Use **a word OR a regex**, not both.'
+  error_bad_regex: '**Invalid regex:** {reason}'
+  error_last_range: 'The last-N limit must be **between 1 and 1000**.'
   confirm_text: This deletes messages permanently. It cannot be undone.
   confirm: Delete everything
   cancel: Cancel
@@ -54,7 +54,7 @@ cleaner:
 confirm:
   confirm: Confirm
   cancel: Cancel
-  failed: '{error} The action failed. Check the bot logs.'
+  failed: 'The action **failed**. Check the bot logs.'
   cancelled: Action cancelled.
 kick:
   command:
@@ -66,7 +66,7 @@ kick:
       reason:
         description: Reason
   confirm_title: Kick this member?
-  success: '{success} {member} was kicked.'
+  success: '{member} was **kicked**.'
   dm: 'You were kicked from **{guild}** by {moderator}!
 
     • **{scroll} Reason:** {reason}'
@@ -91,9 +91,9 @@ moderation:
   confirm_clear: Clear all warnings
   cancel: Cancel
   cancelled: Action cancelled.
-  error_failed: '{error} The action failed. Check the bot logs.'
-  auto_ban_applied: Auto-ban applied (limit of {limit} warnings).
-  auto_ban_failed: '{warning} Warning recorded but auto-ban failed (check permissions).'
+  error_failed: 'The action **failed**. Check the bot logs.'
+  auto_ban_applied: '**Auto-ban** applied (limit of {limit} warnings).'
+  auto_ban_failed: '**Warning** recorded, but the **auto-ban failed** (check permissions).'
   no_reason: No reason provided
   summary: '{member}
 
@@ -101,14 +101,14 @@ moderation:
   multi_summary: '{targets}
 
     • **{scroll} Reason:** {reason}'
-  error_disabled: '{error} Moderation commands are disabled in this server.'
-  error_no_members: '{error} Mention at least one member.'
-  error_self: '{error} You cannot use moderation commands on yourself.'
-  error_self_bot: '{error} The bot cannot moderate itself.'
-  error_author_permissions: '{error} You do not have permission to do that.'
-  error_bot_permissions: '{error} The bot does not have permission to do that.'
-  error_hierarchy: '{error} This member''s role is equal to or higher than yours.'
-  error_bot_hierarchy: '{error} This member''s role is equal to or higher than the bot''s.'
+  error_disabled: 'Moderation commands are **disabled** in this server.'
+  error_no_members: 'Mention **at least one member**.'
+  error_self: 'You **cannot** use moderation commands on yourself.'
+  error_self_bot: 'The bot **cannot** moderate itself.'
+  error_author_permissions: 'You **do not have permission** to do that.'
+  error_bot_permissions: 'The bot **does not have permission** to do that.'
+  error_hierarchy: 'This member''s role is **equal to or higher** than yours.'
+  error_bot_hierarchy: 'This member''s role is **equal to or higher** than the bot''s.'
   logs:
     auto_ban:
       description: '**{member_label}:** {member}
@@ -169,13 +169,13 @@ mute:
       reason:
         description: Reason
   confirm_title: Mute this member?
-  success: '{success} {member} was muted for {duration}.'
+  success: '{member} was **muted** for **{duration}**.'
   dm: 'You were muted in **{guild}** by {moderator}!
 
     • **{clock} Duration:** {duration}
 
     • **{scroll} Reason:** {reason}'
-  invalid_duration: '{error} Invalid duration. Use formats like 10m, 2h or 3d.'
+  invalid_duration: '**Invalid duration.** Use formats like 10m, 2h or 3d.'
   summary: '{member}
 
     • **{clock} Duration:** {duration}
@@ -245,10 +245,10 @@ unwarn:
         description: Warning number (omit to clear all)
   clear_all_title: Clear all warnings?
   clear_all_summary: Remove every warning from {member}?
-  cleared: '{success} Removed {count} warning(s) from {member}.'
-  removed: '{success} Warning #{index} removed from {member}.'
-  invalid_index: '{error} No warning with that number.'
-  none_for: '{success} This member has no warnings to clear.'
+  cleared: 'Removed **{count}** warning(s) from {member}.'
+  removed: '**Warning #{index}** removed from {member}.'
+  invalid_index: 'No **warning** with that number.'
+  none_for: 'This member **has no warnings** to clear.'
 warn:
   command:
     name: warn
@@ -259,7 +259,7 @@ warn:
       reason:
         description: Reason
   confirm_title: Warn this member?
-  success: '{success} Warning recorded for {member} ({count}/{limit}).'
+  success: '**Warning** recorded for {member} ({count}/{limit}).'
   dm: 'You received a warning in **{guild}** from {moderator}!
 
     • **{scroll} Reason:** {reason}'

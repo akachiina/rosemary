@@ -158,7 +158,7 @@ async def test_validation_errors(tmp_path):
     await CleanerCog.limpar.callback(
         cog, ctx, palavra=None, regex=None, last=None, canal=None, autor=None
     )
-    assert "Give me a word" in ctx.respond.call_args.args[0]
+    assert "a regex or how many messages to purge" in ctx.respond.call_args.args[0]
 
     # Word AND regex conflict.
     ctx = make_ctx(guild, author)

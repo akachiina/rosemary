@@ -254,7 +254,9 @@ def _payload_for_card(
         text = card_to_text(card)
         if not text:
             return CardPayload(), ""
-        content = f"{_feedback_prefix(bot, guild_id, key, card.style)}{text}".strip()
+        from rosemary.core.feedback import notice_line
+
+        content = notice_line(bot, guild_id, text, style=card.style)
         return CardPayload(content=content), content
     if card.form == FORM_EMBED:
         document = card_to_embed(card)
@@ -299,17 +301,6 @@ async def _allowed_for_card(
             silent=silent,
         )
     return await allowed_for_text(bot, guild_id, key, content, silent=silent)
-
-
-def _feedback_prefix(bot, guild_id: int | None, key: str, style: str = "info") -> str:
-    """The theme prefix of a notice ("{emoji} ").
-
-    The prefix belongs to the theme (the ``feedback_*`` style family), so a
-    guild restyles every notice at once.
-    """
-    from rosemary.core.feedback import prefix_for
-
-    return prefix_for(bot, guild_id, style or "info")
 
 
 def _says_something(card: Card) -> bool:

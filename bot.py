@@ -576,14 +576,14 @@ class RosemaryBot(commands.Bot):
             return
         guild_id = context.guild.id if context.guild is not None else None
         if isinstance(exception, commands.CheckFailure):
-            key, color = "general.no_permission", "warning"
+            key, color, icon = "general.no_permission", "warning", "lock"
         else:
-            key, color = "general.unknown_error", "danger"
+            key, color, icon = "general.unknown_error", "danger", "error"
         try:
             from rosemary.core.feedback import line as notice_line
 
             text = await self.translator.t(guild_id, key)
-            content = notice_line(self, guild_id, text, style=color)
+            content = notice_line(self, guild_id, text, style=color, icon=icon)
             with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                 await context.reply(
                     content,
@@ -607,14 +607,22 @@ class RosemaryBot(commands.Bot):
             return
         guild_id = context.guild.id if context.guild is not None else None
         if isinstance(exception, commands.CheckFailure):
-            key, color = "general.no_permission", "warning"
+            key, color, icon = "general.no_permission", "warning", "lock"
         else:
-            key, color = "general.unknown_error", "danger"
+            key, color, icon = "general.unknown_error", "danger", "error"
         try:
             from rosemary.core.feedback import respond as respond_line
 
             text = await self.translator.t(guild_id, key)
-            await respond_line(context, self, guild_id, text, style=color, ephemeral=True)
+            await respond_line(
+                context,
+                self,
+                guild_id,
+                text,
+                style=color,
+                icon=icon,
+                ephemeral=True,
+            )
         except Exception:  # noqa: BLE001
             log.warning("Could not answer the failed application command", exc_info=True)
 
@@ -660,20 +668,18 @@ class RosemaryBot(commands.Bot):
             exc_info=error,
         )
         try:
-            if interaction.response.is_done():
-                await interaction.followup.send(
-                    await self.translator.t(
-                        interaction.guild_id, "general.unknown_error"
-                    ),
-                    ephemeral=True,
-                )
-            else:
-                await interaction.response.send_message(
-                    await self.translator.t(
-                        interaction.guild_id, "general.unknown_error"
-                    ),
-                    ephemeral=True,
-                )
+            from rosemary.core.feedback import respond as respond_line
+
+            text = await self.translator.t(guild_id, "general.unknown_error")
+            await respond_line(
+                interaction,
+                self,
+                guild_id,
+                text,
+                style="danger",
+                icon="error",
+                ephemeral=True,
+            )
         except Exception:
             log.debug("view_error ACK fallback also failed", exc_info=True)
 
@@ -715,16 +721,18 @@ class RosemaryBot(commands.Bot):
             exc_info=error,
         )
         try:
-            if interaction.response.is_done():
-                await interaction.followup.send(
-                    await self.translator.t(guild_id, "general.unknown_error"),
-                    ephemeral=True,
-                )
-            else:
-                await interaction.response.send_message(
-                    await self.translator.t(guild_id, "general.unknown_error"),
-                    ephemeral=True,
-                )
+            from rosemary.core.feedback import respond as respond_line
+
+            text = await self.translator.t(guild_id, "general.unknown_error")
+            await respond_line(
+                interaction,
+                self,
+                guild_id,
+                text,
+                style="danger",
+                icon="error",
+                ephemeral=True,
+            )
         except Exception:
             log.debug("modal_error ACK fallback also failed", exc_info=True)
 

@@ -234,7 +234,7 @@ async def test_theme_emojis_are_auto_injected():
     theme = load_theme()
     assert theme.emojis["success"] == "✅"
     tr = Translator(LANG_DIR, resolver=_resolver("en-US"), default_placeholders=theme.emojis)
-    assert await tr.t(1, "language.updated", language="en-US") == "✅ Language set to **en-US**."
+    assert await tr.t(1, "settings.saved", setting="theme") == "✅ Value set for **theme**."
 
 
 async def test_asset_references_resolve_in_any_catalog(tmp_path, monkeypatch):
@@ -341,7 +341,7 @@ async def test_invalid_message_multiline_available():
     )
     assert "Disponíveis:" in message
     assert "\n- 🇺🇸 English\n- 🇧🇷 Português do Brasil" in message
-    assert message.startswith(theme.emojis["error"])
+    assert message.startswith("Idioma **desconhecido**")
 
 
 def _document_label_keys(document: dict) -> list[str]:

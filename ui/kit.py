@@ -277,6 +277,7 @@ class Panel(MenuView):
         self.accent: discord.ui.ViewItem | None = None
         self.flash: str | None = None
         self.flash_color: str | None = None
+        self.flash_icon: str | None = None
         self.expired = False
         self._register_navigation()
 
@@ -437,13 +438,24 @@ class Panel(MenuView):
         parts.extend(await self.header_lines())
         color = self.color
         if self.flash:
-            parts.append(TextDisplay(self.flash))
+            parts.append(
+                TextDisplay(
+                    notice_line(
+                        self.bot,
+                        self.guild_id,
+                        self.flash,
+                        style=self.flash_color or "info",
+                        icon=self.flash_icon,
+                    )
+                )
+            )
             color = self.flash_color or color
         footer = self._fill(chrome.footer, footer=self.footer)
         if _has_text(footer):
             parts.append(TextDisplay(footer))
         self.flash = None
         self.flash_color = None
+        self.flash_icon = None
         if not parts:
             # A row-only surface (a review card, a ticket panel) carries no
             # chrome of its own: the card it rides already owns the frame.
@@ -505,7 +517,9 @@ class Panel(MenuView):
 
     async def expired_items(self) -> list[discord.ui.ViewItem]:
         """The terminal state of an expired panel (no buttons left)."""
-        text = await self.t("menu.expired")
+        text = notice_line(
+            self.bot, self.guild_id, await self.t("menu.expired"), style="warning"
+        )
         theme = self.theme
         return [
             Container(
@@ -592,16 +606,26 @@ class Notice:
         text: str,
         *,
         style: str = "info",
+        icon: str | None = None,
     ) -> None:
         """Answer with one notice line (ACKs when needed)."""
         from rosemary.core.feedback import respond
 
-        await respond(target, bot, guild_id, text, style=style, ephemeral=True)
+        await respond(
+            target, bot, guild_id, text, style=style, icon=icon, ephemeral=True
+        )
 
     @staticmethod
-    def line(bot: Any, guild_id: int | None, text: str, *, style: str = "info") -> str:
+    def line(
+        bot: Any,
+        guild_id: int | None,
+        text: str,
+        *,
+        style: str = "info",
+        icon: str | None = None,
+    ) -> str:
         """The notice line, as text (the plain-text layer)."""
-        return notice_line(bot, guild_id, text, style=style)
+        return notice_line(bot, guild_id, text, style=style, icon=icon)
 
 
 @dataclass(frozen=True)
@@ -610,11 +634,13 @@ class ConfirmResult:
 
     ``on_confirm`` may return a plain string (rendered with the default
     ``success`` color) or a :class:`ConfirmResult` to steer the terminal
-    state's color (e.g. ``warning`` for a cancelled-by-feature flow).
+    state's color (e.g. ``warning`` for a cancelled-by-feature flow) and the
+    icon of the outcome (``ban``, ``minus``...).
     """
 
     text: str
     state: str = "success"
+    icon: str | None = None
 
     @classmethod
     def wrap(cls, value: Any, *, default_state: str = "success") -> ConfirmResult:
@@ -659,6 +685,7 @@ class Confirm(Panel):
         self.question_color = "warning"
         self.result: str | None = None
         self.result_state: str | None = None
+        self.result_icon: str | None = None
         self.nav_actions = ()
         self.register("confirm_yes", self._confirm)
         self.register("confirm_no", self._cancel)
@@ -704,10 +731,12 @@ class Confirm(Panel):
             outcome = ConfirmResult.wrap(await self.on_confirm(interaction))
             self.result = outcome.text
             self.result_state = outcome.state
+            self.result_icon = outcome.icon
         except Exception as exc:
             log.error("Confirmed action failed: %s", exc)
             self.result = await self.t(self.failure_key)
             self.result_state = "danger"
+            self.result_icon = "error"
         await self.rerender(interaction)
         self.stop()
 
@@ -719,6 +748,7 @@ class Confirm(Panel):
             return
         self.result = await self.t(self.cancelled_key)
         self.result_state = "warning"
+        self.result_icon = "info"
         await self.rerender(interaction)
         self.stop()
 
@@ -727,10 +757,12 @@ class Confirm(Panel):
         if self.result is not None:
             body = self.result
             style = self.result_state or "info"
+            icon = self.result_icon
         else:
             body = await self.question_text()
             style = self.question_color
-        return notice_line(self.bot, self.guild_id, body, style=style)
+            icon = None
+        return notice_line(self.bot, self.guild_id, body, style=style, icon=icon)
 
     async def message_kwargs(self) -> dict[str, Any]:
         """The keyword arguments of the confirm message (content + view).

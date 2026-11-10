@@ -25,15 +25,23 @@ async def respond_notice(
     text: str,
     *,
     color: str = "danger",
+    icon: str | None = None,
 ) -> None:
     """Respond ephemerally with one notice line (ACKs when needed).
 
     ``color`` is a theme color token: ``danger`` for errors, ``warning`` for
     warnings, ``success`` for confirmations, ``info`` for notices. It picks
-    the prefix emoji; the message keeps its own catalog copy.
+    the prefix emoji; ``icon`` names the verb of the action and replaces that
+    tone icon. The message keeps its own catalog copy.
     """
     await _respond_notice_line(
-        interaction_or_ctx, bot, guild_id, text, style=color, ephemeral=True
+        interaction_or_ctx,
+        bot,
+        guild_id,
+        text,
+        style=color,
+        icon=icon,
+        ephemeral=True,
     )
 
 

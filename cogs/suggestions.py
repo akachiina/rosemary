@@ -251,9 +251,17 @@ class SuggestionVoteView(MenuView):
             ok = await cog.apply_vote(guild, message, interaction.user.id, side)
         except Exception as exc:
             log.error("Suggestion vote failed: %s", exc)
+            from rosemary.core.feedback import respond as respond_line
+
+            text = await self.bot.translator.t(guild.id, "general.unknown_error")
             with contextlib.suppress(discord.HTTPException):
-                await interaction.followup.send(
-                    await self.bot.translator.t(guild.id, "general.unknown_error"),
+                await respond_line(
+                    interaction,
+                    self.bot,
+                    guild.id,
+                    text,
+                    style="danger",
+                    icon="error",
                     ephemeral=True,
                 )
             return
@@ -882,8 +890,16 @@ class SuggestionsCog(commands.Cog):
             )
         member = guild.get_member(interaction.user.id)
         if member is None:
-            return await interaction.followup.send(
-                await t(guild.id, "general.unknown_error"), ephemeral=True
+            from rosemary.core.feedback import respond as respond_line
+
+            return await respond_line(
+                interaction,
+                self.bot,
+                guild.id,
+                await t(guild.id, "general.unknown_error"),
+                style="danger",
+                icon="error",
+                ephemeral=True,
             )
         try:
             await self.post_suggestion(guild, channel, member, body, image)
@@ -941,8 +957,16 @@ class SuggestionsCog(commands.Cog):
             )
         member = guild.get_member(ctx.author.id)
         if member is None:
-            return await ctx.respond(
-                await t(guild.id, "general.unknown_error"), ephemeral=True
+            from rosemary.core.feedback import respond as respond_line
+
+            return await respond_line(
+                ctx,
+                self.bot,
+                guild.id,
+                await t(guild.id, "general.unknown_error"),
+                style="danger",
+                icon="error",
+                ephemeral=True,
             )
         await ctx.defer(ephemeral=True)
         outcome, _message = await self.decide_suggestion(

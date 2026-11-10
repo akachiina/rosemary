@@ -53,7 +53,7 @@ settings:
     empty: 'Nenhuma definição encontrada para **{query}**.'
     pick: Escolha uma definição
   reset: Restaurar padrão
-  reset_done: '{success} {setting} voltou ao padrão.'
+  reset_done: '{success} **{setting}** voltou ao padrão.'
   colors.enabled:
     label: Painel de Cores Ativado
     description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).
@@ -173,8 +173,8 @@ settings:
   next: Próxima
   edit_title: 'Editar: {setting}'
   select_value: Escolha um novo valor.
-  saved: '{success} Valor definido para {setting}.'
-  invalid_value: '{error} Valor inválido para {setting}.'
+  saved: '{success} Valor definido para **{setting}**.'
+  invalid_value: '{error} Valor **inválido** para {setting}.'
   default_value: 'Padrão: {value}'
   preview_value: 'Prévia: {value}…'
   none: Não definido

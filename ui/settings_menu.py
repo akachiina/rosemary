@@ -292,6 +292,7 @@ class SettingsMenuView(Panel):
         label = await self.t(f"settings.{spec.key}.label")
         self.flash = await self.t("settings.reset_done", setting=label)
         self.flash_color = "success"
+        self.flash_icon = "reset"
         self.editing_key = None
         await self.rerender(interaction)
 
@@ -416,6 +417,7 @@ class SettingsMenuView(Panel):
         except ValueError:
             self.flash = await t(self.guild_id, "settings.invalid_value", setting=label)
             self.flash_color = "danger"
+            self.flash_icon = "error"
             self.editing_key = None
             await self.rerender(interaction)
             return
@@ -606,6 +608,16 @@ class SettingsMenuView(Panel):
             self.guild_id, f"settings.test.{key}"
         )
         self.flash_color = "danger" if key == "error" else "success"
+        self.flash_icon = {
+            "error": "error",
+            "no_data": "warning",
+            "thank_you_done": "speech",
+            "reminder_done": "clock",
+            "lock_done": "lock",
+            "unlock_done": "unlock",
+            "leaderboard_done": "chart",
+            "reset_done": "reset",
+        }.get(key)
         await self.rerender(interaction)
 
     #: rendering ---------------------------------------------------------

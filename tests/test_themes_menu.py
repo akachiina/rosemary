@@ -134,6 +134,16 @@ async def test_import_flash_shown_by_command(tmp_path):
     assert "ok-imported" in texts
 
 
+async def test_the_flash_carries_the_icon_of_the_verb(tmp_path):
+    """The notice layer owns the icon: the flash names the verb, not the tone."""
+    _bot, _store, view = await make(tmp_path)
+    await view.set_flash("themes.selected", "success", theme="cute")
+    assert view.flash_icon == "palette"
+
+    await view.set_flash("themes.not_found", "danger")
+    assert view.flash_icon is None  # a failure has no verb: the tone stays
+
+
 async def test_every_rendered_component_has_a_callback(tmp_path):
     """Regression: raw Selects without callbacks made clicks die with
     "the application did not respond" (live bug report)."""

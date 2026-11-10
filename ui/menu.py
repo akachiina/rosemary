@@ -340,6 +340,9 @@ class MenuView(discord.ui.DesignerView):
                     "Only the menu owner can use these controls.", ephemeral=True
                 )
             return
-        message = await bot.translator.t(guild_id, "menu.owner_only")
+        from rosemary.core.feedback import line as notice_line
+
+        text = await bot.translator.t(guild_id, "menu.owner_only")
+        message = notice_line(bot, guild_id, text, style="error", icon="lock")
         with contextlib.suppress(discord.HTTPException):
             await interaction.response.send_message(message, ephemeral=True)

@@ -48,6 +48,13 @@ Components V2 (the interactive UI only).
   `../.venv/bin/python scripts/snapshot_panels.py` and review the diff.
   `tests/golden_panels.py` holds the shared helpers (the script and the test
   both use it).
+- **Golden notices**: `tests/golden/notices.json` pins the plain-text layer in
+  both catalogs: the icon the decorator chooses (the verb of the action or the
+  theme tone) and the copy the member reads. After a *deliberate* change to a
+  notice, re-run `../.venv/bin/python scripts/snapshot_notices.py` and review
+  the diff. `tests/golden_notices.py` holds the shared cases and render (the
+  script and the test both use it); `tests/test_golden_notices.py` also fails
+  when a line opens with two icons or a cleaned copy still carries a tone token.
 - **V2 markers**: `-#` (small text) and `#` (heading) are Components V2 only;
   in an embed or a plain text Discord shows them raw. `tests/test_no_v2_markers.py`
   freezes the cards that still leak one: the list only shrinks (remove the
@@ -209,15 +216,22 @@ Rosemary speaks three shapes, and every message picks one:
 
 - **plain text** (`core/feedback.py`): acknowledgements, confirmations and
   notices. One line: `{emoji} message` (the prefix carries no separator). The
-  prefix is a theme style
+  **decorator owns the only icon**: `notice_line` strips whatever mark the
+  translated copy still carries and writes one icon, so the member never sees
+  two checks. The send site names the **verb** of the action (`ban`, `kick`,
+  `mute`, `warning`, `minus`, `ticket`...) and the verb icon replaces the tone
+  icon in the theme prefix (a decorated prefix such as `"⭐ >> "` keeps its
+  decoration: `"🔇 >> ..."`); without a verb the tone stays. The prefix is a
+  theme style
   (`feedback_error`/`feedback_warning`/`feedback_success`/`feedback_info` in
-  `themes/default/tokens.yaml`), so a guild restyles every notice at once. The prefix
-  owns the **only emoji** of the line: a text card's copy never opens with one
-  (the DM copies in both catalogs were stripped of their leading token). A text
-  card with more than one thing opens with a **bold title**, one item per line,
-  fields as `• **Label:** value`; it never uses `> **Label:**` or a heading
-  marker. A notice **never notifies**: the copy may name the member the bot is
-  about to ban, so every text send carries `AllowedMentions.none()` (the
+  `themes/default/tokens.yaml`), so a guild restyles every notice at once. The
+  result/verb and the value that changed are **bold**, the mention is not:
+  `🔇 @membro foi **silenciado** por **1h**.` A text card with more than one
+  thing opens with a **bold title**, one item per line, fields as
+  `• **Label:** value`; it never uses `> **Label:**` or a heading marker. DMs
+  and text cards keep the tone icon: their copy belongs to the card, not to a
+  command answer. A notice **never notifies**: the copy may name the member the
+  bot is about to ban, so every text send carries `AllowedMentions.none()` (the
   Components V2 container it replaced never pinged).
 - **classic embed**: staff logs, audit cards, info listings and the social
   content (starboard, birthdays, welcome/leave, suggestions, confessions,

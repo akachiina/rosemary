@@ -589,15 +589,15 @@ debug:
     logging: 'Logging: {logging}'
     audit: 'Audit log: {audit}'
 general:
-  unknown_error: '{error} An unexpected error occurred.'
+  unknown_error: 'An **unexpected error** occurred.'
   'yes': 'Yes'
   'no': 'No'
-  no_permission: '{error} Only server administrators can use this command.'
-  bot_no_permission: '{error} The bot does not have permission to do that.'
+  no_permission: 'Only **server administrators** can use this command.'
+  bot_no_permission: 'The bot **does not have permission** to do that.'
   date_format: '%m/%d/%Y %I:%M %p'
 menu:
-  owner_only: '{error} This menu is private. Only the author can interact.'
-  expired: '{warning} This menu expired. Open it again to continue.'
+  owner_only: 'This menu is private. **Only the author** can interact.'
+  expired: 'This menu **expired**. Open it again to continue.'
 # The shared labels of the panels: the navigation of every panel reads them
 # from the theme's chrome (panels.chrome).
 ui:

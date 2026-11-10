@@ -299,6 +299,7 @@ class CleanerPurgeView(Panel):
                     criterion=self.request.criterion,
                 ),
                 style="warning",
+                icon="stop",
             )
         else:
             self.final_text = notice_line(
@@ -320,6 +321,7 @@ class CleanerPurgeView(Panel):
                     criterion=self.request.criterion,
                 ),
                 style="success",
+                icon="trash",
             )
         await self._edit_panel()
         await self._send_log()
