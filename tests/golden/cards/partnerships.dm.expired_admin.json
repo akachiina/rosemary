@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Parceria Expirada\n\nOlá, <@0>! A parceria que você adicionou com o representante <@0> expirou por falta de renovação e foi removida de **…**.\n\n### 📅 Detalhes\n> **Representante:** <@0>\n> **Última renovação:** há 1 dia(s)\n\n### 🔄 Quer restabelecer?\n> Refaça o processo normalmente no canal de parcerias.\n> Convite para repassar ao representante: https://discord.gg/example\n\nEsta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria.",
+  "content": "ℹ️ **Parceria Expirada**\n\nOlá, <@0>! A parceria que você adicionou com o representante <@0> expirou por falta de renovação e foi removida de **…**.\n\n📅 **Detalhes**\n• **Representante:** <@0>\n• **Última renovação:** há 1 dia(s)\n\n🔄 **Quer restabelecer?**\nRefaça o processo normalmente no canal de parcerias.\n• Convite para repassar ao representante: https://discord.gg/example\n\nEsta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria.",
   "embed": null,
   "form": "text",
   "key": "partnerships.dm.expired_admin",

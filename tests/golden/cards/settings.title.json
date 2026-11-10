@@ -9,11 +9,11 @@
       "accent": "#57f287",
       "children": [
         {
-          "content": "# Configurações do Bot",
+          "content": "# ⚙️ Configurações do Bot",
           "type": "TextDisplay"
         },
         {
-          "content": "{body}",
+          "content": "…",
           "type": "TextDisplay"
         }
       ],

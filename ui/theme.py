@@ -83,19 +83,36 @@ class Theme:
             raise KeyError(f"Unknown theme color {name!r}")
         return discord.Colour(int(hex_value.lstrip("#"), 16))
 
-    def emoji(self, name: str) -> str:
-        """Return an emoji token by name (empty string when unknown)."""
+    def icon(self, name: str) -> str:
+        """Resolve one icon token to what Discord renders.
+
+        A token is Unicode (``"🛡️"``) or an asset reference
+        (``"{emojis/shield}"``): the reference becomes the real application
+        emoji mention, so the same token works in a card, a button, a select
+        and the chrome. A token the theme does not define, or an asset that
+        was never uploaded, resolves to an empty string: an icon degrades to
+        no icon, it never leaks ``{emojis/...}`` into a message.
+        """
         value = self.emojis.get(name, "")
         if not value:
-            log.debug("Unknown theme emoji %r", name)
-        return value
+            log.debug("Unknown theme icon %r", name)
+            return ""
+        from rosemary.core.assets import resolve_refs
+
+        return resolve_refs(str(value))
+
+    def emoji(self, name: str) -> str:
+        """Return an emoji token by name (empty string when unknown)."""
+        return self.icon(name)
 
     def md(self, name: str, **kwargs: Any) -> str:
         """Format a named markdown template, injecting theme emojis as defaults."""
         template = self.markdown.get(name)
         if template is None:
             raise KeyError(f"Unknown markdown template {name!r}")
-        return template.format(**{**self.emojis, **kwargs})
+        from rosemary.core.assets import resolve_refs
+
+        return resolve_refs(template.format(**{**self.emojis, **kwargs}))
 
     def style(self, name: str) -> Style:
         """Resolve a style by name, merging ``extends`` and falling back to base.
@@ -117,7 +134,9 @@ class Theme:
         style = self.style(name)
         template = self.markdown.get(style.template, "{title}")
         body = template.format(**{**self.emojis, **kwargs})
-        return f"{style.prefix}{body}{style.suffix}"
+        from rosemary.core.assets import resolve_refs
+
+        return resolve_refs(f"{style.prefix}{body}{style.suffix}")
 
     #: star tier ramp ------------------------------------------------------
 
@@ -294,7 +313,9 @@ class Theme:
         return merged
 
     def _fill(self, value: str) -> str:
-        return value.format(**self.emojis)
+        from rosemary.core.assets import resolve_refs
+
+        return resolve_refs(value.format(**self.emojis))
 
 
 #: ``#rrggbb`` / ``rrggbb``: the only color forms the ramp blends.

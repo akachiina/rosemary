@@ -3,14 +3,14 @@
     {
       "custom_id": "rp_mgr_add",
       "disabled": false,
-      "emoji": null,
+      "emoji": "➕",
       "label": "Adicionar gif",
-      "style": "primary"
+      "style": "success"
     },
     {
       "custom_id": "rp_mgr_restore",
       "disabled": false,
-      "emoji": null,
+      "emoji": "🔄",
       "label": "Restaurar do tema",
       "style": "secondary"
     },
@@ -29,61 +29,85 @@
       "options": [
         {
           "default": true,
+          "description": null,
+          "emoji": null,
           "label": "abraçou",
           "value": "hug"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "beijou",
           "value": "kiss"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "fez cafuné em",
           "value": "pat"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "deu um tapa em",
           "value": "slap"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "mordeu",
           "value": "bite"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "socou",
           "value": "punch"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "atacou",
           "value": "attack"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "cutucou",
           "value": "poke"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "dançou com",
           "value": "dance"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "tocou as mãos de",
           "value": "highfive"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "encarou",
           "value": "stare"
         },
         {
           "default": false,
+          "description": null,
+          "emoji": null,
           "label": "dormiu abraçado com",
           "value": "cuddle"
         }
@@ -96,6 +120,8 @@
       "options": [
         {
           "default": false,
+          "description": "api: hug",
+          "emoji": null,
           "label": "1",
           "value": "1"
         }

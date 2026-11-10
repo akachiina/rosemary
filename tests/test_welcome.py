@@ -20,6 +20,10 @@ class FakeTranslator:
         suffix = "".join(f";{k}={v}" for k, v in sorted(variables.items()))
         return f"{key}{suffix}"
 
+    async def raw(self, guild_id, key):
+        """The catalog copy unresolved (the card resolver expands it)."""
+        return f"copy:{key}"
+
 
 class FakeBot:
     theme = load_theme()

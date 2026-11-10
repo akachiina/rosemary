@@ -1,5 +1,5 @@
 {
-  "content": "⚠️ **|** Atualizar para **<@0>**? Backup, reset e restart?",
+  "content": "⚠️ Atualizar para **<@0>**? Backup, reset e restart?",
   "embed": null,
   "form": "text",
   "key": "updater.confirm",

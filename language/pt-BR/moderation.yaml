@@ -17,7 +17,7 @@ ban:
   success: '{success} {member} foi banido.'
   dm: 'Você foi banido de **{guild}** por {moderator}!
 
-    **{scroll} Motivo:** {reason}'
+    • **{scroll} Motivo:** {reason}'
 cleaner:
   error_disabled: '{error} A limpeza de mensagens está desativada neste servidor.'
   error_no_mode: '{error} Diga uma palavra, um regex ou quantas mensagens apagar (últimas N).'
@@ -69,7 +69,7 @@ kick:
   success: '{success} {member} foi expulso.'
   dm: 'Você foi expulso de **{guild}** por {moderator}!
 
-    **{scroll} Motivo:** {reason}'
+    • **{scroll} Motivo:** {reason}'
 limpar:
   command:
     name: limpar
@@ -97,10 +97,10 @@ moderation:
   no_reason: Nenhum motivo informado
   summary: '{member}
 
-    **{scroll} Motivo:** {reason}'
+    • **{scroll} Motivo:** {reason}'
   multi_summary: '{targets}
 
-    **{scroll} Motivo:** {reason}'
+    • **{scroll} Motivo:** {reason}'
   error_disabled: '{error} Os comandos de moderação estão desativados neste servidor.'
   error_no_members: '{error} Mencione pelo menos um membro.'
   error_self: '{error} Você não pode usar comandos de moderação em si mesmo.'
@@ -172,15 +172,15 @@ mute:
   success: '{success} {member} foi silenciado por {duration}.'
   dm: 'Você foi silenciado em **{guild}** por {moderator}!
 
-    **{clock} Duração:** {duration}
+    • **{clock} Duração:** {duration}
 
-    **{scroll} Motivo:** {reason}'
+    • **{scroll} Motivo:** {reason}'
   invalid_duration: '{error} Duração inválida. Use formatos como 10m, 2h ou 3d.'
   summary: '{member}
 
-    **{clock} Duração:** {duration}
+    • **{clock} Duração:** {duration}
 
-    **{scroll} Motivo:** {reason}'
+    • **{scroll} Motivo:** {reason}'
 trap:
   reason: Caiu no canal armadilha
   notice:
@@ -262,7 +262,7 @@ warn:
   success: '{success} Warn registrado para {member} ({count}/{limit}).'
   dm: 'Você recebeu um warn em **{guild}** de {moderator}!
 
-    **{scroll} Motivo:** {reason}'
+    • **{scroll} Motivo:** {reason}'
 warnings:
   command:
     name: warnlist

@@ -22,6 +22,7 @@ birthday_set:
       member:
         description: Outro membro (somente admin)
 birthdays:
+  ping: '{user}, feliz aniversário!'
   enabled:
     label: Ativar aniversários
     description: Anuncia os aniversariantes do dia.

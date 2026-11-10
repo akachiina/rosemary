@@ -24,7 +24,7 @@
     {
       "custom_id": "boost_close",
       "disabled": false,
-      "emoji": "❌",
+      "emoji": "🚪",
       "label": "Fechar",
       "style": "secondary"
     }

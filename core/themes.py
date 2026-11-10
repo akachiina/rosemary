@@ -62,13 +62,22 @@ log = logging.getLogger(__name__)
 #: The content then comes from the card's default document.
 
 
+#: The keys an entry may carry and still be only a shape override. Anything
+#: else makes it a semantic document (a delta over the packaged card).
+_FORM_ENTRY_KEYS = frozenset({"form", "text"})
+
+
 def _is_form_entry(entry: Any) -> bool:
-    """Whether a theme card entry is a form-only override."""
+    """Whether a theme card entry is a form-only override.
+
+    Only ``{form: ...}`` (optionally with the legacy ``text`` shortcut) picks
+    the shape without rewriting the card. An entry that also declares copy or
+    a frame is a semantic document: it must inherit the packaged fields and
+    apply its own, form included.
+    """
     if not isinstance(entry, dict):
         return False
-    if "embed" in entry or "blocks" in entry:
-        return False
-    return "form" in entry
+    return "form" in entry and set(entry) <= _FORM_ENTRY_KEYS
 
 
 #: Global themes shipped with the bot (resolved from the package root, like

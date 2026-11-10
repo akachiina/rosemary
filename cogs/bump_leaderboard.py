@@ -356,6 +356,9 @@ class BumpLeaderboardCog(commands.Cog):
             guild, sorted_lb, winner_id, winner_count, role_name
         )
         winner_member = guild.get_member(winner_id)
+        context["winner_name"] = (
+            winner_member.display_name if winner_member is not None else ""
+        )
         context["winner_avatar"] = (
             winner_member.display_avatar.url
             if winner_member and getattr(winner_member, "display_avatar", None)

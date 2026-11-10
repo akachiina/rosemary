@@ -137,7 +137,7 @@ DEFAULT_CHROME = Chrome(
         NavAction("back", "{ui.back}", "back"),
         NavAction("previous", "{ui.previous}", "previous"),
         NavAction("next", "{ui.next}", "next"),
-        NavAction("close", "{ui.close}", "error", "danger"),
+        NavAction("close", "{ui.close}", "door"),
     ),
 )
 
@@ -295,13 +295,13 @@ class Panel(MenuView):
         return await translator.t(self.guild_id, key, **variables)
 
     def emoji(self, token: str | None) -> str | None:
-        """A theme emoji by token (``None`` when the theme has none)."""
+        """A theme icon by token (``None`` when the theme has none)."""
         if not token:
             return None
         theme = self.theme
         if theme is None:
             return None
-        value = theme.emoji(token)
+        value = theme.icon(token)
         return value or None
 
     def entry(self, label: str, value: str) -> TextDisplay:
@@ -397,14 +397,22 @@ class Panel(MenuView):
     #: the chrome ------------------------------------------------------------
 
     def _fill(self, template: str, **variables: Any) -> str:
-        """Fill a chrome template, leaving an unknown placeholder alone."""
+        """Fill a chrome template, leaving an unknown placeholder alone.
+
+        A theme may write an icon token (``{settings}``) or an asset
+        reference (``{emojis/shield}``) in the chrome; both resolve here, so
+        a custom emoji works in the header, the body and the footer.
+        """
+        from rosemary.core.assets import resolve_refs
+
         theme = self.theme
         values = dict(getattr(theme, "emojis", {}) or {})
         values.update(variables)
         try:
-            return template.format(**values)
+            filled = template.format(**values)
         except (KeyError, IndexError, ValueError):
-            return template
+            return resolve_refs(template)
+        return resolve_refs(filled)
 
     async def frame(self) -> list[discord.ui.ViewItem]:
         """The frame of the panel: the container with the chrome."""
@@ -633,7 +641,9 @@ class Confirm(Panel):
         on_confirm: Any = None,
         confirm_label: str = "",
         confirm_style: str = "danger",
+        confirm_emoji: str = "check",
         cancel_label: str = "",
+        cancel_emoji: str = "back",
         failure_key: str = "confirm.failed",
         cancelled_key: str = "confirm.cancelled",
     ) -> None:
@@ -641,7 +651,9 @@ class Confirm(Panel):
         self.on_confirm = on_confirm
         self.confirm_label = confirm_label
         self.confirm_style = confirm_style
+        self.confirm_emoji = confirm_emoji
         self.cancel_label = cancel_label
+        self.cancel_emoji = cancel_emoji
         self.failure_key = failure_key
         self.cancelled_key = cancelled_key
         self.question_color = "warning"
@@ -666,9 +678,19 @@ class Confirm(Panel):
         return [
             ActionRow(
                 await self.button(
-                    "confirm_yes", confirm, style=self.confirm_style, literal=True
+                    "confirm_yes",
+                    confirm,
+                    style=self.confirm_style,
+                    emoji=self.confirm_emoji,
+                    literal=True,
                 ),
-                await self.button("confirm_no", cancel, style="secondary", literal=True),
+                await self.button(
+                    "confirm_no",
+                    cancel,
+                    style="secondary",
+                    emoji=self.cancel_emoji,
+                    literal=True,
+                ),
             )
         ]
 

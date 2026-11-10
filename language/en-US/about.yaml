@@ -36,10 +36,10 @@ emojiinfo:
 help:
   title: '{scroll} Commands'
   body: Text commands for this server, all typed with the prefix `{prefix}`.
-  group_moderation: Moderation
-  group_info: Information
-  group_general: General
-  group_interactions: Interactions
+  group_moderation: '{shield} Moderation'
+  group_info: '{info} Information'
+  group_general: '{gear} General'
+  group_interactions: '{speech} Interactions'
   roleplay_description: 'Roleplay interactions with a gif. Use one with a member: `{prefix}hug @member`'
   self_description: Show this command list
 info:

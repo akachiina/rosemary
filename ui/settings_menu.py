@@ -13,6 +13,7 @@ the same and restyling them all is one edit.
 from __future__ import annotations
 
 import logging
+import unicodedata
 from datetime import timedelta
 from typing import Any
 
@@ -29,18 +30,28 @@ from rosemary.core.settings import (
     SettingType,
     format_value,
     get_setting,
+    reset_setting,
     set_setting,
     settings_for_category,
 )
 from rosemary.core.time_parser import TimeParser, localized_aliases
-from rosemary.ui.kit import ActionRow, Panel, Section, TextDisplay, divider
+from rosemary.ui.kit import ActionRow, EmptyState, Panel, Section, TextDisplay, divider
+from rosemary.ui.modals import make_text_modal
 
 log = logging.getLogger(__name__)
 
 ITEMS_PER_PAGE = 7
+#: Results of the search screen, one select page. Discord's select cap is 25.
+SEARCH_PER_PAGE = 25
 #: Places shown per management page. Each row is a Section (text + button),
 #: so the 40-component ceiling bounds this, not a flat count.
 LIST_ITEMS_PER_PAGE = 10
+
+
+def _fold(text: str) -> str:
+    """A search key: lowercase and without accents (pt-BR "Moderação" == "moderacao")."""
+    decomposed = unicodedata.normalize("NFKD", text)
+    return "".join(char for char in decomposed if not unicodedata.combining(char)).casefold()
 
 
 class SettingsMenuView(Panel):
@@ -81,6 +92,11 @@ class SettingsMenuView(Panel):
         self.add_mode = False
         self._pending_adds: tuple[int, ...] = ()
         self.test_open = False
+        #: The search state (the query and the result page) lives in the panel,
+        #: never in the guild storage: closing the menu forgets it.
+        self.search_open = False
+        self.query = ""
+        self.search_page = 0
         self._screen = "main"
         self._register_handlers()
 
@@ -88,8 +104,11 @@ class SettingsMenuView(Panel):
 
     def _register_handlers(self) -> None:
         self.register("settings_category", self._select_category)
+        self.register("settings_search", self._open_search)
+        self.register("settings_search_pick", self._pick_search_result)
         for key, spec in SETTINGS.items():
             self.register(f"settings_edit:{key}", self._edit)
+            self.register(f"settings_reset:{key}", self._reset_setting)
             if spec.value_type is SettingType.BOOLEAN:
                 self.register(f"settings_set_value:{key}:true", self._set_value_button)
                 self.register(f"settings_set_value:{key}:false", self._set_value_button)
@@ -117,20 +136,40 @@ class SettingsMenuView(Panel):
     #: handlers ----------------------------------------------------------
 
     async def on_back(self, interaction: discord.Interaction) -> None:
-        """Back to the main page (the editing state is dropped)."""
-        self.editing_key = None
+        """Back one step: the edit, then the search, then the category list."""
         self.test_open = False
         self.add_mode = False
         self._pending_adds = ()
         self.list_page = 0
+        if self.editing_key is not None:
+            self.editing_key = None
+            await self.rerender(interaction)
+            return
+        if self.search_open:
+            self.search_open = False
+            self.query = ""
+            self.search_page = 0
+            await self.rerender(interaction)
+            return
         await self.rerender(interaction)
 
     async def on_previous(self, interaction: discord.Interaction) -> None:
+        if self.search_open:
+            if self.search_page > 0:
+                self.search_page -= 1
+            await self.rerender(interaction)
+            return
         if self.page > 0:
             self.page -= 1
         await self.rerender(interaction)
 
     async def on_next(self, interaction: discord.Interaction) -> None:
+        if self.search_open:
+            pages = self._search_pages(len(await self._search_results()))
+            if self.search_page < pages - 1:
+                self.search_page += 1
+            await self.rerender(interaction)
+            return
         total_pages = _category_pages(self.category)
         if self.page < total_pages - 1:
             self.page += 1
@@ -186,6 +225,75 @@ class SettingsMenuView(Panel):
         else:
             self.editing_key = key
             await self.rerender(interaction)
+
+    #: search ------------------------------------------------------------
+
+    async def _open_search(self, interaction: discord.Interaction) -> None:
+        """Open the search modal (the results are a page of the same menu)."""
+        modal = make_text_modal(
+            title=await self.t("settings.search.title"),
+            custom_id="settings_search_modal",
+            label=await self.t("settings.search.label"),
+            placeholder=await self.t("settings.search.placeholder"),
+            max_length=60,
+            on_submit=self._search_submit,
+        )
+        await interaction.response.send_modal(modal)
+
+    async def _search_submit(
+        self, interaction: discord.Interaction, value: str
+    ) -> None:
+        """Filter the registry by the term typed in the modal."""
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+        self.query = (value or "").strip()
+        self.search_page = 0
+        self.search_open = True
+        self.editing_key = None
+        await self.rerender(interaction)
+
+    async def _search_results(self) -> list[str]:
+        """The setting keys whose localized label carries the query.
+
+        Accent- and case-insensitive, so "moderacao" finds "Moderação". The
+        registry order is kept (the categories stay grouped).
+        """
+        needle = _fold(self.query)
+        if not needle:
+            return []
+        results: list[str] = []
+        for key in SETTINGS:
+            label = await self.t(f"settings.{key}.label")
+            if needle in _fold(label):
+                results.append(key)
+        return results
+
+    async def _pick_search_result(self, interaction: discord.Interaction) -> None:
+        values = (interaction.data or {}).get("values") or []
+        if not values or values[0] not in SETTINGS:
+            return
+        self.editing_key = values[0]
+        self.list_page = 0
+        await self.rerender(interaction)
+
+    @staticmethod
+    def _search_pages(total: int) -> int:
+        return max(1, (total + SEARCH_PER_PAGE - 1) // SEARCH_PER_PAGE)
+
+    async def _reset_setting(self, interaction: discord.Interaction) -> None:
+        """Restore the default by removing the key (never writing ``spec.default``)."""
+        key = interaction.custom_id.split(":", 1)[1]
+        spec = SETTINGS[key]
+        if not await self._ack(interaction):
+            return
+        old_value = await get_setting(self.bot.storage, self.guild_id, spec.key)
+        await reset_setting(self.bot.storage, self.guild_id, spec.key)
+        await self._log_change(interaction, spec, old_value)
+        label = await self.t(f"settings.{spec.key}.label")
+        self.flash = await self.t("settings.reset_done", setting=label)
+        self.flash_color = "success"
+        self.editing_key = None
+        await self.rerender(interaction)
 
     async def _set_value_button(self, interaction: discord.Interaction) -> None:
         _, key, raw = interaction.custom_id.split(":", 2)
@@ -311,6 +419,24 @@ class SettingsMenuView(Panel):
             self.editing_key = None
             await self.rerender(interaction)
             return
+        await self._log_change(interaction, spec, old_value)
+        if not stay_in_edit:
+            self.editing_key = None
+        await self.rerender(interaction)
+
+    async def _log_change(
+        self,
+        interaction: discord.Interaction,
+        spec: SettingSpec,
+        old_value: Any,
+    ) -> None:
+        """Log the new value and notify the features that react to it.
+
+        Shared by a save and by a reset: both paths change an effective value,
+        so both write the same staff log card and run the same hooks.
+        """
+        t = self.bot.translator.t
+        label = await t(self.guild_id, f"settings.{spec.key}.label")
         category_label = await t(
             self.guild_id,
             f"settings.category.{spec.category.value}",
@@ -346,9 +472,6 @@ class SettingsMenuView(Panel):
             trap_cog = self.bot.get_cog("TrapCog")
             if trap_cog is not None:
                 await trap_cog.repaint_notice(self.bot, self.guild_id)
-        if not stay_in_edit:
-            self.editing_key = None
-        await self.rerender(interaction)
 
     async def _setting_value(self, spec: SettingSpec) -> tuple[Any, bool]:
         """``(effective value, stored?)`` with catalog-localized defaults.
@@ -503,6 +626,9 @@ class SettingsMenuView(Panel):
         if self.test_open and self.category is SettingCategory.BUMP:
             self._screen = "test"
             return await self._test_screen()
+        if self.search_open:
+            self._screen = "search"
+            return await self._search_screen()
         self._screen = "main"
         return await self._main_screen()
 
@@ -515,13 +641,20 @@ class SettingsMenuView(Panel):
             f"settings.category.{self.category.value}"
         )
         category_word = await self.t("settings.category_label")
+        category_icon = self.emoji(f"category_{self.category.value}") or ""
+        category_count = await self.t(
+            "settings.category_count",
+            count=len(settings_for_category(self.category)),
+        )
         total_pages = _category_pages(self.category)
         self.heading_key = "settings.title"
         self.title = await self.t("settings.title")
-        self.body = self.md(
-            "category",
+        self.body = await self.t(
+            "settings.category_summary",
             category_label=category_word,
+            icon=category_icon,
             category=category_label,
+            count=category_count,
         )
         self.nav_actions = ("close",)
         if self.page > 0:
@@ -546,6 +679,7 @@ class SettingsMenuView(Panel):
         start = self.page * ITEMS_PER_PAGE
         for spec in settings[start : start + ITEMS_PER_PAGE]:
             label = await self.t(f"settings.{spec.key}.label")
+            type_icon = self.emoji(f"type_{spec.value_type.value}") or ""
             value, stored = await self._setting_value(spec)
             formatted = format_value(spec, value)
             if not stored and spec.default_catalog_key:
@@ -571,14 +705,26 @@ class SettingsMenuView(Panel):
                 value_text = await self.t(
                     "settings.default_value", value=value_text
                 )
+            if spec.value_type is SettingType.BOOLEAN:
+                # One click flips it: the row's accessory is the state itself,
+                # not an "Edit" button leading to a second screen.
+                current = bool(value)
+                accessory = await self.button(
+                    f"settings_set_value:{spec.key}:{'false' if current else 'true'}",
+                    "settings.bool.true" if current else "settings.bool.false",
+                    emoji="success" if current else "error",
+                    style="success" if current else "danger",
+                )
+            else:
+                accessory = await self.button(
+                    f"settings_edit:{spec.key}",
+                    "settings.edit",
+                    emoji="gear",
+                )
             sections.append(
                 Section(
-                    self.entry(label, value_text),
-                    accessory=await self.button(
-                        f"settings_edit:{spec.key}",
-                        "settings.edit",
-                        emoji="gear",
-                    ),
+                    self.entry(f"{type_icon} {label}" if type_icon else label, value_text),
+                    accessory=accessory,
                 )
             )
 
@@ -612,19 +758,99 @@ class SettingsMenuView(Panel):
                     )
                 )
             )
+        options: list[discord.SelectOption] = []
+        for category in CATEGORIES:
+            count = len(settings_for_category(category))
+            hint = await self.t(f"settings.category_hint.{category.value}")
+            count_text = await self.t("settings.category_count", count=count)
+            options.append(
+                discord.SelectOption(
+                    label=await self.t(f"settings.category.{category.value}"),
+                    value=category.value,
+                    description=f"{hint} · {count_text}"[:100],
+                    emoji=self.emoji(f"category_{category.value}") or None,
+                    default=category is self.category,
+                )
+            )
         category_select = await self.select(
             "settings_category",
             "settings.category.placeholder",
-            [
-                discord.SelectOption(
-                    label=await self.t(f"settings.category.{c.value}"),
-                    value=c.value,
-                )
-                for c in CATEGORIES
-            ],
+            options,
         )
-        actions.extend([divider("large"), ActionRow(category_select)])
+        actions.extend(
+            [
+                divider("large"),
+                ActionRow(category_select),
+                ActionRow(
+                    await self.button(
+                        "settings_search",
+                        "settings.search.button",
+                        emoji="search",
+                        style="primary",
+                    )
+                ),
+            ]
+        )
         return await self.compose(sections, actions)
+
+    async def _search_screen(self) -> list[discord.ui.ViewItem]:
+        """The results of one search, one select page at a time."""
+        results = await self._search_results()
+        total_pages = self._search_pages(len(results))
+        self.search_page = min(self.search_page, total_pages - 1)
+        self.heading_key = ""
+        self.title = await self.t("settings.search.title")
+        self.body = await self.t(
+            "settings.search.results",
+            query=self.query,
+            count=len(results),
+        )
+        self.nav_actions = ("back",)
+        if self.search_page > 0:
+            self.nav_actions = ("back", "previous")
+        if self.search_page < total_pages - 1:
+            self.nav_actions = (*self.nav_actions, "next")
+        self.nav_extra = []
+        self.lines = []
+        if total_pages > 1:
+            self.lines.append(
+                TextDisplay(
+                    await self.t(
+                        "settings.page_indicator",
+                        page=self.search_page + 1,
+                        pages=total_pages,
+                    )
+                )
+            )
+        sections: list[discord.ui.ViewItem] = []
+        if not results:
+            sections.append(
+                EmptyState(
+                    await self.t("settings.search.empty", query=self.query),
+                    icon=self.emoji("search"),
+                ).item()
+            )
+            return await self.compose(sections, [])
+        start = self.search_page * SEARCH_PER_PAGE
+        options: list[discord.SelectOption] = []
+        for key in results[start : start + SEARCH_PER_PAGE]:
+            spec = SETTINGS[key]
+            options.append(
+                discord.SelectOption(
+                    label=await self.t(f"settings.{key}.label"),
+                    value=key,
+                    description=await self.t(
+                        f"settings.category.{spec.category.value}"
+                    ),
+                    emoji=self.emoji(f"type_{spec.value_type.value}") or None,
+                )
+            )
+        select = self.make_select(
+            custom_id="settings_search_pick",
+            placeholder=await self.t("settings.search.pick"),
+            options=options,
+        )
+        return await self.compose(sections, [ActionRow(select)])
 
     async def _test_screen(self) -> list[discord.ui.ViewItem]:
         self.heading_key = ""
@@ -686,7 +912,12 @@ class SettingsMenuView(Panel):
         sections: list[discord.ui.ViewItem] = [divider()]
         self.lines = []
         if not places:
-            sections.append(TextDisplay(await self.t("settings.list.empty")))
+            sections.append(
+                EmptyState(
+                    await self.t("settings.list.empty"),
+                    icon=self.emoji("folder"),
+                ).item()
+            )
         else:
             total_pages = max(1, -(-len(places) // LIST_ITEMS_PER_PAGE))
             self.list_page = min(self.list_page, total_pages - 1)
@@ -809,12 +1040,14 @@ class SettingsMenuView(Panel):
                         f"settings_set_value:{spec.key}:true",
                         "settings.bool.true",
                         style="success",
+                        emoji="success",
                         disabled=current is True,
                     ),
                     await self.button(
                         f"settings_set_value:{spec.key}:false",
                         "settings.bool.false",
                         style="danger",
+                        emoji="error",
                         disabled=current is False,
                     ),
                 )
@@ -860,6 +1093,19 @@ class SettingsMenuView(Panel):
             )
             select.callback = self._handlers[f"settings_set:{spec.key}"]
             actions.append(ActionRow(select))
+
+        _value, stored = await self._setting_value(spec)
+        if stored:
+            actions.append(
+                ActionRow(
+                    await self.button(
+                        f"settings_reset:{spec.key}",
+                        "settings.reset",
+                        emoji="reset",
+                        style="warning",
+                    )
+                )
+            )
 
         return await self.compose([], actions)
 

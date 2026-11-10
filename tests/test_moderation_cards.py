@@ -73,6 +73,7 @@ def _card_bot(tmp_path):
 
 _WARNINGS_VARS = {
     "user": "<@456>",
+    "user_name": "Ana",
     "user_avatar": "https://example.com/avatar.png",
     "has_warnings": True,
     "title": "Warns de <@456>",
@@ -118,12 +119,15 @@ async def test_warnings_card_layout_and_state_color(variables, style, tmp_path):
     assert embed.colour.value == bot.theme.color(state_color).value
     assert embed.title == variables["title"]
     assert variables["body"] in (embed.description or "")
-    assert embed.thumbnail and embed.thumbnail.url == variables["user_avatar"]
-    # The attribution closes the card (the standard footer of every card).
-    assert f"por {variables['user']}" in (embed.footer.text or "")
+    assert embed.author and embed.author.name == variables["user_name"]
+    assert embed.author.icon_url == variables["user_avatar"]
+    assert embed.thumbnail is None
+    # The date closes the card, readable and free of raw tokens.
+    footer = embed.footer.text if embed.footer else ""
+    assert "<@" not in footer and "<t:" not in footer
 
 
-async def test_warnings_card_without_avatar_omits_thumbnail(tmp_path):
+async def test_warnings_card_without_avatar_omits_author_icon(tmp_path):
     """A missing avatar must degrade to plain text, never an empty accessory."""
     from rosemary.core.card_service import render_card_message
 
@@ -133,6 +137,7 @@ async def test_warnings_card_without_avatar_omits_thumbnail(tmp_path):
         bot, 1, "moderation.warnings", {**bare, "state_color": "warning"}
     )
     assert payload is not None and payload.embed is not None
+    assert payload.embed.author and not payload.embed.author.icon_url
     assert payload.embed.thumbnail is None
 
 

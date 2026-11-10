@@ -42,7 +42,8 @@ Components V2 (the interactive UI only).
   send site computes (`STATE_BY_KEY`) are filled the same way the live send
   fills them.
 - **Golden panels**: `tests/golden/panels/<name>.json` pins what every
-  representative panel shows (the texts, the buttons and the selects). After a
+  representative panel shows (the texts, the buttons and the selects, with the
+  label, the description, the icon and the current default). After a
   *deliberate* change to a panel, re-run
   `../.venv/bin/python scripts/snapshot_panels.py` and review the diff.
   `tests/golden_panels.py` holds the shared helpers (the script and the test
@@ -51,6 +52,19 @@ Components V2 (the interactive UI only).
   in an embed or a plain text Discord shows them raw. `tests/test_no_v2_markers.py`
   freezes the cards that still leak one: the list only shrinks (remove the
   entry when a family is fixed), and a new leak fails the test.
+- **Visual grammar**: `tests/test_visual_grammar.py` lints the goldens and the
+  panels: no mention or timestamp token in an embed frame, `image` never equals
+  `thumbnail`, every embed has a title or a description, a pinged embed carries
+  a sentence in the content, a multiline text card opens with a bold title, no
+  text card disguises a field as `> **Label:**`, the category picker marks the
+  current category, every action button of the five panels has an icon, no
+  golden leaks `{emojis/`, and slash command descriptions stay emoji-free.
+- **Icons and settings UX**: `tests/test_icon_system.py` requires a
+  `category_*`/`type_*` token per registry value and pins `Theme.icon` (an
+  asset reference resolves to the mention, an unknown asset to empty).
+  `tests/test_settings_ux.py` pins the category picker, the search (accent- and
+  case-insensitive, opens the edit screen) and the reset (removes the key and
+  keeps the localized default).
 
 ## Architecture
 
@@ -94,6 +108,11 @@ Components V2 (the interactive UI only).
   a raw dotted key; `_localize_options()` mutates the shared option per guild
   before `sync_commands()`. Add keys to BOTH catalogs (swept by
   `test_guild_join.py::test_every_option_has_a_localized_description`).
+- Slash command and option descriptions carry **no emoji or theme token**: the
+  command picker stays plain, and the visual hierarchy lives in `!help` (an
+  embed whose group fields carry `shield`/`info`/`gear`/`speech`), in
+  `/settings` and in the panels. The plain picker is swept by
+  `tests/test_visual_grammar.py`.
 - Multi-word commands live in `SlashCommandGroup`s (`/roleplay beijar`), not flat
   names with underscores; simple top-level commands (`/ban`, `/debug`) are
   intentional. Single-cog groups are class attributes (birthday pattern);
@@ -128,6 +147,16 @@ Components V2 (the interactive UI only).
   store seconds. Message-template settings whose default is user-facing also set
   `default_catalog_key`; the UI resolves it only while the key is unsaved, so
   pt-BR never sees the English literal baked into `SettingSpec.default`.
+  `core/settings.reset_setting` removes the stored key (and the renamed/scalar
+  legacy keys) instead of writing `spec.default`, so a reset keeps that lazy
+  default.
+- **The settings menu is icon-driven**: the category picker shows
+  `category_<value>` (with a short hint and `category_count`), each row shows
+  `type_<value>`, and the current category is the select's `default`. A boolean
+  flips in one click (the accessory is the current state, `success`/`danger`);
+  the search modal folds accents and case, filters labels of every category and
+  pages 25 results; the edit screen offers `Restaurar padrão` only while the key
+  is stored.
 - Staff logs go through `core/debug.send_log(bot, guild_id, "<event>", **vars)`
   (no-op unless `logging.enabled` + channel configured). The log events are
   **documents** (`themes/default/cards/logs.yaml`), not builders: the
@@ -179,14 +208,17 @@ Components V2 (the interactive UI only).
 Rosemary speaks three shapes, and every message picks one:
 
 - **plain text** (`core/feedback.py`): acknowledgements, confirmations and
-  notices. One line: `{emoji} **|** message`. The prefix is a theme style
+  notices. One line: `{emoji} message` (the prefix carries no separator). The
+  prefix is a theme style
   (`feedback_error`/`feedback_warning`/`feedback_success`/`feedback_info` in
   `themes/default/tokens.yaml`), so a guild restyles every notice at once. The prefix
   owns the **only emoji** of the line: a text card's copy never opens with one
-  (the DM copies in both catalogs were stripped of their leading token). A
-  notice **never notifies**: the copy may name the member the bot is about to
-  ban, so every text send carries `AllowedMentions.none()` (the Components V2
-  container it replaced never pinged).
+  (the DM copies in both catalogs were stripped of their leading token). A text
+  card with more than one thing opens with a **bold title**, one item per line,
+  fields as `• **Label:** value`; it never uses `> **Label:**` or a heading
+  marker. A notice **never notifies**: the copy may name the member the bot is
+  about to ban, so every text send carries `AllowedMentions.none()` (the
+  Components V2 container it replaced never pinged).
 - **classic embed**: staff logs, audit cards, info listings and the social
   content (starboard, birthdays, welcome/leave, suggestions, confessions,
   tickets, bump). The document declares the shape: the logs, the audit cards
@@ -323,8 +355,9 @@ way.
   writes them (settings, boost, roleplay, colors, cleaner) and
   `tests/test_golden_panels.py` compares the current render against them.
 
-**Line count:** `ui/` is 6113 lines (the baseline was 6016; the kit and the
-runtime add 881, the migrations removed ~900). The old target of 4500 was
+**Line count:** `ui/` is 6445 lines (the baseline was 6016; the kit and the
+runtime add 881, the migrations removed ~900, P7 added the icon resolver and the
+settings search/reset). The old target of 4500 was
 reviewed and dropped: it could only be reached by moving domain logic out of
 `ui/` (metric cosmetic). The P5 criterion is qualitative: no hand-built chrome,
 one lifecycle, the duplication removed.
@@ -519,10 +552,22 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   `render_card_message` (or explicit `trace_card_path`, in `core/debug.py`). An
   embed card moves the essential ping to the message `content` (an embed never
   notifies).
-- **Emojis never hardcoded**: `t()` auto-injects every `emojis:` theme entry as a
-  format placeholder (explicit variables win, so never name an emoji token like a
-  variable). Colors via `theme.color("<name>")`. Component `emoji=` must be
-  RGI-valid or Discord 400s the whole payload.
+- **Emojis never hardcoded, icons are tokens**: `t()` auto-injects every
+  `emojis:` theme entry as a format placeholder (explicit variables win, so never
+  name an emoji token like a variable). Colors via `theme.color("<name>")`. A UI
+  icon is a token resolved by `Theme.icon(name)`: the value is Unicode
+  (`"🛡️"`) or an asset reference (`"{emojis/shield}"`). The reference resolves
+  with `core/assets.resolve_refs` to the real application-emoji mention, so the
+  same token works in a card, a button, a select, the chrome and a markdown
+  template. An unknown token, or an asset that was never uploaded, resolves to
+  empty: the raw `{emojis/...}` never ships. Every `SettingCategory` has a
+  `category_<value>` token and every `SettingType` a `type_<value>` token; the
+  close of a themed panel is `secondary` with the `door` token. Component
+  `emoji=` must be RGI-valid or Discord 400s the whole payload.
+- **Custom emoji recipe**: drop `assets/emojis/<name>.png` (an application
+  emoji), use `{emojis/<name>}` as the value of a theme token, and restart the
+  bot: the boot uploads only the files Discord does not have yet. Per-server
+  emoji (`assets/emojis/<server>/`) stays reserved.
 - **Machine values render as inline code in every card**: snowflake IDs, command
   usages (`!ban`, `/configuracoes`), the text-command prefix, version/channel and
   file names sit inside single backticks. Mentions, `<t:...>` timestamps, plain

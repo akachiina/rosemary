@@ -128,154 +128,117 @@ boost:
       label: Novo dono
       placeholder: ID do usuário
   dm:
-    registered: 'Você recebeu um Cargo Boost!
+    registered: |
+      Você recebeu um Cargo Boost!
 
       Olá, {mention}! O cargo boost @{role_name} foi registrado para você no **{server_name}**.
 
-
       {pencil} Renomeie e escolha um emoji
-
       {palette} Mude a cor
-
       {members} Convide até **{max_members}** membros
-
       {swap} Transfira a posse
 
-
       Use o painel de cargos boost para gerenciar tudo.
-
-      '
-    transferred: 'Propriedade Transferida!
+    transferred: |
+      Propriedade Transferida!
 
       Olá, {mention}! A propriedade do cargo boost @{role_name} foi transferida para você no **{server_name}**.
 
-
       {pencil} Renomeie e escolha um emoji
-
       {palette} Mude a cor
-
       {members} Convide até **{max_members}** membros
-
       {swap} Transfira a posse
 
-
       Use o painel de cargos boost para gerenciar tudo.
-
-      '
-    auto_transferred: 'Propriedade Transferida Automaticamente!
+    auto_transferred: |
+      Propriedade Transferida Automaticamente!
 
       Olá, {mention}! Como o dono anterior saiu do servidor, a propriedade do cargo boost @{role_name} foi transferida para você no **{server_name}**.
 
-
       Use o painel de cargos boost para gerenciar seu cargo.
-
-      '
-    auto_created: 'Você recebeu um Cargo Boost!
+    auto_created: |
+      Você recebeu um Cargo Boost!
 
       Olá, {mention}! O cargo boost @{role_name} foi criado para você no **{server_name}** porque você deu boost no servidor.
 
-
       {pencil} Renomeie e escolha um emoji
-
       {palette} Mude a cor
-
       {members} Convide até **{max_members}** membros
-
       {swap} Transfira a posse
 
-
       Use o painel de cargos boost para gerenciar tudo.
-
-      '
-    auto_restored: 'Seu Cargo Boost Voltou!
+    auto_restored: |
+      Seu Cargo Boost Voltou!
 
       Olá, {mention}! Seu cargo boost @{role_name} está ativo de novo no **{server_name}**, incluindo os membros anteriores.
 
-
       Use o painel de cargos boost para gerenciar tudo.
-
-      '
-    unboost_deleted: 'Seu cargo boost foi removido
+    unboost_deleted: |
+      Seu cargo boost foi removido
 
       Olá, {mention}! Seu boost terminou, então o cargo boost @{role_name} foi removido do **{server_name}**.
 
       Dê boost no servidor de novo e o cargo volta automaticamente, com os membros.
-
-      '
-    unboost_removed: 'Seu cargo boost foi retirado
+    unboost_removed: |
+      Seu cargo boost foi retirado
 
       Olá, {mention}! Seu boost terminou, então o cargo boost @{role_name} foi retirado de você e dos membros no **{server_name}**. O cargo continua existindo.
 
       Dê boost no servidor de novo para recebê-lo de volta.
-
-      '
-    unboost_kept: 'Seu boost terminou
+    unboost_kept: |
+      Seu boost terminou
 
       Olá, {mention}! Seu boost terminou, mas o cargo boost @{role_name} continua com você no **{server_name}**.
 
       Só a equipe do servidor pode removê-lo.
-
-      '
-    invite: 'Convite para Cargo Boost!
+    invite: |
+      Convite para Cargo Boost!
 
       Olá, {mention}! Você recebeu um convite para fazer parte de um cargo boost no **{server_name}**.
 
-
-      > **{tag} Cargo:** @{role_name}
-
-      > **{user} Convidado por:** {inviter_mention}
-
-      > **{clock} Expira:** {expires}
-
+      • **{tag} Cargo:** @{role_name}
+      • **{user} Convidado por:** {inviter_mention}
+      • **{clock} Expira:** {expires}
 
       Ao aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!
-
-      '
-    accepted: 'Convite Aceito!
+    accepted: |
+      Convite Aceito!
 
       O cargo @{role_name} foi adicionado a você com sucesso.
 
       Para sair do cargo a qualquer momento, use `/boost painel`.
-
-      '
-    declined: 'Convite Recusado
+    declined: |
+      Convite Recusado
 
       Você recusou o convite para o cargo @{role_name}.
 
       O dono do cargo foi notificado sobre sua decisão.
-
-      '
-    owner_accepted: 'Convite Aceito!
+    owner_accepted: |
+      Convite Aceito!
 
       {member_mention} aceitou seu convite e foi adicionado ao cargo @{role_name}!
-
-      '
-    owner_declined: 'Convite Recusado
+    owner_declined: |
+      Convite Recusado
 
       {member_mention} recusou seu convite para o cargo @{role_name}.
 
       Você pode convidar outra pessoa se desejar.
-
-      '
-    member_left: 'Você Saiu do Cargo
+    member_left: |
+      Você Saiu do Cargo
 
       Você saiu do cargo @{role_name} com sucesso.
 
       O dono do cargo foi notificado.
-
-      '
-    owner_member_left: 'Membro Saiu do Cargo
+    owner_member_left: |
+      Membro Saiu do Cargo
 
       {member_mention} saiu do cargo @{role_name}.
 
       Você pode adicionar outro membro se desejar.
-
-      '
-    error: 'Ops!
+    error: |
+      Ops!
 
       {body}
-
-      '
   emoji:
     owner: Dono
     members: Membros

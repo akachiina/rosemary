@@ -3,6 +3,8 @@ bump:
     name: bump
     description: Disboard bump leaderboard
   messages:
+    ping_thank_you: 'Thank you for the bump, {mention}!'
+    ping_leaderboard: 'Congratulations, {winner_mention}!'
     anti_camping: The channel is temporarily locked. Bump will be available shortly!
     thank_you_title: '{tada} Bump Recorded!'
     thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining. {cup}
@@ -52,65 +54,45 @@ bump:
       '
     no_bumps_you: '{bar_chart} You haven''t bumped this week yet! Use `/bump` in the bump channel.'
   dm:
-    winner_new: 'You are the Bump-MVP of the Week!
+    winner_new: |
+      You are the Bump-MVP of the Week!
 
       Hello, {mention}! Your dedication kept the server shining. Thank you!
 
+      • **{bar_chart} Weekly bumps:** {bump_count}
+      • **{trophy} Role:** {role_name}
 
-      **{bar_chart} Weekly bumps:** {bump_count}
-
-      **{trophy} Role:** {role_name}
-
-
-      ### {palette} Customize your role
-
+      {palette} **Customize your role**
       Use `/boost panel` to customize:
-
-      - {pencil} Name and emoji
-
-      - {palette} Color
-
-      - {members} Invite up to **{max_members}** members
-
+      • {pencil} Name and emoji
+      • {palette} Color
+      • {members} Invite up to **{max_members}** members
 
       Your customizations are saved and will return if you win again!
 
-
       Enjoy it until the next reset.
+    winner_again: |
+      Bump-MVP once again!
 
-      '
-    winner_again: 'Bump-MVP once again!
+      Hello, {mention}! You've reclaimed the title. Your dedication is admirable!
 
-      Hello, {mention}! You''ve reclaimed the title. Your dedication is admirable!
-
-
-      **{bar_chart} Weekly bumps:** {bump_count}
-
-      **{trophy} Total wins:** {total_wins}
-
+      • **{bar_chart} Weekly bumps:** {bump_count}
+      • **{trophy} Total wins:** {total_wins}
 
       Your role **{role_name}** has been restored with your previous customizations!
 
-
       Keep being awesome.
+    winner_lost: |
+      Your time as Bump-MVP has ended
 
-      '
-    winner_lost: 'Your time as Bump-MVP has ended
+      Hello, {mention}! This week another member claimed the title. Don't be discouraged!
 
-      Hello, {mention}! This week another member claimed the title. Don''t be discouraged!
-
-
-      **{bar_chart} Your bumps:** {bump_count}
-
-      **{crown} New winner:** {winner_mention}
-
+      • **{bar_chart} Your bumps:** {bump_count}
+      • **{crown} New winner:** {winner_mention}
 
       Your customizations were saved and will return if you win again!
 
-
       Keep bumping and reclaim the throne!
-
-      '
   logs:
     bump_recorded:
       title: '{rocket} Bump Detected'

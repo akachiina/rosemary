@@ -321,11 +321,13 @@ async def test_card_renders_title_body_counts_and_hint(tmp_path):
     assert embed.title == "Suggestion #1"
     assert "more emojis please" in (embed.description or "")
     assert "⬆️ 0 · ⬇️ 0" in (embed.description or "")
-    # The hint names the localized command, and the attribution closes the
-    # card.
+    # The subject owns the author line; the hint names the localized command.
+    assert embed.author and embed.author.name == "Author"
+    assert embed.author.icon_url == "https://cdn.discordapp.com/embed/avatars/0.png"
+    assert embed.thumbnail is None
     footer = embed.footer.text if embed.footer else ""
     assert "/suggest" in footer
-    assert "<@7>" in footer
+    assert "<@7>" not in footer and "<t:" not in footer
 
 
 async def test_status_line_shows_only_when_decided(tmp_path):

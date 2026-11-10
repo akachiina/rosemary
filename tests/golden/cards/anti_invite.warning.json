@@ -1,5 +1,5 @@
 {
-  "content": "⚠️ **|** <@0>, links de convite externos não são permitidos aqui.",
+  "content": "⚠️ <@0>, links de convite externos não são permitidos aqui.",
   "embed": null,
   "form": "text",
   "key": "anti_invite.warning",

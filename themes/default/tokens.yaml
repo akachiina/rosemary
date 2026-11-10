@@ -89,6 +89,49 @@ emojis:
   down: "⬇️"
   previous: "◀️"
   next: "▶️"
+  # The icon tokens of the panels and the settings menu. A category token is
+  # named after its SettingCategory value and a type token after its
+  # SettingType value; the UI resolves them through Theme.icon, so a guild
+  # theme may swap the art (a Unicode glyph or an application emoji asset).
+  shield: "🛡️"
+  settings: "⚙️"
+  reset: "↩️"
+  stop: "⏹️"
+  ticket: "🎫"
+  handshake: "🤝"
+  bulb: "💡"
+  cake: "🎂"
+  chart: "📈"
+  megaphone: "📣"
+  folder: "📁"
+  shuffle: "🔀"
+  cards: "🗂️"
+  secret: "🤫"
+  category_general: "⚙️"
+  category_moderation: "🛡️"
+  category_logging: "📜"
+  category_events: "📣"
+  category_audit: "🔍"
+  category_boost: "🚀"
+  category_bump: "📈"
+  category_starboard: "⭐"
+  category_suggestions: "💡"
+  category_birthdays: "🎂"
+  category_invites: "💌"
+  category_tickets: "🎫"
+  category_partnerships: "🤝"
+  category_broadcast_reminders: "📢"
+  category_colors: "🎨"
+  category_roleplay: "🎭"
+  category_confessions: "🤫"
+  type_string: "📝"
+  type_integer: "🔢"
+  type_boolean: "✅"
+  type_choice: "🔀"
+  type_channel: "💬"
+  type_channel_list: "🗂️"
+  type_category: "📁"
+  type_role: "🏷️"
 
 # markdown: structural text templates rendered inside TextDisplay components.
 # These are visual/theme-level, NOT translated. Placeholders are filled via
@@ -125,13 +168,14 @@ styles:
   warning: { extends: base, color: "warning" }
   danger: { extends: base, color: "danger" }
   info: { extends: base, color: "info" }
-  # Plain-text notices ("{emoji} **|** message"): the prefix is the whole
-  # style, the color is unused (a text line has no accent bar).
-  feedback: { extends: base, prefix: "{info} **|** " }
+  # Plain-text notices ("{emoji} message"): the prefix is the whole style,
+  # the color is unused (a text line has no accent bar). A titled line keeps
+  # the same prefix and the serializer writes the title in bold.
+  feedback: { extends: base, prefix: "{info} " }
   feedback_info: { extends: feedback }
-  feedback_success: { extends: feedback, prefix: "{success} **|** " }
-  feedback_warning: { extends: feedback, prefix: "{warning} **|** " }
-  feedback_error: { extends: feedback, prefix: "{error} **|** " }
+  feedback_success: { extends: feedback, prefix: "{success} " }
+  feedback_warning: { extends: feedback, prefix: "{warning} " }
+  feedback_error: { extends: feedback, prefix: "{error} " }
   boost_log: { extends: log }
   boost_preview: { extends: base, color: "success" }
   bump_reminder: { extends: base, color: "brand" }
@@ -276,7 +320,7 @@ panels:
       - {action: back, label: "{ui.back}", emoji: back}
       - {action: previous, label: "{ui.previous}", emoji: previous}
       - {action: next, label: "{ui.next}", emoji: next}
-      - {action: close, label: "{ui.close}", emoji: error}
+      - {action: close, label: "{ui.close}", emoji: door}
 
 # Interactions (roleplay) gifs: the DEFAULT source per action, used when a
 # guild has no own list (the manager seeds it on first edit). Two entry

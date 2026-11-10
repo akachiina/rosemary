@@ -238,6 +238,7 @@ class ColorsManagerView(Panel):
                 await self.button(
                     "colors_mgr_attach",
                     "colors.manager.attach",
+                    emoji="tag",
                     style="primary",
                 ),
             )

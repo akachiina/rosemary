@@ -45,7 +45,7 @@
     {
       "custom_id": "colors_mgr_attach",
       "disabled": false,
-      "emoji": null,
+      "emoji": "🏷️",
       "label": "Anexar cargos",
       "style": "primary"
     },

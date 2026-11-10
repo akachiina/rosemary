@@ -239,6 +239,7 @@ async def test_a_delta_may_choose_the_shape(tmp_path):
     from rosemary.core.themes import preload_themes
 
     await preload_themes(bot)
+    assert await card_delta(bot, 1, "audit.ban") == {"form": "card", "title": "Custom ban"}
     payload, _allowed = await render_card_message(
         bot,
         1,
@@ -247,6 +248,12 @@ async def test_a_delta_may_choose_the_shape(tmp_path):
     )
     assert payload is not None and payload.view is not None
     assert payload.embed is None
+    texts = [
+        item.content
+        for item in payload.view.walk_children()
+        if hasattr(item, "content")
+    ]
+    assert any("Custom ban" in text for text in texts), texts
 
 
 async def test_the_old_format_still_replaces_the_whole_card(tmp_path):

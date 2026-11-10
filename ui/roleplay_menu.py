@@ -13,7 +13,7 @@ from __future__ import annotations
 import discord
 
 from rosemary.core.roleplay import ACTIONS, RoleplayStore, valid_api_category
-from rosemary.ui.kit import ActionRow, Panel, TextDisplay
+from rosemary.ui.kit import ActionRow, EmptyState, Panel, TextDisplay
 
 
 class RoleplayManagerView(Panel):
@@ -156,12 +156,21 @@ class RoleplayManagerView(Panel):
         gifs = await self._gifs()
 
         lines = [await self._entry_line(index, gif) for index, gif in enumerate(gifs[:10])]
-        sections = [
-            TextDisplay(
-                f"**{await self.t('roleplay.manager.list_title')}**\n"
-                + ("\n".join(lines) if lines else await self.t("roleplay.manager.empty"))
-            )
-        ]
+        if lines:
+            sections = [
+                TextDisplay(
+                    f"**{await self.t('roleplay.manager.list_title')}**\n"
+                    + "\n".join(lines)
+                )
+            ]
+        else:
+            sections = [
+                TextDisplay(f"**{await self.t('roleplay.manager.list_title')}**"),
+                EmptyState(
+                    await self.t("roleplay.manager.empty"),
+                    icon=self.emoji("frame"),
+                ).item(),
+            ]
 
         actions = [
             ActionRow(
@@ -179,8 +188,17 @@ class RoleplayManagerView(Panel):
                 )
             ),
             ActionRow(
-                await self.button("rp_mgr_add", "roleplay.manager.add", style="primary"),
-                await self.button("rp_mgr_restore", "roleplay.manager.restore"),
+                await self.button(
+                    "rp_mgr_add",
+                    "roleplay.manager.add",
+                    style="success",
+                    emoji="plus",
+                ),
+                await self.button(
+                    "rp_mgr_restore",
+                    "roleplay.manager.restore",
+                    emoji="refresh",
+                ),
             ),
         ]
         if gifs:

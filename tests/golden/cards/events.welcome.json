@@ -1,15 +1,17 @@
 {
-  "content": "<@0>",
+  "content": "Boas-vindas, <@0>!",
   "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "@you"
+    },
     "color": 5763719,
     "description": "<@0> acabou de entrar. Diga oi! Membro #1 do ….",
     "fields": [],
     "footer": {
       "text": "… · #1 · `123456789012345678`"
     },
-    "thumbnail": {
-      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-    },
+    "timestamp": "<iso>",
     "title": "🎉 Bem-vindo(a)!",
     "type": "rich"
   },

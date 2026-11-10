@@ -22,11 +22,11 @@
       "style": "secondary"
     },
     {
-      "custom_id": "settings_edit:updater.enabled",
+      "custom_id": "settings_set_value:updater.enabled:true",
       "disabled": false,
-      "emoji": "⚙️",
-      "label": "Editar",
-      "style": "secondary"
+      "emoji": "❌",
+      "label": "Desativado",
+      "style": "danger"
     },
     {
       "custom_id": "settings_edit:updater.check_interval_hours",
@@ -50,9 +50,16 @@
       "style": "secondary"
     },
     {
+      "custom_id": "settings_search",
+      "disabled": false,
+      "emoji": "🔍",
+      "label": "Buscar",
+      "style": "primary"
+    },
+    {
       "custom_id": "settings_close",
       "disabled": false,
-      "emoji": "❌",
+      "emoji": "🚪",
       "label": "Fechar",
       "style": "secondary"
     }
@@ -63,87 +70,121 @@
       "disabled": false,
       "options": [
         {
-          "default": false,
+          "default": true,
+          "description": "Idioma, prefixo e tempo dos menus · 7 definições",
+          "emoji": "⚙️",
           "label": "Geral",
           "value": "general"
         },
         {
           "default": false,
+          "description": "Comandos de moderação e warns · 13 definições",
+          "emoji": "🛡️",
           "label": "Moderação",
           "value": "moderation"
         },
         {
           "default": false,
+          "description": "Canal e nível dos logs da equipe · 3 definições",
+          "emoji": "📜",
           "label": "Log",
           "value": "logging"
         },
         {
           "default": false,
+          "description": "Entrada, saída e anúncios de banimento · 8 definições",
+          "emoji": "📣",
           "label": "Anúncios",
           "value": "events"
         },
         {
           "default": false,
+          "description": "Registro de eventos do servidor · 15 definições",
+          "emoji": "🔍",
           "label": "Registro de Eventos",
           "value": "audit"
         },
         {
           "default": false,
+          "description": "Cargos boost e convites · 7 definições",
+          "emoji": "🚀",
           "label": "Cargos Boost",
           "value": "boost"
         },
         {
           "default": false,
+          "description": "Disboard bump, lembretes e placar · 19 definições",
+          "emoji": "📈",
           "label": "Disboard Bump",
           "value": "bump"
         },
         {
           "default": false,
+          "description": "Destaques por estrelas · 5 definições",
+          "emoji": "⭐",
           "label": "Starboard",
           "value": "starboard"
         },
         {
           "default": false,
+          "description": "Sugestões e votação · 3 definições",
+          "emoji": "💡",
           "label": "Sugestões",
           "value": "suggestions"
         },
         {
           "default": false,
+          "description": "Anúncios de aniversário · 5 definições",
+          "emoji": "🎂",
           "label": "Aniversários",
           "value": "birthdays"
         },
         {
           "default": false,
+          "description": "Convites, ranking e anti-fraude · 8 definições",
+          "emoji": "💌",
           "label": "Convites",
           "value": "invites"
         },
         {
           "default": false,
+          "description": "Atendimento por tickets · 4 definições",
+          "emoji": "🎫",
           "label": "Tickets",
           "value": "tickets"
         },
         {
           "default": false,
+          "description": "Parcerias e divulgação · 7 definições",
+          "emoji": "🤝",
           "label": "Parcerias",
           "value": "partnerships"
         },
         {
           "default": false,
+          "description": "Mensagens programadas · 6 definições",
+          "emoji": "📢",
           "label": "Broadcast & Lembretes",
           "value": "broadcast_reminders"
         },
         {
           "default": false,
+          "description": "Painel de cores e cargos · 4 definições",
+          "emoji": "🎨",
           "label": "Painel de Cores",
           "value": "colors"
         },
         {
           "default": false,
+          "description": "Cards de roleplay com gif · 2 definições",
+          "emoji": "🎭",
           "label": "Roleplay",
           "value": "roleplay"
         },
         {
           "default": false,
+          "description": "Confissões anônimas · 6 definições",
+          "emoji": "🤫",
           "label": "Confissões",
           "value": "confessions"
         }
@@ -152,14 +193,14 @@
     }
   ],
   "texts": [
-    "# Configurações do Bot",
-    "**Categoria:** Geral",
-    "**Fuso horário:**\nPadrão: UTC",
-    "**Prefixo do bot:**\nPadrão: !",
-    "**Tempo de expiração dos menus:**\nPadrão: 15m",
-    "**Auto-update ativado:**\nPadrão: Desativado",
-    "**Checar a cada (horas):**\nPadrão: 24",
-    "**Canal de update:**\nPadrão: Releases estáveis",
-    "**Branch de update:**\nPadrão: main"
+    "# ⚙️ Configurações do Bot",
+    "Categoria: ⚙️ **Geral** · 7 definições",
+    "**📝 Fuso horário:**\nPadrão: UTC",
+    "**📝 Prefixo do bot:**\nPadrão: !",
+    "**🔢 Tempo de expiração dos menus:**\nPadrão: 15m",
+    "**✅ Auto-update ativado:**\nPadrão: Desativado",
+    "**🔢 Checar a cada (horas):**\nPadrão: 24",
+    "**🔀 Canal de update:**\nPadrão: Releases estáveis",
+    "**📝 Branch de update:**\nPadrão: main"
   ]
 }

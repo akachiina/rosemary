@@ -2,8 +2,8 @@
 
 Every user-facing ephemeral notice (errors, warnings, plain confirmations)
 renders through one builder so a theme can restyle the surface and every
-cog speaks the same visual language: one line, the theme's prefix
-(``{emoji} **|** ``) plus the message. The notice layer lives in
+cog speaks the same visual language: the theme's prefix (``{emoji} ``) plus
+the message, one thing per line. The notice layer lives in
 :mod:`rosemary.core.feedback`: the prefix is a theme style, so a guild
 restyles every notice at once.
 

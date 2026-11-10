@@ -17,7 +17,7 @@ ban:
   success: '{success} {member} was banned.'
   dm: 'You were banned from **{guild}** by {moderator}!
 
-    **{scroll} Reason:** {reason}'
+    • **{scroll} Reason:** {reason}'
 cleaner:
   error_disabled: '{error} The message cleaner is disabled on this server.'
   error_no_mode: '{error} Give me a word, a regex or how many messages to purge (last N).'
@@ -69,7 +69,7 @@ kick:
   success: '{success} {member} was kicked.'
   dm: 'You were kicked from **{guild}** by {moderator}!
 
-    **{scroll} Reason:** {reason}'
+    • **{scroll} Reason:** {reason}'
 limpar:
   command:
     name: limpar
@@ -97,10 +97,10 @@ moderation:
   no_reason: No reason provided
   summary: '{member}
 
-    **{scroll} Reason:** {reason}'
+    • **{scroll} Reason:** {reason}'
   multi_summary: '{targets}
 
-    **{scroll} Reason:** {reason}'
+    • **{scroll} Reason:** {reason}'
   error_disabled: '{error} Moderation commands are disabled in this server.'
   error_no_members: '{error} Mention at least one member.'
   error_self: '{error} You cannot use moderation commands on yourself.'
@@ -172,15 +172,15 @@ mute:
   success: '{success} {member} was muted for {duration}.'
   dm: 'You were muted in **{guild}** by {moderator}!
 
-    **{clock} Duration:** {duration}
+    • **{clock} Duration:** {duration}
 
-    **{scroll} Reason:** {reason}'
+    • **{scroll} Reason:** {reason}'
   invalid_duration: '{error} Invalid duration. Use formats like 10m, 2h or 3d.'
   summary: '{member}
 
-    **{clock} Duration:** {duration}
+    • **{clock} Duration:** {duration}
 
-    **{scroll} Reason:** {reason}'
+    • **{scroll} Reason:** {reason}'
 trap:
   reason: Fell into the trap channel
   notice:
@@ -262,7 +262,7 @@ warn:
   success: '{success} Warning recorded for {member} ({count}/{limit}).'
   dm: 'You received a warning in **{guild}** from {moderator}!
 
-    **{scroll} Reason:** {reason}'
+    • **{scroll} Reason:** {reason}'
 warnings:
   command:
     name: warnings

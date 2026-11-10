@@ -111,8 +111,8 @@ async def test_bump_cards_build_with_avatar(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(True))
     assert reminder.embed is not None
     assert thanks.embed is not None
-    # The winner's avatar rides the thumbnail.
-    assert thanks.embed.thumbnail.url == "https://example.com/avatar.png"
+    # The bumper's avatar rides the author line.
+    assert thanks.embed.author.icon_url == "https://example.com/avatar.png"
 
 
 async def test_bump_card_layout_valid(bot):
@@ -212,11 +212,13 @@ _THANK_YOU_VARS = {
     "next_bump_timestamp": 9999999999,
     "user_avatar": "https://example.com/avatar.png",
     "user": "<@456>",
+    "user_name": "Ana",
     "timestamp": "<t:1:R>",
 }
 
 _LEADERBOARD_VARS = {
     "winner_mention": "<@111>",
+    "winner_name": "Bea",
     "winner_count": 5,
     "role_name": "MVP",
     "leaderboard_list": "{medal} **1º** · <@111> **5** bumps",
@@ -230,32 +232,32 @@ _LEADERBOARD_VARS = {
 
 
 @pytest.mark.parametrize(
-    ("key", "style", "avatar_var", "variables", "has_author_footer"),
+    ("key", "style", "avatar_var", "name_var", "variables"),
     [
         (
             "bump.thank_you",
             "bump_reminder",
             "user_avatar",
+            "user_name",
             _THANK_YOU_VARS,
-            True,
         ),
         (
             "bump.leaderboard",
             "bump_leaderboard",
             "winner_avatar",
+            "winner_name",
             _LEADERBOARD_VARS,
-            False,
         ),
     ],
 )
 async def test_bump_card_document_layout_and_style(
-    key, style, avatar_var, variables, has_author_footer, tmp_path
+    key, style, avatar_var, name_var, variables, tmp_path
 ):
     """The cards follow the theme styles and keep their frame.
 
-    The thank-you card keeps the author footer (``{user}`` is the bumper);
-    the leaderboard must not carry one: it is a bot-posted ranking, and the
-    footer used to credit whoever happened to be in first place.
+    The subject owns the author line (name and avatar) and the footer keeps
+    the date only: the card never repeats the avatar as a thumbnail, and the
+    leaderboard no longer credits the winner as if they had posted the ranking.
     """
     from rosemary.core.card_service import render_card_message
     from rosemary.core.themes import theme_for
@@ -271,9 +273,11 @@ async def test_bump_card_document_layout_and_style(
     assert embed.colour.value == theme_for(bot, 1).color(state_color).value
     assert embed.title
     assert embed.description
-    assert embed.thumbnail and embed.thumbnail.url == variables[avatar_var]
+    assert embed.author and embed.author.name == variables[name_var]
+    assert embed.author.icon_url == variables[avatar_var]
+    assert embed.thumbnail is None
     footer = (embed.footer.text if embed.footer else "") or ""
-    assert ("por <@" in footer) is has_author_footer
+    assert "<@" not in footer and "<t:" not in footer
 
 
 @pytest.mark.parametrize(
@@ -283,7 +287,7 @@ async def test_bump_card_document_layout_and_style(
         ("bump.leaderboard", "winner_avatar", _LEADERBOARD_VARS),
     ],
 )
-async def test_bump_card_without_avatar_omits_thumbnail(
+async def test_bump_card_without_avatar_omits_author_icon(
     key, avatar_var, variables, tmp_path
 ):
     """A missing avatar must degrade to plain text, never an empty accessory."""
@@ -295,6 +299,7 @@ async def test_bump_card_without_avatar_omits_thumbnail(
         bot, 1, key, {**bare, "state_color": "brand"}
     )
     assert payload is not None and payload.embed is not None
+    assert payload.embed.author and not payload.embed.author.icon_url
     assert payload.embed.thumbnail is None
 
 

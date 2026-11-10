@@ -113,9 +113,9 @@ async def test_event_titles_are_not_double_decorated():
     assert payload.embed.title.count(ban_emoji) == 1, payload.embed.title
 
 
-async def test_event_document_has_avatar_thumbnail_and_footer():
-    """The event documents: the member's avatar rides the card and the
-    footer names the server, the count and the id (the id in inline code)."""
+async def test_event_document_has_avatar_author_and_footer():
+    """The event documents: the member owns the author line and the footer
+    names the server, the count and the id (the id in inline code)."""
     from golden_cards import make_bot
 
     from rosemary.core.card_service import render_card_message
@@ -123,7 +123,9 @@ async def test_event_document_has_avatar_thumbnail_and_footer():
 
     document = default_package().document("events.welcome")
     assert document is not None
-    assert document["thumbnail"] == "{user_avatar}"
+    assert document["author"] == "{user_name}"
+    assert document["author_icon"] == "{user_avatar}"
+    assert "thumbnail" not in document
     assert "`{user_id}`" in document["footer"]
 
     bot = make_bot()
@@ -142,7 +144,9 @@ async def test_event_document_has_avatar_thumbnail_and_footer():
         },
     )
     assert payload is not None and payload.embed is not None
-    assert payload.embed.thumbnail.url == "https://a.b/ana.png"
+    assert payload.embed.author.name == "Ana"
+    assert payload.embed.author.icon_url == "https://a.b/ana.png"
+    assert payload.embed.thumbnail is None
     assert payload.embed.footer.text == "Serv · #3 · `5`"
 
 

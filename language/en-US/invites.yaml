@@ -12,6 +12,7 @@ invites:
   error_disabled: '{error} Invite tracking is disabled on this server.'
   error_leaderboard_disabled: '{error} The invites leaderboard is disabled.'
   stats:
+    ping: 'Here are your invites, {user}.'
     title: '{bar_chart} Invites of {user}'
     breakdown: '{regular} regular · {bonus} bonus · {fake} fake · {left} left'
     total: '**Total:** {total} (#{rank})'

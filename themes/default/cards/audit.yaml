@@ -71,6 +71,12 @@ audit.trap:
   color: danger
   title: '{lock} {card.audit.trap.title}'
   description: '{card.audit.trap.body}'
+  # The trap card names the consequence and the outcome the send site decided.
+  variables:
+    $append: true
+    items:
+      - action
+      - outcome
 
 audit.message_delete:
   archetype: audit_event

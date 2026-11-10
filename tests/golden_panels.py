@@ -118,6 +118,8 @@ def snapshot(view: Any) -> dict[str, Any]:
                         {
                             "label": option.label,
                             "value": option.value,
+                            "description": option.description,
+                            "emoji": _emoji(option.emoji),
                             "default": bool(option.default),
                         }
                         for option in node.options

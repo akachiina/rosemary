@@ -4,7 +4,8 @@ Rosemary speaks three shapes: plain text (acknowledgements and notices),
 classic embeds (logs and content) and Components V2 (the interactive UI).
 This file pins the text layer:
 
-* the line is ``{emoji} **|** message`` and the prefix comes from the theme
+* the line opens with the theme prefix and the copy follows (the title of a
+  multi-line notice is bold), and the prefix comes from the theme
   (``feedback_*`` styles), so a guild restyles every notice at once;
 * the prefix owns the only emoji of the line: the copy never opens with one;
 * the placeholders of the card contract resolve (no raw ``{ms}``);
@@ -68,14 +69,14 @@ async def _activate(bot) -> None:
 
 
 async def test_text_card_is_one_notice_line(tmp_path):
-    """``/ping`` ships as a plain line: the theme prefix plus the copy."""
+    """``/ping`` ships as plain text: the prefix, the bold title and the body."""
     bot = _make_bot(tmp_path)
     payload, _allowed = await render_card_message(
         bot, 1, "utility.ping", {"ms": 42}
     )
     assert payload is not None
     assert payload.view is None and payload.embed is None
-    assert payload.content == "ℹ️ **|** Pong! · Latency: 42ms"
+    assert payload.content == "ℹ️ **Pong!**\nLatency: 42ms"
 
 
 async def test_text_card_resolves_the_placeholders(tmp_path):
@@ -129,7 +130,8 @@ async def test_the_prefix_owns_the_only_emoji(tmp_path):
     )
     assert payload is not None and payload.content
     head = payload.content.splitlines()[0]
-    assert head.startswith("✅ **|** ")
+    assert head.startswith("✅ ")
+    assert "**|**" not in head
     # One emoji on the line: the prefix owns it.
     assert head.count("✅") == 1
 
@@ -138,7 +140,11 @@ async def test_the_prefix_owns_the_only_emoji(tmp_path):
 
 
 async def test_embed_ping_travels_in_the_content(tmp_path):
-    """An embed never notifies: the essential ping rides the content."""
+    """An embed never notifies: the essential phrase rides the content.
+
+    The document declares the phrase it wants in the message content
+    (``ping_line``); the embed keeps the mention chip and never pings.
+    """
     bot = _make_bot(
         tmp_path,
         "name: t\n"
@@ -146,10 +152,11 @@ async def test_embed_ping_travels_in_the_content(tmp_path):
         '  brand: "#57F287"\n'
         "cards:\n"
         "  about.card:\n"
-        "    embed:\n"
-        '      title: "Hi"\n'
-        '      description: "Hello {@user}"\n'
-        "      color: brand\n"
+        "    form: embed\n"
+        '    title: "Hi"\n'
+        '    description: "Hello {user}"\n'
+        '    ping_line: "{user}, come see"\n'
+        "    color: brand\n"
         "pings:\n"
         "  about.card: true\n",
     )
@@ -158,9 +165,9 @@ async def test_embed_ping_travels_in_the_content(tmp_path):
         bot, 1, "about.card", {"user": "<@77>"}
     )
     assert payload is not None and payload.embed is not None
-    # The token travels in the message content: that is the only part of a
+    # The phrase travels in the message content: that is the only part of a
     # message that notifies. The embed keeps the chip (it never pings).
-    assert payload.content == "<@77>"
+    assert payload.content == "<@77>, come see"
     assert [user.id for user in (allowed.users or [])] == [77]
 
 
@@ -244,7 +251,7 @@ async def test_a_themed_copy_keeps_the_text_surface(tmp_path):
     )
     assert payload is not None
     assert payload.view is None
-    assert payload.content == "ℹ️ **|** Pong 42"
+    assert payload.content == "ℹ️ Pong 42"
 
 
 async def test_a_themed_copy_keeps_the_embed_surface(tmp_path):
@@ -337,7 +344,7 @@ async def test_the_fallback_follows_the_card_form(tmp_path):
 
     bot = _make_bot(tmp_path)
     text_card = simple_payload(bot, 1, "utility.ping", title="Pong", body="42ms")
-    assert text_card.content == "ℹ️ **|** Pong · 42ms"
+    assert text_card.content == "ℹ️ **Pong**\n42ms"
     assert text_card.embed is None
     assert text_card.view is None
 
@@ -450,7 +457,10 @@ async def test_the_text_copies_never_open_with_an_emoji(tmp_path):
             assert payload is not None, key
             content = payload.content or ""
             assert content, key
-            # The prefix owns the mark: what follows it is plain prose.
-            body = content.split("**|** ", 1)[-1]
-            head = body.splitlines()[0]
+            assert "**|**" not in content, key
+            # The prefix owns the mark: what follows it is plain prose (the
+            # serializer may bold the first line as the title).
+            head_line = content.splitlines()[0]
+            body = head_line.split(" ", 1)[1] if " " in head_line else head_line
+            head = body.lstrip("*")
             assert not emoji.match(head), f"{language} {key}: {head!r}"

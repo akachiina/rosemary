@@ -35,6 +35,7 @@ from rosemary.ui.color_palette import COLOR_PALETTE
 from rosemary.ui.kit import (
     ActionRow,
     Container,
+    EmptyState,
     Panel,
     Section,
     TextDisplay,
@@ -159,7 +160,7 @@ class _BaseMenu(Panel):
         self.nav(*actions)
 
     async def _list_sections(
-        self, entries: list[discord.ui.ViewItem], empty: str
+        self, entries: list[discord.ui.ViewItem], empty: str, *, icon: str = ""
     ) -> list[discord.ui.ViewItem]:
         """The paginated list: a divider, the page entries, a large divider."""
         self._page_total = page_count(len(entries), _LIST_PAGE_SIZE)
@@ -169,7 +170,9 @@ class _BaseMenu(Panel):
         if page_entries:
             sections.extend(page_entries)
         else:
-            sections.append(TextDisplay(empty))
+            sections.append(
+                EmptyState(empty, icon=self.emoji(icon) if icon else None).item()
+            )
         sections.append(divider("large"))
         return sections
 
@@ -1131,7 +1134,9 @@ class BoostMenuView(_BaseMenu):
             )
         await self.set_screen("boost.titles.my_roles", color="brand")
         sections = await self._list_sections(
-            entries, await self.t("boost.descriptions.my_roles_empty")
+            entries,
+            await self.t("boost.descriptions.my_roles_empty"),
+            icon="crown",
         )
         self._page_nav(self._page_total)
         return await self.compose(sections)
@@ -1167,7 +1172,9 @@ class BoostMenuView(_BaseMenu):
             )
         await self.set_screen("boost.titles.pending_invites", color="info")
         sections = await self._list_sections(
-            entries, await self.t("boost.descriptions.pending_invites_empty")
+            entries,
+            await self.t("boost.descriptions.pending_invites_empty"),
+            icon="love_letter",
         )
         self._page_nav(self._page_total)
         return await self.compose(sections)
@@ -1197,7 +1204,9 @@ class BoostMenuView(_BaseMenu):
             color="warning",
         )
         sections = await self._list_sections(
-            entries, await self.t("boost.descriptions.leave_empty")
+            entries,
+            await self.t("boost.descriptions.leave_empty"),
+            icon="door",
         )
         self._page_nav(self._page_total)
         return await self.compose(sections)
@@ -1334,7 +1343,12 @@ class BoostMenuView(_BaseMenu):
         page_entries = paginate(entries, self.page, _LIST_PAGE_SIZE)
         sections.extend(page_entries)
         if not page_entries:
-            sections.append(TextDisplay(await self.t("boost.descriptions.members_empty")))
+            sections.append(
+                EmptyState(
+                    await self.t("boost.descriptions.members_empty"),
+                    icon=self.emoji("members"),
+                ).item()
+            )
         sections.append(divider())
         # Membership grows ONLY through invites: this button opens the invite
         # target screen (the same flow as the invites screen), never a direct
@@ -1392,7 +1406,10 @@ class BoostMenuView(_BaseMenu):
         sections.extend(page_entries)
         if not page_entries:
             sections.append(
-                TextDisplay(await self.t("boost.descriptions.pending_invites_empty"))
+                EmptyState(
+                    await self.t("boost.descriptions.pending_invites_empty"),
+                    icon=self.emoji("love_letter"),
+                ).item()
             )
         sections.append(divider())
         actions = [
@@ -1448,6 +1465,7 @@ class BoostMenuView(_BaseMenu):
             f"boost_leave_confirm_yes:{self.role_id}",
             "boost.buttons.confirm",
             style="danger",
+            emoji="check",
         )
         return await self.compose([], [ActionRow(confirm)])
 
@@ -1468,11 +1486,13 @@ class BoostMenuView(_BaseMenu):
                 f"boost_remove_confirm:{self.role_id}:delete",
                 "boost.buttons.delete_role_yes",
                 style="danger",
+                emoji="trash",
             ),
             await self.button(
                 f"boost_remove_confirm:{self.role_id}:keep",
                 "boost.buttons.delete_role_no",
                 style="secondary",
+                emoji="check",
             ),
         )
         return await self.compose([], [row])
@@ -1710,11 +1730,13 @@ class AdminBoostMenuView(_BaseMenu):
                 f"boost_remove_confirm_admin:{self.role_id}:delete",
                 "boost.buttons.delete_role_yes",
                 style="danger",
+                emoji="trash",
             ),
             await self.button(
                 f"boost_remove_confirm_admin:{self.role_id}:keep",
                 "boost.buttons.delete_role_no",
                 style="secondary",
+                emoji="check",
             ),
         )
         return await self.compose([], [row])
@@ -1741,7 +1763,9 @@ class AdminBoostMenuView(_BaseMenu):
             )
         await self.set_screen("boost.titles.list_all", color="info")
         sections = await self._list_sections(
-            entries, await self.t("boost.descriptions.no_roles")
+            entries,
+            await self.t("boost.descriptions.no_roles"),
+            icon="cards",
         )
         self._page_nav(self._page_total)
         return await self.compose(sections)

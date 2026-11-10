@@ -12,6 +12,7 @@ invites:
   error_disabled: '{error} O rastreamento de convites está desativado neste servidor.'
   error_leaderboard_disabled: '{error} O ranking de convites está desativado.'
   stats:
+    ping: 'Aqui estão os seus convites, {user}.'
     title: '{bar_chart} Convites de {user}'
     breakdown: '{regular} válidos · {bonus} bônus · {fake} fakes · {left} saíram'
     total: '**Total:** {total} (#{rank})'

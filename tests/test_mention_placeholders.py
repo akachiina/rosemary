@@ -272,8 +272,11 @@ async def test_render_card_message_returns_view_and_mentions(tmp_path):
         "name: t\n"
         "cards:\n"
         "  bump.thank_you:\n"
-        "    - type: 10\n"
-        "      content: \"{@user} ganhou!\"\n",
+        "    - type: 17\n"
+        "      accent_color: 5865F2\n"
+        "      components:\n"
+        "        - type: 10\n"
+        '          content: "{@user} ganhou!"\n',
     )
     await preload_themes(bot)
     view, allowed = await render_card_message(
@@ -291,8 +294,11 @@ async def test_render_card_message_silent_never_pings(tmp_path):
         "name: t\n"
         "cards:\n"
         "  bump.thank_you:\n"
-        "    - type: 10\n"
-        "      content: \"{@user} ganhou!\"\n",
+        "    - type: 17\n"
+        "      accent_color: 5865F2\n"
+        "      components:\n"
+        "        - type: 10\n"
+        '          content: "{@user} ganhou!"\n',
     )
     await preload_themes(bot)
     _view, allowed = await render_card_message(

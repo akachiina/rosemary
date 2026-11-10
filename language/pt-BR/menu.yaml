@@ -33,7 +33,7 @@ broadcast_stop:
     description: '[ADMIN] Para o broadcast ao vivo'
 card:
   author_footer:
-    text: por {user} · {timestamp}
+    text: por {user_name} · {timestamp}
   colors:
     panel:
       title: Card do painel de cores
@@ -91,7 +91,7 @@ card:
     ping:
       title: Card de latência
     serverinfo:
-      title: Card de info do servidor
+      title: Informações do Servidor
       subtitle: '{crown} {owner} · {people} {members} membros'
       created_label: '{calendar} Criado em'
       created_value: '{created_at} · {created_rel}'
@@ -109,7 +109,7 @@ card:
         high: Alta
         highest: Muito alta
     userinfo:
-      title: Card de info do membro
+      title: Informações do Membro
       subtitle: '{crown} {top_role}'
       nickname_label: '{pencil} Apelido'
       created_label: '{calendar} Criado em'
@@ -594,6 +594,7 @@ general:
   'no': Não
   no_permission: '{error} Apenas administradores do servidor podem usar este comando.'
   bot_no_permission: '{error} O bot não tem permissão para fazer isso.'
+  date_format: '%d/%m/%Y %H:%M'
 menu:
   owner_only: '{error} Este menu é privado. Somente o autor pode interagir.'
   expired: '{warning} Este menu expirou. Abra-o novamente para continuar.'
@@ -679,12 +680,24 @@ variables:
   inviter:
     label: Quem convidou
     description: Menção de quem convidou
+  inviter_name:
+    label: Nome de quem convidou
+    description: Nome de exibição de quem convidou
+  inviter_avatar:
+    label: Avatar de quem convidou
+    description: URL do avatar de quem convidou
   inviter_mention:
     label: Menção de quem convidou
     description: Menção de quem convidou
   member:
     label: Membro
     description: Menção do membro
+  member_name:
+    label: Nome do membro
+    description: Nome de exibição do membro
+  member_avatar:
+    label: Avatar do membro
+    description: URL do avatar do membro
   member_id:
     label: ID do membro
     description: ID do Discord do membro
@@ -700,24 +713,48 @@ variables:
   moderator:
     label: Moderador
     description: Menção do moderador atuante
+  moderator_name:
+    label: Nome do moderador
+    description: Nome de exibição do moderador
+  moderator_avatar:
+    label: Avatar do moderador
+    description: URL do avatar do moderador
   target:
     label: Alvo
     description: Menção do membro alvo
   author:
     label: Autor
     description: Menção de quem agiu
+  author_name:
+    label: Nome do autor
+    description: Nome de exibição de quem criou o conteúdo
+  author_avatar:
+    label: Avatar do autor
+    description: URL do avatar de quem criou o conteúdo
   owner:
     label: Dono
     description: Menção do dono
+  owner_name:
+    label: Nome do dono
+    description: Nome de exibição do dono
+  owner_avatar:
+    label: Avatar do dono
+    description: URL do avatar do dono
   actor:
     label: Atuante
     description: Menção de quem agiu
+  actor_name:
+    label: Nome de quem agiu
+    description: Nome de exibição de quem agiu
   actor_avatar:
     label: Avatar de quem agiu
     description: URL do avatar de quem agiu (thumbnail do card de roleplay)
   winner:
     label: Vencedor
     description: Menção do vencedor
+  winner_name:
+    label: Nome do vencedor
+    description: Nome de exibição do vencedor
   winner_mention:
     label: Menção do vencedor
     description: Menção do vencedor
@@ -727,6 +764,12 @@ variables:
   invitee:
     label: Convidado
     description: Menção do membro convidado
+  invitee_name:
+    label: Nome do convidado
+    description: Nome de exibição do membro convidado
+  invitee_avatar:
+    label: Avatar do convidado
+    description: URL do avatar do membro convidado
   reason:
     label: Motivo
     description: Texto do motivo
@@ -863,8 +906,8 @@ variables:
     label: ID do servidor
     description: ID numérico do servidor
   timestamp:
-    label: Tempo relativo
-    description: Momento do evento em tempo relativo do Discord (ex. "há 3 horas")
+    label: Data do evento
+    description: Data legível no fuso do servidor nos logs; tempo relativo nos demais cards
   message_author:
     label: Autor da mensagem
     description: Menção de quem enviou a mensagem
@@ -991,6 +1034,9 @@ variables:
   action:
     label: Consequência
     description: Ação aplicada (apagar, expulsão, softban ou banimento)
+  outcome:
+    label: Resultado
+    description: O que aconteceu com o membro (aplicado ou ignorado)
   file_url:
     label: Arquivo da purga
     description: Link do .txt com as mensagens apagadas em massa
@@ -1126,9 +1172,21 @@ variables:
   old_owner:
     label: Dono anterior
     description: Menção do dono anterior
+  old_owner_name:
+    label: Nome do dono anterior
+    description: Nome de exibição do dono anterior
+  old_owner_avatar:
+    label: Avatar do dono anterior
+    description: URL do avatar do dono anterior
   new_owner:
     label: Novo dono
     description: Menção do novo dono
+  new_owner_name:
+    label: Nome do novo dono
+    description: Nome de exibição do novo dono
+  new_owner_avatar:
+    label: Avatar do novo dono
+    description: URL do avatar do novo dono
   old_name:
     label: Nome antigo
     description: Nome anterior

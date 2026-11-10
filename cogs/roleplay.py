@@ -304,6 +304,7 @@ class RoleplayCog(commands.Cog):
         action_text = await t(guild_id, _sentence_key(action))
         variables = {
             "actor": actor.mention,
+            "actor_name": actor.display_name,
             "target": target.mention,
             "actor_avatar": actor.display_avatar.url,
             "action": action_text,

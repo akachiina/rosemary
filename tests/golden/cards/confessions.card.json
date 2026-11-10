@@ -5,7 +5,7 @@
     "description": "…",
     "fields": [],
     "footer": {
-      "text": "…"
+      "text": "… · 01/01/2026 00:00"
     },
     "image": {
       "url": "https://cdn.discordapp.com/embed/avatars/0.png"
@@ -13,6 +13,7 @@
     "thumbnail": {
       "url": "attachment://anonimo_K7Q.png"
     },
+    "timestamp": "<iso>",
     "title": "Anônimo K7Q<:op_emoji:123456789>",
     "type": "rich"
   },

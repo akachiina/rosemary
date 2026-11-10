@@ -1,5 +1,5 @@
 {
-  "content": "✅ **|** Você recebeu um Cargo Boost!\nOlá, <@0>! O cargo boost @… foi registrado para você no **…**.\n\n✏️ Renomeie e escolha um emoji\n🎨 Mude a cor\n👥 Convide até **10** membros\n🔄 Transfira a posse\n\nUse o painel de cargos boost para gerenciar tudo.",
+  "content": "✅ **Você recebeu um Cargo Boost!**\n\nOlá, <@0>! O cargo boost @… foi registrado para você no **…**.\n\n✏️ Renomeie e escolha um emoji\n🎨 Mude a cor\n👥 Convide até **10** membros\n🔄 Transfira a posse\n\nUse o painel de cargos boost para gerenciar tudo.",
   "embed": null,
   "form": "text",
   "key": "boost.dm.registered",

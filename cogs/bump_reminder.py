@@ -740,7 +740,7 @@ class BumpReminderCog(commands.Cog):
             next_bump_timestamp=next_bump_timestamp,
         )
         member = guild.get_member(user_id)
-        thumbnail = (
+        avatar = (
             member.display_avatar.url
             if member and getattr(member, "display_avatar", None)
             else None
@@ -752,7 +752,8 @@ class BumpReminderCog(commands.Cog):
             title=title,
             body=description,
             color=self.bot.theme.style("bump_reminder").color,
-            thumbnail=thumbnail,
+            author=member.display_name if member is not None else "",
+            author_icon=avatar or "",
         )
 
     #: Listeners -----------------------------------------------------------

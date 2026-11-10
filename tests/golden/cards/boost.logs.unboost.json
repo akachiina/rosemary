@@ -1,6 +1,10 @@
 {
   "content": null,
   "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "@you"
+    },
     "color": 15844367,
     "fields": [
       {
@@ -20,7 +24,7 @@
       }
     ],
     "footer": {
-      "text": "<t:1767225600:R>"
+      "text": "01/01/2026 00:00"
     },
     "timestamp": "<iso>",
     "title": "⚠️ Boost Terminou",

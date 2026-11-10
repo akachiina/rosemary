@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Você Saiu do Cargo\nVocê saiu do cargo @… com sucesso.\nO dono do cargo foi notificado.",
+  "content": "ℹ️ **Você Saiu do Cargo**\n\nVocê saiu do cargo @… com sucesso.\n\nO dono do cargo foi notificado.",
   "embed": null,
   "form": "text",
   "key": "boost.dm.member_left",

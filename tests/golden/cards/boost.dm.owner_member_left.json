@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Membro Saiu do Cargo\n<@0> saiu do cargo @….\nVocê pode adicionar outro membro se desejar.",
+  "content": "ℹ️ **Membro Saiu do Cargo**\n\n<@0> saiu do cargo @….\n\nVocê pode adicionar outro membro se desejar.",
   "embed": null,
   "form": "text",
   "key": "boost.dm.owner_member_left",

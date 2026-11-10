@@ -1,5 +1,5 @@
 {
-  "content": "❌ **|** Seu cargo boost foi removido\nOlá, <@0>! Seu boost terminou, então o cargo boost @… foi removido do **…**.\nDê boost no servidor de novo e o cargo volta automaticamente, com os membros.",
+  "content": "❌ **Seu cargo boost foi removido**\n\nOlá, <@0>! Seu boost terminou, então o cargo boost @… foi removido do **…**.\n\nDê boost no servidor de novo e o cargo volta automaticamente, com os membros.",
   "embed": null,
   "form": "text",
   "key": "boost.dm.unboost_deleted",

@@ -2,7 +2,8 @@
   "content": null,
   "embed": {
     "author": {
-      "name": "<@0>"
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "@you"
     },
     "color": 3066993,
     "fields": [
@@ -23,7 +24,8 @@
       }
     ],
     "footer": {
-      "text": "<t:1767225600:R>"
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "text": "por @you · 01/01/2026 00:00"
     },
     "timestamp": "<iso>",
     "title": "✅ Convite Aceito",

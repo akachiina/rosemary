@@ -24,6 +24,7 @@ roleplay:
     cuddle: cuddled with
   card:
     title: Roleplay card
+    ping: '{actor} {action} {target}.'
   source: Image source
   manager:
     title: Manage gifs

@@ -17,6 +17,7 @@ events:
   welcome:
     title: '{tada} Welcome!'
     body: '{user} just joined. Say hi! Member #{count} of {server}.'
+    ping: 'Welcome, {user}!'
   leave:
     title: '{door} Until next time'
     body: '{user_name} left the server. We are now {count} members.'

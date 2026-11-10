@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import discord
 
 from rosemary.core.card_service import render_card_message, send_card
+from rosemary.core.identity import event_time, inject_identities
 from rosemary.core.settings import get_setting
 from rosemary.core.theme_package import default_package
 from rosemary.core.themes import card_origin
@@ -154,12 +154,23 @@ async def send_log(
         return False
 
     values = dict(variables)
-    values.setdefault("timestamp", discord.utils.format_dt(datetime.now(UTC), "R"))
     actor_var = _actor_variable(doc)
     if actor_var:
         actor = values.get(actor_var)
         if actor is not None and str(actor).strip() and str(actor).strip() != "-":
             values.setdefault("actor", actor)
+    guild = None
+    get_guild = getattr(bot, "get_guild", None)
+    if callable(get_guild):
+        guild = get_guild(guild_id)
+    inject_identities(bot, guild, values)
+    # The event clock: the readable date in the guild's timezone and the
+    # integer instant of the native embed timestamp. A call site that already
+    # sent the instant (``epoch`` or a Discord time token) keeps it.
+    moment = values.get("epoch")
+    if moment is None:
+        moment = values.get("timestamp")
+    values.update(await event_time(bot, guild_id, moment))
     # Old body overrides still reference their literal labels. Inject them so
     # a guild theme written before the fields migration keeps rendering.
     for old_name, label_key in _legacy_label_keys(doc):

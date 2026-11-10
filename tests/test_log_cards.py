@@ -42,18 +42,21 @@ def test_every_log_event_has_a_document():
         assert spec.form == meta["form"]
 
 
-async def test_a_fields_log_shows_its_fields_and_a_timestamp_footer():
+async def test_a_fields_log_shows_its_fields_and_a_readable_footer():
     bot = make_bot()
     payload = await _render(
         bot,
         "moderation.logs.ban",
         {
             "member": "<@2>",
+            "member_name": "Ana",
             "member_id": "123456789012345678",
+            "user_avatar": "https://cdn.example/2.png",
             "moderator": "<@3>",
-            "reason": "spam",
             "actor": "<@3>",
-            "timestamp": "<t:1:R>",
+            "actor_name": "Bob",
+            "reason": "spam",
+            "timestamp": "10/11/2026 17:08",
         },
     )
     embed = payload.embed
@@ -68,30 +71,36 @@ async def test_a_fields_log_shows_its_fields_and_a_timestamp_footer():
     # A machine value (a snowflake) renders as inline code.
     assert embed.fields[1].value == "`123456789012345678`"
     assert embed.fields[3].value == "spam"
-    # The actor is named in the fields: the footer carries the time only.
-    assert embed.footer.text == "<t:1:R>"
-    assert embed.author.name == "<@3>"
+    # The author is the subject (name and avatar), the footer names the actor
+    # in readable text: neither line carries a raw mention or date token.
+    assert embed.author.name == "Ana"
+    assert embed.author.icon_url == "https://cdn.example/2.png"
+    assert embed.footer.text == "por Bob · 10/11/2026 17:08"
+    assert embed.footer.icon_url is None
 
 
-async def test_the_moderation_log_shows_the_target_avatar():
+async def test_the_moderation_log_shows_the_target_avatar_as_the_author_icon():
     bot = make_bot()
     payload = await _render(
         bot,
         "moderation.logs.warn",
         {
             "member": "<@2>",
+            "member_name": "Ana",
             "member_id": "2",
             "moderator": "<@3>",
             "reason": "spam",
             "actor": "<@3>",
+            "actor_name": "Bob",
             "user_avatar": "https://cdn.example/2.png",
-            "timestamp": "<t:1:R>",
+            "timestamp": "10/11/2026 17:08",
         },
     )
     embed = payload.embed
-    assert embed.thumbnail.url == "https://cdn.example/2.png"
-    assert embed.author.name == "<@3>"
-    assert embed.author.icon_url is None
+    assert embed.author.name == "Ana"
+    assert embed.author.icon_url == "https://cdn.example/2.png"
+    # The avatar is identity, not decoration: it never repeats as a thumbnail.
+    assert embed.thumbnail is None
 
 
 async def test_the_leave_log_uses_the_avatar_as_the_author_icon():
@@ -101,17 +110,19 @@ async def test_the_leave_log_uses_the_avatar_as_the_author_icon():
         "invites.logs.leave",
         {
             "user": "<@2>",
+            "user_name": "Ana",
             "inviter": "<@3>",
             "user_avatar": "https://cdn.example/left.png",
-            "timestamp": "<t:1:R>",
+            "timestamp": "10/11/2026 17:08",
         },
     )
     embed = payload.embed
     # Nobody acted: the member is the author, with their own icon.
-    assert embed.author.name == "<@2>"
+    assert embed.author.name == "Ana"
     assert embed.author.icon_url == "https://cdn.example/left.png"
     assert embed.thumbnail is None
     assert embed.description == "**Membro:** <@2>\n**Convidador:** <@3>"
+    assert embed.footer.text == "10/11/2026 17:08"
 
 
 async def test_the_title_uses_the_theme_title_preset():
@@ -127,10 +138,14 @@ async def test_the_actor_footer_when_the_body_does_not_name_the_actor():
     bot = make_bot()
     payload = await _render(
         bot,
-        "bump.logs.no_role",
-        {"actor": "<@9>", "timestamp": "<t:1:R>"},
+        "boost.logs.register",
+        {
+            "actor": "<@9>",
+            "actor_name": "Bob",
+            "timestamp": "10/11/2026 17:08",
+        },
     )
-    assert payload.embed.footer.text == "por <@9> · <t:1:R>"
+    assert payload.embed.footer.text == "por Bob · 10/11/2026 17:08"
 
 
 async def test_the_system_footer_when_there_is_no_actor():
@@ -138,9 +153,31 @@ async def test_the_system_footer_when_there_is_no_actor():
     payload = await _render(
         bot,
         "bump.logs.channel_locked",
-        {"channel": "#geral", "timestamp": "<t:1:R>"},
+        {"channel": "#geral", "timestamp": "10/11/2026 17:08"},
     )
-    assert payload.embed.footer.text == "<t:1:R>"
+    assert payload.embed.footer.text == "10/11/2026 17:08"
+
+
+async def test_a_raw_mention_or_date_token_never_reaches_author_or_footer():
+    """A guild theme may reintroduce the old tokens: the serializer drops them."""
+    bot = make_bot()
+    payload = await _render(
+        bot,
+        "moderation.logs.ban",
+        {
+            "member": "<@2>",
+            "member_name": "<@2>",
+            "member_id": "2",
+            "moderator": "<@3>",
+            "actor": "<@3>",
+            "actor_name": "<@3>",
+            "reason": "spam",
+            "timestamp": "<t:1:R>",
+        },
+    )
+    embed = payload.embed
+    assert embed.author is None
+    assert embed.footer is None
 
 
 async def test_the_legacy_body_override_keeps_the_new_title_and_footer():
@@ -164,11 +201,13 @@ async def test_the_legacy_body_override_keeps_the_new_title_and_footer():
         "moderation.logs.ban",
         {
             "member": "<@2>",
+            "member_name": "Ana",
             "member_id": "2",
             "moderator": "<@3>",
             "reason": "spam",
             "actor": "<@3>",
-            "timestamp": "<t:1:R>",
+            "actor_name": "Bob",
+            "timestamp": "10/11/2026 17:08",
         },
     )
     embed = payload.embed
@@ -176,7 +215,7 @@ async def test_the_legacy_body_override_keeps_the_new_title_and_footer():
     assert embed.description == "legacy body for <@2>"
     # The fields gave way to the legacy body, the frame stayed.
     assert embed.fields == []
-    assert embed.footer.text == "<t:1:R>"
+    assert embed.footer.text == "por Bob · 10/11/2026 17:08"
 
 
 async def test_a_full_card_override_wins_over_the_document():

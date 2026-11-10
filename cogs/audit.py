@@ -20,6 +20,7 @@ import time
 import discord
 from discord.ext import commands
 
+from rosemary.core.identity import event_time, identity, inject_identities
 from rosemary.core.settings import get_setting
 
 log = logging.getLogger(__name__)
@@ -82,16 +83,7 @@ def _media(message: discord.Message) -> tuple[list[str], str]:
 
 def _variables(user: discord.abc.User, guild: discord.Guild) -> dict:
     """The shared identity block every audit card receives."""
-    return {
-        "user": user.mention,
-        "user_name": getattr(user, "display_name", None) or user.name,
-        "user_id": str(user.id),
-        "user_avatar": user.display_avatar.url,
-        "server": guild.name,
-        "timestamp": discord.utils.format_dt(
-            discord.utils.utcnow(), style="R"
-        ),
-    }
+    return {**identity(None, guild, user), "server": guild.name}
 
 
 async def _line(bot, guild_id: int, key: str, **variables) -> str:
@@ -257,6 +249,21 @@ class AuditCog(commands.Cog):
 
         card_key = f"audit.{key}"
         try:
+            guild = self.bot.get_guild(guild_id)
+            if variables.get("moderator") and not variables.get("actor"):
+                # The footer copy reads the actor, the fields read the
+                # moderator: the same person, under the two names the card
+                # vocabulary uses.
+                variables["actor"] = variables["moderator"]
+            inject_identities(self.bot, guild, variables)
+            variables = {
+                **variables,
+                **await event_time(
+                    self.bot,
+                    guild_id,
+                    variables.get("epoch") or variables.get("timestamp"),
+                ),
+            }
             payload, allowed = await render_card_message(self.bot, guild_id, card_key, variables)
             if payload is None:
                 # No theme override and the default builder failed: the

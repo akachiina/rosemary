@@ -33,7 +33,7 @@ broadcast_stop:
     description: '[ADMIN] Stop the live broadcast'
 card:
   author_footer:
-    text: by {user} · {timestamp}
+    text: by {user_name} · {timestamp}
   colors:
     panel:
       title: Color panel card
@@ -91,7 +91,7 @@ card:
     ping:
       title: Latency card
     serverinfo:
-      title: Server info card
+      title: Server Info
       subtitle: '{crown} {owner} · {people} {members} members'
       created_label: '{calendar} Created'
       created_value: '{created_at} · {created_rel}'
@@ -109,7 +109,7 @@ card:
         high: High
         highest: Very high
     userinfo:
-      title: Member info card
+      title: Member Info
       subtitle: '{crown} {top_role}'
       nickname_label: '{pencil} Nickname'
       created_label: '{calendar} Created'
@@ -594,6 +594,7 @@ general:
   'no': 'No'
   no_permission: '{error} Only server administrators can use this command.'
   bot_no_permission: '{error} The bot does not have permission to do that.'
+  date_format: '%m/%d/%Y %I:%M %p'
 menu:
   owner_only: '{error} This menu is private. Only the author can interact.'
   expired: '{warning} This menu expired. Open it again to continue.'
@@ -679,12 +680,24 @@ variables:
   inviter:
     label: Inviter
     description: Mention of who invited
+  inviter_name:
+    label: Inviter name
+    description: Display name of the member who invited
+  inviter_avatar:
+    label: Inviter avatar
+    description: Avatar URL of the member who invited
   inviter_mention:
     label: Inviter mention
     description: Mention of who invited
   member:
     label: Member
     description: Mention of the member
+  member_name:
+    label: Member name
+    description: Display name of the member
+  member_avatar:
+    label: Member avatar
+    description: Avatar URL of the member
   member_id:
     label: Member ID
     description: Discord ID of the member
@@ -700,24 +713,48 @@ variables:
   moderator:
     label: Moderator
     description: Mention of the acting moderator
+  moderator_name:
+    label: Moderator name
+    description: Display name of the moderator
+  moderator_avatar:
+    label: Moderator avatar
+    description: Avatar URL of the moderator
   target:
     label: Target
     description: Mention of the target member
   author:
     label: Author
     description: Mention of who acted
+  author_name:
+    label: Author name
+    description: Display name of the author
+  author_avatar:
+    label: Author avatar
+    description: Avatar URL of the author
   owner:
     label: Owner
     description: Mention of the owner
+  owner_name:
+    label: Owner name
+    description: Display name of the owner
+  owner_avatar:
+    label: Owner avatar
+    description: Avatar URL of the owner
   actor:
     label: Actor
     description: Mention of who acted
+  actor_name:
+    label: Actor name
+    description: Display name of the actor
   actor_avatar:
     label: Actor avatar
     description: URL of the actor's avatar (roleplay card thumbnail)
   winner:
     label: Winner
     description: Mention of the winner
+  winner_name:
+    label: Winner name
+    description: Display name of the winner
   winner_mention:
     label: Winner mention
     description: Mention of the winner
@@ -727,6 +764,12 @@ variables:
   invitee:
     label: Invitee
     description: Mention of the invited member
+  invitee_name:
+    label: Invitee name
+    description: Display name of the invited member
+  invitee_avatar:
+    label: Invitee avatar
+    description: Avatar URL of the invited member
   reason:
     label: Reason
     description: Reason text
@@ -863,8 +906,8 @@ variables:
     label: Server ID
     description: Numeric server ID
   timestamp:
-    label: Relative time
-    description: Event moment as a Discord relative timestamp (e.g. "3 hours ago")
+    label: Event date
+    description: Readable date in the server timezone in logs; relative time elsewhere
   message_author:
     label: Message author
     description: Mention of who sent the message
@@ -991,6 +1034,9 @@ variables:
   action:
     label: Consequence
     description: Action applied (delete, kick, softban or ban)
+  outcome:
+    label: Outcome
+    description: What happened to the member (applied or skipped)
   file_url:
     label: Purge file
     description: Link to the .txt with the bulk-deleted messages
@@ -1126,9 +1172,21 @@ variables:
   old_owner:
     label: Old owner
     description: Mention of the previous owner
+  old_owner_name:
+    label: Old owner name
+    description: Display name of the previous owner
+  old_owner_avatar:
+    label: Old owner avatar
+    description: Avatar URL of the previous owner
   new_owner:
     label: New owner
     description: Mention of the new owner
+  new_owner_name:
+    label: New owner name
+    description: Display name of the new owner
+  new_owner_avatar:
+    label: New owner avatar
+    description: Avatar URL of the new owner
   old_name:
     label: Old name
     description: Previous name

@@ -1,5 +1,5 @@
 {
-  "content": "✅ **|** Propriedade Transferida Automaticamente!\nOlá, <@0>! Como o dono anterior saiu do servidor, a propriedade do cargo boost @… foi transferida para você no **…**.\n\nUse o painel de cargos boost para gerenciar seu cargo.",
+  "content": "✅ **Propriedade Transferida Automaticamente!**\n\nOlá, <@0>! Como o dono anterior saiu do servidor, a propriedade do cargo boost @… foi transferida para você no **…**.\n\nUse o painel de cargos boost para gerenciar seu cargo.",
   "embed": null,
   "form": "text",
   "key": "boost.dm.auto_transferred",

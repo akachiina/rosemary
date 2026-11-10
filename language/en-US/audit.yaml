@@ -82,5 +82,5 @@ log:
       label: '{pencil} Previous'
     action:
       label: '{gear} Action'
-  actor_footer: by {actor} · {timestamp}
+  actor_footer: by {actor_name} · {timestamp}
   system_footer: '{timestamp}'

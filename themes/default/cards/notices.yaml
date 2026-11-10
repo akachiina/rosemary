@@ -1,14 +1,14 @@
-# The notices: one plain line, no frame.
+# The notices: plain text, no frame.
 #
 # A notice is the bot answering an action, a channel notice, a confirmation
 # prompt or a plain-text DM. The copy is the whole card: the archetype keeps
-# the surface (one line), the style names the tone of the prefix (the theme
-# owns it) and the body points at the catalog for the words.
+# the surface (a plain message), the style names the tone of the prefix (the
+# theme owns it) and the body points at the catalog for the words.
 #
 # A notice that says more than one thing uses the slots: the ping answers
-# with a title and the latency. The text serializer joins the slots (one
-# line when every slot is a line): the join is the dialect of the form, never
-# the copy.
+# with a title and the latency. The text serializer writes one thing per
+# line (the title in bold, a field as a bullet): the join is the dialect of
+# the form, never the copy.
 utility.ping:
   archetype: notice
   rich: true

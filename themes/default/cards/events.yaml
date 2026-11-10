@@ -11,6 +11,7 @@ events.welcome:
   color: brand
   title: '{events.welcome.title}'
   description: '{events.welcome.body}'
+  ping_line: '{events.welcome.ping}'
   variables:
   - user
   - user_name
@@ -61,10 +62,14 @@ birthdays.announce:
   color: warning
   title: '{birthdays.announce.title}'
   description: '{birthdays.announce.body}'
-  thumbnail: '{user_avatar}'
-  footer: '{card.author_footer.text}'
+  ping_line: '{birthdays.ping}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
+  footer: '{timestamp}'
+  timestamp: true
   variables:
   - user
+  - user_name
   - server
   - count
   - user_avatar

@@ -3,9 +3,9 @@
 ``/about`` renders bot information with Components V2 and has a ``!about``
 prefix alias. ``!help`` replaces py-cord's default English help with a themed
 card listing the server's TEXT commands (prefix aliases keep latin names by
-design; only their descriptions localize), grouped and rendered through the
-``help.card`` CardSpec: a theme may restyle the whole card. The default
-layout of both cards lives in the default package
+design; only their descriptions localize), grouped into embed fields and
+rendered through the ``help.card`` CardSpec: a theme may restyle the whole
+card. The default layout of both cards lives in the default package
 (``themes/default/cards/``)."""
 
 from __future__ import annotations
@@ -134,9 +134,14 @@ class AboutCog(commands.Cog):
         if guild_id is not None:
             prefix = await get_setting(self.bot.storage, guild_id, "general.prefix") or "!"
 
-        async def render_section(group: str, entries) -> str:
-            """One group: ``##`` heading plus one ``**!name:** description`` line."""
-            lines = [theme.md("section", title=await t(guild_id, f"help.group_{group}"))]
+        async def render_section(entries) -> str:
+            """One group: one ``**!name:** description`` line per command.
+
+            The group heading is the embed field name (with the group icon);
+            the value carries only the commands, so the list reads as one
+            field instead of a stack of simulated sections.
+            """
+            lines = []
             for name, desc_key in entries:
                 lines.append(
                     theme.md(
@@ -153,25 +158,18 @@ class AboutCog(commands.Cog):
             "body": await t(guild_id, "help.body", prefix=prefix),
         }
         for group, entries in _HELP_SECTIONS:
-            variables[f"{group}_list"] = await render_section(group, entries)
+            variables[f"{group}_list"] = await render_section(entries)
         interactions = ""
         if guild_id is not None and await get_setting(
             self.bot.storage, guild_id, "roleplay.enabled"
         ):
             verbs = "`" + " · ".join(f"{prefix}{action}" for action in ACTIONS) + "`"
-            interactions = "\n".join(
-                [
-                    theme.md(
-                        "section", title=await t(guild_id, "help.group_interactions")
-                    ),
-                    theme.md(
-                        "category",
-                        category_label=verbs,
-                        category=await t(
-                            guild_id, "help.roleplay_description", prefix=prefix
-                        ),
-                    ),
-                ]
+            interactions = theme.md(
+                "category",
+                category_label=verbs,
+                category=await t(
+                    guild_id, "help.roleplay_description", prefix=prefix
+                ),
             )
         variables["interactions_list"] = interactions
 

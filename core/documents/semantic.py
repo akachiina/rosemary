@@ -49,12 +49,14 @@ SLOT_KEYS = frozenset(
         "description",
         "fields",
         "footer",
+        "footer_icon",
         "form",
         "form_override",
         "image",
         "legacy_body",
         "mention",
         "paragraphs",
+        "ping_line",
         "rich",
         "style",
         "thumbnail",
@@ -134,7 +136,9 @@ async def build_card(
     author = Author(name=author_name, icon_url=author_icon) if author_name else None
     timestamp: int | None = None
     if doc.get("timestamp"):
-        timestamp = int(datetime.now(UTC).timestamp())
+        timestamp = _epoch(resolver.variables.get("epoch")) or int(
+            datetime.now(UTC).timestamp()
+        )
     return Card(
         key=key,
         form=form,
@@ -152,11 +156,23 @@ async def build_card(
         author=author,
         actor=actor,
         timestamp=timestamp,
+        ping_line=await _copy(doc.get("ping_line"), resolver),
         fields=tuple(fields),
         blocks=tuple(blocks),
         actions=tuple(actions),
         variables=tuple(str(name) for name in (doc.get("variables") or ())),
     )
+
+
+def _epoch(value: Any) -> int | None:
+    """The event instant the card renders natively (``None`` when absent)."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str) and value.strip().isdigit():
+        return int(value.strip())
+    return None
 
 
 async def _copy(value: Any, resolver: Resolver) -> str:
@@ -193,6 +209,12 @@ def _alias_actor(actor: str, resolver: Resolver) -> None:
     if value is None or (isinstance(value, str) and not value.strip()):
         return
     resolver.variables.setdefault("actor", value)
+    # The actor footer reads the twins, not the mention: when the slot names
+    # somebody else (the inviter, the author), carry their identity too.
+    for suffix in ("name", "avatar", "id"):
+        twin = resolver.variables.get(f"{name}_{suffix}")
+        if twin:
+            resolver.variables.setdefault(f"actor_{suffix}", twin)
 
 
 async def _body(doc: Mapping[str, Any], resolver: Resolver) -> tuple[str, ...]:

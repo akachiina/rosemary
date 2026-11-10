@@ -42,9 +42,9 @@ from rosemary.core.cards import (
     validate_document,
 )
 from rosemary.core.design.compile import compile_card
-from rosemary.core.design.ir import Action, Card, Field
+from rosemary.core.design.ir import Action, Author, Card, Field
 from rosemary.core.design.serialize import card_to_embed, card_to_text, card_to_v2
-from rosemary.core.forms import embed_content_for_pings
+from rosemary.core.identity import event_time, inject_identities
 from rosemary.core.themes import theme_for
 
 log = logging.getLogger(__name__)
@@ -80,6 +80,8 @@ def simple_payload(
     body: str = "",
     color: str | discord.Colour | None = None,
     style: str | None = None,
+    author: str = "",
+    author_icon: str = "",
     thumbnail: str | None = None,
     image: str | None = None,
     footer: str | None = None,
@@ -105,6 +107,9 @@ def simple_payload(
         color=f"#{accent.value:06x}",
         title=str(title or "").strip(),
         paragraphs=(str(body or "").strip(),) if str(body or "").strip() else (),
+        author=Author(name=str(author), icon_url=str(author_icon))
+        if str(author or "").strip()
+        else None,
         thumbnail=str(thumbnail or ""),
         image=str(image or ""),
         footer=str(footer or ""),
@@ -123,6 +128,41 @@ def simple_payload(
 
 
 #: the pipeline ---------------------------------------------------------------
+
+
+def _is_instant(value: Any) -> bool:
+    """Whether a ``timestamp`` value is a time token or an epoch."""
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return True
+    return isinstance(value, str) and value.strip().startswith("<t:")
+
+
+async def _canonical_variables(
+    bot,
+    guild_id: int,
+    variables: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Resolve the identity twins and the readable event date before a send.
+
+    A card reads ``user_name``/``user_avatar`` (and the same twins of every
+    other user variable), never the raw mention: an embed author/footer does
+    not parse ``<@id>``. The ``timestamp`` variable follows the same rule: a
+    legacy relative token becomes the readable date in the guild's timezone,
+    while ``epoch`` still feeds the native embed timestamp.
+    """
+    if variables is None:
+        return None
+    values = dict(variables)
+    guild = None
+    get_guild = getattr(bot, "get_guild", None)
+    if callable(get_guild):
+        guild = get_guild(guild_id)
+    inject_identities(bot, guild, values)
+    if _is_instant(values.get("timestamp")):
+        values.update(await event_time(bot, guild_id, values["timestamp"]))
+    return values
 
 
 async def render_card_message(
@@ -153,6 +193,7 @@ async def render_card_message(
     """
     from rosemary.core.debug import trace_card_path
 
+    variables = await _canonical_variables(bot, guild_id, variables)
     card = await get_effective_card(bot, guild_id, key, variables, form=form)
     if card is None:
         return None, discord.AllowedMentions.none()
@@ -219,9 +260,12 @@ def _payload_for_card(
         document = card_to_embed(card)
         embed, buttons = resolve_embed(document, theme, mapping, resolved=True)
         view = build_embed_view(buttons, mapping, key, resolved=True)
+        # The content of an embed is only the phrase its document declares;
+        # when pings are off for the card, the notification line does not
+        # ship at all (the embed stays as it is).
         content = str(document.get("content") or "")
-        if not content and theme_pings(bot, guild_id, key):
-            content = embed_content_for_pings(embed)
+        if content and not theme_pings(bot, guild_id, key):
+            content = ""
         return CardPayload(embed=embed, view=view, content=content or None), content
     document = card_to_v2(card, theme)
     view = render_document(
@@ -258,7 +302,7 @@ async def _allowed_for_card(
 
 
 def _feedback_prefix(bot, guild_id: int | None, key: str, style: str = "info") -> str:
-    """The theme prefix of a one-line message ("{emoji} **|** ").
+    """The theme prefix of a notice ("{emoji} ").
 
     The prefix belongs to the theme (the ``feedback_*`` style family), so a
     guild restyles every notice at once.

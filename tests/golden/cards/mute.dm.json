@@ -1,5 +1,5 @@
 {
-  "content": "⚠️ **|** Você foi silenciado em **…** por <@0>!\n**⏰ Duração:** …\n**📜 Motivo:** …",
+  "content": "⚠️ **Você foi silenciado em … por <@0>!**\n• **⏰ Duração:** …\n• **📜 Motivo:** …",
   "embed": null,
   "form": "text",
   "key": "mute.dm",

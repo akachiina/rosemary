@@ -1,15 +1,20 @@
 {
-  "content": "<@0>",
+  "content": "<@0> … <@0>.",
   "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "@you"
+    },
     "color": 5763719,
     "description": "💌 <@0> … <@0>",
     "fields": [],
     "footer": {
-      "text": "<t:1767225600:R>"
+      "text": "01/01/2026 00:00"
     },
     "image": {
       "url": "https://media.tenor.com/x.gif"
     },
+    "timestamp": "<iso>",
     "type": "rich"
   },
   "form": "embed",

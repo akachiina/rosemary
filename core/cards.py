@@ -66,7 +66,7 @@ _SECTION_ACCESSORIES = frozenset({"thumbnail", "button"})
 #:
 #: * ``card``: Components V2 (the interactive/rich layout);
 #: * ``embed``: the classic embed (visual info, staff logs);
-#: * ``text``: one plain line (``{emoji} **|** message``).
+#: * ``text``: the plain text (``{emoji} message``, one thing per line).
 #:
 #: The form is a *default*, not a cage: a guild theme may ship the card in
 #: another form (``cards.<key>.form: embed``) or replace the whole document.

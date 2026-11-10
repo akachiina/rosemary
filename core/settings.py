@@ -38,6 +38,7 @@ __all__ = [
     "coerce_value",
     "format_value",
     "get_setting",
+    "reset_setting",
     "set_setting",
     "settings_for_category",
 ]
@@ -281,3 +282,23 @@ async def set_setting(
         raise ValueError(f"Invalid value {value!r} for setting {key!r}")
     await storage.set(guild_id, key, coerced)
     return coerced
+
+
+async def reset_setting(storage: GuildStorage, guild_id: int, key: str) -> None:
+    """Restore a setting to its registry default by removing the stored value.
+
+    Removing the key (never writing ``spec.default``) keeps the localized
+    default lazy: a pt-BR guild whose setting carries ``default_catalog_key``
+    falls back to the catalog copy, not to the English literal baked into the
+    spec. The legacy key a rename (or a channel-list migration) still reads
+    through is removed too, otherwise the reset would not reset.
+    """
+    spec = SETTINGS[key]
+    removed = [key]
+    legacy_rename = _RENAMED_KEYS.get(key)
+    if legacy_rename:
+        removed.append(legacy_rename)
+    legacy_scalar = getattr(spec, "legacy_single_key", None)
+    if legacy_scalar:
+        removed.append(legacy_scalar)
+    await storage.delete_keys(guild_id, *removed)

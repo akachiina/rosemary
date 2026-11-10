@@ -1,6 +1,10 @@
 {
   "content": null,
   "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "…"
+    },
     "color": 5763719,
     "description": "👑 <@0> · 👥 1 membros\n…",
     "fields": [
@@ -36,10 +40,7 @@
     "image": {
       "url": "https://cdn.discordapp.com/embed/avatars/0.png"
     },
-    "thumbnail": {
-      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-    },
-    "title": "…",
+    "title": "Informações do Servidor",
     "type": "rich"
   },
   "form": "embed",

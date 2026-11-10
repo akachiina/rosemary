@@ -2,13 +2,14 @@
   "content": null,
   "embed": {
     "author": {
-      "name": "<@0>"
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "@you"
     },
     "color": 3447003,
     "description": "A semana foi resetada, mas ninguém realizou bumps.",
     "fields": [],
     "footer": {
-      "text": "por <@0> · <t:1767225600:R>"
+      "text": "01/01/2026 00:00"
     },
     "timestamp": "<iso>",
     "title": "📊 Semana Resetada (Sem MVP)",

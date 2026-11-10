@@ -1,5 +1,5 @@
 {
-  "content": "⚠️ **|** Isso apaga mensagens de forma permanente. Não pode ser desfeito.",
+  "content": "⚠️ Isso apaga mensagens de forma permanente. Não pode ser desfeito.",
   "embed": null,
   "form": "text",
   "key": "cleaner.confirm",

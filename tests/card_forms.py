@@ -84,6 +84,14 @@ def payload_image(payload: Any) -> str:
     return ""
 
 
+def payload_author_icon(payload: Any) -> str:
+    """The author icon URL of a rendered payload (empty when there is none)."""
+    embed = getattr(payload, "embed", None)
+    if embed is not None and embed.author and embed.author.icon_url:
+        return embed.author.icon_url
+    return ""
+
+
 def doc_texts(doc: Any) -> list[str]:
     """Every text of a default document, whatever its form (V2 or embed)."""
     if not doc:

@@ -18,6 +18,9 @@ class FakeTranslator:
     async def t(self, guild_id, key, **variables):
         return key
 
+    async def raw(self, guild_id, key):
+        return key
+
 
 class FakeResponse:
     def __init__(self) -> None:

@@ -12,8 +12,9 @@
 
 utility.serverinfo:
   archetype: info_card
-  title: '{server}'
-  thumbnail: '{server_icon}'
+  title: '{serverinfo.title}'
+  author: '{server}'
+  author_icon: '{server_icon}'
   image: '{banner_url}'
   paragraphs:
   - '{card.utility.serverinfo.subtitle}'
@@ -59,8 +60,9 @@ utility.serverinfo:
 
 utility.userinfo:
   archetype: info_card
-  title: '{user_name}'
-  thumbnail: '{user_avatar}'
+  title: '{card.utility.userinfo.title}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   image: '{banner_url}'
   description: '{card.utility.userinfo.subtitle}'
   fields:
@@ -289,9 +291,11 @@ starboard.card:
   - 'warning'
   title: '{title}'
   description: '{body}'
-  thumbnail: '{user_avatar}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   image: '{image_url}'
-  footer: '{card.author_footer.text}'
+  footer: '{timestamp}'
+  timestamp: true
   actions:
   - label: '{starboard.jump}'
     url: '{message_link}'
@@ -326,9 +330,13 @@ suggestions.card:
   - '{body}'
   - '{up} {upvotes} · {down} {downvotes}'
   - '{status_line}'
-  thumbnail: '{user_avatar}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   image: '{image_url}'
-  footer: "{card.author_footer.text}\n{suggest.card.hint}"
+  footer:
+  - '{timestamp} · {suggest.card.hint}'
+  - '{suggest.card.hint}'
+  timestamp: true
   variables:
   - user
   - user_name
@@ -432,7 +440,10 @@ confessions.card:
   description: '{body}'
   thumbnail: '{avatar_url}'
   image: '{image_url}'
-  footer: '{title}'
+  footer:
+  - '{title} · {timestamp}'
+  - '{title}'
+  timestamp: true
   variables:
   - confession_number
   - title
@@ -529,13 +540,18 @@ confessions.dm.response:
 roleplay.card:
   form: embed
   color: brand
+  author: '{actor_name}'
+  author_icon: '{actor_avatar}'
   description: '{love_letter} {@actor} {action} {@target}'
+  ping_line: '{roleplay.card.ping}'
   image: '{gif_url}'
   footer: '{timestamp}'
+  timestamp: true
   mention: single
   rich: true
   variables:
   - actor
+  - actor_name
   - target
   - actor_avatar
   - action
@@ -551,12 +567,17 @@ help.card:
   form: embed
   color: brand
   title: '{title}'
-  paragraphs:
-  - '{body}'
-  - '{moderation_list}'
-  - '{info_list}'
-  - '{general_list}'
-  - '{interactions_list}'
+  description: '{body}'
+  fields:
+  - label: '{help.group_moderation}'
+    value: '{moderation_list}'
+  - label: '{help.group_info}'
+    value: '{info_list}'
+  - label: '{help.group_general}'
+    value: '{general_list}'
+  - label: '{help.group_interactions}'
+    value: '{interactions_list}'
+    optional: true
   mention: none
   rich: true
   variables:
@@ -580,10 +601,13 @@ moderation.warnings:
   - 'warning'
   title: '{title}'
   description: '{body}'
-  thumbnail: '{user_avatar}'
-  footer: '{card.author_footer.text}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
+  footer: '{timestamp}'
+  timestamp: true
   variables:
   - user
+  - user_name
   - user_avatar
   - has_warnings
   - title

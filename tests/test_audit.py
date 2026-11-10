@@ -905,19 +905,24 @@ async def test_purge_card_carries_resolved_transcript_link(tmp_path):
 
 
 async def test_ban_footer_names_the_moderator_not_the_target(tmp_path):
-    """Regression: 'por {user}' resolved the banned member, which every
-    viewer rendered as '@usuário-desconhecido'. The author footer now
-    carries the moderator the audit-log lookup found."""
+    """The footer names the moderator in readable text, never a mention.
+
+    The audit-log lookup returns the moderator mention; the identity resolver
+    turns it into the display name (an embed footer does not parse ``<@id>``).
+    """
     bot, guild, audit_channel, cog = make_world(tmp_path)
     await cog._arm()
     bot.translator = RealCatalogTranslator()
+    moderator = member(777, "Mod")
+    guild.get_member = lambda uid: moderator if uid == 777 else None
     cog._audit_log_context = AsyncMock(return_value=("<@777>", "raids"))
     await cog.on_member_ban(guild, member())
     assert audit_channel.send.await_count == 1
     footer = _payload_footer(audit_channel.send.await_args.kwargs)
     assert footer, "the card must keep its author footer"
-    assert "<@777>" in footer, footer
-    assert "<@5>" not in footer, footer
+    assert "Mod" in footer, footer
+    assert "<@" not in footer and "<t:" not in footer, footer
+    assert "por" in footer
 
 
 async def test_ban_footer_without_moderator_is_timestamp_only(tmp_path):
@@ -930,7 +935,8 @@ async def test_ban_footer_without_moderator_is_timestamp_only(tmp_path):
     assert audit_channel.send.await_count == 1
     footer = _payload_footer(audit_channel.send.await_args.kwargs)
     assert footer, "the card must still go out with a footer"
-    assert "<@" not in footer and "<t:" in footer, footer
+    assert "<@" not in footer and "<t:" not in footer, footer
+    assert "/" in footer and ":" in footer, footer
 
 
 async def test_purge_footer_names_the_moderator_not_the_first_author(tmp_path):
@@ -938,6 +944,8 @@ async def test_purge_footer_names_the_moderator_not_the_first_author(tmp_path):
     bot, guild, audit_channel, cog = make_world(tmp_path)
     await cog._arm()
     bot.translator = RealCatalogTranslator()
+    moderator = member(777, "Mod")
+    guild.get_member = lambda uid: moderator if uid == 777 else None
 
     async def fake_moderator(_guild, _bucket):
         return "<@777>"
@@ -949,8 +957,8 @@ async def test_purge_footer_names_the_moderator_not_the_first_author(tmp_path):
     assert audit_channel.send.await_count == 1
     footer = _payload_footer(audit_channel.send.await_args.kwargs)
     assert footer, "the card must keep its author footer"
-    assert "<@777>" in footer, footer
-    assert "<@100>" not in footer, footer
+    assert "Mod" in footer, footer
+    assert "<@" not in footer and "<t:" not in footer, footer
 
 
 def batch_of(guild, author_id):

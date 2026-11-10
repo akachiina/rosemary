@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Pong! · Latência: 42ms",
+  "content": "ℹ️ **Pong!**\nLatência: 42ms",
   "embed": null,
   "form": "text",
   "key": "utility.ping",

@@ -112,14 +112,17 @@ class DebugMenuView(MenuView):
                 items = list(fallback.view.children)
 
         t = self.bot.translator.t
+        theme = theme_for(self.bot, self.guild_id)
         close = self.make_button(
             custom_id="debug_close",
             label=await t(self.guild_id, "debug.close"),
-            style=discord.ButtonStyle.danger,
+            style=discord.ButtonStyle.secondary,
+            emoji=theme.icon("door") or None,
         )
         test_log = self.make_button(
             custom_id="debug_test_log",
             label=await t(self.guild_id, "debug.test_log"),
+            emoji=theme.icon("scroll") or None,
         )
         # The flash is part of the rendered document; clear it for the next
         # repaint after it has been shown once.

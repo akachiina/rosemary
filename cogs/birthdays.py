@@ -106,6 +106,7 @@ class BirthdayCog(commands.Cog):
             member = guild.get_member(user_id)
             variables = {
                 "user": f"<@{user_id}>",
+                "user_name": member.display_name if member is not None else "",
                 "server": guild.name,
                 "count": len(celebrants),
                 "user_avatar": (

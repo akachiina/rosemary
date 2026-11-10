@@ -359,7 +359,7 @@ async def test_open_send_pings_role_by_default(tmp_path):
     assert channel.send.await_count == 1
     sent_text = channel.send.call_args.args[0]
     assert "<@&222>" in sent_text
-    # The channel notice is one plain line: the theme prefix plus the copy.
-    assert sent_text.startswith("✅ **|** ")
+    # The channel notice is plain text: the theme prefix plus the copy.
+    assert sent_text.startswith("✅ ")
     allowed = channel.send.call_args.kwargs.get("allowed_mentions")
     assert [r.id for r in (allowed.roles or [])] == [222]

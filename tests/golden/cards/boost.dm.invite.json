@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Convite para Cargo Boost!\nOlá, <@0>! Você recebeu um convite para fazer parte de um cargo boost no **…**.\n\n> **🏷️ Cargo:** @…\n> **👤 Convidado por:** <@0>\n> **⏰ Expira:** …\n\nAo aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!",
+  "content": "ℹ️ **Convite para Cargo Boost!**\n\nOlá, <@0>! Você recebeu um convite para fazer parte de um cargo boost no **…**.\n\n• **🏷️ Cargo:** @…\n• **👤 Convidado por:** <@0>\n• **⏰ Expira:** …\n\nAo aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!",
   "embed": null,
   "form": "text",
   "key": "boost.dm.invite",

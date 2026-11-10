@@ -1,10 +1,12 @@
 settings:
-  title: Bot Settings
+  title: '{settings} Bot Settings'
   command:
     name: settings
     description: Configure the bot settings
   hint: Pick a category to browse its settings.
   category_label: Category
+  category_count: '{count} settings'
+  category_summary: '{category_label}: {icon} **{category}** · {count}'
   category:
     placeholder: Select a category
     general: General
@@ -24,6 +26,34 @@ settings:
     colors: Color Panel
     roleplay: Roleplay
     confessions: Confessions
+  category_hint:
+    general: Language, prefix and menu timing
+    moderation: Moderation commands and warnings
+    logging: Staff log channel and level
+    events: Welcome, leave and ban announcements
+    audit: Server event registry
+    boost: Boost roles and invites
+    bump: Disboard bumps, reminders and leaderboard
+    starboard: Star highlights
+    suggestions: Suggestions and voting
+    birthdays: Birthday announcements
+    invites: Invites, leaderboard and anti-cheat
+    tickets: Support via tickets
+    partnerships: Partnerships and ads
+    broadcast_reminders: Scheduled messages
+    colors: Color panel and roles
+    roleplay: Roleplay cards with gifs
+    confessions: Anonymous confessions
+  search:
+    button: Search
+    title: Search settings
+    label: Setting name
+    placeholder: 'E.g. log channel'
+    results: 'Results for **{query}** ({count}).'
+    empty: 'No setting found for **{query}**.'
+    pick: Pick a setting
+  reset: Restore default
+  reset_done: '{success} {setting} is back to its default.'
   colors.enabled:
     label: Color Panel Enabled
     description: Enables the color panel (colored roles any member can pick).

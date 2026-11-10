@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Seu boost terminou\nOlá, <@0>! Seu boost terminou, mas o cargo boost @… continua com você no **…**.\nSó a equipe do servidor pode removê-lo.",
+  "content": "ℹ️ **Seu boost terminou**\n\nOlá, <@0>! Seu boost terminou, mas o cargo boost @… continua com você no **…**.\n\nSó a equipe do servidor pode removê-lo.",
   "embed": null,
   "form": "text",
   "key": "boost.dm.unboost_kept",

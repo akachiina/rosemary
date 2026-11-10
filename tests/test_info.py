@@ -12,7 +12,12 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
-from card_forms import payload_image, payload_texts, payload_thumbnail
+from card_forms import (
+    payload_author_icon,
+    payload_image,
+    payload_texts,
+    payload_thumbnail,
+)
 
 import rosemary.cogs.info  # noqa: F401  (registers the commands)
 from rosemary.core.card_service import render_card_message
@@ -116,9 +121,10 @@ async def test_userinfo_card_renders_full_and_degraded():
     assert any("Ana" in t for t in texts)
     assert any("aninha" in t for t in texts), texts
     assert any("<@&7>" in t for t in texts)
-    # The avatar rides the thumbnail and the banner the image.
-    assert "ana.png" in payload_thumbnail(payload)
+    # The avatar rides the author line and the banner the image.
+    assert "ana.png" in payload_author_icon(payload)
     assert "banner.png" in payload_image(payload)
+    assert payload_thumbnail(payload) == ""
     # No raw keys leak into the card (the created_at_label regression).
     assert not any("card.utility." in t for t in texts), texts
 
@@ -136,10 +142,10 @@ async def test_userinfo_card_renders_full_and_degraded():
     assert not any("aninha" in t for t in texts)
     assert not any("<@&7>" in t for t in texts)
     assert payload_image(payload) == ""
-    # No avatar -> no thumbnail at all (never an empty one).
+    # No avatar -> no author icon at all (never an empty one).
     plain = {**bare, "user_avatar": ""}
     payload = await _build_and_render(bot, "utility.userinfo", plain)
-    assert payload_thumbnail(payload) == ""
+    assert payload_author_icon(payload) == ""
 
 
 async def test_emojiinfo_card_custom_and_unicode():

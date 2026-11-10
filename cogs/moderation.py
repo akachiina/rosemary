@@ -712,6 +712,7 @@ class ModerationCog(commands.Cog):
             "moderation.warnings",
             {
                 "user": member.mention,
+                "user_name": member.display_name,
                 "user_avatar": (
                     member.display_avatar.url if member.display_avatar else ""
                 ),

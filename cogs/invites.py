@@ -356,6 +356,8 @@ class InvitesCog(commands.Cog):
             body,
             {
                 "user": target.mention,
+                "user_name": target.display_name,
+                "user_avatar": target.display_avatar.url,
                 "total": stats["total"],
                 "regular": stats["regular"],
                 "bonus": stats["bonus"],
@@ -504,6 +506,8 @@ class InvitesCog(commands.Cog):
             body,
             {
                 "user": member.mention,
+                "user_name": member.display_name,
+                "user_avatar": member.display_avatar.url,
                 "inviter": inviter_mention,
                 "code": code,
                 "when": when,
@@ -568,7 +572,13 @@ class InvitesCog(commands.Cog):
             "invites.invited_list",
             title,
             body,
-            {"user": target.mention, "title": title, "body": body},
+            {
+                "user": target.mention,
+                "user_name": target.display_name,
+                "user_avatar": target.display_avatar.url,
+                "title": title,
+                "body": body,
+            },
         )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
@@ -636,6 +646,8 @@ class InvitesCog(commands.Cog):
             body,
             {
                 "user": ctx.author.mention,
+                "user_name": ctx.author.display_name,
+                "user_avatar": ctx.author.display_avatar.url,
                 "link": link,
                 "total": stats["total"],
                 "regular": stats["regular"],

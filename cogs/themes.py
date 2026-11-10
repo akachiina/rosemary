@@ -534,7 +534,8 @@ class ThemesMenuView(Panel):
                 self.make_button(
                     custom_id="themes_close",
                     label=await t(t_, "themes.close"),
-                    style=discord.ButtonStyle.primary,
+                    style=discord.ButtonStyle.secondary,
+                    emoji=self.emoji("door"),
                 ),
             )
         )

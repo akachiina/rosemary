@@ -19,6 +19,8 @@ move here when the legacy path is deleted.
 
 from __future__ import annotations
 
+import logging
+import re
 from typing import Any
 
 from rosemary.core.design.ir import (
@@ -33,6 +35,66 @@ from rosemary.core.design.ir import (
     Thumbnail,
     blocks_to_document,
 )
+
+log = logging.getLogger(__name__)
+
+#: A mention or a Discord time token. An embed does not parse either one in
+#: the author and footer lines: the member would read the raw token.
+_MENTION_TOKEN_RE = re.compile(r"<@[!&]?[0-9]{1,20}>")
+_TIME_TOKEN_RE = re.compile(r"<t:[0-9]{1,20}(?::[tTdDfFR])?>")
+
+
+def _clean_embed_slot(text: str, key: str, slot: str) -> str:
+    """Drop an author/footer line that carries a mention or time token.
+
+    The frame of an embed is written by the document, but a guild theme may
+    reintroduce a token the packaged copy no longer carries. An embed parses
+    neither one in these lines, so the line would show raw: the whole slot is
+    dropped (never half a line) and the card is logged. A visual regression
+    must not come back through a theme.
+    """
+    if _MENTION_TOKEN_RE.search(text) or _TIME_TOKEN_RE.search(text):
+        log.warning(
+            "card %s: %s carried a mention or date token; the line was dropped",
+            key or "?",
+            slot,
+        )
+        return ""
+    return text.strip()
+
+
+def _guard_embed_frame(embed: dict[str, Any], key: str) -> None:
+    """Keep the frame of an embed readable and free of duplicated art.
+
+    An author/footer line never carries a mention or a date token (an embed
+    does not parse them there), and the thumbnail (the identity) never repeats
+    the image (the content): the duplicate is the right-side icon, so it is
+    the one dropped.
+    """
+    author = embed.get("author")
+    if isinstance(author, dict):
+        name = _clean_embed_slot(str(author.get("name") or ""), key, "author")
+        if name:
+            author["name"] = name
+        else:
+            embed.pop("author", None)
+    footer = embed.get("footer")
+    if isinstance(footer, dict):
+        text = _clean_embed_slot(str(footer.get("text") or ""), key, "footer")
+        if text:
+            footer["text"] = text
+        else:
+            embed.pop("footer", None)
+    thumbnail = embed.get("thumbnail")
+    image = embed.get("image")
+    if isinstance(thumbnail, dict) and isinstance(image, dict):
+        thumbnail_url = str(thumbnail.get("url") or "")
+        if thumbnail_url and thumbnail_url == str(image.get("url") or ""):
+            embed.pop("thumbnail", None)
+            log.warning(
+                "card %s: the thumbnail repeated the image URL; the thumbnail was dropped",
+                key or "?",
+            )
 
 
 def action_to_document(action: Action) -> dict[str, Any]:
@@ -134,7 +196,9 @@ def card_to_embed(card: Card) -> dict[str, Any]:
     if card.blocks:
         from rosemary.core.forms import to_embed_document
 
-        return to_embed_document(blocks_to_document(card.blocks))
+        document = to_embed_document(blocks_to_document(card.blocks))
+        _guard_embed_frame(document.get("embed") or {}, card.key)
+        return document
 
     embed: dict[str, Any] = {}
     if card.title:
@@ -174,22 +238,26 @@ def card_to_embed(card: Card) -> dict[str, Any]:
             {"name": field.name, "value": field_value(field), "inline": field.inline}
             for field in card.fields
         ]
+    _guard_embed_frame(embed, card.key)
     document: dict[str, Any] = {"kind": "embed", "embed": embed}
     if card.actions:
         document["buttons"] = [action_to_document(action) for action in card.actions]
     if card.ping_line:
         # The message content line of an embed card: an embed never notifies,
-        # so the mention tokens travel here.
+        # so the mention tokens travel here, inside a phrase the document
+        # declares (never a bare token extracted from the embed body).
         document["content"] = card.ping_line
     return document
 
 
 def card_to_text(card: Card) -> str:
-    """The plain text of a card.
+    """The plain text of a card: one thing per line.
 
     A content-native card keeps its text. A blocks-native card is reduced by
-    the legacy converter. A slots-native card joins its parts: one line when
-    every part is a line, the original line breaks otherwise.
+    the legacy converter. A slots-native card writes its slots: the title is
+    the bold first line (the notice prefix still opens it), each paragraph
+    rides its own lines, a field is a bullet (``• **Label:** value``) and the
+    footer closes the text on its own line.
     """
     if card.content:
         return card.content
@@ -198,18 +266,24 @@ def card_to_text(card: Card) -> str:
 
         return to_text_content(blocks_to_document(card.blocks))
 
-    parts: list[str] = []
+    from rosemary.core.forms import plain_text
+
+    lines: list[str] = []
     if card.title:
-        parts.append(card.title)
-    parts.extend(card.paragraphs)
-    parts.extend(f"{field.name}: {field_value(field)}" for field in card.fields)
+        title = str(card.title).strip()
+        if title:
+            lines.append(f"**{title}**")
+    for paragraph in card.paragraphs:
+        text = str(paragraph).strip()
+        if text:
+            lines.append(text)
+    for field in card.fields:
+        lines.append(f"• **{field.name}:** {field_value(field)}")
     if card.footer:
-        parts.append(card.footer)
-    if not parts:
-        return ""
-    if all("\n" not in part for part in parts):
-        return " · ".join(parts).strip()
-    return "\n".join(parts).strip()
+        footer = str(card.footer).strip()
+        if footer:
+            lines.append(footer)
+    return plain_text(lines)
 
 
 __all__ = [

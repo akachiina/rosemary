@@ -7,11 +7,14 @@
 fragments:
   # The attribution line of a staff log. The first alternative wins when its
   # placeholders are known: the actor footer when there is an actor, the
-  # system footer otherwise.
+  # system footer otherwise. The footer icon is the actor's avatar (a footer
+  # never renders a mention, so the icon and the readable name carry who did
+  # it).
   attribution:
     footer:
       - "{log.actor_footer}"
       - "{log.system_footer}"
+    footer_icon: "{actor_avatar}"
 
   # The frame of a log with the member's avatar on the right.
   audit_frame:
@@ -20,5 +23,5 @@ fragments:
 
   # The frame of an announcement: the member is the author.
   member_frame:
-    author: "{user}"
+    author: "{user_name}"
     author_icon: "{user_avatar}"

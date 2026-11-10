@@ -278,6 +278,7 @@ async def test_the_packaged_document_is_full_rich_layout(tmp_path):
         "starboard.card",
         {
             "user": "<@7>",
+            "user_name": "Ana",
             "user_avatar": "https://a.b/x.png",
             "stars": 3,
             "state_color": "#F7EFA8",
@@ -292,9 +293,11 @@ async def test_the_packaged_document_is_full_rich_layout(tmp_path):
     embed = payload.embed
     assert embed is not None
     assert "⭐ 3 · #geral" in (embed.title or "") + (embed.description or "")
-    assert embed.footer and "por <@7>" in embed.footer.text
+    assert embed.author and embed.author.name == "Ana"
+    assert embed.author.icon_url == "https://a.b/x.png"
+    assert embed.footer and "<@" not in embed.footer.text
     assert embed.image and embed.image.url == "https://a.b/cat.png"
-    assert embed.thumbnail and embed.thumbnail.url == "https://a.b/x.png"
+    assert embed.thumbnail is None
 
 
 async def test_the_packaged_document_skips_gallery_without_image(tmp_path):

@@ -375,11 +375,12 @@ async def test_help_prefix_lists_localized_commands(tmp_path):
         [embed.title or "", embed.description or ""]
         + [field.value or "" for field in embed.fields]
     )
-    # groups with pt-BR headings, entries in the ``**!name:** description``
-    # shape, the guild's real prefix applied
-    assert "## Moderação" in text
+    names = [field.name for field in embed.fields]
+    # groups are embed fields (the field name carries the group icon), entries
+    # in the ``**!name:** description`` shape, the guild's real prefix applied
+    assert any("Moderação" in name for name in names)
     assert "**`?ban`:** Banir um membro" in text  # bold + inline code (house standard)
-    assert "## Informações" in text
+    assert any("Informações" in name for name in names)
     assert "**`?serverinfo`:**" in text
     assert "**`?help`:** Mostra esta lista de comandos" in text
     assert "prefixo `?`" in text  # intro: the guild prefix as inline code
@@ -387,7 +388,7 @@ async def test_help_prefix_lists_localized_commands(tmp_path):
     assert "/ban" not in text
     assert "?sobre" not in text
     # roleplay is off by default: the interactions group is omitted
-    assert "Interações" not in text
+    assert not any("Interações" in name for name in names)
 
 
 async def test_help_prefix_lists_interactions_when_roleplay_enabled(tmp_path):
@@ -401,11 +402,11 @@ async def test_help_prefix_lists_interactions_when_roleplay_enabled(tmp_path):
 
     embed = ctx.reply.call_args.kwargs.get("embed")
     assert embed is not None
-    text = "\n".join(
-        [embed.title or "", embed.description or ""]
-        + [field.value or "" for field in embed.fields]
+    field = next(
+        (field for field in embed.fields if "Interações" in field.name), None
     )
-    assert "## Interações" in text
+    assert field is not None
+    text = field.value or ""
     assert "`!hug · !kiss" in text  # one code span over every latin action verb
     assert "!cuddle`" in text  # the same span closes right after the last verb
 
@@ -428,7 +429,7 @@ def test_help_table_covers_every_registered_prefix_command(tmp_path):
 
 
 async def test_help_card_skips_empty_lists(tmp_path):
-    """The help card drops the paragraph of a group the send site turned off
+    """The help card drops the field of a group the send site turned off
     (roleplay off) and keeps the placeholder when the value is absent (the
     editor preview)."""
     from rosemary.core.card_service import render_card_message
@@ -452,16 +453,22 @@ async def test_help_card_skips_empty_lists(tmp_path):
         },
     )
     assert payload is not None and payload.embed is not None
-    description = payload.embed.description or ""
-    assert "M" in description and "I" in description and "G" in description
-    assert "interactions_list" not in description  # roleplay off: block omitted
+    values = {field.name: field.value for field in payload.embed.fields}
+    assert "M" in values.values() and "I" in values.values() and "G" in values.values()
+    # roleplay off: the field disappears, the placeholder never pairs with it
+    assert not any("Interações" in name for name in values)
+    assert "interactions_list" not in (payload.embed.description or "")
 
     # The value never arrived: the placeholder stays (the editor preview).
     payload, _allowed = await render_card_message(
         bot, 1, "help.card", {"title": "Ajuda", "body": "Comandos"}
     )
     assert payload is not None and payload.embed is not None
-    assert "{interactions_list}" in (payload.embed.description or "")
+    interactions = next(
+        (field for field in payload.embed.fields if "Interações" in field.name), None
+    )
+    assert interactions is not None
+    assert interactions.value == "{interactions_list}"
 
 
 #: error feedback -------------------------------------------------------

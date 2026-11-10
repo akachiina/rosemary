@@ -27,13 +27,13 @@ archetypes:
   announcement:
     form: embed
     color: brand
-    author: "{user}"
+    author: "{user_name}"
     author_icon: "{user_avatar}"
     footer: "{server}"
     timestamp: true
 
-  # A one-line notice: the copy is the whole card. The style names the tone
-  # of the prefix (the theme owns it); a plain notice is not a rich card, so
+  # A plain notice: the copy is the whole card. The style names the tone of
+  # the prefix (the theme owns it); a plain notice is not a rich card, so
   # the editor opens a text field, not the full composer.
   notice:
     form: text
@@ -42,14 +42,16 @@ archetypes:
     rich: false
     legacy_body: false
 
-  # An event announcement (a member joined, left or got banned): the
-  # member's avatar rides the title, the body tells the story and the
+  # An event announcement (a member joined, left or got banned): the member
+  # owns the author line (name and avatar), the body tells the story and the
   # footer names the server, the member count and the id.
   event:
     form: embed
     color: brand
-    thumbnail: '{user_avatar}'
+    author: '{user_name}'
+    author_icon: '{user_avatar}'
     footer: '{server} · #{count} · `{user_id}`'
+    timestamp: true
     mention: single
     rich: true
 
@@ -89,16 +91,20 @@ archetypes:
   # when there is one.
   audit_event:
     form: embed
-    author: '{user}'
+    author: '{user_name}'
     author_icon: '{user_avatar}'
     footer:
       - '{log.actor_footer}'
       - '{log.system_footer}'
+    footer_icon: '{actor_avatar}'
     variables:
       - user
       - user_name
       - user_id
       - user_avatar
+      - actor
+      - actor_name
+      - actor_avatar
       - server
       - timestamp
       - moderator

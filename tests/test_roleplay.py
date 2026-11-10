@@ -31,16 +31,25 @@ class FakeTranslator:
     def __init__(self) -> None:
         self.catalog = load_catalog("pt-BR")
 
-    async def t(self, guild_id, key, **variables):
+    def _lookup(self, key):
         node = self.catalog
         for part in key.split("."):
             node = node.get(part) if isinstance(node, dict) else None
             if node is None:
-                return key
-        text = node if isinstance(node, str) else key
+                return None
+        return node if isinstance(node, str) else None
+
+    async def t(self, guild_id, key, **variables):
+        text = self._lookup(key)
+        if text is None:
+            return key
         for name, value in variables.items():
             text = text.replace(f"{{{name}}}", str(value))
         return text
+
+    async def raw(self, guild_id, key):
+        """The catalog copy unresolved (the card resolver expands it)."""
+        return self._lookup(key)
 
 
 def _bot(tmp_path):

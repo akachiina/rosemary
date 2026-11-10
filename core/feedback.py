@@ -1,6 +1,7 @@
 """One-line notices: the plain-text layer of the bot.
 
-A notice is one line: ``{emoji} **|** message``. The prefix belongs to the
+A notice is one thing per line. The first line is ``{emoji} message`` (or
+``{emoji} **Title**`` when the card has a title); the prefix belongs to the
 theme (the ``feedback_*`` style family), so a guild restyles every notice at
 once; the message itself is the usual catalog copy.
 
@@ -63,7 +64,7 @@ def _builtin_theme():
 
 
 def prefix_for(bot, guild_id: int | None, style: str = DEFAULT_STYLE) -> str:
-    """The theme prefix of a notice ("{emoji} **|** ").
+    """The theme prefix of a notice ("{emoji} ").
 
     The guild's theme wins; the built-in theme is the fallback when the
     guild's theme does not define the style.

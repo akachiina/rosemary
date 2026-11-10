@@ -48,13 +48,17 @@ bump.thank_you:
   - 'brand'
   title: '{bump.messages.thank_you_title}'
   description: '{bump.messages.thank_you_description}'
-  thumbnail: '{user_avatar}'
-  footer: '{card.author_footer.text}'
+  ping_line: '{bump.messages.ping_thank_you}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
+  footer: '{timestamp}'
+  timestamp: true
   variables:
   - mention
   - cooldown
   - next_bump_timestamp
   - user_avatar
+  - user_name
   - user
   - timestamp
   mention: single
@@ -71,9 +75,14 @@ bump.leaderboard:
   - 'warning'
   title: '{bump.messages.leaderboard_title}'
   description: '{bump.messages.leaderboard_description}'
-  thumbnail: '{winner_avatar}'
+  ping_line: '{bump.messages.ping_leaderboard}'
+  author: '{winner_name}'
+  author_icon: '{winner_avatar}'
+  footer: '{timestamp}'
+  timestamp: true
   variables:
   - winner_mention
+  - winner_name
   - winner_count
   - winner_avatar
   - role_name
@@ -119,8 +128,13 @@ invites.stats:
   rich: false
   title: '{invites.stats.title}'
   description: '{body}'
+  ping_line: '{invites.stats.ping}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   variables:
   - user
+  - user_name
+  - user_avatar
   - total
   - regular
   - bonus
@@ -137,8 +151,12 @@ invites.personal:
   rich: false
   title: '{invites.personal.title}'
   description: '{body}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   variables:
   - user
+  - user_name
+  - user_avatar
   - link
   - total
   - regular
@@ -153,8 +171,12 @@ invites.invited_list:
   rich: false
   title: '{invites.invited.title}'
   description: '{body}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   variables:
   - user
+  - user_name
+  - user_avatar
   - title
   - body
   category: invites
@@ -179,8 +201,12 @@ invites.invited_by:
   rich: false
   title: '{invites.inviter.title}'
   description: '{invites.inviter.body}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   variables:
   - user
+  - user_name
+  - user_avatar
   - inviter
   - code
   - when

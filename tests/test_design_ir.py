@@ -17,7 +17,7 @@ import json
 
 from rosemary.core.cards import all_cards
 from rosemary.core.design.compile import compile_card
-from rosemary.core.design.ir import Card, Text, blocks_to_document
+from rosemary.core.design.ir import Card, Field, Text, blocks_to_document
 from rosemary.core.design.serialize import card_to_embed, card_to_text, card_to_v2
 from rosemary.core.documents.legacy import document_to_card
 
@@ -88,6 +88,38 @@ def test_a_text_document_survives_the_ir_round_trip():
     assert card_to_text(card) == "Hello"
 
 
+def test_the_text_serializer_writes_one_thing_per_line():
+    """The title is bold, a field is a bullet and nothing joins with " · "."""
+    card = Card(
+        form="text",
+        title="Title",
+        paragraphs=("Body",),
+        fields=(Field(name="Reason", value="spam"),),
+    )
+    assert card_to_text(card) == "**Title**\nBody\n• **Reason:** spam"
+
+
+def test_the_text_serializer_bolds_the_first_line_as_the_title():
+    """A multi-line copy with no title slot: its first line is the title."""
+    card = Card(form="text", paragraphs=("First line\nSecond line",))
+    assert card_to_text(card) == "**First line**\nSecond line"
+
+
+def test_the_legacy_text_converter_honours_fields_and_drops_the_footer():
+    from rosemary.core.forms import to_text_content
+
+    doc = {
+        "blocks": [
+            {
+                "type": "text",
+                "body": "# Title\n\nBody\n**Label:** value",
+            },
+            {"type": "text", "body": "-# 01/01/2026"},
+        ]
+    }
+    assert to_text_content(doc) == "**Title**\nBody\n• **Label:** value"
+
+
 def test_the_compiler_resolves_every_placeholder_once():
     card = Card(form="text", content="{message}")
     compiled = compile_card(card, {"message": "{other}", "other": "resolved"})
@@ -126,6 +158,19 @@ def test_the_embed_serializer_writes_no_v2_marker():
     blob = json.dumps(doc, ensure_ascii=False)
     assert "-#" not in blob
     assert "# " not in blob
+
+
+def test_the_embed_serializer_never_repeats_the_image_as_a_thumbnail():
+    """The thumbnail is identity, the image is content: never the same art."""
+    card = Card(
+        form="embed",
+        title="Title",
+        thumbnail="https://example.com/same.png",
+        image="https://example.com/same.png",
+    )
+    embed = card_to_embed(card)["embed"]
+    assert embed["image"]["url"] == "https://example.com/same.png"
+    assert "thumbnail" not in embed
 
 
 def test_the_body_is_a_sequence_of_paragraphs():

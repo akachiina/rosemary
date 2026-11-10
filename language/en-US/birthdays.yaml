@@ -22,6 +22,7 @@ birthday_set:
       member:
         description: Another member (admin only)
 birthdays:
+  ping: '{user}, happy birthday!'
   enabled:
     label: Enable birthdays
     description: Announce member birthdays daily.

@@ -1,15 +1,17 @@
 {
-  "content": "<@0>",
+  "content": "<@0>, feliz aniversário!",
   "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "@you"
+    },
     "color": 15844367,
     "description": "<@0> está comemorando hoje. Participe da festa!",
     "fields": [],
     "footer": {
-      "text": "por <@0> · <t:1767225600:R>"
+      "text": "01/01/2026 00:00"
     },
-    "thumbnail": {
-      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-    },
+    "timestamp": "<iso>",
     "title": "Feliz aniversário! 🎁",
     "type": "rich"
   },

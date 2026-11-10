@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Parceria Encerrada\n\nOlá, <@0>! Sua parceria com **…** foi encerrada pela equipe.\n\n✉️ Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.\n\nEsta é uma notificação automática da parceria.",
+  "content": "ℹ️ **Parceria Encerrada**\n\nOlá, <@0>! Sua parceria com **…** foi encerrada pela equipe.\n\n✉️ Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.\n\nEsta é uma notificação automática da parceria.",
   "embed": null,
   "form": "text",
   "key": "partnerships.dm.removed",

@@ -1,5 +1,5 @@
 {
-  "content": "⚠️ **|** Renovação de Parceria Necessária!\n\nOlá, <@0>! Sua parceria com **…** está chegando ao fim e precisa ser renovada.\n\n### Como renovar\n> Use o comando `/parcerias renovar` no servidor antes do prazo acabar.\n\n### ⚠️ Prazo\n> Você tem **1 dia(s)** para agir.\n\nAo expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido.",
+  "content": "⚠️ **Renovação de Parceria Necessária!**\n\nOlá, <@0>! Sua parceria com **…** está chegando ao fim e precisa ser renovada.\n\n**Como renovar**\nUse o comando `/parcerias renovar` no servidor antes do prazo acabar.\n\n⚠️ **Prazo**\nVocê tem **1 dia(s)** para agir.\n\nAo expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido.",
   "embed": null,
   "form": "text",
   "key": "partnerships.dm.warning",

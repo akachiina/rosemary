@@ -2,10 +2,12 @@
 #
 # The document is semantic: it says what the log is (title, body,
 # fields, author, footer) and points at the catalog for the copy.
-# The archetype carries the frame (log_event names the actor in the
-# footer, log_named keeps the timestamp only).
+# The author is the subject of the event (a display name and an avatar);
+# the footer attributes the actor in readable text (a theme may reintroduce
+# the old token, the serializer drops the line) and the native timestamp
+# carries the instant in the reader's timezone.
 moderation.logs.ban:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: danger
   title: '{moderation.logs.ban.title}'
@@ -15,8 +17,8 @@ moderation.logs.ban:
   - moderator: '{moderator}'
   - reason: '{reason}'
   actor: '{moderator}'
-  author: '{moderator}'
-  thumbnail: '{user_avatar}'
+  author: '{member_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - member
@@ -30,10 +32,13 @@ moderation.logs.ban:
   - timestamp
   - actor
   - user_avatar
+  - member_name
+  - actor_name
+  - actor_avatar
   mention: none
   category: moderation
 moderation.logs.auto_ban:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: danger
   title: '{moderation.logs.auto_ban.title}'
@@ -43,8 +48,8 @@ moderation.logs.auto_ban:
   - moderator: '{moderator}'
   - reason: '{reason}'
   actor: '{moderator}'
-  author: '{moderator}'
-  thumbnail: '{user_avatar}'
+  author: '{member_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - member
@@ -58,10 +63,13 @@ moderation.logs.auto_ban:
   - timestamp
   - actor
   - user_avatar
+  - member_name
+  - actor_name
+  - actor_avatar
   mention: none
   category: moderation
 moderation.logs.kick:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: danger
   title: '{moderation.logs.kick.title}'
@@ -71,8 +79,8 @@ moderation.logs.kick:
   - moderator: '{moderator}'
   - reason: '{reason}'
   actor: '{moderator}'
-  author: '{moderator}'
-  thumbnail: '{user_avatar}'
+  author: '{member_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - member
@@ -86,10 +94,13 @@ moderation.logs.kick:
   - timestamp
   - actor
   - user_avatar
+  - member_name
+  - actor_name
+  - actor_avatar
   mention: none
   category: moderation
 moderation.logs.mute:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: danger
   title: '{moderation.logs.mute.title}'
@@ -102,8 +113,8 @@ moderation.logs.mute:
     optional: true
   - reason: '{reason}'
   actor: '{moderator}'
-  author: '{moderator}'
-  thumbnail: '{user_avatar}'
+  author: '{member_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - member
@@ -119,10 +130,13 @@ moderation.logs.mute:
   - timestamp
   - actor
   - user_avatar
+  - member_name
+  - actor_name
+  - actor_avatar
   mention: none
   category: moderation
 moderation.logs.warn:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{moderation.logs.warn.title}'
@@ -132,8 +146,8 @@ moderation.logs.warn:
   - moderator: '{moderator}'
   - reason: '{reason}'
   actor: '{moderator}'
-  author: '{moderator}'
-  thumbnail: '{user_avatar}'
+  author: '{member_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - member
@@ -147,10 +161,13 @@ moderation.logs.warn:
   - timestamp
   - actor
   - user_avatar
+  - member_name
+  - actor_name
+  - actor_avatar
   mention: none
   category: moderation
 boost.logs.register:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: success
   title: '{boost.logs.register.title}'
@@ -159,17 +176,18 @@ boost.logs.register:
   - owner: '{owner}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
   timestamp: true
   variables:
   - actor
   - owner
   - role
   - timestamp
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.remove:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: danger
   title: '{boost.logs.remove.title}'
@@ -179,7 +197,6 @@ boost.logs.remove:
   - actor: '{actor}'
   - deleted: '{deleted}'
   actor: '{actor}'
-  author: '{actor}'
   timestamp: true
   variables:
   - actor
@@ -187,10 +204,12 @@ boost.logs.remove:
   - owner
   - role
   - timestamp
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.transfer:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{boost.logs.transfer.title}'
@@ -200,7 +219,8 @@ boost.logs.transfer:
   - new_owner: '{new_owner}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
+  author: '{new_owner_name}'
+  author_icon: '{new_owner_avatar}'
   timestamp: true
   variables:
   - actor
@@ -208,10 +228,14 @@ boost.logs.transfer:
   - old_owner
   - role
   - timestamp
+  - new_owner_name
+  - new_owner_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.rename:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{boost.logs.rename.title}'
@@ -221,7 +245,6 @@ boost.logs.rename:
   - new_name: '{new_name}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
   timestamp: true
   variables:
   - actor
@@ -229,10 +252,12 @@ boost.logs.rename:
   - old_name
   - role
   - timestamp
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.color_change:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{boost.logs.color_change.title}'
@@ -241,17 +266,18 @@ boost.logs.color_change:
   - new_color: '{new_color}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
   timestamp: true
   variables:
   - actor
   - new_color
   - role
   - timestamp
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.emoji_change:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{boost.logs.emoji_change.title}'
@@ -260,17 +286,18 @@ boost.logs.emoji_change:
   - emoji: '{emoji}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
   timestamp: true
   variables:
   - actor
   - emoji
   - role
   - timestamp
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.icon:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{boost.logs.icon.title}'
@@ -278,16 +305,17 @@ boost.logs.icon:
   - role: '{role}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
   timestamp: true
   variables:
   - actor
   - role
   - timestamp
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.member_add:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: success
   title: '{boost.logs.member_add.title}'
@@ -296,17 +324,22 @@ boost.logs.member_add:
   - member: '{member}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
+  author: '{member_name}'
+  author_icon: '{member_avatar}'
   timestamp: true
   variables:
   - actor
   - member
   - role
   - timestamp
+  - member_name
+  - member_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.member_remove:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{boost.logs.member_remove.title}'
@@ -315,17 +348,22 @@ boost.logs.member_remove:
   - member: '{member}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
+  author: '{member_name}'
+  author_icon: '{member_avatar}'
   timestamp: true
   variables:
   - actor
   - member
   - role
   - timestamp
+  - member_name
+  - member_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.member_left:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: warning
   title: '{boost.logs.member_left.title}'
@@ -333,18 +371,20 @@ boost.logs.member_left:
   - role: '{role}'
   - member: '{member}'
   - owner: '{owner}'
-  author: '{member}'
-  author_icon: '{user_avatar}'
+  author: '{member_name}'
+  author_icon: '{member_avatar}'
   timestamp: true
   variables:
   - member
   - owner
   - role
   - timestamp
+  - member_name
+  - member_avatar
   mention: none
   category: boost
 boost.logs.invite_sent:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{boost.logs.invite_sent.title}'
@@ -354,7 +394,8 @@ boost.logs.invite_sent:
   - inviter: '{inviter}'
   - expires: '{expires}'
   actor: '{inviter}'
-  author: '{inviter}'
+  author: '{invitee_name}'
+  author_icon: '{invitee_avatar}'
   timestamp: true
   variables:
   - expires
@@ -363,10 +404,14 @@ boost.logs.invite_sent:
   - role
   - timestamp
   - actor
+  - invitee_name
+  - invitee_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.invite_cancelled:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{boost.logs.invite_cancelled.title}'
@@ -375,17 +420,22 @@ boost.logs.invite_cancelled:
   - invitee: '{invitee}'
   - actor: '{actor}'
   actor: '{actor}'
-  author: '{actor}'
+  author: '{invitee_name}'
+  author_icon: '{invitee_avatar}'
   timestamp: true
   variables:
   - actor
   - invitee
   - role
   - timestamp
+  - invitee_name
+  - invitee_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.invite_accepted:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: success
   title: '{boost.logs.invite_accepted.title}'
@@ -394,7 +444,8 @@ boost.logs.invite_accepted:
   - member: '{member}'
   - inviter: '{inviter}'
   actor: '{inviter}'
-  author: '{inviter}'
+  author: '{member_name}'
+  author_icon: '{member_avatar}'
   timestamp: true
   variables:
   - inviter
@@ -402,6 +453,10 @@ boost.logs.invite_accepted:
   - role
   - timestamp
   - actor
+  - member_name
+  - member_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: boost
 boost.logs.invite_declined:
@@ -413,8 +468,8 @@ boost.logs.invite_declined:
   - role: '{role}'
   - member: '{member}'
   - inviter: '{inviter}'
-  actor: '{member}'
-  author: '{member}'
+  author: '{member_name}'
+  author_icon: '{member_avatar}'
   timestamp: true
   variables:
   - inviter
@@ -422,10 +477,12 @@ boost.logs.invite_declined:
   - role
   - timestamp
   - actor
+  - member_name
+  - member_avatar
   mention: none
   category: boost
 boost.logs.invite_expired:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: warning
   title: '{boost.logs.invite_expired.title}'
@@ -433,31 +490,39 @@ boost.logs.invite_expired:
   - role: '{role}'
   - invitee: '{invitee}'
   - inviter: '{inviter}'
+  author: '{invitee_name}'
+  author_icon: '{invitee_avatar}'
   timestamp: true
   variables:
   - invitee
   - inviter
   - role
   - timestamp
+  - invitee_name
+  - invitee_avatar
   mention: none
   category: boost
 boost.logs.orphan_remove:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: danger
   title: '{boost.logs.orphan_remove.title}'
   fields:
   - role: '{role}'
   - owner: '{owner}'
+  author: '{owner_name}'
+  author_icon: '{owner_avatar}'
   timestamp: true
   variables:
   - owner
   - role
   - timestamp
+  - owner_name
+  - owner_avatar
   mention: none
   category: boost
 boost.logs.auto_transfer:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: warning
   title: '{boost.logs.auto_transfer.title}'
@@ -465,31 +530,39 @@ boost.logs.auto_transfer:
   - role: '{role}'
   - old_owner: '{old_owner}'
   - new_owner: '{new_owner}'
+  author: '{new_owner_name}'
+  author_icon: '{new_owner_avatar}'
   timestamp: true
   variables:
   - new_owner
   - old_owner
   - role
   - timestamp
+  - new_owner_name
+  - new_owner_avatar
   mention: none
   category: boost
 boost.logs.auto_create:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: success
   title: '{boost.logs.auto_create.title}'
   fields:
   - role: '{role}'
   - owner: '{owner}'
+  author: '{owner_name}'
+  author_icon: '{owner_avatar}'
   timestamp: true
   variables:
   - owner
   - role
   - timestamp
+  - owner_name
+  - owner_avatar
   mention: none
   category: boost
 boost.logs.unboost:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: warning
   title: '{boost.logs.unboost.title}'
@@ -497,12 +570,16 @@ boost.logs.unboost:
   - role: '{role}'
   - owner: '{owner}'
   - action: '{action}'
+  author: '{owner_name}'
+  author_icon: '{owner_avatar}'
   timestamp: true
   variables:
   - action
   - owner
   - role
   - timestamp
+  - owner_name
+  - owner_avatar
   mention: none
   category: boost
 bump.logs.channel_locked:
@@ -571,26 +648,28 @@ bump.logs.bump_recorded:
   color: success
   title: '{bump.logs.bump_recorded.title}'
   description: '{bump.logs.bump_recorded.description}'
-  actor: '{user}'
-  author: '{user}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - channel
   - user
   - timestamp
   - actor
+  - user_name
+  - user_avatar
   mention: none
   category: bump
 bump.logs.week_reset:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: success
   title: '{bump.logs.week_reset.title}'
   fields:
   - winner: '{winner}'
   - bumps: '{bumps}'
-  actor: '{author}'
-  author: '{author}'
+  author: '{author_name}'
+  author_icon: '{author_avatar}'
   timestamp: true
   variables:
   - winner
@@ -598,21 +677,25 @@ bump.logs.week_reset:
   - author
   - timestamp
   - actor
+  - author_name
+  - author_avatar
   mention: none
   category: bump
 bump.logs.no_winner:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: info
   title: '{bump.logs.no_winner.title}'
   description: '{bump.logs.no_winner.description}'
-  actor: '{author}'
-  author: '{author}'
+  author: '{author_name}'
+  author_icon: '{author_avatar}'
   timestamp: true
   variables:
   - author
   - timestamp
   - actor
+  - author_name
+  - author_avatar
   mention: none
   category: bump
 bump.logs.no_bumps_posted:
@@ -645,13 +728,15 @@ bump.logs.week_reset_manual:
   color: warning
   title: '{bump.logs.week_reset_manual.title}'
   description: '{bump.logs.week_reset_manual.description}'
-  actor: '{author}'
-  author: '{author}'
+  author: '{author_name}'
+  author_icon: '{author_avatar}'
   timestamp: true
   variables:
   - author
   - timestamp
   - actor
+  - author_name
+  - author_avatar
   mention: none
   category: bump
 bump.logs.bumps_added:
@@ -660,8 +745,8 @@ bump.logs.bumps_added:
   color: info
   title: '{bump.logs.bumps_added.title}'
   description: '{bump.logs.bumps_added.description}'
-  actor: '{author}'
-  author: '{author}'
+  author: '{author_name}'
+  author_icon: '{author_avatar}'
   timestamp: true
   variables:
   - author
@@ -670,21 +755,25 @@ bump.logs.bumps_added:
   - user
   - timestamp
   - actor
+  - author_name
+  - author_avatar
   mention: none
   category: bump
 bump.logs.no_role:
-  archetype: log_event
+  archetype: log_named
   form: embed
   color: danger
   title: '{bump.logs.no_winner.title}'
   description: '{bump.error_role_not_found}'
-  actor: '{author}'
-  author: '{author}'
+  author: '{author_name}'
+  author_icon: '{author_avatar}'
   timestamp: true
   legacy_body: false
   variables:
   - timestamp
   - actor
+  - author_name
+  - author_avatar
   mention: none
   category: bump
 invites.logs.join:
@@ -693,7 +782,7 @@ invites.logs.join:
   color: success
   title: '{invites.logs.join.title}'
   description: '{invites.logs.join.description}'
-  author: '{user}'
+  author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
   variables:
@@ -703,6 +792,8 @@ invites.logs.join:
   - label
   - flags
   - timestamp
+  - user_name
+  - user_avatar
   mention: none
   category: invites
 invites.logs.leave:
@@ -711,7 +802,7 @@ invites.logs.leave:
   color: info
   title: '{invites.logs.leave.title}'
   description: '{invites.logs.leave.description}'
-  author: '{user}'
+  author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
   variables:
@@ -719,16 +810,18 @@ invites.logs.leave:
   - inviter
   - timestamp
   - user_avatar
+  - user_name
   mention: none
   category: invites
 invites.logs.bonus:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{invites.logs.bonus.title}'
   description: '{invites.logs.bonus.description}'
   actor: '{moderator}'
-  author: '{moderator}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - moderator
@@ -737,41 +830,47 @@ invites.logs.bonus:
   - total
   - timestamp
   - actor
+  - user_name
+  - user_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: invites
 invites.logs.sync:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{invites.logs.sync.title}'
   description: '{invites.logs.sync.description}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - codes
   - moderator
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: invites
 invites.logs.reset:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{invites.logs.reset.title}'
   description: '{invites.logs.reset.description}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: invites
 cleaner.logs.purged:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{cleaner.logs.purged.title}'
@@ -781,7 +880,6 @@ cleaner.logs.purged:
   - deleted: '{deleted}'
   - criterion: '{criterion}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
@@ -791,6 +889,8 @@ cleaner.logs.purged:
   - matched
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: moderation
 anti_invite.logs.blocked:
@@ -799,7 +899,7 @@ anti_invite.logs.blocked:
   color: warning
   title: '{anti_invite.logs.blocked.title}'
   description: '{anti_invite.logs.blocked.description}'
-  author: '{user}'
+  author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
   variables:
@@ -807,6 +907,8 @@ anti_invite.logs.blocked:
   - channel
   - code
   - timestamp
+  - user_name
+  - user_avatar
   mention: none
   category: moderation
 trap.logs.failed:
@@ -818,7 +920,7 @@ trap.logs.failed:
   - target: '{user}'
   - consequence: '{action}'
   - reason: '{reason}'
-  author: '{user}'
+  author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
   variables:
@@ -829,16 +931,17 @@ trap.logs.failed:
   - action_label
   - reason_label
   - timestamp
+  - user_name
+  - user_avatar
   mention: none
   category: moderation
 reminders.logs.sent:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{reminders.logs.sent.title}'
   description: '{reminders.logs.sent.description}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
@@ -847,10 +950,12 @@ reminders.logs.sent:
   - failed
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: general
 broadcast.logs.started:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{broadcast.logs.started.title}'
@@ -859,7 +964,6 @@ broadcast.logs.started:
   - title: '{title}'
   - channel: '{channel}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
@@ -867,10 +971,12 @@ broadcast.logs.started:
   - channel
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: general
 broadcast.logs.ended:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: success
   title: '{broadcast.logs.ended.title}'
@@ -880,7 +986,6 @@ broadcast.logs.ended:
   - sent: '{sent}'
   - failed: '{failed}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
@@ -889,6 +994,8 @@ broadcast.logs.ended:
   - failed
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: general
 tickets.logs.opened:
@@ -898,7 +1005,8 @@ tickets.logs.opened:
   title: '{tickets.logs.opened.title}'
   description: '{tickets.logs.opened.description}'
   actor: '{user}'
-  author: '{user}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - user
@@ -906,6 +1014,8 @@ tickets.logs.opened:
   - channel
   - timestamp
   - actor
+  - user_name
+  - user_avatar
   mention: none
   category: tickets
 tickets.logs.closed:
@@ -945,19 +1055,20 @@ tickets.logs.deleted:
   mention: none
   category: tickets
 tickets.logs.transcript:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{tickets.logs.transcript.title}'
   description: '{tickets.logs.transcript.description}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - channel
   - moderator
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: tickets
 suggestions.logs.created:
@@ -967,7 +1078,8 @@ suggestions.logs.created:
   title: '{suggestions.logs.created.title}'
   description: '{suggestions.logs.created.description}'
   actor: '{user}'
-  author: '{user}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - user
@@ -975,16 +1087,19 @@ suggestions.logs.created:
   - channel
   - timestamp
   - actor
+  - user_name
+  - user_avatar
   mention: none
   category: suggestions
 suggestions.logs.approved:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: success
   title: '{suggestions.logs.approved.title}'
   description: '{suggestions.logs.approved.description}'
   actor: '{moderator}'
-  author: '{moderator}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - moderator
@@ -993,16 +1108,21 @@ suggestions.logs.approved:
   - reason
   - timestamp
   - actor
+  - user_name
+  - user_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: suggestions
 suggestions.logs.rejected:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: danger
   title: '{suggestions.logs.rejected.title}'
   description: '{suggestions.logs.rejected.description}'
   actor: '{moderator}'
-  author: '{moderator}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - moderator
@@ -1011,32 +1131,36 @@ suggestions.logs.rejected:
   - reason
   - timestamp
   - actor
+  - user_name
+  - user_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: suggestions
 confessions.logs.approved:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: success
   title: '{confessions.logs.approved.title}'
   description: '{confessions.logs.approved.description}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
   - confession_number
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: confessions
 confessions.logs.denied:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{confessions.logs.denied.title}'
   description: '{confessions.logs.denied.description}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
@@ -1044,6 +1168,8 @@ confessions.logs.denied:
   - reason
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: confessions
 confessions.logs.replied:
@@ -1060,13 +1186,12 @@ confessions.logs.replied:
   mention: none
   category: confessions
 confessions.logs.banned:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: danger
   title: '{confessions.logs.banned.title}'
   description: '{confessions.logs.banned.description}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
@@ -1074,38 +1199,50 @@ confessions.logs.banned:
   - reason
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: confessions
 partnerships.logs.added:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: success
   title: '{partnerships.logs.added.title}'
   description: '{partnerships.logs.added.description}'
   actor: '{author}'
-  author: '{author}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - user
   - author
   - timestamp
   - actor
+  - user_name
+  - user_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: partnerships
 partnerships.logs.removed:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{partnerships.logs.removed.title}'
   description: '{partnerships.logs.removed.description}'
   actor: '{author}'
-  author: '{author}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - user
   - author
   - timestamp
   - actor
+  - user_name
+  - user_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: partnerships
 partnerships.logs.renewed:
@@ -1114,12 +1251,14 @@ partnerships.logs.renewed:
   color: success
   title: '{partnerships.logs.renewed.title}'
   description: '{partnerships.logs.renewed.description}'
-  author: '{user}'
+  author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - user
   - timestamp
+  - user_name
+  - user_avatar
   mention: none
   category: partnerships
 partnerships.logs.warning_sent:
@@ -1128,13 +1267,15 @@ partnerships.logs.warning_sent:
   color: warning
   title: '{partnerships.logs.warning_sent.title}'
   description: '{partnerships.logs.warning_sent.description}'
-  author: '{user}'
+  author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - days
   - user
   - timestamp
+  - user_name
+  - user_avatar
   mention: none
   category: partnerships
 partnerships.logs.expired:
@@ -1143,13 +1284,15 @@ partnerships.logs.expired:
   color: danger
   title: '{partnerships.logs.expired.title}'
   description: '{partnerships.logs.expired.description}'
-  author: '{user}'
+  author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - user
   - ping
   - timestamp
+  - user_name
+  - user_avatar
   mention: none
   category: partnerships
 partnerships.logs.invite_posted:
@@ -1158,29 +1301,32 @@ partnerships.logs.invite_posted:
   color: info
   title: '{partnerships.logs.invite_posted.title}'
   description: '{partnerships.logs.invite_posted.description}'
-  actor: '{author}'
-  author: '{author}'
+  author: '{author_name}'
+  author_icon: '{author_avatar}'
   timestamp: true
   variables:
   - author
   - timestamp
   - actor
+  - author_name
+  - author_avatar
   mention: none
   category: partnerships
 partnerships.logs.orphans_cleaned:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{partnerships.logs.orphans_cleaned.title}'
   description: '{partnerships.logs.orphans_cleaned.description}'
   actor: '{author}'
-  author: '{author}'
   timestamp: true
   variables:
   - author
   - count
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: partnerships
 partnerships.logs.edited:
@@ -1195,7 +1341,8 @@ partnerships.logs.edited:
     optional: true
   - moderator: '{moderator}'
   actor: '{moderator}'
-  author: '{moderator}'
+  author: '{user_name}'
+  author_icon: '{user_avatar}'
   timestamp: true
   variables:
   - user
@@ -1203,10 +1350,14 @@ partnerships.logs.edited:
   - moderator
   - timestamp
   - actor
+  - user_name
+  - user_avatar
+  - actor_name
+  - actor_avatar
   mention: none
   category: partnerships
 updater.logs.updating:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: warning
   title: '{updater.logs.updating.title}'
@@ -1215,7 +1366,6 @@ updater.logs.updating:
   - target: '{target}'
   - previous: '{previous}'
   actor: '{moderator}'
-  author: '{moderator}'
   timestamp: true
   variables:
   - moderator
@@ -1223,6 +1373,8 @@ updater.logs.updating:
   - previous
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: general
 updater.logs.updated:
@@ -1251,7 +1403,7 @@ updater.logs.auto_failed:
   mention: none
   category: general
 settings.log:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{settings.log.title}'
@@ -1262,7 +1414,6 @@ settings.log:
   - new: '{new}'
   - actor: '{author}'
   actor: '{author}'
-  author: '{author}'
   timestamp: true
   variables:
   - setting
@@ -1272,10 +1423,12 @@ settings.log:
   - author
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: general
 settings.logs.language:
-  archetype: log_named
+  archetype: log_event
   form: embed
   color: info
   title: '{settings.logs.language.title}'
@@ -1284,7 +1437,6 @@ settings.logs.language:
   - new: '{new}'
   - actor: '{author}'
   actor: '{author}'
-  author: '{author}'
   timestamp: true
   variables:
   - old
@@ -1292,6 +1444,8 @@ settings.logs.language:
   - author
   - timestamp
   - actor
+  - actor_name
+  - actor_avatar
   mention: none
   category: general
 debug.logs.test:

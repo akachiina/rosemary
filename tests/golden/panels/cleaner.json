@@ -3,14 +3,14 @@
     {
       "custom_id": "cleaner_yes",
       "disabled": false,
-      "emoji": null,
+      "emoji": "✅",
       "label": "Apagar tudo",
       "style": "danger"
     },
     {
       "custom_id": "cleaner_no",
       "disabled": false,
-      "emoji": null,
+      "emoji": "⬅️",
       "label": "Cancelar",
       "style": "secondary"
     }

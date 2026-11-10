@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Convite Recusado\n<@0> recusou seu convite para o cargo @….\nVocê pode convidar outra pessoa se desejar.",
+  "content": "ℹ️ **Convite Recusado**\n\n<@0> recusou seu convite para o cargo @….\n\nVocê pode convidar outra pessoa se desejar.",
   "embed": null,
   "form": "text",
   "key": "boost.dm.owner_declined",

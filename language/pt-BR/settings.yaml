@@ -1,10 +1,12 @@
 settings:
-  title: Configurações do Bot
+  title: '{settings} Configurações do Bot'
   command:
     name: configuracoes
     description: Configura as definições do bot
   hint: Escolha uma categoria para ver as definições.
   category_label: Categoria
+  category_count: '{count} definições'
+  category_summary: '{category_label}: {icon} **{category}** · {count}'
   category:
     placeholder: Selecione uma categoria
     general: Geral
@@ -24,6 +26,34 @@ settings:
     colors: Painel de Cores
     roleplay: Roleplay
     confessions: Confissões
+  category_hint:
+    general: Idioma, prefixo e tempo dos menus
+    moderation: Comandos de moderação e warns
+    logging: Canal e nível dos logs da equipe
+    events: Entrada, saída e anúncios de banimento
+    audit: Registro de eventos do servidor
+    boost: Cargos boost e convites
+    bump: Disboard bump, lembretes e placar
+    starboard: Destaques por estrelas
+    suggestions: Sugestões e votação
+    birthdays: Anúncios de aniversário
+    invites: Convites, ranking e anti-fraude
+    tickets: Atendimento por tickets
+    partnerships: Parcerias e divulgação
+    broadcast_reminders: Mensagens programadas
+    colors: Painel de cores e cargos
+    roleplay: Cards de roleplay com gif
+    confessions: Confissões anônimas
+  search:
+    button: Buscar
+    title: Buscar definição
+    label: Nome da definição
+    placeholder: 'Ex.: canal de log'
+    results: 'Resultados para **{query}** ({count}).'
+    empty: 'Nenhuma definição encontrada para **{query}**.'
+    pick: Escolha uma definição
+  reset: Restaurar padrão
+  reset_done: '{success} {setting} voltou ao padrão.'
   colors.enabled:
     label: Painel de Cores Ativado
     description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).

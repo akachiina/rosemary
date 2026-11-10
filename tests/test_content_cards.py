@@ -256,8 +256,9 @@ async def test_starboard_card_resolves_via_document():
     )
     texts = payload_texts(payload)
     assert any("mensagem estrelada" in text for text in texts)
-    # Builder signature: author footer, not the bare seed.
-    assert any("by <@5>" in text for text in texts), texts
+    # The attribution is the author line, with the member's display name.
+    assert any(text == "Ana" for text in texts), texts
+    assert not any("<@" in text for text in texts)
 
 
 #: serverinfo rich builder ---------------------------------------------------
@@ -306,9 +307,11 @@ async def test_serverinfo_card_resolves_via_document():
     assert any("34" in text and "12" in text for text in texts), texts
     assert any("120" in text and "10" in text for text in texts), texts
     assert any("Médio" in text for text in texts), texts
-    # Exactly one icon: the server icon rides the embed thumbnail.
+    # Exactly one icon: the server icon rides the author line, not a thumbnail.
     assert payload.embed is not None
-    assert payload.embed.thumbnail.url == "https://a.b/icon.png"
+    assert payload.embed.author and payload.embed.author.name == "Overdose Community"
+    assert payload.embed.author.icon_url == "https://a.b/icon.png"
+    assert payload.embed.thumbnail is None
 
 
 async def test_serverinfo_card_degrades_without_banner_and_icon():
@@ -348,6 +351,7 @@ async def test_serverinfo_card_degrades_without_banner_and_icon():
     assert any("Serv" in text for text in texts)
     assert not any("servidor de testes" in text for text in texts)
     # No icon, no banner: no empty image rides the card.
+    assert payload.embed.author and not payload.embed.author.icon_url
     assert payload.embed.thumbnail is None
     assert payload.embed.image is None
 

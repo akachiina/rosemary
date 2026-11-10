@@ -3,6 +3,8 @@ bump:
     name: bump
     description: Placar de bump do Disboard
   messages:
+    ping_thank_you: 'Obrigado pelo bump, {mention}!'
+    ping_leaderboard: 'Parabéns, {winner_mention}!'
     anti_camping: O canal foi bloqueado temporariamente. O bump estará disponível em instantes!
     thank_you_title: '{tada} Bump Registrado!'
     thank_you_description: 'Muito obrigada pelo bump, {mention}! Sua dedicação mantém o servidor brilhando. {cup}
@@ -52,65 +54,45 @@ bump:
       '
     no_bumps_you: '{bar_chart} Você ainda não deu nenhum bump esta semana! Use `/bump` no canal de bump.'
   dm:
-    winner_new: 'Você é o Bump-MVP da Semana!
+    winner_new: |
+      Você é o Bump-MVP da Semana!
 
       Olá, {mention}! Sua dedicação manteve o servidor brilhando. Muito obrigada!
 
+      • **{bar_chart} Bumps na semana:** {bump_count}
+      • **{trophy} Cargo:** {role_name}
 
-      **{bar_chart} Bumps na semana:** {bump_count}
-
-      **{trophy} Cargo:** {role_name}
-
-
-      ### {palette} Personalize seu cargo
-
+      {palette} **Personalize seu cargo**
       Use `/boost painel` para customizar:
-
-      - {pencil} Nome e emoji
-
-      - {palette} Cor
-
-      - {members} Convidar até **{max_members}** membros
-
+      • {pencil} Nome e emoji
+      • {palette} Cor
+      • {members} Convidar até **{max_members}** membros
 
       Suas customizações são salvas e voltam caso você ganhe novamente!
 
-
       Aproveite até o próximo reset.
-
-      '
-    winner_again: 'Bump-MVP mais uma vez!
+    winner_again: |
+      Bump-MVP mais uma vez!
 
       Olá, {mention}! Você reconquistou o título. Sua dedicação é admirável!
 
-
-      **{bar_chart} Bumps na semana:** {bump_count}
-
-      **{trophy} Total de vitórias:** {total_wins}
-
+      • **{bar_chart} Bumps na semana:** {bump_count}
+      • **{trophy} Total de vitórias:** {total_wins}
 
       Seu cargo **{role_name}** foi restaurado com suas customizações anteriores!
 
-
       Continue sendo incrível.
-
-      '
-    winner_lost: 'Seu período como Bump-MVP terminou
+    winner_lost: |
+      Seu período como Bump-MVP terminou
 
       Olá, {mention}! Esta semana outro membro conquistou o título. Não desanime!
 
-
-      **{bar_chart} Seus bumps:** {bump_count}
-
-      **{crown} Novo vencedor:** {winner_mention}
-
+      • **{bar_chart} Seus bumps:** {bump_count}
+      • **{crown} Novo vencedor:** {winner_mention}
 
       Suas customizações foram salvas e voltam se você ganhar novamente!
 
-
       Continue dando bumps e reconquiste o trono!
-
-      '
   logs:
     bump_recorded:
       title: '{rocket} Bump Detectado'

@@ -5,7 +5,7 @@ card editor speaks). The *form* decides how it ships:
 
 * ``card``: the V2 document as-is;
 * ``embed``: the classic embed (visual info, staff logs);
-* ``text``: one plain line (``{emoji} **|** message``).
+* ``text``: the plain text (``{emoji} message``, one thing per line).
 
 The generic converters here do the translation so no card needs a hand-made
 builder for another form. The semantic model (the Card IR) writes every form
@@ -92,19 +92,6 @@ def _heading_parts(body: str) -> tuple[str, str] | None:
         return None
     rest = text[match.end() :].strip()
     return title, rest
-
-
-def _is_heading(body: str) -> bool:
-    return _heading_parts(body) is not None
-
-
-def _strip_heading(body: str) -> str:
-    """Drop the heading marker, keeping the title and the rest of the body."""
-    parts = _heading_parts(body)
-    if parts is None:
-        return body.strip()
-    title, rest = parts
-    return f"{title}\n{rest}" if rest else title
 
 
 def _split_fields(body: str) -> tuple[list[str], list[tuple[str, str]]]:
@@ -225,45 +212,66 @@ def to_embed_document(doc: dict[str, Any]) -> dict[str, Any]:
 def to_text_content(doc: dict[str, Any]) -> str:
     """Reduce a V2 document to plain text (the ``text`` form).
 
-    The heading becomes the title (without the ``#``) and the remaining
-    bodies follow it. Short parts join on one line ("Title · body"), the
-    separator the theme uses everywhere else; a part that spans several
-    lines keeps its own line breaks. The style prefix (the ``{emoji} **|**``)
-    is added by the caller.
+    One thing per line: a heading becomes the bold title (without the ``#``),
+    a field-shaped line becomes a bullet (``• **Label:** value``) and the
+    small-text footer is frame, so it does not ship. The style prefix (the
+    ``{emoji}``) is added by the caller.
     """
-    parts: list[str] = []
+    lines: list[str] = []
     for block in _flatten(doc.get("blocks") or []):
         if block.get("type") != "text":
             continue
-        body = str(block.get("body") or "").strip()
-        if not body:
+        lines.extend(_text_block_lines(str(block.get("body") or "")))
+    return plain_text(lines)
+
+
+def _text_block_lines(body: str) -> list[str]:
+    """The plain-text lines of one V2 text block."""
+    stripped = body.strip()
+    if not stripped or _FOOTER_RE.match(stripped):
+        return []
+    heading = _heading_parts(body)
+    if heading is not None:
+        title, rest = heading
+        return [f"**{title}**", *_text_block_lines(rest)]
+    lines: list[str] = []
+    for line in stripped.splitlines():
+        if not line.strip():
+            lines.append("")
             continue
-        if _FOOTER_RE.match(body):
-            continue
-        parts.append(_strip_heading(body) if _is_heading(body) else body)
-    if not parts:
-        return ""
-    if all("\n" not in part for part in parts):
-        return " · ".join(parts).strip()
-    return "\n".join(parts).strip()
+        match = _FIELD_LINE_RE.match(line)
+        if match is not None:
+            lines.append(f"• **{match.group(1).strip()}:** {match.group(2).strip()}")
+        else:
+            lines.append(line.rstrip())
+    return lines
 
 
-def embed_content_for_pings(embed: Any) -> str:
-    """The mention tokens of a resolved embed, as one content line.
+#: The first line of a text already structured (a bold label, a bullet, a
+#: quote or a code fence) is not a bare title: the serializer never wraps it
+#: again.
+_STRUCTURED_HEAD = ("**", "•", "- ", "* ", ">", "```")
 
-    A classic embed never notifies: a mention inside the description renders
-    as a chip but stays silent. Cards whose ping is essential therefore carry
-    the token in the message content, which does notify.
+
+def plain_text(lines: list[str]) -> str:
+    """Join text lines in the plain-text grammar.
+
+    One thing per line. The first line of a multi-line text is its title, in
+    bold, so the notice prefix opens a titled line as ``{emoji} **Title**``;
+    a line that already carries a structure (a bold label, a bullet, a quote)
+    is kept as it is.
     """
-    from rosemary.core.mentions import _parse_mention_tokens  # noqa: PLC0415
-
-    parts = [str(getattr(embed, "title", "") or ""), str(getattr(embed, "description", "") or "")]
-    for field in getattr(embed, "fields", []) or []:
-        parts.append(str(getattr(field, "name", "") or ""))
-        parts.append(str(getattr(field, "value", "") or ""))
-    users, roles = _parse_mention_tokens("\n".join(parts))
-    tokens = [f"<@{uid}>" for uid in users] + [f"<@&{rid}>" for rid in roles]
-    return " ".join(tokens)
+    text = "\n".join(str(line) for line in lines).strip()
+    if not text or "\n" not in text:
+        return text
+    first, rest = text.split("\n", 1)
+    first = first.strip()
+    if not first or first.startswith(_STRUCTURED_HEAD):
+        return text
+    # The whole line becomes the title: the emphasis it carried inside is
+    # dropped (a bold marker inside a bold line breaks the markdown).
+    first = first.replace("**", "")
+    return f"**{first}**\n{rest}"
 
 
 __all__ = [
@@ -274,7 +282,7 @@ __all__ = [
     "FOOTER_TEXT_MAX",
     "TITLE_MAX",
     "TOTAL_MAX",
-    "embed_content_for_pings",
+    "plain_text",
     "to_embed_document",
     "to_text_content",
 ]

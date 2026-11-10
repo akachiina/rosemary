@@ -16,12 +16,18 @@ settings.title:
   archetype: panel
   title: '{settings.title}'
   description: '{body}'
+  variables:
+  - body
+  category: general
 
 # The themes menu: the heading names the menu, the body is the page.
 themes.title:
   archetype: panel
   title: '{themes.title}'
   description: '{body}'
+  variables:
+  - body
+  category: general
 
 # The cleaner panel: the heading names the panel, the body is the report.
 cleaner.panel:
@@ -29,6 +35,9 @@ cleaner.panel:
   color: warning
   title: '{cleaner.panel_title}'
   description: '{body}'
+  variables:
+  - body
+  category: general
 
 # The boost panel: the heading names the panel, the body is its invitation.
 boost.home:
@@ -44,6 +53,7 @@ roleplay.manager:
   rich: false
   variables:
   - action
+  - body
   category: roleplay
 
 # The ticket panel: the heading asks for a ticket, the body explains how.

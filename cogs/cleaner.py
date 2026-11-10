@@ -162,8 +162,13 @@ class CleanerPurgeView(Panel):
             ]
             actions = [
                 ActionRow(
-                    await self.button("cleaner_yes", "cleaner.confirm", style="danger"),
-                    await self.button("cleaner_no", "cleaner.cancel"),
+                    await self.button(
+                        "cleaner_yes",
+                        "cleaner.confirm",
+                        style="danger",
+                        emoji="check",
+                    ),
+                    await self.button("cleaner_no", "cleaner.cancel", emoji="back"),
                 )
             ]
         elif self.state == "running":
@@ -209,6 +214,7 @@ class CleanerPurgeView(Panel):
                         "cleaner_stop",
                         "cleaner.stop",
                         style="danger",
+                        emoji="stop",
                         disabled=self.cancel_event.is_set(),
                     )
                 )

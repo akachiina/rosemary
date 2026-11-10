@@ -1,5 +1,5 @@
 {
-  "content": "ℹ️ **|** Parceria Expirada\n\nOlá, <@0>! A parceria com **…** expirou por falta de renovação e foi removida automaticamente.\n\n### 🔄 Quer voltar?\n> Basta falar com a equipe do servidor para refazer o processo de parceria.\n\nSeu anúncio foi deletado e o cargo de parceiro foi removido.",
+  "content": "ℹ️ **Parceria Expirada**\n\nOlá, <@0>! A parceria com **…** expirou por falta de renovação e foi removida automaticamente.\n\n🔄 **Quer voltar?**\nBasta falar com a equipe do servidor para refazer o processo de parceria.\n\nSeu anúncio foi deletado e o cargo de parceiro foi removido.",
   "embed": null,
   "form": "text",
   "key": "partnerships.dm.expired",
