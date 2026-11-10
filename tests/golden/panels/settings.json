@@ -1,0 +1,165 @@
+{
+  "buttons": [
+    {
+      "custom_id": "settings_edit:general.timezone",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_edit:general.prefix",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_edit:general.menu_timeout",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_edit:updater.enabled",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_edit:updater.check_interval_hours",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_edit:updater.channel",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_edit:updater.branch",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_close",
+      "disabled": false,
+      "emoji": "❌",
+      "label": "Fechar",
+      "style": "secondary"
+    }
+  ],
+  "selects": [
+    {
+      "custom_id": "settings_category",
+      "disabled": false,
+      "options": [
+        {
+          "default": false,
+          "label": "Geral",
+          "value": "general"
+        },
+        {
+          "default": false,
+          "label": "Moderação",
+          "value": "moderation"
+        },
+        {
+          "default": false,
+          "label": "Log",
+          "value": "logging"
+        },
+        {
+          "default": false,
+          "label": "Anúncios",
+          "value": "events"
+        },
+        {
+          "default": false,
+          "label": "Registro de Eventos",
+          "value": "audit"
+        },
+        {
+          "default": false,
+          "label": "Cargos Boost",
+          "value": "boost"
+        },
+        {
+          "default": false,
+          "label": "Disboard Bump",
+          "value": "bump"
+        },
+        {
+          "default": false,
+          "label": "Starboard",
+          "value": "starboard"
+        },
+        {
+          "default": false,
+          "label": "Sugestões",
+          "value": "suggestions"
+        },
+        {
+          "default": false,
+          "label": "Aniversários",
+          "value": "birthdays"
+        },
+        {
+          "default": false,
+          "label": "Convites",
+          "value": "invites"
+        },
+        {
+          "default": false,
+          "label": "Tickets",
+          "value": "tickets"
+        },
+        {
+          "default": false,
+          "label": "Parcerias",
+          "value": "partnerships"
+        },
+        {
+          "default": false,
+          "label": "Broadcast & Lembretes",
+          "value": "broadcast_reminders"
+        },
+        {
+          "default": false,
+          "label": "Painel de Cores",
+          "value": "colors"
+        },
+        {
+          "default": false,
+          "label": "Roleplay",
+          "value": "roleplay"
+        },
+        {
+          "default": false,
+          "label": "Confissões",
+          "value": "confessions"
+        }
+      ],
+      "placeholder": "Selecione uma categoria"
+    }
+  ],
+  "texts": [
+    "# Configurações do Bot",
+    "**Categoria:** Geral",
+    "**Fuso horário:**\nPadrão: UTC",
+    "**Prefixo do bot:**\nPadrão: !",
+    "**Tempo de expiração dos menus:**\nPadrão: 15m",
+    "**Auto-update ativado:**\nPadrão: Desativado",
+    "**Checar a cada (horas):**\nPadrão: 24",
+    "**Canal de update:**\nPadrão: Releases estáveis",
+    "**Branch de update:**\nPadrão: main"
+  ]
+}

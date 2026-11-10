@@ -1,10 +1,11 @@
-"""Moderation cards: the /warnings builder and the DM pipeline.
+"""Moderation cards: the /warnings card and the DM pipeline.
 
-The builder owns the warnings card (member avatar, state-driven color,
-author footer); the DMs flow through the shared boost_dm pipeline so themed
-overrides keep their rich layout. The registration test pins the production
-import path: bot.py reaches these builders through card_specs' side-effect
-imports, nothing else loads them.
+The warnings card lives in the default package: the document owns the frame
+(the member's avatar rides the title, the body lists the warnings and the
+attribution closes it). The *state* chooses the color token (the send site
+resolves the theme style, the document picks the token up), so the theme of
+the guild keeps owning what the token means. The DMs flow through the shared
+boost_dm pipeline so themed overrides keep their rich layout.
 """
 
 from __future__ import annotations
@@ -46,9 +47,10 @@ def _assert_valid_layout(view, label):
     assert errors == [], "\n".join(errors)
 
 
-def _builder_bot():
-    """A bot with the real catalogs (pt-BR) so builder copy resolves for real."""
+def _card_bot(tmp_path):
+    """A bot with the real catalogs (pt-BR) so the card copy resolves for real."""
     from rosemary.core.i18n import Translator
+    from rosemary.core.storage import GuildStorage
 
     async def resolver(gid):
         return "pt-BR"
@@ -59,6 +61,7 @@ def _builder_bot():
         def __init__(self) -> None:
             self.theme = theme
             self._theme_cache: dict = {}
+            self.storage = GuildStorage(tmp_path)
             self.translator = Translator(
                 Path(__file__).resolve().parents[1] / "language",
                 resolver=resolver,
@@ -80,113 +83,69 @@ _WARNINGS_VARS = {
 _EMPTY_VARS = {**_WARNINGS_VARS, "has_warnings": False, "body": "✅ Sem warns."}
 
 
-#: builder + registration -----------------------------------------------------
+#: the card document ---------------------------------------------------------
 
 
-def test_moderation_builder_registered():
-    from rosemary.core.cards import get_default_builder
-    from rosemary.core.moderation_cards import default_moderation_warnings_document
+def test_moderation_warnings_is_a_document():
+    """The card lives in the default package: the document is the source of
+    truth (no builder, no form builder, no seed)."""
+    from rosemary.core.cards import get_card
+    from rosemary.core.theme_package import default_package
 
-    assert (
-        get_default_builder("moderation.warnings") is default_moderation_warnings_document
-    )
-
-
-def test_moderation_warnings_has_no_seed():
-    """A seed would shadow the builder and strip the avatar (AGENTS.md rule)."""
-    from rosemary.core.card_service import SEED_PARTS_BY_KEY
-
-    assert "moderation.warnings" not in SEED_PARTS_BY_KEY
-
-
-def test_card_specs_registers_core_builders():
-    """Production reaches the bump/moderation builders only through the
-    card_specs side-effect imports (bot.py imports card_specs). Without them
-    the live bot rendered the code fallbacks forever while tests stayed
-    green, because the test files imported the builder modules themselves."""
-    import sys
-
-    from rosemary.core import cards as cards_module
-
-    for key in ("bump.thank_you", "bump.leaderboard", "moderation.warnings"):
-        cards_module._DEFAULT_BUILDERS.pop(key, None)
-    for name in (
-        "rosemary.core.card_specs",
-        "rosemary.core.bump_cards",
-        "rosemary.core.moderation_cards",
-    ):
-        sys.modules.pop(name, None)
-    try:
-        assert cards_module.get_default_builder("bump.thank_you") is None
-        import rosemary.core.card_specs  # noqa: F401  (production import path)
-
-        assert cards_module.get_default_builder("bump.thank_you") is not None
-        assert cards_module.get_default_builder("bump.leaderboard") is not None
-        assert cards_module.get_default_builder("moderation.warnings") is not None
-    finally:
-        # Other test modules keep their original bindings; the freshly
-        # imported modules stay cached for later imports. Registration is
-        # idempotent (dict assignment), so both states are consistent.
-        pass
-
-
-#: builder documents ----------------------------------------------------------
+    assert "moderation.warnings" in default_package().documents
+    assert get_card("moderation.warnings") is not None
 
 
 @pytest.mark.parametrize(
     ("variables", "style"),
     [(_WARNINGS_VARS, "moderation_warnings"), (_EMPTY_VARS, "success")],
 )
-async def test_warnings_builder_layout_and_state_color(variables, style):
-    """The card follows the theme styles and produces a valid V2 document."""
-    from rosemary.core.card_service import render_document
-    from rosemary.core.moderation_cards import default_moderation_warnings_document
+async def test_warnings_card_layout_and_state_color(variables, style, tmp_path):
+    """The card shows the member's avatar, the body and the attribution, and
+    its color is the token the state chose."""
+    from rosemary.core.card_service import render_card_message
 
-    bot = _builder_bot()
-    doc = await default_moderation_warnings_document(bot, 1, **variables)
-    container = doc["blocks"][0]
-    assert container["type"] == "container"
-    assert container["color"] == bot.theme.style(style).color
-
-    section = container["children"][0]
-    assert section["type"] == "section"
-    assert section["accessory"]["url"] == variables["user_avatar"]
-    bodies = [c["body"] for c in container["children"] if c["type"] == "text"]
-    assert any("-#" in body for body in bodies)  # author footer block
-
-    view = await render_document(
-        bot, doc, dict(variables), guild_id=1, card_key="moderation.warnings"
+    bot = _card_bot(tmp_path)
+    state_color = bot.theme.style(style).color
+    payload, _allowed = await render_card_message(
+        bot,
+        1,
+        "moderation.warnings",
+        {**variables, "state_color": state_color},
     )
-    _assert_valid_layout(view, "moderation_warnings")
-    texts = [
-        item.content
-        for item in view.walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
-    assert any(variables["body"].splitlines()[0] in text for text in texts)
-    assert any("-# por <@" in text for text in texts)  # footer with the user
+    assert payload is not None and payload.embed is not None
+    embed = payload.embed
+    assert embed.colour.value == bot.theme.color(state_color).value
+    assert embed.title == variables["title"]
+    assert variables["body"] in (embed.description or "")
+    assert embed.thumbnail and embed.thumbnail.url == variables["user_avatar"]
+    # The attribution closes the card (the standard footer of every card).
+    assert f"por {variables['user']}" in (embed.footer.text or "")
 
 
-async def test_warnings_builder_without_avatar_omits_accessory():
+async def test_warnings_card_without_avatar_omits_thumbnail(tmp_path):
     """A missing avatar must degrade to plain text, never an empty accessory."""
-    from rosemary.core.moderation_cards import default_moderation_warnings_document
+    from rosemary.core.card_service import render_card_message
 
-    bot = _builder_bot()
-    bare = dict(_WARNINGS_VARS)
-    bare["user_avatar"] = ""
-    doc = await default_moderation_warnings_document(bot, 1, **bare)
-    section = doc["blocks"][0]["children"][0]
-    assert "accessory" not in section
+    bot = _card_bot(tmp_path)
+    bare = {**_WARNINGS_VARS, "user_avatar": ""}
+    payload, _allowed = await render_card_message(
+        bot, 1, "moderation.warnings", {**bare, "state_color": "warning"}
+    )
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.thumbnail is None
 
 
-async def test_warnings_builder_color_follows_theme_style(tmp_path):
+async def test_warnings_card_color_follows_theme_style(tmp_path):
     """Restyling ``styles.moderation_warnings`` in a theme file changes the
-    card, exactly like the bump builders."""
-    from rosemary.core.moderation_cards import default_moderation_warnings_document
+    card: the send site resolves the style to a token and the document uses
+    it."""
+    from rosemary.core.card_service import render_card_message
+    from rosemary.core.themes import theme_for
     from rosemary.ui.theme import load_theme as _load
 
     default_yaml = (
-        Path(__file__).resolve().parents[1] / "themes" / "default.yaml"
+        Path(__file__).resolve().parents[1] / "themes" / "default" / "tokens.yaml"
     ).read_text(encoding="utf-8")
     data = yaml.safe_load(default_yaml)
     data["styles"]["moderation_warnings"]["color"] = "danger"
@@ -195,11 +154,38 @@ async def test_warnings_builder_color_follows_theme_style(tmp_path):
         yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8"
     )
 
-    bot = _builder_bot()
+    bot = _card_bot(tmp_path)
     bot._theme_cache[1] = _load(theme_file)
 
-    doc = await default_moderation_warnings_document(bot, 1, **_WARNINGS_VARS)
-    assert doc["blocks"][0]["color"] == "danger"
+    state_color = theme_for(bot, 1).style("moderation_warnings").color
+    payload, _allowed = await render_card_message(
+        bot, 1, "moderation.warnings", {**_WARNINGS_VARS, "state_color": state_color}
+    )
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.colour.value == theme_for(bot, 1).color("danger").value
+
+
+async def test_warnings_card_v2_form_is_valid(tmp_path):
+    """The classic form is the default, but the card still has a valid
+    Components V2 layout (the repaint path)."""
+    from rosemary.core.card_service import render_card_message
+
+    bot = _card_bot(tmp_path)
+    payload, _allowed = await render_card_message(
+        bot,
+        1,
+        "moderation.warnings",
+        {**_WARNINGS_VARS, "state_color": "warning"},
+        form="card",
+    )
+    assert payload is not None and payload.view is not None
+    _assert_valid_layout(payload.view, "moderation.warnings")
+    texts = [
+        item.content
+        for item in payload.view.walk_children()
+        if isinstance(item, discord.ui.TextDisplay)
+    ]
+    assert any("Flood" in text for text in texts)
 
 
 #: DM pipeline ----------------------------------------------------------------

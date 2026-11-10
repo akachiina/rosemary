@@ -1,10 +1,15 @@
 """Reusable Components V2 container builders for Rosemary.
 
-Everything here renders through ``DesignerView`` + ``Container`` items; no
-embeds, no ``content=`` messages.
+Everything here renders through ``DesignerView`` + ``Container`` items: no
+embeds, no ``content=`` messages. The only exception is
+:func:`items_text`, which flattens V2 items into the plain-text layer (the
+confirmation dialogs).
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterable
+from typing import Any
 
 import discord
 
@@ -26,7 +31,32 @@ __all__ = [
     "header_display",
     "divider",
     "designer_container",
+    "items_text",
 ]
+
+
+def items_text(items: Iterable[Any]) -> str:
+    """The text of V2 items, one block per line (the plain-text layer).
+
+    A heading (``# title``) becomes a bold line: Discord only renders a
+    heading at the start of a line, so the marker would show up as text in
+    a plain message.
+    """
+    texts: list[str] = []
+
+    def walk(node: Any) -> None:
+        content = getattr(node, "content", None)
+        if isinstance(content, str) and content.strip():
+            body = content.strip()
+            if body.startswith("# "):
+                body = f"**{body[2:].strip()}**"
+            texts.append(body)
+        for child in list(getattr(node, "children", []) or []):
+            walk(child)
+
+    for item in items:
+        walk(item)
+    return "\n".join(texts)
 
 
 def header_display(title: str, description: str = "") -> TextDisplay:

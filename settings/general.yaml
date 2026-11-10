@@ -1,0 +1,36 @@
+# The general settings.
+settings:
+  general.timezone:
+    category: general
+    type: string
+    default: "UTC"
+  general.prefix:
+    category: general
+    type: string
+    default: "!"
+  general.menu_timeout:
+    category: general
+    type: integer
+    default: 900
+    min: 60
+    max: 900
+    duration: true
+  updater.enabled:
+    category: general
+    type: boolean
+    default: false
+  updater.check_interval_hours:
+    category: general
+    type: integer
+    default: 24
+    min: 1
+    max: 168
+  updater.channel:
+    category: general
+    type: choice
+    default: "stable"
+    choices: ["stable", "git"]
+  updater.branch:
+    category: general
+    type: string
+    default: "main"

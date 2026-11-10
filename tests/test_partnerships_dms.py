@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
-import yaml
+from catalog import catalog_text, load_catalog
 
 import rosemary.core.card_specs  # noqa: F401  (fills the registry)
 from rosemary.cogs.partnerships import PartnershipsCog
@@ -24,17 +24,12 @@ from rosemary.core.variables import VARIABLES
 from rosemary.ui.theme import load_theme
 
 ROOT = Path(__file__).resolve().parents[1]
-CATALOG = ROOT / "language" / "pt-BR.yaml"
 
 DM_KEYS = ("added", "removed", "warning", "expired")
 
 
 def _catalog_text(key: str) -> str:
-    with CATALOG.open(encoding="utf-8") as fh:
-        node = yaml.safe_load(fh) or {}
-    for part in key.split("."):
-        node = node.get(part) if isinstance(node, dict) else None
-    return node if isinstance(node, str) else key
+    return catalog_text("pt-BR", key)
 
 
 class FakeTranslator:
@@ -82,7 +77,11 @@ def _member(member_id: int):
 
 
 async def test_dm_texts_are_rich_multiline_templates(tmp_path):
-    """Every DM is a rich template: title, {mention} greeting and a footer."""
+    """Every DM is a rich template: title, {mention} greeting and a footer.
+
+    The copy is semantic: the title is its first line, with no Components V2
+    marker (the heading belongs to the V2 renderer, never to the catalog).
+    """
     cog = _cog(tmp_path)
     for key in DM_KEYS:
         text = await cog.bot.translator.t(
@@ -91,18 +90,27 @@ async def test_dm_texts_are_rich_multiline_templates(tmp_path):
         assert "\n" in text, f"partnerships.dm.{key} lost its multi-line body"
         assert "Olá, <@100>!" in text, f"partnerships.dm.{key} lost the greeting"
         assert "Girassol" in text, f"partnerships.dm.{key} lost the server name"
-        assert text.lstrip().startswith("# "), f"partnerships.dm.{key} lost the title"
+        title = text.lstrip().splitlines()[0]
+        assert title and not title.startswith(("# ", "-# ")), (
+            f"partnerships.dm.{key} lost its title"
+        )
 
 
 async def test_dm_texts_resolve_theme_emoji_tokens(tmp_path):
-    """Emoji tokens come from the theme, never hardcoded in the catalogs."""
+    """Emoji tokens come from the theme, never hardcoded in the catalogs.
+
+    The head of the copy carries no emoji: the notice prefix owns the mark
+    of the line. The body keeps its theme tokens (they resolve).
+    """
     cog = _cog(tmp_path)
     theme_emojis = load_theme().emojis
     text = await cog.bot.translator.t(
         1, "partnerships.dm.added", mention="<@100>", server="Girassol"
     )
-    assert "{crown}" not in text and "{tada}" not in text
-    assert theme_emojis["crown"] in text and theme_emojis["tada"] in text
+    head = text.splitlines()[0]
+    assert theme_emojis["crown"] not in head, head
+    assert theme_emojis["scroll"] in text
+    assert theme_emojis["tada"] in text
 
 
 async def test_dm_variable_contract_includes_mention():
@@ -118,8 +126,7 @@ async def test_dm_variable_contract_includes_mention():
 async def test_dm_variable_contract_has_catalog_labels():
     """variables.mention carries label + description in both catalogs."""
     for code in ("pt-BR", "en-US"):
-        with open(ROOT / "language" / f"{code}.yaml", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         node = (data.get("variables") or {}).get("mention") or {}
         assert node.get("label"), f"{code}: variables.mention.label missing"
         assert node.get("description"), f"{code}: variables.mention.description missing"
@@ -209,8 +216,7 @@ async def test_expired_admin_variable_contract():
 async def test_expired_admin_labels_in_both_catalogs():
     """variables.invite carries label + description in both catalogs."""
     for code in ("pt-BR", "en-US"):
-        with open(ROOT / "language" / f"{code}.yaml", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         node = (data.get("variables") or {}).get("invite") or {}
         assert node.get("label"), f"{code}: variables.invite.label missing"
         assert node.get("description"), f"{code}: variables.invite.description missing"

@@ -12,6 +12,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
+from catalog import load_catalog
 
 from rosemary.cogs.trap import DELETE_WINDOWS, TrapCog
 from rosemary.core.storage import GuildStorage
@@ -359,15 +360,12 @@ async def test_notice_reposts_when_message_was_deleted(tmp_path):
 
 def test_notice_templates_use_real_newlines():
     """Single-quoted YAML kept '\\n' literal (live screenshot bug)."""
-    import yaml
-
-    for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
-        with open(path, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+    for code in ("en-US", "pt-BR"):
+        data = load_catalog(code)
         texts = [data["trap"]["notice"]["text"], data["trap"]["dm"]["text"]]
         for text in texts:
-            assert "\\n" not in text, f"{path}: literal backslash-n in trap template"
-            assert "\n" in text, f"{path}: trap template lost its line breaks"
+            assert "\\n" not in text, f"{code}: literal backslash-n in trap template"
+            assert "\n" in text, f"{code}: trap template lost its line breaks"
 
 
 async def test_failed_punishment_posts_the_staff_log(tmp_path):

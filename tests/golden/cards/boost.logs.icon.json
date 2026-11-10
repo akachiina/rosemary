@@ -1,0 +1,31 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "fields": [
+      {
+        "inline": false,
+        "name": "🏷️ Cargo",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "👥 Por",
+        "value": "<@0>"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🖼️ Ícone Alterado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "boost.logs.icon",
+  "pings": [],
+  "view": []
+}

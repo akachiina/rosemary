@@ -1,0 +1,14 @@
+{
+  "content": null,
+  "embed": {
+    "color": 5763719,
+    "description": "Já se passou o cooldown de … desde o último bump!\n\n**🚀 Sua vez de ajudar:** use `/bump` e ganhe um ponto no placar!\n",
+    "fields": [],
+    "title": "⏰ Hora do Bump!",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.reminder",
+  "pings": [],
+  "view": []
+}

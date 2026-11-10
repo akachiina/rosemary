@@ -225,6 +225,13 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("voter", "<@0>", "mention"),
         _v("vote", "upvote"),
         _v("side", "up"),
+        # The suggestion card: the staff's status line and the motive line
+        # are copy the send site resolves (empty means "nothing to say", so
+        # the paragraph that carries them disappears).
+        _v("status_line", ""),
+        _v("reason_line", ""),
+        # The localized name of the command the card points at.
+        _v("command", "sugestao"),
         # /debug panel and trace cards.
         _v("guilds", 1, "number"),
         _v("latency", "42"),
@@ -232,6 +239,9 @@ VARIABLES: dict[str, VariableSpec] = {
         _v("theme", "default"),
         _v("logging", "On"),
         _v("audit", "On"),
+        # The panel's feedback line: empty means "nothing to say", so the
+        # paragraph that carries it disappears.
+        _v("flash", ""),
         _v("path", "card.moderation.logs.ban"),
         _v("origin", "default"),
         _v("setting", "…"),

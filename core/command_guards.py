@@ -12,7 +12,6 @@ group itself keep working as declared; they may still use the guards as
 defense in depth.
 """
 
-import contextlib
 import logging
 
 import discord
@@ -41,11 +40,9 @@ async def require_permissions(
         permission,
     )
     text = await ctx.bot.translator.t(ctx.guild_id, "general.no_permission")
-    if not ctx.response.is_done():
-        await ctx.respond(text, ephemeral=True)
-    else:
-        with contextlib.suppress(discord.HTTPException):
-            await ctx.followup.send(text, ephemeral=True)
+    from rosemary.core.feedback import respond as respond_line
+
+    await respond_line(ctx, ctx.bot, ctx.guild_id, text, style="warning", ephemeral=True)
     return False
 
 

@@ -1,0 +1,49 @@
+{
+  "content": null,
+  "embed": {
+    "color": 5763719,
+    "description": "👑 <@0> · 👥 1 membros\n…",
+    "fields": [
+      {
+        "inline": true,
+        "name": "📅 Criado em",
+        "value": "<t:1111111111:D> · <t:1111111111:R>"
+      },
+      {
+        "inline": true,
+        "name": "💬 Canais",
+        "value": "1 · 1 texto · 1 voz"
+      },
+      {
+        "inline": true,
+        "name": "🏷️ Cargos",
+        "value": "1"
+      },
+      {
+        "inline": true,
+        "name": "🚀 Boosts",
+        "value": "1"
+      },
+      {
+        "inline": true,
+        "name": "🎨 Emojis",
+        "value": "1 · **💌 Stickers:** 1 · **🔒 Verificação:** Média"
+      }
+    ],
+    "footer": {
+      "text": "`1388731936914280540`"
+    },
+    "image": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "…",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "utility.serverinfo",
+  "pings": [],
+  "view": []
+}

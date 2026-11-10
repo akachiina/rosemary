@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import inspect
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
 import pytest
-import yaml
+from catalog import load_catalog
 
-import rosemary.cogs.confessions  # noqa: F401  (registers the builders)
+import rosemary.cogs.confessions  # noqa: F401  (registers the commands)
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
 from rosemary.bot import _COMMAND_NAME_RE
 from rosemary.cogs.confessions import (
@@ -168,6 +167,38 @@ def _texts(view):
     ]
 
 
+def _call_texts(call) -> list[str]:
+    """The texts of a sent card, whatever form it took (V2, embed, text)."""
+    kwargs = call.kwargs
+    texts: list[str] = []
+    view = kwargs.get("view")
+    if view is not None:
+        texts.extend(_texts(view))
+    embed = kwargs.get("embed")
+    if embed is not None:
+        texts.append(embed.title or "")
+        texts.append(embed.description or "")
+        for field in embed.fields:
+            texts.append(field.name or "")
+            texts.append(field.value or "")
+        if embed.footer and embed.footer.text:
+            texts.append(embed.footer.text)
+    content = kwargs.get("content")
+    if isinstance(content, str) and content:
+        texts.append(content)
+    return [text for text in texts if text]
+
+
+def _sent_texts(send_mock) -> list[str]:
+    """The texts of the last card sent through ``send_mock``."""
+    return _call_texts(send_mock.await_args)
+
+
+def _sent_embed(send_mock):
+    """The embed of a sent card (``None`` when the card was not an embed)."""
+    return send_mock.await_args.kwargs.get("embed")
+
+
 #: store ----------------------------------------------------------------------
 
 
@@ -264,8 +295,7 @@ async def test_store_rekey(tmp_path):
 def test_command_names_are_valid():
     assert _COMMAND_NAME_RE.match("confess")
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open(encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         name = data["confess"]["command"]["name"]
         assert _COMMAND_NAME_RE.match(name) and name == name.lower(), f"{code}:{name!r}"
         for key in ("confess_send", "confess_ban", "confess_unban", "confess_banned"):
@@ -286,8 +316,7 @@ def test_group_registers_five_subcommands():
 
 def test_confess_modal_strings_present():
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open(encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         modal = data["confess"]["modal"]
         assert len(modal["title"]) <= 45, f"{code}: modal title over Discord cap"
         assert modal["label"] and modal["placeholder"]
@@ -299,15 +328,23 @@ def test_confess_modal_strings_present():
 
 
 def test_card_specs_registered_with_exact_contracts():
-    from rosemary.cogs.confessions import (
-        default_confession_document,
-        default_confession_response_document,
-        default_confession_review_document,
-    )
+    """The family lives in the default package: the document declares the
+    contract (the copy the send site delivers)."""
+    from rosemary.core.theme_package import default_package
 
-    assert default_confession_document is not None
-    assert default_confession_review_document is not None
-    assert default_confession_response_document is not None
+    package = default_package()
+    for key in (
+        "confessions.card",
+        "confessions.response",
+        "confessions.dm.approved",
+        "confessions.dm.rejected",
+        "confessions.dm.response",
+    ):
+        assert key in package.documents, key
+        assert get_card(key) is not None, key
+
+    # The review card lives in the default package: its document declares
+    # the contract.
     assert get_card("confessions.review").variables == (
         "confession_number", "title", "body", "image_url", "author_line",
         "timestamp",
@@ -321,35 +358,15 @@ def test_card_specs_registered_with_exact_contracts():
         "color_hex", "image_url", "alias_name", "avatar_url", "op_emoji",
         "parent_link",
     )
-    for key in (
-        "confessions.dm.approved", "confessions.dm.rejected",
-        "confessions.dm.response",
-    ):
-        assert get_card(key) is not None, key
-
-
-def test_builders_signatures_accept_variables():
-    from rosemary.cogs.confessions import (
-        default_confession_approved_dm,
-        default_confession_document,
-        default_confession_rejected_dm,
-        default_confession_response_dm,
-        default_confession_response_document,
-        default_confession_review_document,
+    assert get_card("confessions.dm.approved").variables == (
+        "confession_number", "body", "message_link",
     )
-
-    for builder in (
-        default_confession_document,
-        default_confession_review_document,
-        default_confession_response_document,
-        default_confession_approved_dm,
-        default_confession_rejected_dm,
-        default_confession_response_dm,
-    ):
-        params = inspect.signature(builder).parameters
-        assert any(
-            p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
-        ), builder
+    assert get_card("confessions.dm.rejected").variables == (
+        "confession_number", "body", "reason", "reason_line",
+    )
+    assert get_card("confessions.dm.response").variables == (
+        "confession_number", "reply_index", "body", "message_link",
+    )
 
 
 #: flows ----------------------------------------------------------------------
@@ -367,8 +384,8 @@ async def test_post_direct_stores_random_color(tmp_path):
     entry = await cog.store.get(1, 111)
     assert entry is not None and entry["status"] == "open"
     assert entry["color_hex"].startswith("#") and len(entry["color_hex"]) == 7
-    view = public.send.await_args.kwargs["view"]
-    assert any("Confession (#1)" in text for text in _texts(view)), _texts(view)
+    texts = _sent_texts(public.send)
+    assert any("Confession (#1)" in text for text in texts), texts
 
 
 async def test_post_goes_to_review_when_required(tmp_path):
@@ -415,7 +432,7 @@ async def test_approve_posts_public_dm_and_cleans_review(tmp_path):
     assert entry["color_hex"].startswith("#")
     review.get_partial_message(555).delete.assert_awaited_once()
     author.send.assert_awaited_once()
-    texts = _texts(author.send.await_args.kwargs["view"])
+    texts = _sent_texts(author.send)
     assert any("approved" in text for text in texts), texts
 
 
@@ -430,7 +447,7 @@ async def test_deny_keeps_record_and_dm_reason(tmp_path):
     assert outcome == "ok"
     assert (await cog.store.get(1, 555))["status"] == "denied"
     public.send.assert_not_awaited()
-    texts = _texts(author.send.await_args.kwargs["view"])
+    texts = _sent_texts(author.send)
     assert any("spammy" in text for text in texts), texts
 
 
@@ -458,11 +475,13 @@ async def test_nested_replies_number_and_dm_both_authors(tmp_path):
     reply = await cog.store.get_reply(1, 902)
     assert reply is not None and reply["index"] == 2
     assert reply["parent_index"] == 1
-    views = [
-        call.kwargs["view"] for call in thread.send.await_args_list
+    texts = [
+        text
+        for call in thread.send.await_args_list
+        for text in _call_texts(call)
     ]
-    assert any("#1-2" in text for view in views for text in _texts(view))
-    assert any("#1-1" in text for view in views for text in _texts(view))
+    assert any("#1-2" in text for text in texts), texts
+    assert any("#1-1" in text for text in texts), texts
     # The confession's author hears about the other reply but not about
     # their own one (a DM about your own comment is noise).
     assert author.send.await_count == 1
@@ -600,7 +619,7 @@ async def test_reply_submit_posts_numbered_card_and_dm(tmp_path):
     interaction = make_click(guild, user_id=9)
     await cog._reply_submit(interaction, "my take", [])
     thread.send.assert_awaited_once()
-    texts = _texts(thread.send.await_args.kwargs["view"])
+    texts = _sent_texts(thread.send)
     assert any("#1-1" in text for text in texts), texts
     assert any("my take" in text for text in texts), texts
     author.send.assert_awaited_once()
@@ -734,16 +753,13 @@ async def test_public_card_shows_the_identicon_but_not_the_real_avatar(tmp_path)
     guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
     await _enable_confessions(bot)
     await cog._confess_submit(make_click(guild, user_id=7), "secret", [])
-    view = public.send.await_args.kwargs["view"]
-    thumbnails = [
-        item for item in view.walk_children() if isinstance(item, discord.ui.Thumbnail)
-    ]
-    assert thumbnails, "the generated identicon must be the card thumbnail"
-    assert all(
-        item.url.startswith("attachment://anonimo_") for item in thumbnails
-    ), [item.url for item in thumbnails]
+    embed = _sent_embed(public.send)
+    assert embed is not None, "the public card is an embed"
+    thumbnail = embed.thumbnail.url if embed.thumbnail else ""
+    assert thumbnail, "the generated identicon must be the card thumbnail"
+    assert thumbnail.startswith("attachment://anonimo_"), thumbnail
     avatar = "https://cdn.discordapp.com/embed/avatars/0.png"
-    assert not any(avatar in text for text in _all_strings(view))
+    assert avatar not in "\n".join(_sent_texts(public.send))
 
 
 async def test_review_card_has_no_avatar_thumbnail(tmp_path):
@@ -787,8 +803,9 @@ async def test_reply_with_image_attaches_and_persists(tmp_path):
     reply = await cog.store.get_reply(1, 901)
     assert reply is not None
     assert reply["image_url"] == "https://cdn.discordapp.com/attachments/1/42/reply.png"
-    view = thread.send.await_args.kwargs["view"]
-    assert _has_gallery(view)
+    embed = _sent_embed(thread.send)
+    assert embed is not None
+    assert embed.image and embed.image.url, "the picture rides the embed image"
 
 
 def _has_gallery(view) -> bool:
@@ -815,98 +832,107 @@ def _identicon_file(files):
     return None
 
 
-async def test_card_shows_the_alias_as_title_and_the_number_as_footer():
-    """The alias name is the card title (bold); "Confession (#N)" is the footer.
+async def test_card_shows_the_alias_as_title_and_the_number_as_footer(tmp_path):
+    """The alias name is the card title; "Confession (#N)" is the footer.
 
-    The footer follows the bot's standard: a small (``-#``) line.
+    The card is a classic embed: the alias rides the title (Discord renders
+    it bold), the identicon is the thumbnail and the numbered title closes
+    the card.
     """
-    from rosemary.cogs.confessions import default_confession_document
+    from rosemary.core.card_service import render_card_message
 
-    doc = await default_confession_document(
-        None,
+    bot = FakeBot(tmp_path)
+    payload, _allowed = await render_card_message(
+        bot,
         1,
-        confession_number=55,
-        title="Confession (#55)",
-        body="o texto",
-        image_url="",
-        color_hex="#FFB7C5",
-        timestamp="",
-        alias_name="Anonymous K7Q",
-        avatar_url="attachment://anonimo_K7Q.png",
-        op_emoji="",
+        "confessions.card",
+        {
+            "confession_number": 55,
+            "title": "Confession (#55)",
+            "body": "o texto",
+            "image_url": "",
+            "color_hex": "#FFB7C5",
+            "timestamp": "",
+            "alias_name": "Anonymous K7Q",
+            "avatar_url": "attachment://anonimo_K7Q.png",
+            "op_emoji": "",
+        },
     )
-    children = doc["blocks"][0]["children"]
-    section = children[0]
-    assert section["type"] == "section"
-    assert section["accessory"] == {"type": "thumbnail", "url": "{avatar_url}"}
-    assert section["children"][0] == {
-        "type": "text",
-        "body": "**{alias_name}**{op_emoji}",
-    }
-    assert section["children"][1] == {"type": "text", "body": "{body}"}
-    # The numbered title is the footer, right after a divider.
-    divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
-    assert children[divider + 1] == {"type": "text", "body": "-# {title}"}
-    # No heading above the alias anymore.
-    assert not any(str(c.get("body", "")).startswith("# ") for c in children)
+    assert payload is not None and payload.embed is not None
+    embed = payload.embed
+    assert embed.title == "Anonymous K7Q"
+    assert embed.description == "o texto"
+    assert embed.thumbnail is not None
+    assert embed.thumbnail.url == "attachment://anonimo_K7Q.png"
+    assert embed.footer is not None
+    assert embed.footer.text == "Confession (#55)"
+    # The alias' own color is the accent (the identicon's color).
+    assert embed.colour.value == 0xFFB7C5
 
 
-async def test_reply_card_moves_the_reference_to_the_footer():
+async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
     """The reply keeps the alias as its title; the parent reference moves to
-    the footer, as a small (``-#``) line like every card."""
-    from rosemary.cogs.confessions import default_confession_response_document
+    the footer, next to the numbered title."""
+    from rosemary.core.card_service import render_card_message
 
-    doc = await default_confession_response_document(
-        None,
+    bot = FakeBot(tmp_path)
+    payload, _allowed = await render_card_message(
+        bot,
         1,
-        confession_number=55,
-        reply_index=1,
-        title="Confession (#55-1)",
-        body="o texto",
-        parent_line="in reply to #55-1",
-        color_hex="#FFB7C5",
-        image_url="",
-        alias_name="Anonymous K7Q",
-        avatar_url="attachment://anonimo_K7Q.png",
-        op_emoji="<:op_emoji:123>",
-        parent_link="",
+        "confessions.response",
+        {
+            "confession_number": 55,
+            "reply_index": 1,
+            "title": "Confession (#55-1)",
+            "body": "o texto",
+            "parent_line": "in reply to #55-1",
+            "color_hex": "#FFB7C5",
+            "image_url": "",
+            "alias_name": "Anonymous K7Q",
+            "avatar_url": "attachment://anonimo_K7Q.png",
+            "op_emoji": "<:op_emoji:123>",
+            "parent_link": "",
+        },
     )
-    children = doc["blocks"][0]["children"]
-    section = children[0]
-    assert section["type"] == "section"
-    assert section["accessory"]["type"] == "thumbnail"
-    assert section["children"][0] == {
-        "type": "text",
-        "body": "**{alias_name}**{op_emoji}",
-    }
-    divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
-    footer = children[divider + 1:]
+    assert payload is not None and payload.embed is not None
+    embed = payload.embed
+    assert embed.title == "Anonymous K7Q<:op_emoji:123>"
+    assert embed.description == "o texto"
     # Only the reference and the number: the parent's own text never rides
     # the card (the reference links to it) and the OP emoji alone marks the
     # author.
-    assert footer == [
-        {"type": "text", "body": "-# {parent_line}"},
-        {"type": "text", "body": "-# {title}"},
-    ]
+    assert embed.footer is not None
+    assert embed.footer.text == "in reply to #55-1 · Confession (#55-1)"
 
 
-async def test_review_card_closes_with_the_standard_footer():
+async def test_review_card_closes_with_the_standard_footer(tmp_path):
     """The staff card ends with the bot's standard small timestamp line."""
-    from rosemary.cogs.confessions import default_confession_review_document
+    from rosemary.core.card_service import render_card_message
 
-    doc = await default_confession_review_document(
-        None,
+    bot = FakeBot(tmp_path)
+    payload, _allowed = await render_card_message(
+        bot,
         1,
-        confession_number=60,
-        title="Confession (#60) · Review",
-        body="o texto",
-        image_url="",
-        author_line="",
-        timestamp="2 minutes ago",
+        "confessions.review",
+        {
+            "confession_number": 60,
+            "title": "Confession (#60) · Review",
+            "body": "o texto",
+            "image_url": "",
+            "author_line": "",
+            "timestamp": "2 minutes ago",
+        },
     )
-    children = doc["blocks"][0]["children"]
-    divider = next(i for i, c in enumerate(children) if c["type"] == "divider")
-    assert children[divider + 1] == {"type": "text", "body": "-# {timestamp}"}
+    assert payload is not None and payload.view is not None
+    texts = [
+        item.content
+        for item in payload.view.walk_children()
+        if isinstance(item, discord.ui.TextDisplay)
+    ]
+    assert texts[-1] == "-# 2 minutes ago"
+    # The reveal line is a paragraph of its own: it disappears when the
+    # guild keeps the author anonymous.
+    assert not any("<@" in text for text in texts)
 
 
 async def test_public_card_attaches_the_identicon_and_keeps_the_text(tmp_path):
@@ -920,11 +946,13 @@ async def test_public_card_attaches_the_identicon_and_keeps_the_text(tmp_path):
     identicon = _identicon_file(files)
     assert identicon is not None, [f.filename for f in files]
     assert _png_bytes([identicon]).startswith(b"\x89PNG")
-    texts = _texts(public.send.await_args.kwargs["view"])
+    texts = _sent_texts(public.send)
     # The body is plain text in the card, not a rendered image.
     assert any("my secret" in text for text in texts), texts
-    # The alias is the title, in bold, and the number is the footer.
-    assert any(text.startswith("**Anonymous") for text in texts), texts
+    # The alias is the embed title (embeds render it bold) and the number
+    # is the footer.
+    embed = _sent_embed(public.send)
+    assert embed.title.startswith("Anonymous"), embed.title
     assert any("Confession (#1)" in text for text in texts), texts
     entry = await cog.store.get(1, 111)
     assert entry is not None
@@ -958,7 +986,7 @@ async def test_reply_by_the_confession_author_is_flagged_op(tmp_path):
     assert outcome == "ok"
     stored = await cog.store.get_reply(1, 901)
     assert stored is not None and stored["is_op"] is True
-    texts = _texts(thread.send.await_args.kwargs["view"])
+    texts = _sent_texts(thread.send)
     # The OP emoji rides the alias name: it is the only mark left.
     assert any("<:op_emoji:123>" in text for text in texts), texts
     assert not any("Confession author" in text for text in texts), texts
@@ -978,7 +1006,7 @@ async def test_op_emoji_can_be_turned_off(tmp_path):
     await cog.store.set_thread(1, 111, 777)
     outcome, _msg = await cog.post_reply(guild, 111, 0, author, "my own reply")
     assert outcome == "ok"
-    texts = _texts(thread.send.await_args.kwargs["view"])
+    texts = _sent_texts(thread.send)
     assert not any("<:op_emoji" in text for text in texts), texts
     assert not any("Confession author" in text for text in texts), texts
 
@@ -1036,7 +1064,7 @@ async def test_nested_reply_links_to_the_parent_without_quoting_it(tmp_path):
     )
     assert (await cog.post_reply(guild, 111, 0, replier, "parent comment"))[0] == "ok"
     assert (await cog.post_reply(guild, 111, 901, other, "child comment"))[0] == "ok"
-    texts = _texts(thread.send.await_args.kwargs["view"])
+    texts = _sent_texts(thread.send)
     assert any("#1-1" in text for text in texts), texts
     assert any(
         "discord.com/channels/1/777/901" in text for text in texts

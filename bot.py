@@ -203,10 +203,10 @@ class RosemaryBot(commands.Bot):
             return settings.get("language", "en-US")
 
         languages_dir = Path(__file__).resolve().parent / "language"
-        # The built-in theme is themes/default.yaml: the same file the
-        # ThemeStore lists as the selectable/importable "default" theme, so
-        # there is exactly one source of truth for the bot's look.
-        self.theme = load_theme(THEMES_DIR / "default.yaml")
+        # The built-in theme is the themes/default package: the same package
+        # the ThemeStore lists as the selectable/importable "default" theme,
+        # so there is exactly one source of truth for the bot's look.
+        self.theme = load_theme(THEMES_DIR / "default" / "tokens.yaml")
         self.translator = Translator(
             languages_dir=languages_dir,
             resolver=_resolver,
@@ -580,12 +580,16 @@ class RosemaryBot(commands.Bot):
         else:
             key, color = "general.unknown_error", "danger"
         try:
-            from rosemary.ui.responses import notice_view
+            from rosemary.core.feedback import line as notice_line
 
             text = await self.translator.t(guild_id, key)
-            view = await notice_view(self, guild_id, text, color=color)
+            content = notice_line(self, guild_id, text, style=color)
             with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-                await context.reply(view=view, mention_author=False)
+                await context.reply(
+                    content,
+                    mention_author=False,
+                    allowed_mentions=discord.AllowedMentions.none(),
+                )
         except Exception:  # noqa: BLE001
             log.warning("Could not answer the failed prefix command", exc_info=True)
 
@@ -607,11 +611,10 @@ class RosemaryBot(commands.Bot):
         else:
             key, color = "general.unknown_error", "danger"
         try:
-            from rosemary.ui.responses import notice_view
+            from rosemary.core.feedback import respond as respond_line
 
             text = await self.translator.t(guild_id, key)
-            view = await notice_view(self, guild_id, text, color=color)
-            await context.respond(view=view, ephemeral=True)
+            await respond_line(context, self, guild_id, text, style=color, ephemeral=True)
         except Exception:  # noqa: BLE001
             log.warning("Could not answer the failed application command", exc_info=True)
 

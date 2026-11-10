@@ -35,9 +35,11 @@ class _FakeBot:
 
 def test_bot_state_summary():
     summary = dict(bot_state_summary(_FakeBot()))
-    assert summary["debug.guilds"] == {"count": 2}
-    assert summary["debug.members"] == {"count": 15}
-    assert summary["debug.latency"] == {"ms": "500"}
+    # The names are the ones the debug.panel contract declares: the card and
+    # this fallback say the same thing.
+    assert summary["debug.guilds"] == {"guilds": 2}
+    assert summary["debug.members"] == {"members": 15}
+    assert summary["debug.latency"] == {"latency": "500"}
     assert summary["debug.uptime"] == {"uptime": "-"}
 
 

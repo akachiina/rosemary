@@ -14,12 +14,16 @@ import asyncio
 import contextlib
 import logging
 import time
+from typing import TYPE_CHECKING, Any
 
 import discord
 from discord.ext import commands
 
 from rosemary.core.settings import get_setting
 from rosemary.core.starboard import StarboardStore
+
+if TYPE_CHECKING:
+    from rosemary.core.card_service import CardPayload
 
 log = logging.getLogger(__name__)
 
@@ -71,53 +75,6 @@ class StarboardCog(commands.Cog):
 
     #: rendering -----------------------------------------------------------
 
-    def _build_card(
-        self,
-        message: discord.Message,
-        stars: int,
-        jump_label: str,
-        no_content_label: str,
-        footer_text: str,
-    ) -> discord.ui.DesignerView:
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        theme = self.bot.theme
-        star = theme.emoji("star")
-        channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
-        title = f"{star} {stars} · {channel_mention}"
-        body = message.content or no_content_label
-        image_url = next(
-            (
-                attachment.url
-                for attachment in message.attachments
-                if (attachment.content_type or "").startswith("image/")
-            ),
-            None,
-        )
-        container_items: list[discord.ui.ViewItem] = [
-            discord.ui.Section(
-                TextDisplay(theme.md("title", title=title)),
-                TextDisplay(body),
-                accessory=discord.ui.Thumbnail(message.author.display_avatar.url),
-            )
-        ]
-        if image_url is not None:
-            container_items.append(discord.ui.MediaGallery(discord.MediaGalleryItem(image_url)))
-        container_items.append(discord.ui.TextDisplay(footer_text))
-        container_items.append(
-            discord.ui.ActionRow(
-                discord.ui.Button(
-                    style=discord.ButtonStyle.link,
-                    label=jump_label,
-                    url=message.jump_url,
-                )
-            )
-        )
-        color = _ramp_color(theme, stars)
-        view = DesignerView(store=False)
-        view.add_item(designer_container(color, *container_items))
-        return view
-
     async def _card_view(
         self,
         guild_id: int,
@@ -125,48 +82,28 @@ class StarboardCog(commands.Cog):
         stars: int,
         jump_label: str,
         no_content_label: str,
-    ) -> tuple[discord.ui.DesignerView, discord.AllowedMentions]:
+    ) -> tuple[CardPayload, discord.AllowedMentions]:
         """Themed ``starboard.card`` when defined, else the code-built default.
 
         Routed like every other card so a theme can restyle the mural post;
         the default builder stays in code because the layout reacts to the
         star tier (accent color) and the original attachments. Returns the
         payload plus its mention policy: pings are content, never global."""
-        from rosemary.core.card_service import render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
+        from rosemary.core.themes import theme_for
 
-        star = _ramp_emoji(self.bot.theme, stars)
-        channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
-        title = f"{star} {stars} · {channel_mention}"
-        body = message.content or no_content_label
-        image_url = next(
-            (
-                attachment.url
-                for attachment in message.attachments
-                if (attachment.content_type or "").startswith("image/")
-            ),
-            None,
-        )
+        variables = self._card_variables(message, stars, no_content_label, guild_id)
         payload, allowed = await render_card_message(
             self.bot,
             guild_id,
             "starboard.card",
-            {
-                "user": message.author.mention,
-                "user_name": message.author.display_name,
-                "user_avatar": message.author.display_avatar.url,
-                "stars": stars,
-                "title": title,
-                "body": body,
-                "image_url": image_url or "",
-                "message_link": message.jump_url,
-                "timestamp": discord.utils.format_dt(message.created_at, style="R"),
-            },
+            variables,
         )
         if payload is not None:
             return payload, allowed
-        from rosemary.core.card_service import CardPayload
         from rosemary.core.mentions import allowed_for_text
 
+        body = str(variables.get("body") or "")
         footer_text = await self._footer_text(
             guild_id,
             message.author.mention,
@@ -179,14 +116,60 @@ class StarboardCog(commands.Cog):
             body,
             user_ids=[message.author.id],
         )
+        # The fallback follows the card's own form (an embed): the mural
+        # post never changes its surface under the readers.
         return (
-            CardPayload(
-                view=self._build_card(
-                    message, stars, jump_label, no_content_label, footer_text
-                )
+            simple_payload(
+                self.bot,
+                guild_id,
+                "starboard.card",
+                title=str(variables.get("title") or ""),
+                body=body,
+                color=_ramp_color(theme_for(self.bot, guild_id), stars),
+                thumbnail=message.author.display_avatar.url,
+                image=variables.get("image_url") or None,
+                footer=footer_text,
+                buttons=((jump_label, message.jump_url),),
             ),
             allowed,
         )
+
+    def _card_variables(
+        self,
+        message: discord.Message,
+        stars: int,
+        no_content_label: str,
+        guild_id: int | None = None,
+    ) -> dict[str, Any]:
+        """The contract variables of ``starboard.card`` (the send site)."""
+        from rosemary.core.themes import theme_for
+
+        theme = theme_for(self.bot, guild_id)
+        star = _ramp_emoji(theme, stars)
+        channel_mention = getattr(message.channel, "mention", f"#{message.channel}")
+        image_url = next(
+            (
+                attachment.url
+                for attachment in message.attachments
+                if (attachment.content_type or "").startswith("image/")
+            ),
+            None,
+        )
+        return {
+            "user": message.author.mention,
+            "user_name": message.author.display_name,
+            "user_avatar": message.author.display_avatar.url,
+            "stars": stars,
+            # The color token of the card: the theme owns the ramp (or its
+            # tier styles), so the send site computes it and the document
+            # picks it up.
+            "state_color": _ramp_hex(theme, stars),
+            "title": f"{star} {stars} · {channel_mention}",
+            "body": message.content or no_content_label,
+            "image_url": image_url or "",
+            "message_link": message.jump_url,
+            "timestamp": discord.utils.format_dt(message.created_at, style="R"),
+        }
 
     async def _footer_text(self, guild_id: int, user_mention: str, timestamp: str) -> str:
         """The author footer line for the code-built fallback (``-#`` small)."""
@@ -228,6 +211,21 @@ class StarboardCog(commands.Cog):
                     card, allowed = await self._card_view(
                         channel.guild.id, message, stars, jump_label, no_content_label
                     )
+                    from rosemary.core.card_service import align_to_message
+
+                    card, allowed = await align_to_message(
+                        self.bot,
+                        channel.guild.id,
+                        "starboard.card",
+                        self._card_variables(message, stars, no_content_label, channel.guild.id),
+                        card,
+                        allowed,
+                        post,
+                    )
+                    if card is None:
+                        # The message shape forbids this card: the mural post
+                        # stays as it is (the V2 flag is immutable).
+                        return
                     await post.edit(**card.message_kwargs(), allowed_mentions=allowed)
                     self._last_edit[message.id] = time.monotonic()
                     await self.store.update_stars(channel.guild.id, message.id, stars)
@@ -353,53 +351,4 @@ def _ramp_emoji(theme, stars: int) -> str:
     return theme.star_title_emoji(stars)
 
 
-async def default_starboard_document(bot, guild_id: int, **variables) -> dict:
-    """Full featured default for ``starboard.card`` (no theme override).
-
-    The tiered container wraps: the tiered title beside the author's avatar
-    thumbnail, the attachment gallery (skipped when ``{image_url}`` resolves
-    empty: no image in the starred message), a divider, the standard
-    author footer (``card.author_footer.text``) and the jump-to-message link
-    button (``{message_link}`` comes from the send site). Placeholders stay
-    literal: this is a template.
-    """
-    from rosemary.core.cards import author_footer_blocks
-
-    stars = int(variables.get("stars") or 1)
-    footer = await author_footer_blocks(bot, guild_id)
-    jump_label = await bot.translator.t(guild_id, "starboard.jump")
-    return {
-        "v": 1,
-        "blocks": [
-            {
-                "type": "container",
-                "color": _ramp_hex(bot.theme, stars),
-                "children": [
-                    {
-                        "type": "section",
-                        "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
-                        "children": [
-                            {"type": "text", "body": "# {title}"},
-                            {"type": "text", "body": "{body}"},
-                        ],
-                    },
-                    {"type": "gallery", "urls": ["{image_url}"]},
-                    *footer,
-                    {
-                        "type": "row",
-                        "buttons": [{"label": jump_label, "url": "{message_link}"}],
-                    },
-                ],
-            }
-        ],
-    }
-
-
-def _register_default_builder() -> None:
-    from rosemary.core.cards import set_default_builder
-
-    set_default_builder("starboard.card", default_starboard_document)
-
-
-_register_default_builder()
 

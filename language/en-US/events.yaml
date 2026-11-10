@@ -1,0 +1,25 @@
+events:
+  enabled:
+    label: Enable announcements
+    description: Send welcome, leave and ban messages.
+  welcome_channel:
+    label: Welcome channel
+    description: Channel for member join messages.
+  leave_channel:
+    label: Leave channel
+    description: Channel for member leave messages.
+  ban_channel:
+    label: Ban channel
+    description: Channel for ban announcements.
+  raid_protection:
+    label: Raid protection
+    description: Delay welcomes when many members join at once.
+  welcome:
+    title: '{tada} Welcome!'
+    body: '{user} just joined. Say hi! Member #{count} of {server}.'
+  leave:
+    title: '{door} Until next time'
+    body: '{user_name} left the server. We are now {count} members.'
+  ban:
+    title: '{ban} Member banned'
+    body: '{user_name} (`{user_id}`) has been banned from {server}.'

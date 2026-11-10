@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
+from catalog import load_catalog
 
 from rosemary.core.roleplay import (
     ACTIONS,
@@ -28,9 +29,7 @@ class FakeTranslator:
     """Resolves real pt-BR catalog strings (parity is tested elsewhere)."""
 
     def __init__(self) -> None:
-        import yaml
-
-        self.catalog = yaml.safe_load((ROOT / "language" / "pt-BR.yaml").read_text())
+        self.catalog = load_catalog("pt-BR")
 
     async def t(self, guild_id, key, **variables):
         node = self.catalog
@@ -604,7 +603,6 @@ async def test_prefix_command_ignores_self_and_unknown_verbs(tmp_path):
 async def test_roleplay_sentence_is_body_not_title_and_pings_both(tmp_path):
     """The titleless card opens with the action sentence, pinging both."""
     import rosemary.core.card_specs  # noqa: F401 (fills the card registry)
-    from rosemary.cogs.roleplay import default_interaction_document
     from rosemary.core.card_service import render_card_message
 
     bot = _bot(tmp_path)
@@ -616,27 +614,16 @@ async def test_roleplay_sentence_is_body_not_title_and_pings_both(tmp_path):
         "gif_url": "https://media.tenor.com/hug.gif",
         "timestamp": "<t:1:R>",
     }
-    doc = await default_interaction_document(bot, 1, **variables)
-    bodies: list[str] = []
-
-    def collect(node) -> None:
-        if isinstance(node, dict):
-            if isinstance(node.get("body"), str):
-                bodies.append(node["body"])
-            for value in node.values():
-                collect(value)
-        elif isinstance(node, list):
-            for item in node:
-                collect(item)
-
-    collect(doc["blocks"])
-    opening = bodies[0]
-    assert "{@actor}" in opening and "{@target}" in opening
-    assert not [b for b in bodies if "abraçou" in b and "{@actor}" not in b]
-
-    _payload, allowed = await render_card_message(
-        bot, 1, "roleplay.card", variables
-    )
+    payload, allowed = await render_card_message(bot, 1, "roleplay.card", variables)
+    assert payload is not None and payload.embed is not None
+    embed = payload.embed
+    # The sentence is the body of the card, never its title.
+    assert not embed.title, embed.title
+    assert "abraçou" in (embed.description or "")
+    assert "<@100>" in (embed.description or "")
+    assert "<@200>" in (embed.description or "")
+    # A classic embed never notifies: the pings travel in the content.
+    assert "<@100>" in (payload.content or "")
     pinged = {obj.id for obj in (allowed.users or [])}
     assert pinged == {100, 200}, allowed
 
@@ -711,12 +698,10 @@ async def test_send_with_no_repeat_avoids_last_gif(tmp_path):
     )
     assert sent is True
     kwargs = channel.send.await_args.kwargs
-    gallery_urls = [
-        gallery.items[0].media.url
-        for gallery in kwargs["view"].walk_children()
-        if isinstance(gallery, discord.ui.MediaGallery)
-    ]
-    assert gallery_urls == ["https://gifs/b.gif"], gallery_urls
+    # The roleplay card ships as an embed: the gif rides the embed image.
+    embed = kwargs.get("embed")
+    assert embed is not None
+    assert embed.image and embed.image.url == "https://gifs/b.gif"
     assert await cog.store.get_recent(1, "hug") == [
         "https://gifs/a.gif",
         "https://gifs/b.gif",
@@ -724,30 +709,24 @@ async def test_send_with_no_repeat_avoids_last_gif(tmp_path):
 
 
 async def test_default_card_has_no_avatar(tmp_path):
-    """The default roleplay card shows no user image (thumbnail dropped)."""
-    from rosemary.cogs.roleplay import default_interaction_document
+    """The default roleplay card shows no user image (no thumbnail)."""
+    from rosemary.core.card_service import render_card_message
 
     bot = _bot(tmp_path)
-    doc = await default_interaction_document(
+    payload, _allowed = await render_card_message(
         bot,
         1,
-        actor="<@100>",
-        target="<@200>",
-        actor_avatar="https://a.b/x.png",
-        action="abraçou",
-        gif_url="https://media.tenor.com/hug.gif",
-        timestamp="<t:1:R>",
+        "roleplay.card",
+        {
+            "actor": "<@100>",
+            "target": "<@200>",
+            "actor_avatar": "https://a.b/x.png",
+            "action": "abraçou",
+            "gif_url": "https://media.tenor.com/hug.gif",
+            "timestamp": "<t:1:R>",
+        },
     )
-
-    def walk(node):
-        if isinstance(node, dict):
-            yield node
-            for value in node.values():
-                yield from walk(value)
-        elif isinstance(node, list):
-            for item in node:
-                yield from walk(item)
-
-    blocks = list(walk(doc["blocks"]))
-    assert not [b for b in blocks if b.get("type") == "thumbnail"], blocks
-    assert not any("actor_avatar" in str(b) for b in blocks), blocks
+    assert payload is not None and payload.embed is not None
+    embed = payload.embed
+    assert not getattr(embed.thumbnail, "url", "")
+    assert "actor_avatar" not in (embed.description or "")

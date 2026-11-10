@@ -1,0 +1,30 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "debug.panel",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "content": "# Painel de debug",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Servidores: 1\nMembros: 1\nLatência: 42 ms\nAtivo há: 1d 2h 3m\nVersão: v1.0.0\nTema: default\nLogs: On\nRegistro de eventos: On",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# <t:1767225600:R>",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

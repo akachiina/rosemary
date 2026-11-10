@@ -1,0 +1,20 @@
+{
+  "content": null,
+  "embed": {
+    "color": 16766720,
+    "description": "✅ Sua sugestão **#1** foi aprovada por <@0>!\nMotivo: …",
+    "fields": [],
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "suggestions.dm.approved",
+  "pings": [],
+  "view": [
+    {
+      "label": "Ir para a sugestão",
+      "style": "link",
+      "type": "Button",
+      "url": "https://example.com/message"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "content": "✅ **|** Seu Cargo Boost Voltou!\nOlá, <@0>! Seu cargo boost @… está ativo de novo no **…**, incluindo os membros anteriores.\n\nUse o painel de cargos boost para gerenciar tudo.",
+  "embed": null,
+  "form": "text",
+  "key": "boost.dm.auto_restored",
+  "pings": [
+    0
+  ],
+  "view": []
+}

@@ -1,0 +1,76 @@
+tickets:
+  command:
+    name: tickets
+    description: Ticket panels
+  error_disabled: '{error} Tickets are disabled on this server.'
+  error_no_panel: '{error} No ticket panel channel configured.'
+  error_no_perms: '{error} The bot needs Manage Channels permission.'
+  error_no_category: '{error} No ticket category configured.'
+  error_max_open: '{error} You already have too many open tickets.'
+  error_not_found: '{error} Ticket not found.'
+  error_forbidden: '{error} Only the ticket owner or staff can do that.'
+  error_close_first: '{error} Close the ticket before deleting it.'
+  panel_posted: '{success} Ticket panel posted.'
+  panel:
+    title: Need help? Open a ticket
+    text: Pick a type below and we will assist you.
+    placeholder: Choose a ticket type...
+  types:
+    report:
+      label: Report
+      description: Report a member or an issue
+      prefix: report
+    confidential:
+      label: Confidential
+      description: Private matter for the staff
+      prefix: private
+    partnership:
+      label: Partnership
+      description: Partnership requests
+      prefix: partner
+    boost:
+      label: Boost perks
+      description: Questions about boost roles
+      prefix: boost
+  confirm: Confirm
+  cancel: Cancel
+  cancelled: Cancelled.
+  confirm_title: Open a ticket?
+  confirm_text: Open a **{type}** ticket?
+  created_confirm: '{success} Ticket opened: {channel}'
+  close: Close
+  transcript: Transcript
+  reopen: Reopen
+  delete: Delete
+  created:
+    title: Ticket opened
+    text: '{user}, describe your issue. Staff will assist you soon ({type}).'
+  closed_done: '{success} Ticket closed.'
+  reopened_done: '{success} Ticket reopened.'
+  deleted_done: '{success} Ticket deleted.'
+  transcript_sent: '{success} Transcript sent to the log channel.'
+  transcript_failed: '{error} No log channel configured for transcripts.'
+  logs:
+    opened:
+      title: '{envelope} Ticket Opened'
+      description: '{user} opened a **{type}** ticket in {channel}.'
+    closed:
+      title: '{lock} Ticket Closed'
+      description: Ticket {channel} was closed.
+    reopened:
+      title: '{unlock} Ticket Reopened'
+      description: Ticket {channel} was reopened.
+    deleted:
+      title: '{trash} Ticket Deleted'
+      description: Ticket {channel} was deleted.
+    transcript:
+      title: '{scroll} Ticket Transcript'
+      description: Transcript of {channel} (requested by {moderator}).
+tickets_admin:
+  command:
+    name: tickets_admin
+    description: '[ADMIN] Admin-only ticket tools'
+tickets_admin_panel:
+  command:
+    name: panel
+    description: '[ADMIN] Post the ticket panel'

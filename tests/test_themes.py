@@ -272,6 +272,33 @@ def test_load_theme_file_rejects_bad_names_and_colors(tmp_path):
         load_theme_file(bad_color)
 
 
+def test_theme_file_extends_the_built_in_tokens(tmp_path):
+    """A theme customizes the bot: the tokens it omits keep the built-in
+    value.
+
+    Without the baseline, a partial theme would leave every card without
+    its accent (the color token unknown) or with a raw ``{emoji}``
+    placeholder.
+    """
+    partial = tmp_path / "partial.yaml"
+    partial.write_text(
+        'name: partial\ncolors:\n  brand: "#ff8fc7"\nemojis:\n  star: "🌟"\n',
+        encoding="utf-8",
+    )
+    theme = load_theme_file(partial)
+    built_in = load_theme()
+    # The theme's own tokens win.
+    assert theme.colors["brand"] == "#ff8fc7"
+    assert theme.emojis["star"] == "🌟"
+    # The ones it does not define keep the built-in value.
+    assert theme.colors["danger"] == built_in.colors["danger"]
+    assert theme.colors["gold"] == built_in.colors["gold"]
+    assert theme.emojis["ban"] == built_in.emojis["ban"]
+    assert theme.markdown["title"] == built_in.markdown["title"]
+    # The styles survive too: the ramps and the tiers are part of the look.
+    assert set(built_in.styles) <= set(theme.styles)
+
+
 def test_themeerror_carries_issue_codes():
     err = ThemeError([CardIssue("theme_bad_name", (("name", "X"),))])
     assert "theme_bad_name" in str(err)

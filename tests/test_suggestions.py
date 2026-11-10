@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -11,9 +10,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 import pytest
-import yaml
+from catalog import load_catalog
 
-import rosemary.cogs.suggestions  # noqa: F401  (registers the builder)
+import rosemary.cogs.suggestions  # noqa: F401  (registers the command)
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
 from rosemary.bot import _COMMAND_NAME_RE
 from rosemary.cogs.suggestions import (
@@ -22,14 +21,14 @@ from rosemary.cogs.suggestions import (
     SuggestionVoteView,
     _safe_filename,
     _score_color,
-    default_suggestion_document,
-    default_suggestion_vote_dm_document,
+    _score_hex,
+    _side_color,
 )
 from rosemary.core.cards import get_card
 from rosemary.core.i18n import Translator
 from rosemary.core.storage import GuildStorage
 from rosemary.core.suggestions import SuggestionStore
-from rosemary.core.variables import VARIABLES, samples_for
+from rosemary.core.variables import VARIABLES
 from rosemary.ui.theme import load_theme
 
 LANG_DIR = Path(__file__).resolve().parents[1] / "language"
@@ -151,8 +150,7 @@ async def test_toggle_vote_rejects_unknown_side(tmp_path):
 def test_command_names_are_valid():
     assert _COMMAND_NAME_RE.match("suggest") and "suggest".lower() == "suggest"
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open(encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         name = data["suggest"]["command"]["name"]
         assert _COMMAND_NAME_RE.match(name) and name == name.lower(), f"{code}:{name!r}"
         assert isinstance(data["suggest"]["command"]["description"], str)
@@ -177,8 +175,7 @@ def test_group_registers_three_subcommands():
 
 def test_suggest_modal_strings_present():
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open(encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         modal = data["suggest"]["modal"]
         assert len(modal["title"]) <= 45, f"{code}: modal title over Discord cap"
         assert modal["label"] and modal["placeholder"]
@@ -191,30 +188,48 @@ def test_suggest_modal_strings_present():
 def test_card_spec_registered_with_exact_contract():
     spec = get_card("suggestions.card")
     assert spec is not None
+    # The document declares the contract: the copy the send site delivers.
     assert spec.variables == (
         "user", "user_name", "user_avatar", "suggestion_number", "title", "body",
         "image_url", "upvotes", "downvotes", "score", "message_link", "timestamp",
-        "status",
+        "status", "status_line", "command",
     )
     for name in spec.variables:
         assert name in VARIABLES, f"unregistered variable {name}"
 
 
+def test_suggestion_cards_are_documents():
+    """The family lives in the default package: the document is the source of
+    truth (no builder, no seed)."""
+    from rosemary.core.cards import get_card
+    from rosemary.core.theme_package import default_package
+
+    package = default_package()
+    for key in (
+        "suggestions.card",
+        "suggestions.dm.vote",
+        "suggestions.dm.approved",
+        "suggestions.dm.rejected",
+    ):
+        assert key in package.documents, key
+        assert get_card(key) is not None, key
+
+
 def test_new_variables_have_labels_in_both_catalogs():
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open(encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
-        for name in ("suggestion_number", "upvotes", "downvotes", "score"):
+        data = load_catalog(code)
+        for name in (
+            "suggestion_number",
+            "upvotes",
+            "downvotes",
+            "score",
+            "status_line",
+            "reason_line",
+            "command",
+        ):
             entry = (data.get("variables") or {}).get(name) or {}
             assert isinstance(entry.get("label"), str), f"{code}:{name}.label"
             assert isinstance(entry.get("description"), str), f"{code}:{name}.description"
-
-
-def test_builder_signature_accepts_variables():
-    params = inspect.signature(default_suggestion_document).parameters
-    assert any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
-    dm_params = inspect.signature(default_suggestion_vote_dm_document).parameters
-    assert any(p.kind is inspect.Parameter.VAR_KEYWORD for p in dm_params.values())
 
 
 def test_score_color_branches():
@@ -223,32 +238,48 @@ def test_score_color_branches():
     assert _score_color(0) == "info"
 
 
-async def test_default_document_colors_and_placeholders(tmp_path):
-    from rosemary.core.card_service import default_document
-
+async def test_send_site_picks_the_state_color(tmp_path):
+    """The theme owns what the tone means: the send site reads the ramp (or
+    the fixed tone of a decision) and hands the document the token."""
     bot = FakeBot(tmp_path)
-    variables = samples_for(get_card("suggestions.card").variables)
-    for score in (5, -1, 0):
-        doc = await default_document(
-            bot, 1, "suggestions.card", {**variables, "score": score}
-        )
-        assert doc is not None
-        color = doc["blocks"][0]["color"]
-        assert isinstance(color, str) and color.startswith("#"), color
+    cog = SuggestionsCog(bot)
+    guild, _channel, _member, _sent = make_guild()
+
+    open_vars = await cog._variables_for(
+        guild, {"author_id": 7, "number": 1, "body": "idea", "status": "open"}
+    )
+    assert open_vars["state_color"] == _score_hex(bot.theme, 0)
+    assert open_vars["status_line"] == ""
+
+    approved = await cog._variables_for(
+        guild, {"author_id": 7, "number": 1, "body": "idea", "status": "approved"}
+    )
+    assert approved["state_color"] == "gold"
+    assert "Approved" in approved["status_line"], approved["status_line"]
+
+    rejected = await cog._variables_for(
+        guild, {"author_id": 7, "number": 1, "body": "idea", "status": "rejected"}
+    )
+    assert rejected["state_color"] == "danger"
+    assert "Rejected" in rejected["status_line"], rejected["status_line"]
 
 
 async def test_score_ramp_moves_with_balance(tmp_path):
     """Starboard-style: every vote nudges the tone toward the strong end."""
-    from rosemary.core.card_service import default_document
+    from rosemary.cogs.suggestions import _score_hex
+    from rosemary.core.card_service import render_card_message
 
     bot = FakeBot(tmp_path)
-    variables = samples_for(get_card("suggestions.card").variables)
 
     async def color_for(score):
-        doc = await default_document(
-            bot, 1, "suggestions.card", {**variables, "score": score}
+        variables = _card_variables(
+            score=score, state_color=_score_hex(bot.theme, score)
         )
-        return doc["blocks"][0]["color"]
+        payload, _allowed = await render_card_message(
+            bot, 1, "suggestions.card", variables
+        )
+        assert payload is not None and payload.embed is not None
+        return payload.embed.colour.value
 
     neutral, low, mid, strong = await asyncio.gather(
         color_for(0), color_for(1), color_for(5), color_for(10)
@@ -256,7 +287,7 @@ async def test_score_ramp_moves_with_balance(tmp_path):
     assert neutral != low != mid != strong, (neutral, low, mid, strong)
     # Positive ramp: the blue channel only falls toward the strong end
     # (light yellow -> gold drains blue, the legacy bot's warm-up).
-    blues = [int(c.lstrip("#")[4:6], 16) for c in (low, mid, strong)]
+    blues = [int(f"{value:06X}"[4:6], 16) for value in (low, mid, strong)]
     assert blues == sorted(blues, reverse=True), blues
     # Negative pulls toward red: same score magnitude, opposite direction.
     down = await color_for(-5)
@@ -264,46 +295,57 @@ async def test_score_ramp_moves_with_balance(tmp_path):
 
 
 async def test_score_falls_back_to_tokens_without_ramp(tmp_path):
-    from rosemary.core.card_service import default_document
+    from rosemary.cogs.suggestions import _score_hex
+    from rosemary.core.card_service import render_card_message
 
     bot = FakeBot(tmp_path)
     bot.theme.styles.pop("suggestion_ramp", None)
     assert bot.theme.suggestion_ramp_config() is None
-    variables = samples_for(get_card("suggestions.card").variables)
-    doc = await default_document(
-        bot, 1, "suggestions.card", {**variables, "score": 4}
+    variables = _card_variables(
+        score=4, state_color=_score_hex(bot.theme, 4)
     )
-    expected = f"#{bot.theme.color('success').value:06X}"
-    assert doc["blocks"][0]["color"] == expected
+    payload, _allowed = await render_card_message(bot, 1, "suggestions.card", variables)
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.colour.value == bot.theme.color("success").value
 
 
-async def test_default_document_renders_title_body_counts(tmp_path):
-    from rosemary.core.card_service import render_document
+async def test_card_renders_title_body_counts_and_hint(tmp_path):
+    from rosemary.core.card_service import render_card_message
 
     bot = FakeBot(tmp_path)
-    variables = {
-        "user": "<@7>",
-        "user_name": "Author",
-        "user_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
-        "suggestion_number": 12,
-        "title": "Suggestion #12",
-        "body": "add more emojis",
-        "upvotes": 4,
-        "downvotes": 1,
-        "score": 3,
-        "message_link": "https://discord.com/channels/1/42/111",
-        "timestamp": "<t:1111111111:R>",
-    }
-    doc = await default_suggestion_document(bot, 1, **variables)
-    view = await render_document(bot, doc, variables, guild_id=1, card_key="suggestions.card")
-    texts = [
-        item.content
-        for item in view.walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
-    assert any("Suggestion #12" in text for text in texts), texts
-    assert any("add more emojis" in text for text in texts), texts
-    assert any("4" in text and "1" in text for text in texts), texts
+    payload, _allowed = await render_card_message(
+        bot, 1, "suggestions.card", _card_variables()
+    )
+    assert payload is not None and payload.embed is not None
+    embed = payload.embed
+    assert embed.title == "Suggestion #1"
+    assert "more emojis please" in (embed.description or "")
+    assert "⬆️ 0 · ⬇️ 0" in (embed.description or "")
+    # The hint names the localized command, and the attribution closes the
+    # card.
+    footer = embed.footer.text if embed.footer else ""
+    assert "/suggest" in footer
+    assert "<@7>" in footer
+
+
+async def test_status_line_shows_only_when_decided(tmp_path):
+    from rosemary.core.card_service import render_card_message
+
+    bot = FakeBot(tmp_path)
+    open_payload, _ = await render_card_message(
+        bot, 1, "suggestions.card", _card_variables(status="open", status_line="")
+    )
+    assert open_payload is not None and open_payload.embed is not None
+    assert "Approved" not in (open_payload.embed.description or "")
+
+    decided, _ = await render_card_message(
+        bot,
+        1,
+        "suggestions.card",
+        _card_variables(status="approved", status_line="✅ Aprovada pela staff"),
+    )
+    assert decided is not None and decided.embed is not None
+    assert "Aprovada pela staff" in (decided.embed.description or "")
 
 
 #: vote view ------------------------------------------------------------------
@@ -416,37 +458,22 @@ async def test_deleted_message_clears_entry(tmp_path):
 #: footer hint --------------------------------------------------------------
 
 
-async def test_default_document_includes_hint(tmp_path):
-    from rosemary.core.card_service import render_document
+async def test_card_includes_the_hint(tmp_path):
+    """The footer names the localized command the card points at."""
+    from rosemary.core.card_service import render_card_message
 
     for language, expected in (
         ("en-US", "Use `/suggest` or the button below to send your suggestion!"),
         ("pt-BR", "Use `/sugestao` ou o botão abaixo para enviar a sua sugestão!"),
     ):
         bot = FakeBot(tmp_path, language)
-        variables = {
-            "user": "<@7>",
-            "user_name": "Author",
-            "user_avatar": "https://cdn.discordapp.com/embed/avatars/0.png",
-            "suggestion_number": 1,
-            "title": "Suggestion #1",
-            "body": "more emojis please",
-            "upvotes": 0,
-            "downvotes": 0,
-            "score": 0,
-            "message_link": "https://discord.com/channels/1/42/111",
-            "timestamp": "<t:1111111111:R>",
-        }
-        doc = await default_suggestion_document(bot, 1, **variables)
-        view = await render_document(
-            bot, doc, variables, guild_id=1, card_key="suggestions.card"
+        command = "suggest" if language == "en-US" else "sugestao"
+        payload, _allowed = await render_card_message(
+            bot, 1, "suggestions.card", _card_variables(command=command)
         )
-        texts = [
-            item.content
-            for item in view.walk_children()
-            if isinstance(item, discord.ui.TextDisplay)
-        ]
-        assert any(expected in text for text in texts), (language, texts)
+        assert payload is not None and payload.embed is not None
+        footer = payload.embed.footer.text if payload.embed.footer else ""
+        assert expected in footer, (language, footer)
 
 
 #: vote DM ------------------------------------------------------------------
@@ -464,8 +491,7 @@ def test_dm_vote_spec_registered_with_exact_contract():
 
 def test_dm_vote_variables_have_labels_in_both_catalogs():
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open(encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         for name in ("voter", "vote", "side"):
             entry = (data.get("variables") or {}).get(name) or {}
             assert isinstance(entry.get("label"), str), f"{code}:{name}.label"
@@ -487,6 +513,46 @@ def _dm_texts_and_urls(view):
     return texts, urls
 
 
+def _payload_texts(kwargs) -> list[str]:
+    """The texts of a sent card, whatever form it took (V2, embed, text)."""
+    texts: list[str] = []
+    view = kwargs.get("view")
+    if view is not None:
+        texts.extend(_dm_texts_and_urls(view)[0])
+    embed = kwargs.get("embed")
+    if embed is not None:
+        texts.append(embed.title or "")
+        texts.append(embed.description or "")
+        for field in embed.fields:
+            texts.append(field.name or "")
+            texts.append(field.value or "")
+        if embed.footer and embed.footer.text:
+            texts.append(embed.footer.text)
+    content = kwargs.get("content")
+    if isinstance(content, str) and content:
+        texts.append(content)
+    return [text for text in texts if text]
+
+
+def _payload_urls(kwargs) -> list[str]:
+    """The link urls of a sent card (the jump button)."""
+    view = kwargs.get("view")
+    if view is None:
+        return []
+    return _dm_texts_and_urls(view)[1]
+
+
+def _payload_has_image(kwargs) -> bool:
+    """Whether the sent card carries an image (the gallery or the embed)."""
+    embed = kwargs.get("embed")
+    if embed is not None and embed.image and embed.image.url:
+        return True
+    view = kwargs.get("view")
+    if view is None:
+        return False
+    return _has_gallery(view)
+
+
 async def test_vote_sends_dm_to_owner(tmp_path):
     bot = FakeBot(tmp_path)
     cog = SuggestionsCog(bot)
@@ -496,8 +562,9 @@ async def test_vote_sends_dm_to_owner(tmp_path):
     message = make_message()
     assert await cog.apply_vote(guild, message, 9, "up") is True
     member.send.assert_awaited_once()
-    view = member.send.await_args.kwargs["view"]
-    texts, urls = _dm_texts_and_urls(view)
+    kwargs = member.send.await_args.kwargs
+    texts = _payload_texts(kwargs)
+    urls = _payload_urls(kwargs)
     assert any("upvote" in text for text in texts), texts
     assert any("vote on me" in text for text in texts), texts
     assert any("#1" in text for text in texts), texts
@@ -511,8 +578,7 @@ async def test_vote_down_dm_uses_downvote_word(tmp_path):
     guild, channel, member, _sent = make_guild()
     await cog.post_suggestion(guild, channel, member, "vote on me")
     assert await cog.apply_vote(guild, make_message(), 9, "down") is True
-    view = member.send.await_args.kwargs["view"]
-    texts, _urls = _dm_texts_and_urls(view)
+    texts = _payload_texts(member.send.await_args.kwargs)
     assert any("downvote" in text for text in texts), texts
 
 
@@ -520,7 +586,9 @@ async def test_vote_down_dm_uses_downvote_word(tmp_path):
 
 
 async def test_dm_document_color_follows_side(tmp_path):
-    from rosemary.core.card_service import default_document
+    """The voted side chooses the accent: the send site hands the document
+    the token the theme understands."""
+    from rosemary.core.card_service import render_card_message
 
     bot = FakeBot(tmp_path)
     base = {
@@ -530,16 +598,21 @@ async def test_dm_document_color_follows_side(tmp_path):
         "message_link": "https://discord.com/channels/1/42/111",
         "vote": "upvote",
     }
-    assert (await default_document(bot, 1, "suggestions.dm.vote", {**base, "side": "up"}))[
-        "blocks"
-    ][0]["color"] == "success"
-    assert (await default_document(bot, 1, "suggestions.dm.vote", {**base, "side": "down"}))[
-        "blocks"
-    ][0]["color"] == "danger"
+    expected = {"up": "success", "down": "danger", "": "info"}
+    for side, token in expected.items():
+        variables = {**base, "side": side or None, "state_color": _side_color(side or None)}
+        payload, _allowed = await render_card_message(
+            bot, 1, "suggestions.dm.vote", variables
+        )
+        assert payload is not None and payload.embed is not None
+        assert payload.embed.colour.value == bot.theme.color(token).value, side
+
+
+async def test_dm_side_color_branches():
+    assert _side_color("up") == "success"
+    assert _side_color("down") == "danger"
     # Defensive: a missing side stays neutral, never crashes.
-    assert (await default_document(bot, 1, "suggestions.dm.vote", dict(base)))[
-        "blocks"
-    ][0]["color"] == "info"
+    assert _side_color(None) == "info"
 
 
 async def test_dm_renders_bold_markdown(tmp_path):
@@ -553,8 +626,7 @@ async def test_dm_renders_bold_markdown(tmp_path):
     guild.get_member.side_effect = lambda uid: voter if uid == 9 else member
     await cog.post_suggestion(guild, channel, member, "vote on me")
     assert await cog.apply_vote(guild, make_message(), 9, "up") is True
-    view = member.send.await_args.kwargs["view"]
-    texts, _urls = _dm_texts_and_urls(view)
+    texts = _payload_texts(member.send.await_args.kwargs)
     assert any("**upvote**" in text for text in texts), texts
     assert any("**sugestão #1:**" in text for text in texts), texts
     assert any("<@9>" in text for text in texts), texts
@@ -712,6 +784,9 @@ def _card_variables(**overrides):
         "score": 0,
         "message_link": "https://discord.com/channels/1/42/111",
         "timestamp": "<t:1111111111:R>",
+        "status": "open",
+        "status_line": "",
+        "command": "suggest",
     }
     variables.update(overrides)
     return variables
@@ -728,21 +803,24 @@ def test_safe_filename_strips_spaces():
     assert _safe_filename("") == "suggestion.png"
 
 
-async def test_gallery_renders_only_with_image(tmp_path):
-    from rosemary.core.card_service import render_document
+async def test_image_rides_only_when_it_arrived(tmp_path):
+    """No picture means no empty image in the message."""
+    from rosemary.core.card_service import render_card_message
 
     bot = FakeBot(tmp_path)
-    doc = await default_suggestion_document(bot, 1, **_card_variables())
-    view = await render_document(
-        bot, doc, _card_variables(), guild_id=1, card_key="suggestions.card"
+    payload, _allowed = await render_card_message(
+        bot, 1, "suggestions.card", _card_variables()
     )
-    assert not _has_gallery(view)
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.image is None
+
     with_image = _card_variables(image_url="https://cdn.example.com/cat.png")
-    doc = await default_suggestion_document(bot, 1, **with_image)
-    view = await render_document(
-        bot, doc, with_image, guild_id=1, card_key="suggestions.card"
+    payload, _allowed = await render_card_message(
+        bot, 1, "suggestions.card", with_image
     )
-    assert _has_gallery(view)
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.image is not None
+    assert payload.embed.image.url == "https://cdn.example.com/cat.png"
 
 
 async def test_modal_submit_with_image_attaches_and_stores_url(tmp_path):
@@ -805,8 +883,7 @@ async def test_vote_repaint_keeps_image(tmp_path):
     await cog._modal_submit(poster, "with pic", [make_upload()])
     message = make_message()
     assert await cog.apply_vote(guild, message, 9, "up") is True
-    view = message.edit.await_args.kwargs["view"]
-    assert _has_gallery(view)
+    assert _payload_has_image(message.edit.await_args.kwargs)
 
 
 async def test_post_fetches_cdn_url_when_send_response_lacks_attachments(tmp_path):
@@ -845,8 +922,7 @@ async def test_vote_repaint_recovers_image_from_live_message(tmp_path):
     message = make_message()
     message.attachments = [make_attachment("https://cdn.example.com/live.png")]
     assert await cog.apply_vote(guild, message, 9, "up") is True
-    view = message.edit.await_args.kwargs["view"]
-    assert _has_gallery(view)
+    assert _payload_has_image(message.edit.await_args.kwargs)
 
 
 #: vote repaint debounce -----------------------------------------------------
@@ -942,28 +1018,14 @@ async def test_decide_approve_repaints_dm_and_logs(tmp_path):
     assert entry is not None
     assert entry["status"] == "approved" and entry["decided_by"] == 7
     message.edit.assert_awaited_once()
-    view = message.edit.await_args.kwargs["view"]
-    texts = [
-        item.content
-        for item in view.walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
+    texts = _payload_texts(message.edit.await_args.kwargs)
     assert any("Approved" in text for text in texts), texts
     member.send.assert_awaited_once()
-    dm_view = member.send.await_args.kwargs["view"]
-    dm_texts = [
-        item.content
-        for item in dm_view.walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
+    dm_kwargs = member.send.await_args.kwargs
+    dm_texts = _payload_texts(dm_kwargs)
     assert any("approved" in text for text in dm_texts), dm_texts
     assert any("great idea" in text for text in dm_texts), dm_texts
-    urls = [
-        item.url
-        for item in dm_view.walk_children()
-        if isinstance(item, discord.ui.Button)
-        and item.style is discord.ButtonStyle.link
-    ]
+    urls = _payload_urls(dm_kwargs)
     assert message.jump_url in urls, urls
 
 
@@ -980,12 +1042,7 @@ async def test_decide_reject_uses_danger_and_no_reason_line(tmp_path):
     )
     assert outcome == "ok"
     assert (await cog.store.get(1, 111))["status"] == "rejected"
-    dm_view = member.send.await_args.kwargs["view"]
-    dm_texts = [
-        item.content
-        for item in dm_view.walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
+    dm_texts = _payload_texts(member.send.await_args.kwargs)
     assert any("rejected" in text for text in dm_texts), dm_texts
     assert not any("Reason" in text for text in dm_texts), dm_texts
 
@@ -1026,14 +1083,53 @@ async def test_decide_unknown_twice_and_gone(tmp_path):
 
 
 async def test_decision_dm_specs_registered():
+    """Each decision has its own card: the rejected DM never shows the
+    approved copy."""
+    contract = (
+        "suggestion_number",
+        "body",
+        "message_link",
+        "moderator",
+        "reason",
+        "reason_line",
+        "status",
+    )
     for key, expected in (
-        ("suggestions.dm.approved", ("suggestion_number", "body", "message_link")),
-        ("suggestions.dm.rejected", ("suggestion_number", "body", "message_link")),
+        ("suggestions.dm.approved", contract),
+        ("suggestions.dm.rejected", contract),
     ):
         spec = get_card(key)
         assert spec is not None, key
+        assert spec.variables == expected, key
         for name in expected:
-            assert name in spec.variables, f"{key}:{name}"
+            assert name in VARIABLES, f"{key}:{name}"
+
+
+async def test_decision_dms_carry_their_own_copy(tmp_path):
+    from rosemary.core.card_service import render_card_message
+
+    bot = FakeBot(tmp_path)
+    variables = {
+        "suggestion_number": 1,
+        "body": "idea",
+        "message_link": "https://discord.com/channels/1/42/111",
+        "moderator": "<@9>",
+        "reason": "spam",
+        "reason_line": "Reason: spam",
+        "status": "approved",
+    }
+    approved, _ = await render_card_message(
+        bot, 1, "suggestions.dm.approved", variables
+    )
+    rejected, _ = await render_card_message(
+        bot, 1, "suggestions.dm.rejected", variables
+    )
+    assert approved is not None and approved.embed is not None
+    assert rejected is not None and rejected.embed is not None
+    assert "approved" in (approved.embed.description or "")
+    assert "rejected" in (rejected.embed.description or "")
+    assert approved.embed.colour.value == bot.theme.color("gold").value
+    assert rejected.embed.colour.value == bot.theme.color("danger").value
 
 
 async def test_vote_dm_toggle_off_skips_dm(tmp_path):

@@ -19,13 +19,26 @@ from rosemary.core.cards import is_embed_document, resolve_embed
 
 
 class _Translator:
+    """Key-echoing translator with the copy of the packaged default card.
+
+    The fallback of an invalid themed card is the packaged document, and its
+    copy lives in the catalog: without the copy the card says nothing (the
+    call site keeps its own fallback), so the fake carries the about copy.
+    """
+
+    CATALOG = {
+        "about.title": "Sobre a Rosemary",
+        "about.text": "A Rosemary é um bot minimalista.",
+        "about.version": "Versão: `{version}` (`{channel}`)",
+    }
+
     async def t(self, guild_id, key, **kwargs):
         if kwargs:
             return f"{key}:{kwargs}"
         return key
 
     async def raw(self, guild_id, key):
-        return key
+        return self.CATALOG.get(key, key)
 
 
 def _make_bot(tmp_path, themes_yaml: str):
@@ -211,7 +224,9 @@ async def test_invalid_embed_document_falls_back_to_default(tmp_path):
     await _activate(bot)
     payload, allowed = await render_card_message(bot, 1, "about.card", {})
     assert payload is not None
-    assert payload.embed is None  # default V2 card, not the broken embed
+    # The broken themed embed is refused: the card's own default takes over.
+    assert payload.embed is not None
+    assert payload.embed.title != "Hi 🤡!"
     assert allowed is not None
 
 

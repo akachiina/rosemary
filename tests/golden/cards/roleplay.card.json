@@ -1,0 +1,21 @@
+{
+  "content": "<@0>",
+  "embed": {
+    "color": 5763719,
+    "description": "💌 <@0> … <@0>",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "image": {
+      "url": "https://media.tenor.com/x.gif"
+    },
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "roleplay.card",
+  "pings": [
+    0
+  ],
+  "view": []
+}

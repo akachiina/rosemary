@@ -1,0 +1,10 @@
+# The roleplay settings.
+settings:
+  roleplay.enabled:
+    category: roleplay
+    type: boolean
+    default: false
+  roleplay.no_repeat_gifs:
+    category: roleplay
+    type: boolean
+    default: false

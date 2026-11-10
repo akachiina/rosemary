@@ -7,40 +7,66 @@ remove select for guild-imported files. Every write reloads the guild's theme
 snapshot (:func:`rosemary.core.themes.preload_themes`) so changes apply
 immediately: no restart.
 
+The panel also **inspects** a theme: the *validate* button reports what is
+wrong with it (the cards it names, the copy it points at, the colors it
+uses), the *diff* button says what it changes against the built-in one and
+the *preview* renders one of its cards in each shape (the plain text, the
+classic embed, the Components V2).
+
 Like ``cogs/moderation.py``, this module intentionally omits
 ``from __future__ import annotations``: py-cord inspects slash-command
 annotations with ``inspect.signature`` and stringified annotations break
 option parsing (the ``attachment`` option).
 """
 
+import contextlib
 import io
 
 import discord
 from discord.ext import commands
 
-from rosemary.ui.containers import designer_container, divider
-from rosemary.ui.menu import MenuView
+from rosemary.ui.kit import ActionRow, Panel, TextDisplay, divider
+
+#: The shapes the preview offers (the card pipeline's own three).
+_PREVIEW_FORMS = ("text", "embed", "card")
+
+#: How many cards the preview select offers (Discord's select cap).
+_MAX_PREVIEW_CARDS = 25
 
 
 def _file(data: bytes, filename: str) -> discord.File:
     return discord.File(io.BytesIO(data), filename=filename)
 
 
-class ThemesMenuView(MenuView):
+class ThemesMenuView(Panel):
     """One-panel theme manager; ids are stable for the persistent fallback."""
 
+    #: The panel owns its button rows: no shared navigation (the close button
+    #: rides the flow row, as it always did).
+    nav_actions: tuple[str, ...] = ()
+
     def __init__(self, bot, guild_id: int, *, owner_id: int) -> None:
-        super().__init__(author_id=owner_id)
-        self.bot = bot
-        self.guild_id = guild_id
+        super().__init__(bot, guild_id, author_id=owner_id)
         self.flash: str | None = None
         self.flash_color = "success"
+        #: The theme the panel inspects (the active one by default).
+        self._inspect: str | None = None
+        #: The card the preview renders.
+        self._preview_key: str | None = None
+        #: The shape the preview renders.
+        self._preview_form = "card"
         self.register("themes_select", self._select)
         self.register("themes_export", self._export)
         self.register("themes_remove", self._remove)
         self.register("themes_reset", self._reset)
         self.register("themes_reload", self._reload)
         self.register("themes_close", self._close)
+        self.register("themes_inspect", self._inspect_select)
+        self.register("themes_preview_card", self._preview_card_select)
+        self.register("themes_preview_form", self._preview_form_select)
+        self.register("themes_validate", self._validate)
+        self.register("themes_diff", self._diff)
+        self.register("themes_preview", self._preview)
 
     async def prepare(self) -> None:
         """Load the panel state, then rebuild children (``MenuView.prepare``)."""
@@ -49,7 +75,44 @@ class ThemesMenuView(MenuView):
         self._theme_names = store.list_all(self.guild_id)
         self._active = await store.get_active(self.guild_id)
         self._imports = store.list_guild(self.guild_id)
+        if self._inspect not in self._theme_names:
+            self._inspect = (
+                self._active or (self._theme_names[0] if self._theme_names else None)
+            )
+        self._preview_options = self._preview_cards()
+        if self._preview_key not in self._preview_options:
+            self._preview_key = (
+                self._preview_options[0] if self._preview_options else None
+            )
         await super().prepare()
+
+    def _preview_cards(self) -> list[str]:
+        """The cards the preview offers: the theme's own first, then the rest."""
+        from rosemary.core.theme_package import default_package
+
+        keys: list[str] = []
+        theme = self._inspected_theme()
+        for key in sorted(getattr(theme, "deltas", {}) or {}):
+            if key not in keys:
+                keys.append(key)
+        for key in sorted(getattr(theme, "cards", {}) or {}):
+            if key not in keys:
+                keys.append(key)
+        for key in default_package().card_keys():
+            if key not in keys:
+                keys.append(key)
+        return keys[:_MAX_PREVIEW_CARDS]
+
+    def _inspected_theme(self):
+        """The theme the panel inspects (``None`` when it does not load)."""
+        if not self._inspect:
+            return None
+        from rosemary.core.v2_convert import ThemeError
+
+        try:
+            return self.bot._theme_store.load(self._inspect, guild_id=self.guild_id)
+        except (ThemeError, OSError):
+            return None
 
     async def _rerender_with_snapshot(self, interaction: discord.Interaction) -> None:
         """Apply + snapshot + redraw: selection changes never need a restart."""
@@ -57,7 +120,6 @@ class ThemesMenuView(MenuView):
         from rosemary.core.themes import preload_themes
 
         await preload_themes(self.bot)
-        await self.prepare()
         await self.rerender(interaction)
         # Stale panels and action-button dispatch views must follow the new
         # theme immediately: no restart.
@@ -69,7 +131,8 @@ class ThemesMenuView(MenuView):
         values = (interaction.data or {}).get("values") or []
         if not values:
             return
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         name = str(values[0])
         try:
             await self.bot._theme_store.set_active(self.guild_id, name)
@@ -87,7 +150,8 @@ class ThemesMenuView(MenuView):
         values = (interaction.data or {}).get("values") or []
         if not values:
             return
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         name = str(values[0])
         payload = self.bot._theme_store.export_theme(self.guild_id, name)
         if payload is None:
@@ -106,7 +170,8 @@ class ThemesMenuView(MenuView):
         values = (interaction.data or {}).get("values") or []
         if not values:
             return
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         name = str(values[0])
         was_active = self._active == name
         removed = await self.bot._theme_store.remove_guild_theme(self.guild_id, name)
@@ -120,7 +185,8 @@ class ThemesMenuView(MenuView):
         await self._rerender_with_snapshot(interaction)
 
     async def _reset(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         await self.bot._theme_store.clear_active(self.guild_id)
         self.flash = await self.bot.translator.t(self.guild_id, "themes.reset_done")
         self.flash_color = "success"
@@ -128,53 +194,217 @@ class ThemesMenuView(MenuView):
 
     async def _reload(self, interaction: discord.Interaction) -> None:
         """Drop cached theme files, re-read from disk and repaint panels."""
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         self.bot._theme_store.invalidate_guild(self.guild_id)
         self.flash = await self.bot.translator.t(self.guild_id, "themes.reloaded")
         self.flash_color = "success"
         await self._rerender_with_snapshot(interaction)
 
     async def _close(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
-        self.disable_all_items()
-        await interaction.edit(view=self)
-        self.stop()
+        from rosemary.ui.runtime import close
+
+        if not await self._ack(interaction):
+            self.stop()
+            return
+        await close(self, interaction)
+
+    #: inspection -----------------------------------------------------------
+
+    async def _inspect_select(self, interaction: discord.Interaction) -> None:
+        """Pick the theme the panel inspects."""
+        values = (interaction.data or {}).get("values") or []
+        if not values:
+            return
+        if not await self._ack(interaction):
+            return
+        self._inspect = str(values[0])
+        await self.rerender(interaction)
+
+    async def _preview_card_select(self, interaction: discord.Interaction) -> None:
+        """Pick the card the preview renders."""
+        values = (interaction.data or {}).get("values") or []
+        if not values:
+            return
+        if not await self._ack(interaction):
+            return
+        self._preview_key = str(values[0])
+        await self.rerender(interaction)
+
+    async def _preview_form_select(self, interaction: discord.Interaction) -> None:
+        """Pick the shape the preview renders."""
+        values = (interaction.data or {}).get("values") or []
+        if not values:
+            return
+        if not await self._ack(interaction):
+            return
+        form = str(values[0])
+        if form in _PREVIEW_FORMS:
+            self._preview_form = form
+        await self.rerender(interaction)
+
+    async def _validate(self, interaction: discord.Interaction) -> None:
+        """Report what is wrong with the inspected theme."""
+        if not await self._ack(interaction):
+            return
+        from rosemary.core.theme_tools import validate_theme
+
+        theme = self._inspected_theme()
+        if theme is None:
+            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
+            self.flash_color = "danger"
+            return await self.rerender(interaction)
+        issues = await validate_theme(self.bot, self.guild_id, theme)
+        name = self._inspect or ""
+        if not issues:
+            self.flash = await self.bot.translator.t(
+                self.guild_id, "themes.validate_ok", theme=name
+            )
+            self.flash_color = "success"
+            return await self.rerender(interaction)
+        self.flash = await self.bot.translator.t(
+            self.guild_id, "themes.validate_failed", theme=name, count=len(issues)
+        )
+        self.flash_color = "danger"
+        t = self.bot.translator.t
+        lines = [await t(self.guild_id, "themes.validate_title", theme=name)]
+        for issue in issues[:10]:
+            lines.append(
+                await t(
+                    self.guild_id,
+                    "themes.validate_issue",
+                    code=issue.code,
+                    where=issue.where,
+                    detail=issue.detail,
+                )
+            )
+        await self._say(interaction, "\n".join(lines))
+        await self.rerender(interaction)
+
+    async def _diff(self, interaction: discord.Interaction) -> None:
+        """Say what the inspected theme changes against the built-in one."""
+        if not await self._ack(interaction):
+            return
+        from rosemary.core.theme_tools import diff_theme
+
+        theme = self._inspected_theme()
+        if theme is None:
+            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
+            self.flash_color = "danger"
+            return await self.rerender(interaction)
+        diff = diff_theme(theme, self.bot.theme)
+        name = self._inspect or ""
+        t = self.bot.translator.t
+        lines = [await t(self.guild_id, "themes.diff_title", theme=name)]
+        if diff.empty:
+            lines.append(await t(self.guild_id, "themes.diff_empty"))
+        else:
+            if diff.extends:
+                lines.append(
+                    await t(self.guild_id, "themes.diff_extends", theme=diff.extends)
+                )
+            for key, (before, after) in diff.colors.items():
+                lines.append(
+                    await t(
+                        self.guild_id,
+                        "themes.diff_list",
+                        name=key,
+                        before=before or "-",
+                        after=after,
+                    )
+                )
+            lines.append(
+                await t(self.guild_id, "themes.diff_colors", count=len(diff.colors))
+            )
+            lines.append(
+                await t(self.guild_id, "themes.diff_emojis", count=len(diff.emojis))
+            )
+            lines.append(
+                await t(self.guild_id, "themes.diff_styles", count=len(diff.styles))
+            )
+            lines.append(
+                await t(self.guild_id, "themes.diff_cards", count=len(diff.cards))
+            )
+            lines.append(
+                await t(self.guild_id, "themes.diff_deltas", count=len(diff.deltas))
+            )
+            lines.append(
+                await t(self.guild_id, "themes.diff_pings", count=len(diff.pings))
+            )
+        await self._say(interaction, "\n".join(lines))
+        await self.rerender(interaction)
+
+    async def _preview(self, interaction: discord.Interaction) -> None:
+        """Render one card of the inspected theme in the chosen shape."""
+        if not await self._ack(interaction):
+            return
+        from rosemary.core.theme_tools import preview_card
+
+        key = self._preview_key
+        if not key:
+            self.flash = await self.bot.translator.t(self.guild_id, "themes.not_found")
+            self.flash_color = "danger"
+            return await self.rerender(interaction)
+        payload, _allowed = await preview_card(
+            self.bot,
+            self.guild_id,
+            key,
+            self._preview_form,
+            theme=self._inspected_theme(),
+        )
+        if payload is None:
+            self.flash = await self.bot.translator.t(
+                self.guild_id,
+                "themes.preview_failed",
+                form=await self._form_label(self._preview_form),
+            )
+            self.flash_color = "danger"
+            return await self.rerender(interaction)
+        try:
+            await interaction.followup.send(**payload.message_kwargs(), ephemeral=True)
+        except discord.HTTPException:
+            self.flash = await self.bot.translator.t(
+                self.guild_id,
+                "themes.preview_failed",
+                form=await self._form_label(self._preview_form),
+            )
+            self.flash_color = "danger"
+        await self.rerender(interaction)
+
+    async def _say(self, interaction: discord.Interaction, text: str) -> None:
+        """Send a line to the invoker (the panel itself stays in place)."""
+        with contextlib.suppress(discord.HTTPException):
+            await interaction.followup.send(text, ephemeral=True)
+
+    async def _form_label(self, form: str) -> str:
+        """The name of a shape, in the guild language (the catalog)."""
+        return await self.bot.translator.t(self.guild_id, f"themes.form_{form}")
 
     #: rendering -----------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
-        theme = self.bot.theme
-        emojis = theme.emojis
         t_ = self.guild_id
 
-        # Header: title + active theme, then the one-shot feedback line.
         active_label = (
             await t(t_, "themes.active_label", theme=self._active)
             if self._active
             else await t(t_, "themes.active_none")
         )
-        from rosemary.core.card_service import menu_heading_items
+        await self.set_screen("themes.title", heading="themes.title")
+        self.lines = [TextDisplay(active_label)]
+        self.color = self.flash_color if self.flash else "brand"
 
-        parts: list[discord.ui.ViewItem] = await menu_heading_items(
-            self.bot, self.guild_id, "themes.title"
-        ) or [
-            discord.ui.TextDisplay(theme.md("title", title=await t(t_, "themes.title"))),
-            discord.ui.TextDisplay(active_label),
-        ]
-        if self.flash:
-            parts.append(discord.ui.TextDisplay(self.flash))
-
-        parts.append(divider("large"))
+        sections: list[discord.ui.ViewItem] = [divider("large")]
 
         # Manager rows: one select per action, shown only when usable.
         if self._theme_names:
-            parts.append(
-                discord.ui.ActionRow(
-                    self.make_select(
-                        custom_id="themes_select",
-                        placeholder=await t(t_, "themes.select_placeholder"),
-                        options=[
+            sections.append(
+                ActionRow(
+                    await self.select(
+                        "themes_select",
+                        "themes.select_placeholder",
+                        [
                             discord.SelectOption(
                                 label=name, value=name, default=name == self._active
                             )
@@ -184,12 +414,12 @@ class ThemesMenuView(MenuView):
                 )
             )
         if self._imports:
-            parts.append(
-                discord.ui.ActionRow(
-                    self.make_select(
-                        custom_id="themes_remove",
-                        placeholder=await t(t_, "themes.remove_placeholder"),
-                        options=[
+            sections.append(
+                ActionRow(
+                    await self.select(
+                        "themes_remove",
+                        "themes.remove_placeholder",
+                        [
                             discord.SelectOption(label=name, value=name)
                             for name in sorted(self._imports)[:25]
                         ],
@@ -197,12 +427,12 @@ class ThemesMenuView(MenuView):
                 )
             )
         if self._theme_names:
-            parts.append(
-                discord.ui.ActionRow(
-                    self.make_select(
-                        custom_id="themes_export",
-                        placeholder=await t(t_, "themes.export_placeholder"),
-                        options=[
+            sections.append(
+                ActionRow(
+                    await self.select(
+                        "themes_export",
+                        "themes.export_placeholder",
+                        [
                             discord.SelectOption(label=name, value=name)
                             for name in self._theme_names[:25]
                         ],
@@ -210,23 +440,96 @@ class ThemesMenuView(MenuView):
                 )
             )
         if not self._theme_names:
-            parts.append(discord.ui.TextDisplay(await t(t_, "themes.none_yet")))
-        parts.append(discord.ui.TextDisplay(await t(t_, "themes.hint")))
+            sections.append(TextDisplay(await t(t_, "themes.none_yet")))
+        sections.append(TextDisplay(await t(t_, "themes.hint")))
 
-        parts.append(divider("large"))
-        parts.append(
-            discord.ui.ActionRow(
+        sections.append(divider("large"))
+
+        # Inspection rows: the theme to look at, the card to preview and the
+        # shape to preview it in.
+        if self._theme_names:
+            sections.append(
+                ActionRow(
+                    await self.select(
+                        "themes_inspect",
+                        "themes.inspect_placeholder",
+                        [
+                            discord.SelectOption(
+                                label=name, value=name, default=name == self._inspect
+                            )
+                            for name in self._theme_names[:25]
+                        ],
+                    )
+                )
+            )
+        if self._preview_options:
+            sections.append(
+                ActionRow(
+                    await self.select(
+                        "themes_preview_card",
+                        "themes.preview_card_placeholder",
+                        [
+                            discord.SelectOption(
+                                label=key, value=key, default=key == self._preview_key
+                            )
+                            for key in self._preview_options
+                        ],
+                    )
+                )
+            )
+            sections.append(
+                ActionRow(
+                    await self.select(
+                        "themes_preview_form",
+                        "themes.preview_form_placeholder",
+                        [
+                            discord.SelectOption(
+                                label=await t(t_, f"themes.form_{form}"),
+                                value=form,
+                                default=form == self._preview_form,
+                            )
+                            for form in _PREVIEW_FORMS
+                        ],
+                    )
+                )
+            )
+        sections.append(
+            ActionRow(
+                self.make_button(
+                    custom_id="themes_validate",
+                    label=await t(t_, "themes.validate_button"),
+                    style=discord.ButtonStyle.secondary,
+                    emoji=self.emoji("check") or self.emoji("shield"),
+                ),
+                self.make_button(
+                    custom_id="themes_diff",
+                    label=await t(t_, "themes.diff_button"),
+                    style=discord.ButtonStyle.secondary,
+                    emoji=self.emoji("scroll"),
+                ),
+                self.make_button(
+                    custom_id="themes_preview",
+                    label=await t(t_, "themes.preview_button"),
+                    style=discord.ButtonStyle.secondary,
+                    emoji=self.emoji("frame") or self.emoji("search"),
+                ),
+            )
+        )
+
+        sections.append(divider("large"))
+        sections.append(
+            ActionRow(
                 self.make_button(
                     custom_id="themes_reset",
                     label=await t(t_, "themes.reset_button"),
                     style=discord.ButtonStyle.secondary,
-                    emoji=emojis.get("refresh") or None,
+                    emoji=self.emoji("refresh"),
                 ),
                 self.make_button(
                     custom_id="themes_reload",
                     label=await t(t_, "themes.reload_button"),
                     style=discord.ButtonStyle.secondary,
-                    emoji=emojis.get("clock") or None,
+                    emoji=self.emoji("clock"),
                 ),
                 self.make_button(
                     custom_id="themes_close",
@@ -235,12 +538,7 @@ class ThemesMenuView(MenuView):
                 ),
             )
         )
-        return [
-            designer_container(
-                theme.color(self.flash_color if self.flash else "brand"), *parts
-            )
-        ]
-
+        return await self.compose(sections)
 
 class ThemesCog(commands.Cog):
     """The ``/themes`` command (decorator name ``themes``)."""
@@ -289,7 +587,7 @@ class ThemesCog(commands.Cog):
             view.flash = import_flash
             view.flash_color = "success"
         await view.prepare()
-        from rosemary.core.card_service import trace_card_path
+        from rosemary.core.debug import trace_card_path
 
         # Heading is theme-customizable (card.themes.title): trace the path.
         await trace_card_path(self.bot, ctx.guild_id, "themes.title")

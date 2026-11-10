@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
 from discord.ext import commands
 
 from rosemary.bot import RosemaryBot
@@ -26,8 +25,8 @@ class _Translator:
 
 
 def _context(responded: list[dict]) -> SimpleNamespace:
-    async def respond(**kwargs):
-        responded.append(kwargs)
+    async def respond(*args, **kwargs):
+        responded.append({"args": args, **kwargs})
 
     return SimpleNamespace(
         command="boost",
@@ -36,51 +35,34 @@ def _context(responded: list[dict]) -> SimpleNamespace:
     )
 
 
-async def test_application_command_error_answers_the_invoker(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import rosemary.ui.responses as responses
-
+async def test_application_command_error_answers_the_invoker() -> None:
     bot = RosemaryBot.__new__(RosemaryBot)
     bot.translator = _Translator()
     responded: list[dict] = []
     context = _context(responded)
-    sentinel = object()
 
-    async def fake_notice(bot_arg, guild_id, text, *, color):
-        assert bot_arg is bot
-        assert guild_id == 7
-        assert text == "text:general.unknown_error"
-        assert color == "danger"
-        return sentinel
-
-    monkeypatch.setattr(responses, "notice_view", fake_notice)
     await bot.on_application_command_error(context, RuntimeError("boom"))
 
-    assert responded == [{"view": sentinel, "ephemeral": True}]
+    # The answer is one notice line (the theme prefix plus the copy).
+    assert len(responded) == 1
+    assert responded[0]["ephemeral"] is True
+    (content,) = responded[0]["args"]
+    assert content.endswith("text:general.unknown_error")
     assert bot.translator.calls == [(7, "general.unknown_error")]
 
 
-async def test_check_failure_answers_with_no_permission(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    import rosemary.ui.responses as responses
-
+async def test_check_failure_answers_with_no_permission() -> None:
     bot = RosemaryBot.__new__(RosemaryBot)
     bot.translator = _Translator()
     responded: list[dict] = []
     context = _context(responded)
-    sentinel = object()
 
-    async def fake_notice(bot_arg, guild_id, text, *, color):
-        assert text == "text:general.no_permission"
-        assert color == "warning"
-        return sentinel
-
-    monkeypatch.setattr(responses, "notice_view", fake_notice)
     await bot.on_application_command_error(context, commands.CheckFailure("nope"))
 
-    assert responded == [{"view": sentinel, "ephemeral": True}]
+    assert len(responded) == 1
+    assert responded[0]["ephemeral"] is True
+    (content,) = responded[0]["args"]
+    assert content.endswith("text:general.no_permission")
     assert bot.translator.calls == [(7, "general.no_permission")]
 
 

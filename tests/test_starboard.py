@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
@@ -229,112 +230,140 @@ async def test_zero_stars_deletes_post(tmp_path):
     assert await cog.store.get_entry(1, 10) is None
 
 
-#: default builder ---------------------------------------------------------------
+#: the card document ----------------------------------------------------------
 
 
-async def test_default_document_is_full_rich_layout(tmp_path):
-    """The seed {title}/{body} used to shadow the rich card; the builder wins now."""
-    from rosemary.core.card_service import default_document, render_document
+def _card_bot(tmp_path):
+    """A bot with the real catalogs (pt-BR) so the card copy resolves for real."""
+    from rosemary.core.i18n import Translator
 
-    bot = FakeBot(tmp_path)
-    doc = await default_document(
-        bot, 1, "starboard.card",
-        {"stars": 3, "image_url": "https://a.b/cat.png", "timestamp": "<t:1:R>"},
-    )
-    assert doc is not None
-    view = await render_document(
+    async def resolver(gid):
+        return "pt-BR"
+
+    theme = load_theme()
+
+    class _Bot:
+        def __init__(self) -> None:
+            self.theme = theme
+            self._theme_cache: dict = {}
+            self.storage = GuildStorage(tmp_path)
+            self.translator = Translator(
+                Path(__file__).resolve().parents[1] / "language",
+                resolver=resolver,
+                default_placeholders=theme.emojis,
+            )
+
+    return _Bot()
+
+
+async def test_starboard_card_is_a_document():
+    """The card lives in the default package: the document is the source of
+    truth (no builder, no seed)."""
+    from rosemary.core.cards import get_card
+    from rosemary.core.theme_package import default_package
+
+    assert "starboard.card" in default_package().documents
+    assert get_card("starboard.card") is not None
+
+
+async def test_the_packaged_document_is_full_rich_layout(tmp_path):
+    """The mural post keeps its frame: the title, the body, the picture and
+    the attribution."""
+    from rosemary.core.card_service import render_card_message
+
+    bot = _card_bot(tmp_path)
+    payload, _allowed = await render_card_message(
         bot,
-        doc,
+        1,
+        "starboard.card",
         {
             "user": "<@7>",
             "user_avatar": "https://a.b/x.png",
             "stars": 3,
+            "state_color": "#F7EFA8",
             "title": "⭐ 3 · #geral",
             "body": "miau",
             "image_url": "https://a.b/cat.png",
+            "message_link": "https://discord.com/jump",
             "timestamp": "<t:1:R>",
         },
-        guild_id=1,
-        card_key="starboard.card",
     )
-    texts = [
-        item.content
-        for item in view.walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
-    assert any("⭐ 3 · #geral" in text for text in texts), texts
-    assert any("-# by <@7>" in text for text in texts), texts
-    galleries = [i for i in view.walk_children() if isinstance(i, discord.ui.MediaGallery)]
-    assert len(galleries) == 1
+    assert payload is not None
+    embed = payload.embed
+    assert embed is not None
+    assert "⭐ 3 · #geral" in (embed.title or "") + (embed.description or "")
+    assert embed.footer and "por <@7>" in embed.footer.text
+    assert embed.image and embed.image.url == "https://a.b/cat.png"
+    assert embed.thumbnail and embed.thumbnail.url == "https://a.b/x.png"
 
 
-async def test_default_document_skips_gallery_without_image(tmp_path):
-    """No image attachment means no empty gallery skeleton in the message."""
-    from rosemary.core.card_service import default_document, render_document
+async def test_the_packaged_document_skips_gallery_without_image(tmp_path):
+    """No image attachment means no empty image in the message."""
+    from rosemary.core.card_service import render_card_message
 
-    bot = FakeBot(tmp_path)
-    doc = await default_document(bot, 1, "starboard.card", {"stars": 2})
-    view = await render_document(
+    bot = _card_bot(tmp_path)
+    payload, _allowed = await render_card_message(
         bot,
-        doc,
+        1,
+        "starboard.card",
         {
             "user": "<@7>",
             "user_avatar": "https://a.b/x.png",
             "stars": 2,
+            "state_color": "#F7EFA8",
             "title": "⭐ 2 · #geral",
             "body": "só texto",
             "image_url": "",
+            "message_link": "https://discord.com/jump",
             "timestamp": "<t:1:R>",
         },
-        guild_id=1,
-        card_key="starboard.card",
     )
-    assert not any(isinstance(i, discord.ui.MediaGallery) for i in view.walk_children())
+    assert payload is not None
+    assert payload.embed is not None
+    assert payload.embed.image is None
 
 
-async def test_builder_reacts_to_star_tier(tmp_path):
-    """The document carries hex strings (schema contract) and the ramp moves."""
-    from rosemary.core.card_service import default_document
+async def test_send_site_reacts_to_star_tier(tmp_path):
+    """The color follows the star count: the send site hands the document the
+    tone the theme's ramp computes."""
+    cog, bot, _channel, _board, _post, message, _seed = make_flow(tmp_path)
 
-    bot = FakeBot(tmp_path)
-    low = await default_document(bot, 1, "starboard.card", {"stars": 1})
-    mid = await default_document(bot, 1, "starboard.card", {"stars": 5})
-    high = await default_document(bot, 1, "starboard.card", {"stars": 13})
-    low_c, mid_c, high_c = (
-        doc["blocks"][0]["color"] for doc in (low, mid, high)
-    )
-    for value in (low_c, mid_c, high_c):
+    low = cog._card_variables(message, 1, "vazio", 1)["state_color"]
+    mid = cog._card_variables(message, 5, "vazio", 1)["state_color"]
+    high = cog._card_variables(message, 13, "vazio", 1)["state_color"]
+    for value in (low, mid, high):
         assert isinstance(value, str) and value.startswith("#"), value
-    assert low_c != mid_c != high_c, "ramp must move between 1/5/13 stars"
+    assert low != mid != high, "ramp must move between 1/5/13 stars"
     # Monotonic toward the strong end: red channel only rises (yellow->orange).
-    assert int(low_c[1:3], 16) <= int(mid_c[1:3], 16) <= int(high_c[1:3], 16)
+    assert int(low[1:3], 16) <= int(mid[1:3], 16) <= int(high[1:3], 16)
 
 
-async def test_default_document_has_jump_button(tmp_path):
-    """The themed path dropped the jump button once: the default builder must
-    carry the link row (``{message_link}`` resolved at the send site)."""
-    from rosemary.core.card_service import default_document
+async def test_the_packaged_document_has_jump_button(tmp_path):
+    """The themed path dropped the jump button once: the document must carry
+    the link row (``{message_link}`` resolved at the send site)."""
+    from rosemary.core.card_service import render_card_message
 
-    bot = FakeBot(tmp_path)
-    doc = await default_document(bot, 1, "starboard.card", {"stars": 3})
-    rows = [
-        block
-        for block in doc["blocks"][0]["children"]
-        if isinstance(block, dict) and block.get("type") == "row"
-    ]
-    assert rows, "starboard default must include a button row"
-    buttons = [b for row in rows for b in row.get("buttons", [])]
-    assert any(b.get("url") == "{message_link}" for b in buttons), buttons
-
-
-async def test_card_view_passes_message_link(tmp_path):
-    """The send site must provide ``message_link`` or the button resolves empty."""
-    cog, bot, channel, _board, _post, message, seed = make_flow(tmp_path)
-    await seed()
-    card, _allowed = await cog._card_view(1, message, 3, "Jump", "empty")
+    bot = _card_bot(tmp_path)
+    payload, _allowed = await render_card_message(
+        bot,
+        1,
+        "starboard.card",
+        {
+            "user": "<@7>",
+            "user_avatar": "https://a.b/x.png",
+            "stars": 3,
+            "state_color": "#F7EFA8",
+            "title": "⭐ 3 · #geral",
+            "body": "miau",
+            "image_url": "",
+            "message_link": "https://discord.com/jump",
+            "timestamp": "<t:1:R>",
+        },
+    )
+    assert payload is not None and payload.view is not None
     urls = [
         item.url
-        for item in card.view.walk_children()
+        for item in payload.view.walk_children()
         if isinstance(item, discord.ui.Button)
         and item.style is discord.ButtonStyle.link
     ]

@@ -7,6 +7,10 @@ assemble ActionRows with :meth:`MenuView.make_button` / :meth:`MenuView.make_sel
 Because the interaction store dispatches by ``(component_type, message_id,
 custom_id)``, rebuilding the view with stable custom_ids keeps callbacks working
 across re-renders; :meth:`MenuView.rerender` handles that automatically.
+
+The lifecycle (the ACK, the re-render, the timeout, the dead token, the
+error and the metric) belongs to :mod:`rosemary.ui.runtime`: every menu
+answers a click the same way.
 """
 
 from __future__ import annotations
@@ -14,10 +18,10 @@ from __future__ import annotations
 import contextlib
 import logging
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import discord
 
-from rosemary.core.interactions import ack
 from rosemary.core.settings import MENU_TIMEOUT, get_setting
 
 log = logging.getLogger(__name__)
@@ -54,9 +58,12 @@ class MenuView(discord.ui.DesignerView):
         """Register an async handler for a component ``custom_id``.
 
         May be used as a decorator. The handler receives a single
-        :class:`discord.Interaction`.
+        :class:`discord.Interaction`. Every click is measured (the panel, the
+        action, ok/fail and the duration) by the runtime.
         """
-        self._handlers[custom_id] = handler
+        from rosemary.ui.runtime import measured
+
+        self._handlers[custom_id] = measured(self, custom_id, handler)
         return handler
 
     def _find_handler(self, custom_id: str) -> Handler | None:
@@ -85,21 +92,15 @@ class MenuView(discord.ui.DesignerView):
         """Defer once; safe to call even when the interaction is already ACKed.
 
         Every handler starts with this: Discord shows "the application did not
-        respond" past 3s without an ACK. ``suppress_errors=True`` is for
-        modal submits, where a failed defer must not mask the follow-up
-        ``rerender`` (which handles HTTP failures itself).
-
-        Returns False when the interaction token is already dead (past
-        Discord's 15 minute window, or answered with 10062 after a gateway
-        RESUME replayed an old click): the handler must stop there, because
-        every followup would fail with the same token.
+        respond" past 3s without an ACK. Returns False when the interaction
+        token is already dead (past Discord's 15 minute window, or answered
+        with 10062 after a gateway RESUME replayed an old click): the handler
+        must stop there, because every followup would fail with the same
+        token.
         """
-        try:
-            return await ack(interaction, ephemeral=True)
-        except discord.HTTPException:
-            if not suppress_errors:
-                raise
-            return False
+        from rosemary.ui.runtime import ack
+
+        return await ack(self, interaction, suppress_errors=suppress_errors)
 
     def make_button(
         self,
@@ -258,7 +259,7 @@ class MenuView(discord.ui.DesignerView):
 
         Called once before the initial ``respond`` and again before every
         re-render. The idle timeout is refreshed from the guild's
-        ``general.menu_timeout`` setting so it can be configured in /settings.
+        ``general.menu_timeout`` setting so it can be configurable in /settings.
         """
         await self._apply_menu_timeout()
         self.clear_items()
@@ -286,29 +287,27 @@ class MenuView(discord.ui.DesignerView):
         """
         raise NotImplementedError
 
+    async def rerender_payload(self) -> dict[str, Any]:
+        """Extra keyword arguments for the re-render edit (e.g. the content).
+
+        Menus that also carry a message body (the confirmation dialogs:
+        the question travels as plain text) override this.
+        """
+        return {}
+
+    async def message_kwargs(self) -> dict[str, Any]:
+        """The keyword arguments of the panel message (the view, plus content).
+
+        The runtime opens a panel with these, so every surface sends the same
+        way.
+        """
+        return {"view": self}
+
     async def rerender(self, interaction: discord.Interaction) -> None:
         """Rebuild items and edit the attached message in place."""
-        await self.prepare()
-        try:
-            await interaction.edit(view=self)
-        except discord.NotFound:
-            # The interaction token expired (>3s without ack, error 10062);
-            # refresh the underlying message directly so the menu still updates.
-            message = getattr(interaction, "message", None)
-            if message is not None:
-                with contextlib.suppress(
-                    discord.NotFound, discord.Forbidden, discord.HTTPException
-                ):
-                    await message.edit(view=self)
-        except (discord.Forbidden, discord.HTTPException):
-            # A 400 (invalid emoji, bad label, ...) must not look like a dead
-            # click: log the full error so the payload problem is diagnosable
-            # from bot.log (AGENTS.md gotcha).
-            log.warning(
-                "rerender edit failed for view %s",
-                type(self).__name__,
-                exc_info=True,
-            )
+        from rosemary.ui.runtime import update
+
+        await update(self, interaction)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Only the view owner may interact with the menu."""

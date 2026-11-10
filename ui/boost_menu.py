@@ -1,4 +1,4 @@
-"""Interactive boost-role menus for Rosemary (V2 Components).
+"""Interactive boost-role menus for Rosemary (Components V2).
 
 Two menus share the same ``BoostRoleStore``:
 
@@ -8,9 +8,11 @@ Two menus share the same ``BoostRoleStore``:
 * :class:`AdminBoostMenuView`, the moderation panel (/boost admin). It lists
   every registered role and can register, transfer or remove any of them.
 
-State is kept in plain attributes and screens rebuild through
-``MenuView.build_items``. Every user-facing string comes from the catalogs via
-``t()`` and every emoji from ``theme.emojis``; nothing is hardcoded here.
+The panels build on :class:`rosemary.ui.kit.Panel`: the chrome (header, body,
+footer and navigation) is the theme's, and each screen only declares its own
+content. State is kept in plain attributes and screens rebuild through
+``Panel.build_items``. Every user-facing string comes from the catalogs via
+``t()`` and every emoji from the theme; nothing is hardcoded here.
 """
 
 from __future__ import annotations
@@ -30,15 +32,14 @@ from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui import boost_dm as dm
 from rosemary.ui.color_palette import COLOR_PALETTE
-from rosemary.ui.containers import (
+from rosemary.ui.kit import (
     ActionRow,
     Container,
+    Panel,
     Section,
     TextDisplay,
-    designer_container,
     divider,
 )
-from rosemary.ui.menu import MenuView
 from rosemary.ui.modals import make_by_id_modal, make_file_modal, make_text_modal
 from rosemary.ui.pagination import page_count, paginate
 
@@ -76,8 +77,23 @@ def _suffix(custom_id: str, prefix: str) -> str:
     return custom_id.split(f"{prefix}:", 1)[1]
 
 
-class _BaseMenu(MenuView):
+class _BaseMenu(Panel):
     """Shared plumbing for both boost menus."""
+
+    #: The navigation keeps the ids of the menu: a message posted before the
+    #: migration must keep working.
+    nav_ids = {
+        "back": "boost_back",
+        "previous": "boost_prev",
+        "next": "boost_next",
+        "close": "boost_close",
+    }
+    nav_labels = {
+        "back": "boost.buttons.back",
+        "previous": "boost.buttons.previous",
+        "next": "boost.buttons.next",
+        "close": "boost.buttons.close",
+    }
 
     def __init__(
         self,
@@ -86,33 +102,29 @@ class _BaseMenu(MenuView):
         *,
         owner_id: int | None = None,
     ) -> None:
-        super().__init__(author_id=owner_id)
-        self.bot = bot
-        self.guild_id = guild_id
+        super().__init__(bot, guild_id, author_id=owner_id)
         self.store = BoostRoleStore(bot.storage.data_dir)
         self.screen = _Screen.HOME
         self.page = 0
+        self._page_total = 1
         self.role_id: int | None = None
-        self.flash: str | None = None
-        self.flash_color: str = "brand"
+        self._admin_action = "register"
+        self._transfer_mode = False
         self._register_handlers()
 
     #: generic handlers ---------------------------------------------------
 
     def _register_handlers(self) -> None:
-        self.register("boost_close", self._close)
-        self.register("boost_back", self._back)
-        self.register("boost_prev", self._prev)
-        self.register("boost_next", self._next)
         self.register("boost_pick_register_owner", self._pick_register_owner)
         self.register("boost_by_id_register_owner", self._by_id_register_owner)
+        # Shared by both panels: a transfer and a removal are the same flow
+        # whichever panel opened it.
+        self.register("boost_transfer_owner", self._pick_transfer_owner)
+        self.register("boost_by_id_transfer_owner", self._by_id_transfer_owner)
+        self.register("boost_remove_confirm", self._remove_confirm)
+        self.register("boost_remove_confirm_admin", self._remove_confirm)
 
-    async def _close(self, interaction: discord.Interaction) -> None:
-        self.disable_all_items()
-        await interaction.edit(view=self)
-        self.stop()
-
-    async def _back(self, interaction: discord.Interaction) -> None:
+    async def on_back(self, interaction: discord.Interaction) -> None:
         if self.screen is _Screen.REGISTER_OWNER:
             self.screen = _Screen.REGISTER
         else:
@@ -121,18 +133,49 @@ class _BaseMenu(MenuView):
         self.page = 0
         await self.rerender(interaction)
 
-    async def _prev(self, interaction: discord.Interaction) -> None:
+    async def on_previous(self, interaction: discord.Interaction) -> None:
         if self.page > 0:
             self.page -= 1
         await self.rerender(interaction)
 
-    async def _next(self, interaction: discord.Interaction) -> None:
+    async def on_next(self, interaction: discord.Interaction) -> None:
         if self.page < self._total_pages() - 1:
             self.page += 1
         await self.rerender(interaction)
 
     def _total_pages(self) -> int:
-        raise NotImplementedError
+        return self._page_total
+
+    #: screen helpers -----------------------------------------------------
+
+    def _page_nav(self, total_pages: int) -> None:
+        """The navigation of a paginated screen (back, arrows, close)."""
+        actions = ["back"]
+        if self.page > 0:
+            actions.append("previous")
+        if self.page < total_pages - 1:
+            actions.append("next")
+        actions.append("close")
+        self.nav(*actions)
+
+    async def _list_sections(
+        self, entries: list[discord.ui.ViewItem], empty: str
+    ) -> list[discord.ui.ViewItem]:
+        """The paginated list: a divider, the page entries, a large divider."""
+        self._page_total = page_count(len(entries), _LIST_PAGE_SIZE)
+        self.page = min(self.page, self._page_total - 1)
+        sections: list[discord.ui.ViewItem] = [divider()]
+        page_entries = paginate(entries, self.page, _LIST_PAGE_SIZE)
+        if page_entries:
+            sections.extend(page_entries)
+        else:
+            sections.append(TextDisplay(empty))
+        sections.append(divider("large"))
+        return sections
+
+    def _show_role_icon(self, role: discord.Role | None) -> None:
+        """Put the role icon on the header (a Section accessory)."""
+        self.accent = self._role_thumbnail(role) if role is not None else None
 
     #: small helpers ------------------------------------------------------
 
@@ -141,7 +184,7 @@ class _BaseMenu(MenuView):
         return self.author_id or 0
 
     async def _t(self, key: str, **kwargs: Any) -> str:
-        return await self.bot.translator.t(self.guild_id, key, **kwargs)
+        return await self.t(key, **kwargs)
 
     async def _flash(self, key: str, *, color: str = "success", **kwargs: Any) -> None:
         self.flash = await self._t(key, **kwargs)
@@ -150,22 +193,13 @@ class _BaseMenu(MenuView):
     async def _log(self, key: str, *, color: str = "info", **kwargs: Any) -> None:
         """Send a boost action to the configured log channel.
 
-        ``color`` is accepted for old call sites; severity now comes from the
-        ``LogSpec`` registry.
+        ``color`` is accepted for old call sites; the severity now lives in
+        the log's own document (``themes/default/cards/logs.yaml``).
         """
         await send_log(self.bot, self.guild_id, f"boost.logs.{key}", **kwargs)
 
     async def _actor_mention(self) -> str:
         return f"<@{self._uid()}>"
-
-    def _container(self, color: str, *parts: discord.ui.ViewItem) -> discord.ui.Container:
-        items: list[discord.ui.ViewItem] = list(parts)
-        if self.flash:
-            items.append(TextDisplay(self.flash))
-            color = self.flash_color or color
-            self.flash = None
-            self.flash_color = "brand"
-        return designer_container(self.bot.theme.color(color), *items)
 
     async def _resolve_role(self, interaction: discord.Interaction) -> discord.Role | None:
         """Resolve the guild role from a native role-select interaction."""
@@ -267,7 +301,8 @@ class _BaseMenu(MenuView):
         await self._finalize_register(interaction, member_id)
 
     async def _finalize_register(self, interaction: discord.Interaction, member_id: int) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         role = self._current_role()
         member = self._member(member_id)
         if role is None or member is None:
@@ -301,58 +336,128 @@ class _BaseMenu(MenuView):
         await self._flash("boost.success.role_registered", role=f"@{role.name}")
         await self.rerender(interaction)
 
-    async def _build_register_owner(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    #: transfer and removal (shared by both panels) -----------------------
+
+    async def _pick_transfer_owner(self, interaction: discord.Interaction) -> None:
+        role_id = int(_suffix(interaction.custom_id, "boost_transfer_owner"))
+        values = (interaction.data or {}).get("values") or []
+        if not values:
+            return
+        try:
+            member_id = int(values[0])
+        except (TypeError, ValueError):
+            return
+        await self._transfer_to(interaction, role_id, member_id)
+
+    async def _by_id_transfer_owner(self, interaction: discord.Interaction) -> None:
+        role_id = int(_suffix(interaction.custom_id, "boost_by_id_transfer_owner"))
+        modal = make_by_id_modal(
+            title=await self._t("boost.modals.transfer.title"),
+            custom_id=f"boost_by_id_transfer_owner_modal:{role_id}:{interaction.id}",
+            label=await self._t("boost.modals.transfer.label"),
+            placeholder=await self._t("boost.modals.transfer.placeholder"),
+            on_submit=self._transfer_owner_by_id,
+        )
+        await interaction.response.send_modal(modal)
+
+    async def _transfer_owner_by_id(self, interaction: discord.Interaction, value: str) -> None:
+        try:
+            member_id = int(value.strip())
+        except ValueError:
+            await self._flash("boost.errors.member_not_found", color="danger")
+            return await self.rerender(interaction)
+        role_id = int(
+            _suffix(interaction.custom_id, "boost_by_id_transfer_owner_modal").split(":")[0]
+        )
+        await self._transfer_to(interaction, role_id, member_id)
+
+    async def _transfer_to(
+        self, interaction: discord.Interaction, role_id: int, member_id: int
+    ) -> None:
+        if not await self._ack(interaction):
+            return
+        role = self._guild().get_role(role_id) if self._guild() else None
+        member = self._member(member_id)
+        if role is None or member is None:
+            await self._flash("boost.errors.member_not_found", color="danger")
+            return await self.rerender(interaction)
+        if member.bot:
+            await self._flash("boost.errors.bot_not_allowed", color="danger")
+            return await self.rerender(interaction)
+        data = await self.store.get_role(self.guild_id, role_id) or {}
+        if not await self.store.transfer_ownership(self.guild_id, role_id, member.id):
+            await self._flash("boost.errors.role_not_registered", color="danger")
+            return await self.rerender(interaction)
+        await self._log(
+            "transfer",
+            color="info",
+            role=f"<@&{role_id}>",
+            old_owner=f"<@{data.get('owner_id', 0)}>",
+            new_owner=member.mention,
+            actor=await self._actor_mention(),
+        )
+        with contextlib.suppress(discord.Forbidden):
+            await self._dm_transferred(role, member)
+        self.screen = _Screen.HOME
+        await self._flash("boost.success.ownership_transferred", role=f"@{role.name}")
+        await self.rerender(interaction)
+
+    #: The reason the role is deleted with (the admin panel says who did it).
+    remove_reason = "Boost role removed"
+
+    async def _remove_confirm(self, interaction: discord.Interaction) -> None:
+        if not await self._ack(interaction):
+            return
+        _, role_id, raw = interaction.custom_id.split(":", 2)
+        role_id = int(role_id)
+        guild = self._guild()
+        role = guild.get_role(role_id) if guild else None
+        data = await self.store.get_role(self.guild_id, role_id) or {}
+        await self.store.remove_role(self.guild_id, role_id)
+        for invite_id in list(
+            (await self.store.get_invites_by_role(self.guild_id, role_id)).keys()
+        ):
+            await self.store.remove_invite(self.guild_id, invite_id)
+        if raw == "delete" and role is not None:
+            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                await role.delete(reason=self.remove_reason)
+        await self._log(
+            "remove",
+            color="danger",
+            role=f"<@&{role_id}>",
+            owner=f"<@{data.get('owner_id', 0)}>",
+            actor=await self._actor_mention(),
+            deleted=await self._t(
+                "boost.buttons.delete_role_yes"
+                if raw == "delete"
+                else "boost.buttons.delete_role_no"
+            ),
+        )
+        self.screen = _Screen.HOME
+        await self._flash("boost.success.role_removed")
+        await self.rerender(interaction)
+
+    async def _build_register_owner(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
-        parts: list[discord.ui.ViewItem] = [
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.register_owner"))
-            ),
-        ]
+        await self.set_screen("boost.titles.register_owner", color="brand")
         if role is None:
-            parts.append(TextDisplay(await t(self.guild_id, "boost.errors.role_not_found")))
-            return [
-                self._container("danger", *parts),
-                ActionRow(
-                    self.make_button(
-                        custom_id="boost_back",
-                        label=await t(self.guild_id, "boost.buttons.back"),
-                    )
-                ),
-            ]
-        parts.append(
-            TextDisplay(
-                await t(
-                    self.guild_id,
-                    "boost.descriptions.register_owner",
-                    role=f"@{role.name}",
-                )
-            )
-        )
-        container = self._container(
-            "brand",
-            *self._role_items(
-                role,
-                *parts,
-            ),
-        )
+            self.color = "danger"
+            self.body = await self.t("boost.errors.role_not_found")
+            self.nav("back", "close")
+            return await self.compose()
+        self.body = await self.t("boost.descriptions.register_owner", role=f"@{role.name}")
+        self._show_role_icon(role)
+        self.nav("back", "close")
         member_select = self.make_user_select(
             custom_id="boost_pick_register_owner",
-            placeholder=await t(self.guild_id, "boost.placeholders.select_member"),
+            placeholder=await self.t("boost.placeholders.select_member"),
         )
-        by_id = self.make_button(
-            custom_id="boost_by_id_register_owner",
-            label=await t(self.guild_id, "boost.buttons.add_by_id"),
-            emoji=theme.emojis.get("numbers", ""),
+        by_id = await self.button(
+            "boost_by_id_register_owner",
+            "boost.buttons.add_by_id",
+            emoji="numbers",
         )
-        back = self.make_button(
-            custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
-        )
-        return [
-            container,
-            divider(),
-            ActionRow(member_select),
-            ActionRow(by_id, back),
-        ]
+        return await self.compose([divider()], [ActionRow(member_select), ActionRow(by_id)])
 
     @staticmethod
     def _role_label(role: discord.Role) -> str:
@@ -419,10 +524,7 @@ class BoostMenuView(_BaseMenu):
         self.register("boost_emoji", self._open_emoji)
         self.register("boost_icon", self._open_icon)
         self.register("boost_transfer", self._open_transfer)
-        self.register("boost_transfer_owner", self._pick_transfer_owner)
-        self.register("boost_by_id_transfer_owner", self._by_id_transfer_owner)
         self.register("boost_remove_role", self._open_remove_confirm)
-        self.register("boost_remove_confirm", self._remove_confirm)
         self.register("boost_leave_confirm", self._open_leave_confirm)
         self.register("boost_leave_confirm_yes", self._leave_role)
         self.register("boost_pick_color", self._pick_color)
@@ -432,9 +534,6 @@ class BoostMenuView(_BaseMenu):
         self.register("boost_pick_invitee", self._send_invite)
         self.register("boost_by_id_invitee", self._by_id_invitee)
         self.register("boost_cancel_invite", self._cancel_invite)
-
-    def _total_pages(self) -> int:
-        return 1
 
     #: navigation ---------------------------------------------------------
 
@@ -504,7 +603,8 @@ class BoostMenuView(_BaseMenu):
         await self.rerender(interaction)
 
     async def _leave_role(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         role_id = int(_suffix(interaction.custom_id, "boost_leave_confirm_yes"))
         guild = self._guild()
         member = guild.get_member(interaction.user.id) if guild else None
@@ -769,7 +869,8 @@ class BoostMenuView(_BaseMenu):
         await self.rerender(interaction)
 
     async def _remove_member(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         _, role_id, member_id = interaction.custom_id.split(":")
         role_id = int(role_id)
         member_id = int(member_id)
@@ -828,7 +929,8 @@ class BoostMenuView(_BaseMenu):
     async def _send_invite_to(
         self, interaction: discord.Interaction, role_id: int, member_id: int
     ) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         role = self._guild().get_role(role_id) if self._guild() else None
         member = self._member(member_id)
         if role is None or member is None:
@@ -924,7 +1026,8 @@ class BoostMenuView(_BaseMenu):
         await dm.send_preview(self.bot, member, guild.id, role, data)
 
     async def _cancel_invite(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         parts = interaction.custom_id.split(":")
         role_id = int(parts[1])
         invite_id = parts[2]
@@ -941,172 +1044,54 @@ class BoostMenuView(_BaseMenu):
         await self._flash("boost.success.invite_cancelled")
         await self.rerender(interaction)
 
-    async def _remove_confirm(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
-        _, role_id, raw = interaction.custom_id.split(":", 2)
-        role_id = int(role_id)
-        role = self._guild().get_role(role_id) if self._guild() else None
-        data = await self.store.get_role(self.guild_id, role_id) or {}
-        await self.store.remove_role(self.guild_id, role_id)
-        for invite_id in list(
-            (await self.store.get_invites_by_role(self.guild_id, role_id)).keys()
-        ):
-            await self.store.remove_invite(self.guild_id, invite_id)
-        if raw == "delete" and role is not None:
-            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-                await role.delete(reason="Boost role removed")
-        await self._log(
-            "remove",
-            color="danger",
-            role=f"<@&{role_id}>",
-            owner=f"<@{data.get('owner_id', 0)}>",
-            actor=await self._actor_mention(),
-            deleted=await self._t(
-                "boost.buttons.delete_role_yes"
-                if raw == "delete"
-                else "boost.buttons.delete_role_no"
-            ),
-        )
-        self.screen = _Screen.HOME
-        await self._flash("boost.success.role_removed")
-        await self.rerender(interaction)
-
-    async def _pick_transfer_owner(self, interaction: discord.Interaction) -> None:
-        role_id = int(_suffix(interaction.custom_id, "boost_transfer_owner"))
-        values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
-        try:
-            member_id = int(values[0])
-        except (TypeError, ValueError):
-            return
-        await self._transfer_to(interaction, role_id, member_id)
-
-    async def _by_id_transfer_owner(self, interaction: discord.Interaction) -> None:
-        role_id = int(_suffix(interaction.custom_id, "boost_by_id_transfer_owner"))
-        modal = make_by_id_modal(
-            title=await self._t("boost.modals.transfer.title"),
-            custom_id=f"boost_by_id_transfer_owner_modal:{role_id}:{interaction.id}",
-            label=await self._t("boost.modals.transfer.label"),
-            placeholder=await self._t("boost.modals.transfer.placeholder"),
-            on_submit=self._transfer_owner_by_id,
-        )
-        await interaction.response.send_modal(modal)
-
-    async def _transfer_owner_by_id(self, interaction: discord.Interaction, value: str) -> None:
-        try:
-            member_id = int(value.strip())
-        except ValueError:
-            await self._flash("boost.errors.member_not_found", color="danger")
-            return await self.rerender(interaction)
-        role_id = int(
-            _suffix(interaction.custom_id, "boost_by_id_transfer_owner_modal").split(":")[0]
-        )
-        await self._transfer_to(interaction, role_id, member_id)
-
-    async def _transfer_to(
-        self, interaction: discord.Interaction, role_id: int, member_id: int
-    ) -> None:
-        await self._ack(interaction)
-        role = self._guild().get_role(role_id) if self._guild() else None
-        member = self._member(member_id)
-        if role is None or member is None:
-            await self._flash("boost.errors.member_not_found", color="danger")
-            return await self.rerender(interaction)
-        if member.bot:
-            await self._flash("boost.errors.bot_not_allowed", color="danger")
-            return await self.rerender(interaction)
-        data = await self.store.get_role(self.guild_id, role_id) or {}
-        if not await self.store.transfer_ownership(self.guild_id, role_id, member.id):
-            await self._flash("boost.errors.role_not_registered", color="danger")
-            return await self.rerender(interaction)
-        await self._log(
-            "transfer",
-            color="info",
-            role=f"<@&{role_id}>",
-            old_owner=f"<@{data.get('owner_id', 0)}>",
-            new_owner=member.mention,
-            actor=await self._actor_mention(),
-        )
-        with contextlib.suppress(discord.Forbidden):
-            await self._dm_transferred(role, member)
-        self.screen = _Screen.HOME
-        await self._flash("boost.success.ownership_transferred", role=f"@{role.name}")
-        await self.rerender(interaction)
-
     #: rendering ----------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
-        t = self.bot.translator.t
-        theme = self.bot.theme
+        if self.expired:
+            return await self.expired_items()
         screen = self.screen
-
         if screen is _Screen.LEAVE:
-            return await self._build_leave(t, theme)
+            return await self._build_leave()
         if screen is _Screen.MY_ROLES:
-            return await self._build_my_roles(t, theme)
+            return await self._build_my_roles()
         if screen is _Screen.PENDING:
-            return await self._build_pending(t, theme)
+            return await self._build_pending()
         if screen is _Screen.MANAGE:
-            return await self._build_manage(t, theme)
+            return await self._build_manage()
         if screen is _Screen.COLOR:
-            return await self._build_color(t, theme)
+            return await self._build_color()
         if screen is _Screen.MEMBERS:
-            return await self._build_members(t, theme)
+            return await self._build_members()
         if screen is _Screen.INVITES:
-            return await self._build_invites(t, theme)
+            return await self._build_invites()
         if screen is _Screen.INVITE_TARGET:
-            return await self._build_invite_target(t, theme)
+            return await self._build_invite_target()
         if screen is _Screen.LEAVE_CONFIRM:
-            return await self._build_leave_confirm(t, theme)
+            return await self._build_leave_confirm()
         if screen is _Screen.REMOVE_CONFIRM:
-            return await self._build_remove_confirm(t, theme)
-        return await self._build_home(t, theme)
+            return await self._build_remove_confirm()
+        return await self._build_home()
 
-    async def _build_home(self, t: Any, theme) -> list[discord.ui.ViewItem]:
-        from rosemary.core.card_service import menu_heading_items
-
-        heading = await menu_heading_items(self.bot, self.guild_id, "boost.home")
-        container = self._container(
-            "brand",
-            *(
-                heading
-                or [
-                    TextDisplay(
-                        theme.md("title", title=await t(self.guild_id, "boost.titles.home"))
-                    ),
-                    TextDisplay(await t(self.guild_id, "boost.descriptions.user_panel")),
-                ]
-            ),
+    async def _build_home(self) -> list[discord.ui.ViewItem]:
+        await self.set_screen(
+            "boost.titles.home",
+            "boost.descriptions.user_panel",
+            heading="boost.home",
         )
+        self.nav("close")
         row = ActionRow(
-            self.make_button(
-                custom_id="boost_my_roles",
-                label=await t(self.guild_id, "boost.buttons.my_roles"),
-                style=discord.ButtonStyle.primary,
-                emoji=theme.emojis.get("crown", ""),
+            await self.button(
+                "boost_my_roles",
+                "boost.buttons.my_roles",
+                style="primary",
+                emoji="crown",
             ),
-            self.make_button(
-                custom_id="boost_pending",
-                label=await t(self.guild_id, "boost.buttons.invites"),
-                emoji=theme.emojis.get("love_letter", ""),
-            ),
-            self.make_button(
-                custom_id="boost_leave",
-                label=await t(self.guild_id, "boost.buttons.leave_role"),
-                emoji=theme.emojis.get("door", ""),
-            ),
+            await self.button("boost_pending", "boost.buttons.invites", emoji="love_letter"),
+            await self.button("boost_leave", "boost.buttons.leave_role", emoji="door"),
         )
-        row2 = ActionRow(
-            self.make_button(
-                custom_id="boost_close",
-                label=await t(self.guild_id, "boost.buttons.close"),
-                style=discord.ButtonStyle.danger,
-            )
-        )
-        return [container, row, row2]
+        return await self.compose([], [row])
 
-    async def _build_my_roles(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_my_roles(self) -> list[discord.ui.ViewItem]:
         uid = self._uid()
         owned = await self.store.get_roles_by_owner(self.guild_id, uid)
         joined = await self.store.get_roles_as_member(self.guild_id, uid)
@@ -1119,17 +1104,11 @@ class BoostMenuView(_BaseMenu):
             entries.append(
                 self._role_entry(
                     role,
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=self._role_label(role),
-                            value=await t(self.guild_id, "boost.descriptions.as_owner"),
-                        )
-                    ),
-                    self.make_button(
-                        custom_id=f"boost_manage:{role_id_str}",
-                        label=await t(self.guild_id, "boost.buttons.manage_roles"),
-                        emoji=theme.emojis.get("gear", ""),
+                    self.entry(self._role_label(role), await self.t("boost.descriptions.as_owner")),
+                    await self.button(
+                        f"boost_manage:{role_id_str}",
+                        "boost.buttons.manage_roles",
+                        emoji="gear",
                     ),
                 )
             )
@@ -1140,29 +1119,24 @@ class BoostMenuView(_BaseMenu):
             entries.append(
                 self._role_entry(
                     role,
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=self._role_label(role),
-                            value=await t(self.guild_id, "boost.descriptions.as_member"),
-                        )
+                    self.entry(
+                        self._role_label(role), await self.t("boost.descriptions.as_member")
                     ),
-                    self.make_button(
-                        custom_id=f"boost_leave_confirm:{role_id_str}",
-                        label=await t(self.guild_id, "boost.buttons.leave_role"),
-                        emoji=theme.emojis.get("door", ""),
+                    await self.button(
+                        f"boost_leave_confirm:{role_id_str}",
+                        "boost.buttons.leave_role",
+                        emoji="door",
                     ),
                 )
             )
-        parts: list[discord.ui.ViewItem] = [
-            TextDisplay(theme.md("title", title=await t(self.guild_id, "boost.titles.my_roles"))),
-        ]
-        if not entries:
-            parts.append(TextDisplay(await t(self.guild_id, "boost.descriptions.my_roles_empty")))
-        container = self._container("brand", *parts)
-        return await self._paginated_screen(t, container, entries)
+        await self.set_screen("boost.titles.my_roles", color="brand")
+        sections = await self._list_sections(
+            entries, await self.t("boost.descriptions.my_roles_empty")
+        )
+        self._page_nav(self._page_total)
+        return await self.compose(sections)
 
-    async def _build_pending(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_pending(self) -> list[discord.ui.ViewItem]:
         uid = self._uid()
         sent = await self.store.get_invites_by_inviter(self.guild_id, uid)
         guild = self._guild()
@@ -1175,43 +1149,30 @@ class BoostMenuView(_BaseMenu):
             entries.append(
                 self._role_entry(
                     role,
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=self._role_label(role)
-                            if role
-                            else str(data.get("role_id")),
-                            value=await t(
-                                self.guild_id,
-                                "boost.descriptions.pending_invite_entry",
-                                invitee=f"<@{data.get('invitee_id', 0)}>",
-                                expires=f"<t:{int(expires.timestamp())}:R>"
-                                if expires
-                                else "-",
-                            ),
-                        )
+                    self.entry(
+                        self._role_label(role),
+                        await self.t(
+                            "boost.descriptions.pending_invite_entry",
+                            invitee=f"<@{data.get('invitee_id', 0)}>",
+                            expires=f"<t:{int(expires.timestamp())}:R>" if expires else "-",
+                        ),
                     ),
-                    self.make_button(
-                        custom_id=f"boost_cancel_invite:{data.get('role_id', 0)}:{invite_id}",
-                        label=await t(self.guild_id, "boost.buttons.cancel_invite"),
-                        style=discord.ButtonStyle.danger,
-                        emoji=theme.emojis.get("trash", ""),
+                    await self.button(
+                        f"boost_cancel_invite:{data.get('role_id', 0)}:{invite_id}",
+                        "boost.buttons.cancel_invite",
+                        style="danger",
+                        emoji="trash",
                     ),
                 )
             )
-        parts: list[discord.ui.ViewItem] = [
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.pending_invites"))
-            ),
-        ]
-        if not entries:
-            parts.append(
-                TextDisplay(await t(self.guild_id, "boost.descriptions.pending_invites_empty"))
-            )
-        container = self._container("info", *parts)
-        return await self._paginated_screen(t, container, entries)
+        await self.set_screen("boost.titles.pending_invites", color="info")
+        sections = await self._list_sections(
+            entries, await self.t("boost.descriptions.pending_invites_empty")
+        )
+        self._page_nav(self._page_total)
+        return await self.compose(sections)
 
-    async def _build_leave(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_leave(self) -> list[discord.ui.ViewItem]:
         joined = await self.store.get_roles_as_member(self.guild_id, self._uid())
         guild = self._guild()
         entries: list[discord.ui.ViewItem] = []
@@ -1222,192 +1183,135 @@ class BoostMenuView(_BaseMenu):
             entries.append(
                 self._role_entry(
                     role,
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=self._role_label(role),
-                            value=f"<@{data.get('owner_id', 0)}>",
-                        )
-                    ),
-                    self.make_button(
-                        custom_id=f"boost_leave_confirm:{role_id_str}",
-                        label=await t(self.guild_id, "boost.buttons.leave_role"),
-                        emoji=theme.emojis.get("door", ""),
+                    self.entry(self._role_label(role), f"<@{data.get('owner_id', 0)}>"),
+                    await self.button(
+                        f"boost_leave_confirm:{role_id_str}",
+                        "boost.buttons.leave_role",
+                        emoji="door",
                     ),
                 )
             )
-        parts: list[discord.ui.ViewItem] = [
-            TextDisplay(theme.md("title", title=await t(self.guild_id, "boost.titles.leave"))),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.leave")),
-        ]
-        if not entries:
-            parts.append(TextDisplay(await t(self.guild_id, "boost.descriptions.leave_empty")))
-        container = self._container("warning", *parts)
-        return await self._paginated_screen(t, container, entries)
+        await self.set_screen(
+            "boost.titles.leave",
+            "boost.descriptions.leave",
+            color="warning",
+        )
+        sections = await self._list_sections(
+            entries, await self.t("boost.descriptions.leave_empty")
+        )
+        self._page_nav(self._page_total)
+        return await self.compose(sections)
 
-    async def _build_manage(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_manage(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
         if role is None:
             self.screen = _Screen.HOME
-            return await self._build_home(t, theme)
+            return await self._build_home()
         data = await self.store.get_role(self.guild_id, role.id) or {}
         members = list(data.get("members", []))
         max_members = await get_setting(self.bot.storage, self.guild_id, "boost.max_members")
-        container = self._container(
-            "brand",
-            *self._role_items(
-                role,
-                TextDisplay(
-                    theme.md(
-                        "title",
-                        title=await t(
-                            self.guild_id,
-                            "boost.titles.management_panel",
-                            role_name=role.mention,
-                        ),
-                    )
-                ),
-                TextDisplay(
-                    theme.md(
-                        "entry",
-                        label=await t(self.guild_id, "boost.emoji.owner"),
-                        value=f"<@{data.get('owner_id', 0)}>",
-                    )
-                ),
-                TextDisplay(
-                    theme.md(
-                        "entry",
-                        label=await t(self.guild_id, "boost.emoji.members"),
-                        value=await t(
-                            self.guild_id,
-                            "boost.descriptions.members_count",
-                            count=len(members),
-                            max_members=max_members,
-                        ),
-                    )
-                ),
-                TextDisplay(await t(self.guild_id, "boost.descriptions.manage_hint")),
-            ),
+        await self.set_screen(
+            "boost.titles.management_panel",
+            color="brand",
+            role_name=role.mention,
         )
+        self._show_role_icon(role)
+        self.lines = [
+            self.entry(await self.t("boost.emoji.owner"), f"<@{data.get('owner_id', 0)}>"),
+            self.entry(
+                await self.t("boost.emoji.members"),
+                await self.t(
+                    "boost.descriptions.members_count",
+                    count=len(members),
+                    max_members=max_members,
+                ),
+            ),
+            TextDisplay(await self.t("boost.descriptions.manage_hint")),
+        ]
+        self.nav("back", "close")
         row1 = ActionRow(
-            self.make_button(
-                custom_id=f"boost_rename:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.rename"),
-                emoji=theme.emojis.get("pencil", ""),
+            await self.button(f"boost_rename:{role.id}", "boost.buttons.rename", emoji="pencil"),
+            await self.button(
+                f"boost_color:{role.id}",
+                "boost.buttons.change_color",
+                emoji="palette",
             ),
-            self.make_button(
-                custom_id=f"boost_color:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.change_color"),
-                emoji=theme.emojis.get("palette", ""),
-            ),
-            self.make_button(
-                custom_id=f"boost_emoji:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.emoji"),
-                emoji=theme.emojis.get("tag", ""),
-            ),
-            self.make_button(
-                custom_id=f"boost_icon:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.icon"),
-                emoji=theme.emojis.get("frame", ""),
-            ),
+            await self.button(f"boost_emoji:{role.id}", "boost.buttons.emoji", emoji="tag"),
+            await self.button(f"boost_icon:{role.id}", "boost.buttons.icon", emoji="frame"),
         )
         row2 = ActionRow(
-            self.make_button(
-                custom_id=f"boost_manage_members:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.manage_members"),
-                emoji=theme.emojis.get("members", ""),
+            await self.button(
+                f"boost_manage_members:{role.id}",
+                "boost.buttons.manage_members",
+                emoji="members",
             ),
-            self.make_button(
-                custom_id=f"boost_invites:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.invites"),
-                emoji=theme.emojis.get("love_letter", ""),
+            await self.button(
+                f"boost_invites:{role.id}",
+                "boost.buttons.invites",
+                emoji="love_letter",
             ),
-            self.make_button(
-                custom_id=f"boost_transfer:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.transfer"),
-                emoji=theme.emojis.get("swap", ""),
+            await self.button(
+                f"boost_transfer:{role.id}",
+                "boost.buttons.transfer",
+                emoji="swap",
             ),
-            self.make_button(
-                custom_id=f"boost_remove_role:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.remove"),
-                style=discord.ButtonStyle.danger,
-                emoji=theme.emojis.get("trash", ""),
+            await self.button(
+                f"boost_remove_role:{role.id}",
+                "boost.buttons.remove",
+                style="danger",
+                emoji="trash",
             ),
         )
-        row3 = ActionRow(
-            self.make_button(
-                custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
-            )
-        )
-        return [container, row1, row2, row3]
+        return await self.compose([], [row1, row2])
 
-    async def _build_color(self, t: Any, theme) -> list[discord.ui.ViewItem]:
-        role_id = self.role_id
+    async def _build_color(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
-        items: list[discord.ui.ViewItem] = [
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.select_color"))
-            ),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.select_color")),
-        ]
-        if role is not None:
-            items = self._role_items(role, *items)
-        container = self._container("brand", *items)
+        if role is None:
+            self.screen = _Screen.HOME
+            return await self._build_home()
+        await self.set_screen(
+            "boost.titles.select_color",
+            "boost.descriptions.select_color",
+            color="brand",
+        )
+        self._show_role_icon(role)
+        self.nav("back", "close")
         options = [
             discord.SelectOption(
-                label=await t(self.guild_id, key),
+                label=await self.t(key),
                 value=hex_value,
-                emoji=theme.emojis.get("palette", ""),
+                emoji=self.emoji("palette"),
             )
             for key, hex_value in COLOR_PALETTE
         ]
         color_select = self.make_select(
-            custom_id=f"boost_pick_color:{role_id}",
-            placeholder=await t(self.guild_id, "boost.placeholders.select_color"),
+            custom_id=f"boost_pick_color:{role.id}",
+            placeholder=await self.t("boost.placeholders.select_color"),
             options=options,
         )
-        custom = self.make_button(
-            custom_id=f"boost_custom_color:{role_id}",
-            label=await t(self.guild_id, "boost.buttons.custom_color"),
-            emoji=theme.emojis.get("palette", ""),
+        custom = await self.button(
+            f"boost_custom_color:{role.id}",
+            "boost.buttons.custom_color",
+            emoji="palette",
         )
-        back = self.make_button(
-            custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
-        )
-        return [
-            container,
-            divider(),
-            ActionRow(color_select),
-            ActionRow(custom, back),
-        ]
+        return await self.compose([divider()], [ActionRow(color_select), ActionRow(custom)])
 
-    async def _build_members(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_members(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
         if role is None:
             self.screen = _Screen.HOME
-            return await self._build_home(t, theme)
+            return await self._build_home()
         data = await self.store.get_role(self.guild_id, role.id) or {}
         members = list(data.get("members", []))
         max_members = await get_setting(self.bot.storage, self.guild_id, "boost.max_members")
-        container = self._container(
-            "brand",
-            *self._role_items(
-                role,
-                TextDisplay(
-                    theme.md(
-                        "title",
-                        title=await t(
-                            self.guild_id, "boost.titles.manage_members", role_name=role.mention
-                        ),
-                    )
-                ),
-                TextDisplay(
-                    await t(
-                        self.guild_id, "boost.descriptions.manage_members", max_members=max_members
-                    )
-                ),
-            ),
+        await self.set_screen(
+            "boost.titles.manage_members",
+            "boost.descriptions.manage_members",
+            color="brand",
+            role_name=role.mention,
+            max_members=max_members,
         )
+        self._show_role_icon(role)
         guild = self._guild()
         entries: list[discord.ui.ViewItem] = []
         for member_id in members:
@@ -1415,290 +1319,194 @@ class BoostMenuView(_BaseMenu):
             label = str(member) if member else str(member_id)
             entries.append(
                 Section(
-                    TextDisplay(theme.md("entry", label=f"<@{member_id}>", value=label)),
-                    accessory=self.make_button(
-                        custom_id=f"boost_member_remove:{role.id}:{member_id}",
-                        label=await t(self.guild_id, "boost.buttons.remove_member"),
-                        style=discord.ButtonStyle.danger,
-                        emoji=theme.emojis.get("minus", ""),
+                    self.entry(f"<@{member_id}>", label),
+                    accessory=await self.button(
+                        f"boost_member_remove:{role.id}:{member_id}",
+                        "boost.buttons.remove_member",
+                        style="danger",
+                        emoji="minus",
                     ),
                 )
             )
-        if not entries:
-            entries.append(TextDisplay(await t(self.guild_id, "boost.descriptions.members_empty")))
-        items: list[discord.ui.ViewItem] = [container, divider()]
+        self._page_total = page_count(len(entries), _LIST_PAGE_SIZE)
+        self.page = min(self.page, self._page_total - 1)
+        sections: list[discord.ui.ViewItem] = [divider()]
         page_entries = paginate(entries, self.page, _LIST_PAGE_SIZE)
-        total_pages = page_count(len(entries), _LIST_PAGE_SIZE)
-        items.extend(page_entries)
-        items.append(divider())
+        sections.extend(page_entries)
+        if not page_entries:
+            sections.append(TextDisplay(await self.t("boost.descriptions.members_empty")))
+        sections.append(divider())
         # Membership grows ONLY through invites: this button opens the invite
         # target screen (the same flow as the invites screen), never a direct
-        # role grant from here. Navigation lives solely in the row below: two
-        # components with the same custom_id make Discord reject the WHOLE
-        # payload (400 50035), which poisoned every later edit of the menu.
-        items.append(
+        # role grant from here.
+        actions = [
             ActionRow(
-                self.make_button(
-                    custom_id=f"boost_add_invite:{role.id}",
-                    label=await t(self.guild_id, "boost.buttons.invite_member"),
-                    style=discord.ButtonStyle.success,
-                    emoji=theme.emojis.get("plus", ""),
-                ),
-            )
-        )
-        nav: list[discord.ui.ViewItem] = []
-        if self.page > 0:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_prev", label=await t(self.guild_id, "boost.buttons.previous")
+                await self.button(
+                    f"boost_add_invite:{role.id}",
+                    "boost.buttons.invite_member",
+                    style="success",
+                    emoji="plus",
                 )
             )
-        if self.page < total_pages - 1:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_next", label=await t(self.guild_id, "boost.buttons.next")
-                )
-            )
-        nav.append(
-            self.make_button(
-                custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
-            )
-        )
-        items.append(ActionRow(*nav))
-        return items
+        ]
+        self._page_nav(self._page_total)
+        return await self.compose(sections, actions)
 
-    async def _build_invites(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_invites(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
         if role is None:
             self.screen = _Screen.HOME
-            return await self._build_home(t, theme)
+            return await self._build_home()
         invites = await self.store.get_invites_by_role(self.guild_id, role.id)
-        container = self._container(
-            "info",
-            *self._role_items(
-                role,
-                TextDisplay(
-                    theme.md(
-                        "title",
-                        title=await t(
-                            self.guild_id, "boost.titles.invites", role_name=role.mention
-                        ),
-                    )
-                ),
-            ),
+        await self.set_screen(
+            "boost.titles.invites",
+            color="info",
+            role_name=role.mention,
         )
+        self._show_role_icon(role)
         entries: list[discord.ui.ViewItem] = []
         for invite_id, data in invites.items():
             expires = parse_datetime(data.get("expires_at"))
             entries.append(
                 Section(
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=await t(self.guild_id, "boost.emoji.user"),
-                            value=await t(
-                                self.guild_id,
-                                "boost.descriptions.pending_invite_entry",
-                                invitee=f"<@{data.get('invitee_id', 0)}>",
-                                expires=f"<t:{int(expires.timestamp())}:R>" if expires else "-",
-                            ),
-                        )
+                    self.entry(
+                        await self.t("boost.emoji.user"),
+                        await self.t(
+                            "boost.descriptions.pending_invite_entry",
+                            invitee=f"<@{data.get('invitee_id', 0)}>",
+                            expires=f"<t:{int(expires.timestamp())}:R>" if expires else "-",
+                        ),
                     ),
-                    accessory=self.make_button(
-                        custom_id=f"boost_cancel_invite:{role.id}:{invite_id}",
-                        label=await t(self.guild_id, "boost.buttons.cancel_invite"),
-                        style=discord.ButtonStyle.danger,
-                        emoji=theme.emojis.get("trash", ""),
+                    accessory=await self.button(
+                        f"boost_cancel_invite:{role.id}:{invite_id}",
+                        "boost.buttons.cancel_invite",
+                        style="danger",
+                        emoji="trash",
                     ),
                 )
             )
-        if not entries:
-            entries.append(
-                TextDisplay(await t(self.guild_id, "boost.descriptions.pending_invites_empty"))
-            )
-        items: list[discord.ui.ViewItem] = [container, divider()]
+        self._page_total = page_count(len(entries), _LIST_PAGE_SIZE)
+        self.page = min(self.page, self._page_total - 1)
+        sections: list[discord.ui.ViewItem] = [divider()]
         page_entries = paginate(entries, self.page, _LIST_PAGE_SIZE)
-        total_pages = page_count(len(entries), _LIST_PAGE_SIZE)
-        items.extend(page_entries)
-        items.append(divider())
-        nav: list[discord.ui.ViewItem] = [
-            self.make_button(
-                custom_id=f"boost_add_invite:{role.id}",
-                label=await t(self.guild_id, "boost.buttons.add_member"),
-                style=discord.ButtonStyle.success,
-                emoji=theme.emojis.get("plus", ""),
+        sections.extend(page_entries)
+        if not page_entries:
+            sections.append(
+                TextDisplay(await self.t("boost.descriptions.pending_invites_empty"))
+            )
+        sections.append(divider())
+        actions = [
+            ActionRow(
+                await self.button(
+                    f"boost_add_invite:{role.id}",
+                    "boost.buttons.add_member",
+                    style="success",
+                    emoji="plus",
+                )
             )
         ]
-        if self.page > 0:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_prev", label=await t(self.guild_id, "boost.buttons.previous")
-                )
-            )
-        if self.page < total_pages - 1:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_next", label=await t(self.guild_id, "boost.buttons.next")
-                )
-            )
-        nav.append(
-            self.make_button(
-                custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
-            )
-        )
-        items.append(ActionRow(*nav))
-        return items
+        self._page_nav(self._page_total)
+        return await self.compose(sections, actions)
 
-    async def _build_invite_target(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_invite_target(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
         if role is None:
             self.screen = _Screen.HOME
-            return await self._build_home(t, theme)
-        if getattr(self, "_transfer_mode", False):
-            title = await t(self.guild_id, "boost.titles.transfer_target")
-            description = await t(self.guild_id, "boost.descriptions.transfer_hint")
+            return await self._build_home()
+        if self._transfer_mode:
+            title = "boost.titles.transfer_target"
+            body = "boost.descriptions.transfer_hint"
             select_id = f"boost_transfer_owner:{role.id}"
             by_id_id = f"boost_by_id_transfer_owner:{role.id}"
         else:
-            title = await t(self.guild_id, "boost.titles.invite_target")
-            description = await t(self.guild_id, "boost.descriptions.dm_hint")
+            title = "boost.titles.invite_target"
+            body = "boost.descriptions.dm_hint"
             select_id = f"boost_pick_invitee:{role.id}"
             by_id_id = f"boost_by_id_invitee:{role.id}"
-        container = self._container(
-            "info",
-            *self._role_items(
-                role,
-                TextDisplay(theme.md("title", title=title)),
-                TextDisplay(description),
-            ),
-        )
+        await self.set_screen(title, body, color="info")
+        self._show_role_icon(role)
+        self.nav("back", "close")
         member_select = self.make_user_select(
             custom_id=select_id,
-            placeholder=await t(self.guild_id, "boost.placeholders.select_member"),
+            placeholder=await self.t("boost.placeholders.select_member"),
         )
-        by_id = self.make_button(
-            custom_id=by_id_id,
-            label=await t(self.guild_id, "boost.buttons.add_by_id"),
-            emoji=theme.emojis.get("numbers", ""),
-        )
-        back = self.make_button(
-            custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
-        )
-        return [
-            container,
-            divider(),
-            ActionRow(member_select),
-            ActionRow(by_id, back),
-        ]
+        by_id = await self.button(by_id_id, "boost.buttons.add_by_id", emoji="numbers")
+        return await self.compose([divider()], [ActionRow(member_select), ActionRow(by_id)])
 
-    async def _build_leave_confirm(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_leave_confirm(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
         role_mention = role.mention if role else str(self.role_id)
-        items: list[discord.ui.ViewItem] = [
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.leave_confirm"))
-            ),
-            TextDisplay(
-                await t(self.guild_id, "boost.descriptions.confirm_leave", role=role_mention)
-            ),
-        ]
-        if role is not None:
-            items = self._role_items(role, *items)
-        container = self._container("warning", *items)
-        row = ActionRow(
-            self.make_button(
-                custom_id=f"boost_leave_confirm_yes:{self.role_id}",
-                label=await t(self.guild_id, "boost.buttons.confirm"),
-                style=discord.ButtonStyle.danger,
-            ),
-            self.make_button(
-                custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.cancel")
-            ),
+        await self.set_screen(
+            "boost.titles.leave_confirm",
+            "boost.descriptions.confirm_leave",
+            color="warning",
+            role=role_mention,
         )
-        return [container, row]
+        self._show_role_icon(role)
+        self.nav("back", "close", back="boost.buttons.cancel")
+        confirm = await self.button(
+            f"boost_leave_confirm_yes:{self.role_id}",
+            "boost.buttons.confirm",
+            style="danger",
+        )
+        return await self.compose([], [ActionRow(confirm)])
 
-    async def _build_remove_confirm(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_remove_confirm(self) -> list[discord.ui.ViewItem]:
         role = self._current_role()
         role_mention = role.mention if role else str(self.role_id)
-        items: list[discord.ui.ViewItem] = [
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.remove_confirm"))
-            ),
-            TextDisplay(
-                await t(self.guild_id, "boost.descriptions.confirm_removal", role=role_mention)
-            ),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.remove_hint")),
-        ]
-        if role is not None:
-            items = self._role_items(role, *items)
-        container = self._container("danger", *items)
+        await self.set_screen(
+            "boost.titles.remove_confirm",
+            "boost.descriptions.confirm_removal",
+            color="danger",
+            role=role_mention,
+        )
+        self._show_role_icon(role)
+        self.lines = [TextDisplay(await self.t("boost.descriptions.remove_hint"))]
+        self.nav("back", "close", back="boost.buttons.cancel")
         row = ActionRow(
-            self.make_button(
-                custom_id=f"boost_remove_confirm:{self.role_id}:delete",
-                label=await t(self.guild_id, "boost.buttons.delete_role_yes"),
-                style=discord.ButtonStyle.danger,
+            await self.button(
+                f"boost_remove_confirm:{self.role_id}:delete",
+                "boost.buttons.delete_role_yes",
+                style="danger",
             ),
-            self.make_button(
-                custom_id=f"boost_remove_confirm:{self.role_id}:keep",
-                label=await t(self.guild_id, "boost.buttons.delete_role_no"),
-                style=discord.ButtonStyle.secondary,
+            await self.button(
+                f"boost_remove_confirm:{self.role_id}:keep",
+                "boost.buttons.delete_role_no",
+                style="secondary",
             ),
         )
-        row2 = ActionRow(
-            self.make_button(
-                custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.cancel")
-            )
-        )
-        return [container, row, row2]
-
-    async def _paginated_screen(
-        self, t: Any, container: discord.ui.Container, entries: list[discord.ui.ViewItem]
-    ) -> list[discord.ui.ViewItem]:
-        page_entries = paginate(entries, self.page, _LIST_PAGE_SIZE)
-        total_pages = page_count(len(entries), _LIST_PAGE_SIZE)
-        items: list[discord.ui.ViewItem] = [container, divider()]
-        items.extend(page_entries)
-        nav: list[discord.ui.ViewItem] = []
-        if self.page > 0:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_prev", label=await t(self.guild_id, "boost.buttons.previous")
-                )
-            )
-        if self.page < total_pages - 1:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_next", label=await t(self.guild_id, "boost.buttons.next")
-                )
-            )
-        nav.append(
-            self.make_button(
-                custom_id="boost_back", label=await t(self.guild_id, "boost.buttons.back")
-            )
-        )
-        items.append(divider("large"))
-        items.append(ActionRow(*nav))
-        return items
+        return await self.compose([], [row])
 
 
 class AdminBoostMenuView(_BaseMenu):
     """Moderation panel for boost roles (/boost_admin)."""
 
+    nav_ids = {
+        "back": "boost_admin_back",
+        "previous": "boost_prev",
+        "next": "boost_next",
+        "close": "boost_close",
+    }
+    #: The role is deleted with the admin flow's own audit reason.
+    remove_reason = "Boost role removed by admin"
+
     def _register_handlers(self) -> None:
         super()._register_handlers()
+        # Messages posted before the migration carry ``boost_back`` even on
+        # the admin screens; keep that id alive.
+        self.register("boost_back", self.on_back)
         self.register("boost_admin_register", self._open_register)
         self.register("boost_admin_transfer", self._open_transfer)
         self.register("boost_admin_remove", self._open_remove)
         self.register("boost_admin_list", self._open_list)
         self.register("boost_pick_role_admin", self._pick_admin_role)
         self.register("boost_by_id_admin", self._by_id_admin)
-        self.register("boost_transfer_owner", self._pick_transfer_owner)
-        self.register("boost_by_id_transfer_owner", self._by_id_transfer_owner)
-        self.register("boost_remove_confirm_admin", self._remove_confirm)
-        self.register("boost_admin_back", self._admin_back)
 
-    def _total_pages(self) -> int:
-        return 1
+    async def on_back(self, interaction: discord.Interaction) -> None:
+        self.screen = _Screen.HOME
+        self.role_id = None
+        self.page = 0
+        await self.rerender(interaction)
 
     async def _open_register(self, interaction: discord.Interaction) -> None:
         self.screen = _Screen.REGISTER
@@ -1720,14 +1528,9 @@ class AdminBoostMenuView(_BaseMenu):
         self.page = 0
         await self.rerender(interaction)
 
-    async def _admin_back(self, interaction: discord.Interaction) -> None:
-        self.screen = _Screen.HOME
-        self.role_id = None
-        await self.rerender(interaction)
-
     async def _pick_admin_role(self, interaction: discord.Interaction) -> None:
         role = await self._resolve_role(interaction)
-        action = getattr(self, "_admin_action", "register")
+        action = self._admin_action
         if role is None:
             await self._flash("boost.errors.role_not_found", color="danger")
             return await self.rerender(interaction)
@@ -1752,7 +1555,7 @@ class AdminBoostMenuView(_BaseMenu):
         await self.rerender(interaction)
 
     async def _by_id_admin(self, interaction: discord.Interaction) -> None:
-        action = getattr(self, "_admin_action", "register")
+        action = self._admin_action
         modal = make_by_id_modal(
             title=await self._t("boost.modals.add_by_id.title"),
             custom_id=f"boost_by_id_admin_modal:{action}:{interaction.id}",
@@ -1788,344 +1591,157 @@ class AdminBoostMenuView(_BaseMenu):
         self.screen = _Screen.INVITE_TARGET
         await self.rerender(interaction)
 
-    async def _pick_transfer_owner(self, interaction: discord.Interaction) -> None:
-        role_id = int(_suffix(interaction.custom_id, "boost_transfer_owner"))
-        values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
-        try:
-            member_id = int(values[0])
-        except (TypeError, ValueError):
-            return
-        await self._transfer_to(interaction, role_id, member_id)
-
-    async def _by_id_transfer_owner(self, interaction: discord.Interaction) -> None:
-        role_id = int(_suffix(interaction.custom_id, "boost_by_id_transfer_owner"))
-        modal = make_by_id_modal(
-            title=await self._t("boost.modals.transfer.title"),
-            custom_id=f"boost_by_id_transfer_owner_modal:{role_id}:{interaction.id}",
-            label=await self._t("boost.modals.transfer.label"),
-            placeholder=await self._t("boost.modals.transfer.placeholder"),
-            on_submit=self._transfer_owner_by_id,
-        )
-        await interaction.response.send_modal(modal)
-
-    async def _transfer_owner_by_id(self, interaction: discord.Interaction, value: str) -> None:
-        try:
-            member_id = int(value.strip())
-        except ValueError:
-            await self._flash("boost.errors.member_not_found", color="danger")
-            return await self.rerender(interaction)
-        role_id = int(
-            _suffix(interaction.custom_id, "boost_by_id_transfer_owner_modal").split(":")[0]
-        )
-        await self._transfer_to(interaction, role_id, member_id)
-
-    async def _transfer_to(
-        self, interaction: discord.Interaction, role_id: int, member_id: int
-    ) -> None:
-        await self._ack(interaction)
-        role = self._guild().get_role(role_id) if self._guild() else None
-        member = self._member(member_id)
-        if role is None or member is None:
-            await self._flash("boost.errors.member_not_found", color="danger")
-            return await self.rerender(interaction)
-        if member.bot:
-            await self._flash("boost.errors.bot_not_allowed", color="danger")
-            return await self.rerender(interaction)
-        data = await self.store.get_role(self.guild_id, role_id) or {}
-        if not await self.store.transfer_ownership(self.guild_id, role_id, member.id):
-            await self._flash("boost.errors.role_not_registered", color="danger")
-            return await self.rerender(interaction)
-        await self._log(
-            "transfer",
-            color="info",
-            role=f"<@&{role_id}>",
-            old_owner=f"<@{data.get('owner_id', 0)}>",
-            new_owner=member.mention,
-            actor=await self._actor_mention(),
-        )
-        with contextlib.suppress(discord.Forbidden):
-            await self._dm_transferred(role, member)
-        self.screen = _Screen.HOME
-        await self._flash("boost.success.ownership_transferred", role=f"@{role.name}")
-        await self.rerender(interaction)
-
-    async def _remove_confirm(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
-        _, role_id, raw = interaction.custom_id.split(":", 2)
-        role_id = int(role_id)
-        role = self._guild().get_role(role_id) if self._guild() else None
-        data = await self.store.get_role(self.guild_id, role_id) or {}
-        await self.store.remove_role(self.guild_id, role_id)
-        for invite_id in list(
-            (await self.store.get_invites_by_role(self.guild_id, role_id)).keys()
-        ):
-            await self.store.remove_invite(self.guild_id, invite_id)
-        if raw == "delete" and role is not None:
-            with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-                await role.delete(reason="Boost role removed by admin")
-        await self._log(
-            "remove",
-            color="danger",
-            role=f"<@&{role_id}>",
-            owner=f"<@{data.get('owner_id', 0)}>",
-            actor=await self._actor_mention(),
-            deleted=await self._t(
-                "boost.buttons.delete_role_yes"
-                if raw == "delete"
-                else "boost.buttons.delete_role_no"
-            ),
-        )
-        self.screen = _Screen.HOME
-        await self._flash("boost.success.role_removed")
-        await self.rerender(interaction)
-
     #: rendering ----------------------------------------------------------
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
-        t = self.bot.translator.t
-        theme = self.bot.theme
+        if self.expired:
+            return await self.expired_items()
         if self.screen is _Screen.REGISTER:
-            return await self._build_admin_pick(t, theme)
+            return await self._build_admin_pick()
         if self.screen is _Screen.REGISTER_OWNER:
-            return await self._build_register_owner(t, theme)
+            return await self._build_register_owner()
         if self.screen is _Screen.INVITE_TARGET:
-            return await self._build_transfer_target(t, theme)
+            return await self._build_transfer_target()
         if self.screen is _Screen.REMOVE_CONFIRM:
-            return await self._build_remove_confirm(t, theme)
+            return await self._build_remove_confirm()
         if self.screen is _Screen.MY_ROLES:
-            return await self._build_list_all(t, theme)
-        return await self._build_admin_home(t, theme)
+            return await self._build_list_all()
+        return await self._build_admin_home()
 
-    async def _build_admin_home(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_admin_home(self) -> list[discord.ui.ViewItem]:
         roles = await self.store.get_roles(self.guild_id)
         total_members = sum(len(data.get("members", [])) for data in roles.values())
-        from rosemary.core.card_service import menu_heading_items
-
-        heading = await menu_heading_items(self.bot, self.guild_id, "boost.home")
-        container = self._container(
-            "brand",
-            *(
-                heading
-                or [
-                    TextDisplay(
-                        theme.md(
-                            "title", title=await t(self.guild_id, "boost.titles.admin_panel")
-                        )
-                    ),
-                    TextDisplay(await t(self.guild_id, "boost.descriptions.guide_admin")),
-                ]
-            ),
-            TextDisplay(
-                theme.md(
-                    "entry",
-                    label=await t(self.guild_id, "boost.emoji.roles"),
-                    value=await t(
-                        self.guild_id,
-                        "boost.descriptions.stats",
-                        roles=len(roles),
-                        members=total_members,
-                    ),
-                )
-            ),
+        await self.set_screen(
+            "boost.titles.admin_panel",
+            "boost.descriptions.guide_admin",
+            heading="boost.home",
         )
+        self.lines = [
+            self.entry(
+                await self.t("boost.emoji.roles"),
+                await self.t(
+                    "boost.descriptions.stats",
+                    roles=len(roles),
+                    members=total_members,
+                ),
+            )
+        ]
+        self.nav("close")
         row = ActionRow(
-            self.make_button(
-                custom_id="boost_admin_register",
-                label=await t(self.guild_id, "boost.buttons.register"),
-                emoji=theme.emojis.get("scroll", ""),
+            await self.button(
+                "boost_admin_register",
+                "boost.buttons.register",
+                emoji="scroll",
             ),
-            self.make_button(
-                custom_id="boost_admin_transfer",
-                label=await t(self.guild_id, "boost.buttons.transfer"),
-                emoji=theme.emojis.get("swap", ""),
+            await self.button(
+                "boost_admin_transfer",
+                "boost.buttons.transfer",
+                emoji="swap",
             ),
-            self.make_button(
-                custom_id="boost_admin_remove",
-                label=await t(self.guild_id, "boost.buttons.remove"),
-                style=discord.ButtonStyle.danger,
-                emoji=theme.emojis.get("trash", ""),
+            await self.button(
+                "boost_admin_remove",
+                "boost.buttons.remove",
+                style="danger",
+                emoji="trash",
             ),
         )
         row2 = ActionRow(
-            self.make_button(
-                custom_id="boost_admin_list",
-                label=await t(self.guild_id, "boost.buttons.list_all"),
-                emoji=theme.emojis.get("members", ""),
-            ),
-            self.make_button(
-                custom_id="boost_close",
-                label=await t(self.guild_id, "boost.buttons.close"),
-                style=discord.ButtonStyle.danger,
-            ),
-        )
-        return [container, row, row2]
-
-    async def _build_admin_pick(self, t: Any, theme) -> list[discord.ui.ViewItem]:
-        action = getattr(self, "_admin_action", "register")
-        if action == "register":
-            title = await t(self.guild_id, "boost.titles.register")
-            description = await t(self.guild_id, "boost.descriptions.register")
-        elif action == "remove":
-            title = await t(self.guild_id, "boost.titles.remove")
-            description = await t(self.guild_id, "boost.descriptions.remove")
-        else:
-            title = await t(self.guild_id, "boost.titles.transfer")
-            description = await t(self.guild_id, "boost.descriptions.transfer")
-        container = self._container(
-            "brand",
-            TextDisplay(theme.md("title", title=title)),
-            TextDisplay(description),
-        )
-        role_select = self.make_role_select(
-            custom_id="boost_pick_role_admin",
-            placeholder=await t(self.guild_id, "boost.placeholders.select_role"),
-        )
-        by_id = self.make_button(
-            custom_id="boost_by_id_admin",
-            label=await t(self.guild_id, "boost.buttons.add_by_id"),
-            emoji=theme.emojis.get("numbers", ""),
-        )
-        back = self.make_button(
-            custom_id="boost_admin_back", label=await t(self.guild_id, "boost.buttons.back")
-        )
-        return [
-            container,
-            divider(),
-            ActionRow(role_select),
-            ActionRow(by_id, back),
-        ]
-
-    async def _build_transfer_target(self, t: Any, theme) -> list[discord.ui.ViewItem]:
-        container = self._container(
-            "info",
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.transfer_target"))
-            ),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.transfer_hint")),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.new_owner")),
-        )
-        member_select = self.make_user_select(
-            custom_id=f"boost_transfer_owner:{self.role_id}",
-            placeholder=await t(self.guild_id, "boost.placeholders.select_member"),
-        )
-        by_id = self.make_button(
-            custom_id=f"boost_by_id_transfer_owner:{self.role_id}",
-            label=await t(self.guild_id, "boost.buttons.add_by_id"),
-            emoji=theme.emojis.get("numbers", ""),
-        )
-        back = self.make_button(
-            custom_id="boost_admin_back", label=await t(self.guild_id, "boost.buttons.back")
-        )
-        return [
-            container,
-            divider(),
-            ActionRow(member_select),
-            ActionRow(by_id, back),
-        ]
-
-    async def _build_remove_confirm(self, t: Any, theme) -> list[discord.ui.ViewItem]:
-        role = self._current_role()
-        role_mention = role.mention if role else str(self.role_id)
-        items: list[discord.ui.ViewItem] = [
-            TextDisplay(
-                theme.md("title", title=await t(self.guild_id, "boost.titles.remove_confirm"))
-            ),
-            TextDisplay(
-                await t(self.guild_id, "boost.descriptions.confirm_removal", role=role_mention)
-            ),
-            TextDisplay(await t(self.guild_id, "boost.descriptions.remove_hint")),
-        ]
-        if role is not None:
-            items = self._role_items(role, *items)
-        container = self._container("danger", *items)
-        row = ActionRow(
-            self.make_button(
-                custom_id=f"boost_remove_confirm_admin:{self.role_id}:delete",
-                label=await t(self.guild_id, "boost.buttons.delete_role_yes"),
-                style=discord.ButtonStyle.danger,
-            ),
-            self.make_button(
-                custom_id=f"boost_remove_confirm_admin:{self.role_id}:keep",
-                label=await t(self.guild_id, "boost.buttons.delete_role_no"),
-                style=discord.ButtonStyle.secondary,
-            ),
-        )
-        row2 = ActionRow(
-            self.make_button(
-                custom_id="boost_admin_back", label=await t(self.guild_id, "boost.buttons.cancel")
+            await self.button(
+                "boost_admin_list",
+                "boost.buttons.list_all",
+                emoji="members",
             )
         )
-        return [container, row, row2]
+        return await self.compose([], [row, row2])
 
-    async def _build_list_all(self, t: Any, theme) -> list[discord.ui.ViewItem]:
+    async def _build_admin_pick(self) -> list[discord.ui.ViewItem]:
+        action = self._admin_action
+        if action == "register":
+            title = "boost.titles.register"
+            body = "boost.descriptions.register"
+        elif action == "remove":
+            title = "boost.titles.remove"
+            body = "boost.descriptions.remove"
+        else:
+            title = "boost.titles.transfer"
+            body = "boost.descriptions.transfer"
+        await self.set_screen(title, body, color="brand")
+        self.nav("back", "close")
+        role_select = self.make_role_select(
+            custom_id="boost_pick_role_admin",
+            placeholder=await self.t("boost.placeholders.select_role"),
+        )
+        by_id = await self.button("boost_by_id_admin", "boost.buttons.add_by_id", emoji="numbers")
+        return await self.compose([divider()], [ActionRow(role_select), ActionRow(by_id)])
+
+    async def _build_transfer_target(self) -> list[discord.ui.ViewItem]:
+        await self.set_screen(
+            "boost.titles.transfer_target",
+            "boost.descriptions.transfer_hint",
+            color="info",
+        )
+        self.lines = [TextDisplay(await self.t("boost.descriptions.new_owner"))]
+        self.nav("back", "close")
+        member_select = self.make_user_select(
+            custom_id=f"boost_transfer_owner:{self.role_id}",
+            placeholder=await self.t("boost.placeholders.select_member"),
+        )
+        by_id = await self.button(
+            f"boost_by_id_transfer_owner:{self.role_id}",
+            "boost.buttons.add_by_id",
+            emoji="numbers",
+        )
+        return await self.compose([divider()], [ActionRow(member_select), ActionRow(by_id)])
+
+    async def _build_remove_confirm(self) -> list[discord.ui.ViewItem]:
+        role = self._current_role()
+        role_mention = role.mention if role else str(self.role_id)
+        await self.set_screen(
+            "boost.titles.remove_confirm",
+            "boost.descriptions.confirm_removal",
+            color="danger",
+            role=role_mention,
+        )
+        self._show_role_icon(role)
+        self.lines = [TextDisplay(await self.t("boost.descriptions.remove_hint"))]
+        self.nav("back", "close", back="boost.buttons.cancel")
+        row = ActionRow(
+            await self.button(
+                f"boost_remove_confirm_admin:{self.role_id}:delete",
+                "boost.buttons.delete_role_yes",
+                style="danger",
+            ),
+            await self.button(
+                f"boost_remove_confirm_admin:{self.role_id}:keep",
+                "boost.buttons.delete_role_no",
+                style="secondary",
+            ),
+        )
+        return await self.compose([], [row])
+
+    async def _build_list_all(self) -> list[discord.ui.ViewItem]:
         roles = await self.store.get_roles(self.guild_id)
         guild = self._guild()
         entries: list[discord.ui.ViewItem] = []
         for role_id_str, data in roles.items():
             role = guild.get_role(int(role_id_str)) if guild else None
             name = role.name if role else role_id_str
-            if role is not None:
-                items = self._role_items(
-                    role,
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=f"@{name}",
-                            value=await t(
-                                self.guild_id,
-                                "boost.descriptions.role_entry",
-                                owner=f"<@{data.get('owner_id', 0)}>",
-                                members=len(data.get("members", [])),
-                            ),
-                        )
-                    ),
-                )
-            else:
-                items = [
-                    TextDisplay(
-                        theme.md(
-                            "entry",
-                            label=f"@{name}",
-                            value=await t(
-                                self.guild_id,
-                                "boost.descriptions.role_entry",
-                                owner=f"<@{data.get('owner_id', 0)}>",
-                                members=len(data.get("members", [])),
-                            ),
-                        )
-                    )
-                ]
-            entries.append(designer_container(theme.color("info"), *items))
-        parts: list[discord.ui.ViewItem] = [
-            TextDisplay(theme.md("title", title=await t(self.guild_id, "boost.titles.list_all"))),
-        ]
-        if not entries:
-            parts.append(TextDisplay(await t(self.guild_id, "boost.descriptions.no_roles")))
-        container = self._container("info", *parts)
-        page_entries = paginate(entries, self.page, _LIST_PAGE_SIZE)
-        total_pages = page_count(len(entries), _LIST_PAGE_SIZE)
-        items: list[discord.ui.ViewItem] = [container, divider()]
-        items.extend(page_entries)
-        nav: list[discord.ui.ViewItem] = []
-        if self.page > 0:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_prev", label=await t(self.guild_id, "boost.buttons.previous")
+            value = await self.t(
+                "boost.descriptions.role_entry",
+                owner=f"<@{data.get('owner_id', 0)}>",
+                members=len(data.get("members", [])),
+            )
+            text = self.entry(f"@{name}", value)
+            items = self._role_items(role, text) if role is not None else [text]
+            entries.append(
+                Container(
+                    *items,
+                    color=self.theme.color("info") if self.theme else discord.Colour.blurple(),
                 )
             )
-        if self.page < total_pages - 1:
-            nav.append(
-                self.make_button(
-                    custom_id="boost_next", label=await t(self.guild_id, "boost.buttons.next")
-                )
-            )
-        nav.append(
-            self.make_button(
-                custom_id="boost_admin_back", label=await t(self.guild_id, "boost.buttons.back")
-            )
+        await self.set_screen("boost.titles.list_all", color="info")
+        sections = await self._list_sections(
+            entries, await self.t("boost.descriptions.no_roles")
         )
-        items.append(divider("large"))
-        items.append(ActionRow(*nav))
-        return items
+        self._page_nav(self._page_total)
+        return await self.compose(sections)

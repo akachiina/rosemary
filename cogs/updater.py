@@ -293,7 +293,7 @@ class UpdaterCog(commands.Cog):
                 await t(guild_id, "updater.error_dirty", ahead=ahead), ephemeral=True
             )
 
-        from rosemary.core.card_service import trace_card_path
+        from rosemary.core.debug import trace_card_path
         from rosemary.ui.confirm import ConfirmResult, ConfirmView
 
         cog = self
@@ -370,7 +370,7 @@ class UpdaterCog(commands.Cog):
         view.question_color = "warning"
         await view.prepare()
         await trace_card_path(self.bot, guild_id, "updater.confirm")
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**await view.message_kwargs(), ephemeral=True)
 
     async def _notify_all(self, **variables) -> None:
         for guild in list(self.bot.guilds):

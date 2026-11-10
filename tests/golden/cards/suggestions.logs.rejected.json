@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15158332,
+    "description": "<@0> recusou a sugestão **#1** de <@0> (…).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "❌ Sugestão recusada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "suggestions.logs.rejected",
+  "pings": [],
+  "view": []
+}

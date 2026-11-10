@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "<@0> adicionou 1 bump(s) de teste para <@0> (total na semana: 1).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "✏️ Bumps de Teste Adicionados",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.bumps_added",
+  "pings": [],
+  "view": []
+}

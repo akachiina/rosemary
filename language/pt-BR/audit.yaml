@@ -1,0 +1,86 @@
+audit:
+  no_nickname: (sem apelido)
+  edited_marker: (editado)
+  roles_gained: '**{plus} Ganhou:** {role}'
+  roles_lost: '**{minus} Perdeu:** {role}'
+  timeout_applied: Recebeu timeout até {duration}.
+  timeout_removed: O timeout foi removido.
+  bulk_multiple_channels: '{count} canais diferentes'
+errors:
+  generic: '{error} Algo deu errado.'
+log:
+  field:
+    target:
+      label: '{people} Alvo'
+    member_id:
+      label: '{numbers} ID do membro'
+    moderator:
+      label: '{gear} Moderador(a)'
+    reason:
+      label: '{scroll} Motivo'
+    duration:
+      label: '{clock} Duração'
+    role:
+      label: '{tag} Cargo'
+    owner:
+      label: '{crown} Dono(a)'
+    actor:
+      label: '{people} Por'
+    deleted:
+      label: '{trash} Removido'
+    old_owner:
+      label: '{crown} Dono anterior'
+    new_owner:
+      label: '{crown} Novo dono'
+    old_name:
+      label: '{pencil} Nome anterior'
+    new_name:
+      label: '{pencil} Novo nome'
+    new_color:
+      label: '{palette} Nova cor'
+    emoji:
+      label: '{palette} Emoji'
+    member:
+      label: '{people} Membro'
+    new_rep:
+      label: '{people} Novo representante'
+    invitee:
+      label: '{user} Convidado(a)'
+    inviter:
+      label: '{user} Quem convidou'
+    expires:
+      label: '{hourglass} Expira em'
+    consequence:
+      label: '{gear} Consequência'
+    matched:
+      label: '{search} Encontradas'
+    criterion:
+      label: '{search} Critério'
+    title:
+      label: '{pencil} Título'
+    channel:
+      label: '{speech} Canal'
+    relayed:
+      label: '{envelope} Repassadas'
+    sent:
+      label: '{check} Enviadas'
+    failed:
+      label: '{error} Falhas'
+    setting:
+      label: '{gear} Configuração'
+    category:
+      label: '{frame} Categoria'
+    old:
+      label: '{pencil} Anterior'
+    new:
+      label: '{pencil} Novo'
+    winner:
+      label: '{trophy} Vencedor(a)'
+    bumps:
+      label: '{bar_chart} Bumps'
+    previous:
+      label: '{pencil} Anterior'
+    action:
+      label: '{gear} Ação'
+  actor_footer: por {actor} · {timestamp}
+  system_footer: '{timestamp}'

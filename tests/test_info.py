@@ -1,7 +1,7 @@
-"""Info commands: default builders, variable contracts and emoji dispatch.
+"""Info commands: default cards, variable contracts and emoji dispatch.
 
 The five info cards (``utility.userinfo``/``emojiinfo``/``stickerinfo``/
-``roleinfo``/``channelinfo``) are rich-builder cards like
+``roleinfo``/``channelinfo``) share the info frame of
 ``utility.serverinfo``: these tests pin the render path with real catalogs,
 the optional-block behavior (banner, nickname, lottie sticker...), the emoji
 command's dispatch (custom / unicode / sticker) and the no-seed-map rule.
@@ -12,9 +12,10 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
+from card_forms import payload_image, payload_texts, payload_thumbnail
 
-import rosemary.cogs.info  # noqa: F401  (registers the builders)
-from rosemary.core.card_service import SEED_PARTS_BY_KEY, default_document, render_document
+import rosemary.cogs.info  # noqa: F401  (registers the commands)
+from rosemary.core.card_service import render_card_message
 from rosemary.core.i18n import Translator
 from rosemary.ui.theme import load_theme
 
@@ -27,14 +28,17 @@ def make_bot(tmp_path=None):
     bot.translator = Translator(
         Path("language"), default_placeholders=bot.theme.emojis
     )
-    if tmp_path is not None:
-        from rosemary.core.storage import GuildStorage
-        from rosemary.core.themes import ThemeStore
+    if tmp_path is None:
+        # The card pipeline reads the guild's theme and settings through
+        # real objects (a mock would break the await).
+        import tempfile
 
-        bot.storage = GuildStorage(tmp_path)
-        bot._theme_store = ThemeStore(tmp_path, themes_dir=tmp_path / "themes")
-    else:
-        bot._theme_store = MagicMock()
+        tmp_path = Path(tempfile.mkdtemp())
+    from rosemary.core.storage import GuildStorage
+    from rosemary.core.themes import ThemeStore
+
+    bot.storage = GuildStorage(tmp_path)
+    bot._theme_store = ThemeStore(tmp_path, themes_dir=tmp_path / "themes")
     return bot
 
 
@@ -79,12 +83,13 @@ def _sections_and_galleries(view):
 
 
 async def _build_and_render(bot, key, variables):
-    doc = await default_document(bot, 1, key, variables)
-    assert doc is not None, f"{key}: no default document"
-    return await render_document(bot, doc, variables, guild_id=1, card_key=key)
+    """Render a card the way the send site does (whatever form it took)."""
+    payload, _allowed = await render_card_message(bot, 1, key, variables)
+    assert payload is not None, f"{key}: no rendered payload"
+    return payload
 
 
-#: rich builders render with real catalogs ------------------------------------
+#: the info cards render with real catalogs ------------------------------------
 
 
 async def test_userinfo_card_renders_full_and_degraded():
@@ -106,25 +111,14 @@ async def test_userinfo_card_renders_full_and_degraded():
         "is_bot": "Não",
         "user_id": "123",
     }
-    view = await _build_and_render(bot, "utility.userinfo", full)
-    texts = container_texts(view)
+    payload = await _build_and_render(bot, "utility.userinfo", full)
+    texts = payload_texts(payload)
     assert any("Ana" in t for t in texts)
     assert any("aninha" in t for t in texts), texts
     assert any("<@&7>" in t for t in texts)
-    sections, galleries = _sections_and_galleries(view)
-    assert len(sections) == 1
-    assert "ana.png" in sections[0].accessory.media.url
-    assert len(galleries) == 1  # banner gallery present
-
-    # Banner sits between the header section and the divider: visible near
-    # the top, not after the stats (document order, no late-append).
-    container = view.children[0]
-    blocks = list(container.items)
-    banner_index = next(
-        i for i, b in enumerate(blocks) if type(b).__name__ == "MediaGallery"
-    )
-    header_index = next(i for i, b in enumerate(blocks) if type(b).__name__ == "Section")
-    assert banner_index == header_index + 1
+    # The avatar rides the thumbnail and the banner the image.
+    assert "ana.png" in payload_thumbnail(payload)
+    assert "banner.png" in payload_image(payload)
     # No raw keys leak into the card (the created_at_label regression).
     assert not any("card.utility." in t for t in texts), texts
 
@@ -137,17 +131,15 @@ async def test_userinfo_card_renders_full_and_degraded():
         "boosting_since": "",
         "top_role": "",
     }
-    view = await _build_and_render(bot, "utility.userinfo", bare)
-    texts = container_texts(view)
+    payload = await _build_and_render(bot, "utility.userinfo", bare)
+    texts = payload_texts(payload)
     assert not any("aninha" in t for t in texts)
     assert not any("<@&7>" in t for t in texts)
-    sections, galleries = _sections_and_galleries(view)
-    assert galleries == []
-    # No avatar -> no section accessory at all (never an empty thumbnail).
+    assert payload_image(payload) == ""
+    # No avatar -> no thumbnail at all (never an empty one).
     plain = {**bare, "user_avatar": ""}
-    view = await _build_and_render(bot, "utility.userinfo", plain)
-    sections, _galleries = _sections_and_galleries(view)
-    assert sections == []
+    payload = await _build_and_render(bot, "utility.userinfo", plain)
+    assert payload_thumbnail(payload) == ""
 
 
 async def test_emojiinfo_card_custom_and_unicode():
@@ -162,13 +154,11 @@ async def test_emojiinfo_card_custom_and_unicode():
         "created_at": "<t:1111111111:D>",
         "created_rel": "<t:1111111111:R>",
     }
-    view = await _build_and_render(bot, "utility.emojiinfo", custom)
-    sections, _galleries = _sections_and_galleries(view)
-    assert len(sections) == 1
-    assert "123.png" in sections[0].accessory.media.url
-    assert any("Emoji do servidor" in t for t in container_texts(view))
+    payload = await _build_and_render(bot, "utility.emojiinfo", custom)
+    assert "123.png" in payload_thumbnail(payload)
+    assert any("Emoji do servidor" in t for t in payload_texts(payload))
     # No raw keys leak into the card (the created_at_label regression).
-    assert not any("card.utility." in t for t in container_texts(view))
+    assert not any("card.utility." in t for t in payload_texts(payload))
 
     unicode_vars = {
         "emoji": "🌻",
@@ -180,11 +170,10 @@ async def test_emojiinfo_card_custom_and_unicode():
         "created_at": "",
         "created_rel": "",
     }
-    view = await _build_and_render(bot, "utility.emojiinfo", unicode_vars)
-    texts = container_texts(view)
+    payload = await _build_and_render(bot, "utility.emojiinfo", unicode_vars)
+    texts = payload_texts(payload)
     assert any("🌻" in t for t in texts)
-    sections, _galleries = _sections_and_galleries(view)
-    assert sections == []  # nothing to show as an image
+    assert payload_thumbnail(payload) == ""  # nothing to show as an image
     assert not any("card.utility." in t for t in texts)
 
 
@@ -201,16 +190,13 @@ async def test_stickerinfo_gallery_drops_for_lottie():
         "created_at": "<t:1111111111:D>",
         "created_rel": "<t:1111111111:R>",
     }
-    view = await _build_and_render(bot, "utility.stickerinfo", png)
-    _sections, galleries = _sections_and_galleries(view)
-    assert len(galleries) == 1
-    assert "42.png" in galleries[0].items[0].url
+    payload = await _build_and_render(bot, "utility.stickerinfo", png)
+    assert "42.png" in payload_image(payload)
 
     lottie = {**png, "sticker_url": "", "description": "", "format": "LOTTIE"}
-    view = await _build_and_render(bot, "utility.stickerinfo", lottie)
-    _sections, galleries = _sections_and_galleries(view)
-    assert galleries == []
-    assert any("LOTTIE" in t for t in container_texts(view))
+    payload = await _build_and_render(bot, "utility.stickerinfo", lottie)
+    assert payload_image(payload) == ""
+    assert any("LOTTIE" in t for t in payload_texts(payload))
 
 
 async def test_roleinfo_card_color_and_icon_optional():
@@ -228,19 +214,17 @@ async def test_roleinfo_card_color_and_icon_optional():
         "created_at": "<t:1111111111:D>",
         "created_rel": "<t:1111111111:R>",
     }
-    view = await _build_and_render(bot, "utility.roleinfo", rich)
-    sections, _galleries = _sections_and_galleries(view)
-    assert len(sections) == 1
-    texts = container_texts(view)
+    payload = await _build_and_render(bot, "utility.roleinfo", rich)
+    assert "icon.png" in payload_thumbnail(payload)
+    texts = payload_texts(payload)
     assert any("#3498db" in t for t in texts)
     assert any("Moderador" in t for t in texts)
 
     plain = {**rich, "role_color": "", "role_icon": ""}
-    view = await _build_and_render(bot, "utility.roleinfo", plain)
-    texts = container_texts(view)
+    payload = await _build_and_render(bot, "utility.roleinfo", plain)
+    texts = payload_texts(payload)
     assert not any("#3498db" in t for t in texts)
-    sections, _galleries = _sections_and_galleries(view)
-    assert sections == []
+    assert payload_thumbnail(payload) == ""
 
 
 async def test_channelinfo_card_voice_and_text():
@@ -260,32 +244,36 @@ async def test_channelinfo_card_voice_and_text():
         "created_at": "<t:1111111111:D>",
         "created_rel": "<t:1111111111:R>",
     }
-    view = await _build_and_render(bot, "utility.channelinfo", voice)
-    texts = container_texts(view)
+    payload = await _build_and_render(bot, "utility.channelinfo", voice)
+    texts = payload_texts(payload)
     assert any("96kbps" in t for t in texts)
     assert any("10" in t for t in texts)
 
     text = {**voice, "channel_type": "Texto", "bitrate": "", "user_limit": ""}
-    view = await _build_and_render(bot, "utility.channelinfo", text)
-    texts = container_texts(view)
+    payload = await _build_and_render(bot, "utility.channelinfo", text)
+    texts = payload_texts(payload)
     assert not any("kbps" in t for t in texts)
     assert any("Texto" in t for t in texts)
 
 
-#: seed-map rule ---------------------------------------------------------------
+#: the package rule ------------------------------------------------------------
 
 
-def test_info_cards_resolve_via_builder_not_seed():
-    """A seed entry would shadow the registered rich builders (the starboard/
-    serverinfo shadowing regression)."""
+def test_info_cards_resolve_via_document():
+    """The info cards live in the default package: the document is the source
+    of truth (the starboard/serverinfo shadowing regression)."""
+    from rosemary.core.theme_package import default_package
+
+    package = default_package()
     for key in (
+        "utility.serverinfo",
         "utility.userinfo",
         "utility.emojiinfo",
         "utility.stickerinfo",
         "utility.roleinfo",
         "utility.channelinfo",
     ):
-        assert key not in SEED_PARTS_BY_KEY, f"seed would shadow the builder: {key}"
+        assert key in package.documents, f"{key} missing from the package"
 
 
 #: emoji dispatch ---------------------------------------------------------------
@@ -399,7 +387,8 @@ async def test_emojiinfo_dispatch_custom_unicode_and_sticker(tmp_path):
     assert (allowed.everyone, allowed.users, allowed.roles, allowed.replied_user) == (
         False, False, False, False
     )
-    assert sent.get("view") is not None
+    # The emoji card ships as a classic embed.
+    assert sent.get("embed") is not None
 
     # Unicode glyph path: no fetches at all.
     ctx2 = _make_ctx(guild, author)
@@ -599,7 +588,8 @@ async def test_userinfo_defers_and_sends_card(tmp_path):
     assert (allowed.everyone, allowed.users, allowed.roles, allowed.replied_user) == (
         False, False, False, False
     )
-    assert sent["view"] is not None
+    # The info cards ship as classic embeds.
+    assert sent["embed"] is not None
 
 
 def _texts_of_view(view):
@@ -643,8 +633,11 @@ async def test_userinfo_everyone_top_role_renders_plain_text(tmp_path):
 
     await InfoCog.userinfo.callback(cog, ctx, member=None)
     assert ctx.followup.calls, "card must be sent"
-    view = ctx.followup.calls[0]["view"]
-    texts = "\n".join(_texts_of_view(view))
+    embed = ctx.followup.calls[0]["embed"]
+    texts = "\n".join(
+        [embed.title or "", embed.description or ""]
+        + [field.value or "" for field in embed.fields]
+    )
     assert "@everyone" in texts
     assert "<@&1>" not in texts, "raw guild-id role token must not leak"
     allowed = ctx.followup.calls[0].get("allowed_mentions")

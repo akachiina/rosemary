@@ -1,0 +1,1251 @@
+broadcast:
+  command:
+    name: broadcast
+    description: Live broadcast sessions
+  error_disabled: '{error} Broadcasts are disabled on this server.'
+  error_active: '{error} A broadcast is already running.'
+  error_none: '{error} No broadcast is running.'
+  target_all: all members
+  header: '**{title}** (from {server})'
+  started: '{success} Broadcast started in {channel} for {target}. Post there to relay.'
+  ended: '{success} Broadcast ended: {relayed} message(s) relayed ({sent} DMs, {failed} failed).'
+  logs:
+    started:
+      title: '{envelope} Broadcast Started'
+      description: '{moderator} started “{title}” in {channel}.'
+    ended:
+      title: '{check} Broadcast Ended'
+      description: '{moderator} ended the broadcast ({relayed} relayed, {sent} sent, {failed} failed).'
+broadcast_start:
+  command:
+    name: start
+    description: '[ADMIN] Start a live broadcast from this channel'
+    options:
+      title:
+        description: Broadcast title
+      role:
+        description: 'Role that receives this session (default: server setting)'
+      delay:
+        description: 'Seconds between DMs (default: server setting)'
+broadcast_stop:
+  command:
+    name: stop
+    description: '[ADMIN] Stop the live broadcast'
+card:
+  author_footer:
+    text: by {user} · {timestamp}
+  colors:
+    panel:
+      title: Color panel card
+    manager:
+      title: Color manager heading
+    list:
+      title: Color list
+  help:
+    card:
+      title: Command list card
+  starboard:
+    card:
+      title: Starboard post
+  suggestions:
+    card:
+      title: Suggestion card
+    logs:
+      created:
+        title: 'Log: suggestion posted'
+      approved:
+        title: 'Log: suggestion approved'
+      rejected:
+        title: 'Log: suggestion rejected'
+    dm:
+      vote:
+        title: Suggestion vote DM
+      approved:
+        title: Suggestion approved DM
+      rejected:
+        title: Suggestion rejected DM
+  confessions:
+    review:
+      title: Confession review card
+    card:
+      title: Confession card
+    response:
+      title: Confession reply card
+    logs:
+      approved:
+        title: 'Log: confession approved'
+      denied:
+        title: 'Log: confession denied'
+      replied:
+        title: 'Log: confession reply'
+      banned:
+        title: 'Log: confession ban'
+    dm:
+      approved:
+        title: Confession approved DM
+      rejected:
+        title: Confession denied DM
+      response:
+        title: Confession reply DM
+  utility:
+    ping:
+      title: Latency card
+    serverinfo:
+      title: Server info card
+      subtitle: '{crown} {owner} · {people} {members} members'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+      channels_label: '{speech} Channels'
+      channels_value: '{channels} · {text_channels} text · {voice_channels} voice'
+      roles_label: '{tag} Roles'
+      boosts_label: '{rocket} Boosts'
+      emojis_label: '{palette} Emojis'
+      stickers_label: '{love_letter} Stickers'
+      verification_label: '{lock} Verification'
+      verification:
+        none: None
+        low: Low
+        medium: Medium
+        high: High
+        highest: Very high
+    userinfo:
+      title: Member info card
+      subtitle: '{crown} {top_role}'
+      nickname_label: '{pencil} Nickname'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+      joined_label: '{door} Joined'
+      joined_value: '{joined_at} · {joined_rel}'
+      roles_label: '{tag} Roles'
+      boosting_since_label: '{rocket} Boosting since'
+      timeout_label: '{mute} Timeout'
+      is_bot_label: '{gear} Bot'
+    emojiinfo:
+      title: Emoji info card
+      subtitle: '{palette} {source}'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+      animated_label: '{tada} Animated'
+    stickerinfo:
+      title: Sticker info card
+      format_label: '{frame} Format'
+      tags_label: '{tag} Tags'
+      uploader_label: '{user} Uploader'
+      description_label: '{scroll} Description'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+    roleinfo:
+      title: Role info card
+      subtitle: '{tag} {role_color}'
+      members_label: '{people} Members'
+      position_label: '{numbers} Position'
+      role_color_label: '{palette} Color'
+      mentionable_label: '{speech} Mentionable'
+      hoist_label: '{up} Shown separately'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+    channelinfo:
+      title: Channel info card
+      channel_type_label: '{speech} Type'
+      category_label: '{frame} Category'
+      topic_label: '{scroll} Topic'
+      slowmode_label: '{hourglass} Slowmode'
+      bitrate_label: '{volume} Bitrate'
+      user_limit_label: '{people} User limit'
+      nsfw_label: '{lock} Age restricted'
+      position_label: '{numbers} Position'
+      created_label: '{calendar} Created'
+      created_value: '{created_at} · {created_rel}'
+  themes:
+    title:
+      title: Themes menu heading
+  boost:
+    home:
+      title: Boost panel heading
+    dm:
+      registered:
+        title: 'DM: boost role registered'
+      transferred:
+        title: 'DM: ownership transferred'
+      auto_transferred:
+        title: 'DM: automatic transfer'
+      auto_created:
+        title: 'DM: boost role auto-created'
+      auto_restored:
+        title: 'DM: boost role restored'
+      unboost_deleted:
+        title: 'DM: boost ended, role deleted'
+      unboost_removed:
+        title: 'DM: boost ended, role removed'
+      unboost_kept:
+        title: 'DM: boost ended, role kept'
+      invite:
+        title: 'DM: role invite'
+      accepted:
+        title: 'DM: invite accepted'
+      declined:
+        title: 'DM: invite declined'
+      owner_accepted:
+        title: 'DM: owner notified of acceptance'
+      owner_declined:
+        title: 'DM: owner notified of refusal'
+      member_left:
+        title: 'DM: you left the role'
+      owner_member_left:
+        title: 'DM: owner notified of leave'
+      error:
+        title: 'DM: invite error'
+    preview:
+      title: Role preview card
+    logs:
+      register:
+        title: 'Log: role registered'
+      remove:
+        title: 'Log: role removed'
+      transfer:
+        title: 'Log: ownership transferred'
+      rename:
+        title: 'Log: role renamed'
+      color_change:
+        title: 'Log: color changed'
+      emoji_change:
+        title: 'Log: emoji changed'
+      icon:
+        title: 'Log: icon changed'
+      member_add:
+        title: 'Log: member added'
+      member_remove:
+        title: 'Log: member removed'
+      member_left:
+        title: 'Log: member left'
+      invite_sent:
+        title: 'Log: invite sent'
+      invite_cancelled:
+        title: 'Log: invite cancelled'
+      invite_accepted:
+        title: 'Log: invite accepted'
+      invite_expired:
+        title: 'Log: invite expired'
+      orphan_remove:
+        title: 'Log: orphan role removed'
+      auto_transfer:
+        title: 'Log: automatic transfer'
+      auto_create:
+        title: 'Log: boost role auto-created'
+      unboost:
+        title: 'Log: boost ended'
+      invite_declined:
+        title: 'Log: invite declined'
+  bump:
+    stats:
+      title: Bump statistics
+    status:
+      title: Bump status card
+    dm:
+      winner_new:
+        title: 'DM: new MVP winner'
+      winner_again:
+        title: 'DM: repeated MVP winner'
+      winner_lost:
+        title: 'DM: MVP lost'
+    reminder:
+      title: Bump reminder card
+    thank_you:
+      title: Bump thank-you card
+    leaderboard:
+      title: Weekly leaderboard post
+    no_bumps:
+      title: Empty-week notice
+    anti_camping:
+      title: Channel locked message
+    schedule:
+      open:
+        title: Scheduled opening message
+      close:
+        title: Scheduled closing message
+    logs:
+      channel_locked:
+        title: 'Log: channel locked'
+      channel_unlocked:
+        title: 'Log: channel unlocked'
+      schedule_opened:
+        title: 'Log: channel opened on schedule'
+      schedule_closed:
+        title: 'Log: channel closed on schedule'
+      reminder_sent:
+        title: 'Log: reminder sent'
+      bump_recorded:
+        title: 'Log: bump recorded'
+      week_reset:
+        title: 'Log: week reset, winner announced'
+      no_winner:
+        title: 'Log: week ended without bumps'
+      no_bumps_posted:
+        title: 'Log: empty-week card posted'
+      leaderboard_posted:
+        title: 'Log: leaderboard posted'
+      week_reset_manual:
+        title: 'Log: manual week reset'
+      bumps_added:
+        title: 'Log: test bumps added'
+      no_role:
+        title: 'Log: winner role missing'
+  warn:
+    dm:
+      title: Warn DM
+  mute:
+    dm:
+      title: Mute DM
+  roleplay:
+    card:
+      title: Roleplay card
+    manager:
+      title: Gif manager heading
+  cleaner:
+    panel:
+      title: Purge panel heading
+    confirm:
+      title: Purge confirmation text
+    result:
+      title: Purge result text
+    logs:
+      purged:
+        title: 'Log: messages purged'
+  anti_invite:
+    warning:
+      title: Anti-invite warning text
+    logs:
+      blocked:
+        title: 'Log: invite blocked'
+  trap:
+    notice:
+      title: Trap channel notice
+    dm:
+      title: 'DM: fell into the trap'
+    logs:
+      failed:
+        title: 'Log: trap failed'
+  broadcast:
+    logs:
+      started:
+        title: 'Log: broadcast started'
+      ended:
+        title: 'Log: broadcast ended'
+  updater:
+    confirm:
+      title: Update confirmation text
+    logs:
+      updating:
+        title: 'Log: bot updating'
+      updated:
+        title: 'Log: bot updated'
+      auto_failed:
+        title: 'Log: auto-update failed'
+  kick:
+    dm:
+      title: Kick DM
+  ban:
+    dm:
+      title: Ban DM
+  moderation:
+    warnings:
+      title: Warning list
+    logs:
+      auto_ban:
+        title: 'Log: auto-ban applied'
+      ban:
+        title: 'Log: member banned'
+      kick:
+        title: 'Log: member kicked'
+      mute:
+        title: 'Log: member muted'
+      warn:
+        title: 'Log: member warned'
+  events:
+    welcome:
+      title: Welcome message
+    leave:
+      title: Leave message
+    ban:
+      title: Ban message
+  audit:
+    reason_line: '**{scroll} Reason:** {reason}'
+    moderator_line: '**{gear} Moderator:** {moderator}'
+    ban:
+      title: Member banned
+      body: '{user_name} (`{user_id}`) was banned.{reason_line}{moderator_line}'
+    unban:
+      title: Member unbanned
+      body: '{user_name} (`{user_id}`) was unbanned.{reason_line}{moderator_line}'
+    message_delete:
+      title: Message deleted
+      body: '**{people} Author:** {message_author}
+
+        **{speech} Channel:** {channel}
+
+
+        {message}
+
+        '
+      attachments_line: '**{scroll} Attachments:** {attachment_lines}'
+    message_edit:
+      title: Message edited
+      body: '**{people} Author:** {message_author}
+
+        **{speech} Channel:** {channel}
+
+
+        **{pencil} Before:**
+
+        {message}
+
+
+        **{pencil} After:**
+
+        {new_message}
+
+        '
+      attachments_line: '**{scroll} Attachments:** {attachment_lines}'
+    bulk_delete:
+      title: Message purge
+      body: '**{numbers} Deleted:** {count} in {channel}.
+
+        {moderator_line}{file_line}
+
+        '
+      file_line: '**{scroll} Full transcript:** [open file]({file_url})'
+    nickname:
+      title: Nickname changed
+      body: '**{pencil} Before:** {old_name}
+
+        **{pencil} Now:** {new_name}
+
+        '
+    avatar:
+      title: Avatar changed
+      body: '**{frame} Before:** [view avatar]({old_avatar})
+
+        **{frame} Now:** [view avatar]({new_avatar})
+
+        '
+    roles:
+      title: Roles changed
+      body: '{role}'
+    timeout:
+      title: Member timed out
+      body: '{reason}{duration_line}'
+      until_line: '**{clock} Valid until:** {duration}'
+    voice_join:
+      title: Joined voice channel
+      body: '{user_name} joined {channel}.'
+    voice_leave:
+      title: Left voice channel
+      body: '{user_name} left {channel}.'
+    trap:
+      title: Fell into the trap
+      body: '**{volume} Channel:** {channel}
+
+        **{gear} Consequence:** {action}
+
+        **{check} Result:** {outcome}
+
+        '
+  birthdays:
+    list:
+      title: Birthday list
+    announce:
+      title: Birthday announcement
+  tickets:
+    panel:
+      title: Ticket panel card
+    created:
+      title: Ticket intro card
+    logs:
+      opened:
+        title: 'Log: ticket opened'
+      closed:
+        title: 'Log: ticket closed'
+      reopened:
+        title: 'Log: ticket reopened'
+      deleted:
+        title: 'Log: ticket deleted'
+      transcript:
+        title: 'Log: ticket transcript'
+  partnerships:
+    list:
+      title: Partnership list
+    audit:
+      title: Partnership audit
+    invite:
+      title: Partnership invite text
+    dm:
+      added:
+        title: 'DM: partnership added'
+      removed:
+        title: 'DM: partnership removed'
+      rep_changed:
+        title: 'DM: representative changed'
+      warning:
+        title: 'DM: partnership warning'
+      expired:
+        title: 'DM: partnership expired'
+      expired_admin:
+        title: 'DM: partnership expired (adder notice)'
+    logs:
+      added:
+        title: 'Log: partnership added'
+      removed:
+        title: 'Log: partnership removed'
+      edited:
+        title: 'Log: partnership edited'
+      renewed:
+        title: 'Log: partnership renewed'
+      warning_sent:
+        title: 'Log: partnership warning'
+      expired:
+        title: 'Log: partnership expired'
+      invite_posted:
+        title: 'Log: partnership invite posted'
+      orphans_cleaned:
+        title: 'Log: orphan partnerships cleaned'
+  invites:
+    leaderboard:
+      title: Top inviters ranking
+    codes:
+      title: Invite code list
+    blacklist:
+      title: Invite blacklist card
+    stats:
+      title: Invite stats card
+    personal:
+      title: Personal invite card
+    invited_list:
+      title: Invited members list
+    server_stats:
+      title: Server invite stats
+    invited_by:
+      title: Invited-by card
+    logs:
+      join:
+        title: 'Log: member joined with invite'
+      leave:
+        title: 'Log: invited member left'
+      bonus:
+        title: 'Log: bonus invites adjusted'
+      sync:
+        title: 'Log: invites synced'
+      reset:
+        title: 'Log: invites reset'
+  about:
+    card:
+      title: About card
+  settings:
+    title:
+      title: Settings menu heading
+    logs:
+      language:
+        title: 'Log: language changed'
+    log:
+      title: 'Log: setting changed'
+  reminders:
+    list:
+      title: Reminder list
+    logs:
+      sent:
+        title: 'Log: reminder sent'
+  debug:
+    logs:
+      test:
+        title: 'Log: test message'
+    trace:
+      title: 'Log: card path'
+    panel:
+      title: Debug panel
+debug:
+  command:
+    name: debug
+    description: Bot diagnostics panel
+  trace:
+    title: Tracked card
+    card_path: '`{path}` ← {origin}'
+    theme: theme "{theme}"
+    default: catalog default
+  guilds: 'Guilds: {guilds}'
+  members: 'Members: {members}'
+  latency: 'Latency: {latency} ms'
+  uptime: 'Uptime: {uptime}'
+  close: Close
+  test_log: Test log
+  logs:
+    test:
+      description: This message confirms that the logging channel works.
+      title: '{gear} Log test'
+  test_log_sent: '{success} Test message sent to the log channel.'
+  test_log_not_sent: '{error} Could not send the test message. Check the log channel setting.'
+  panel:
+    title: Debug panel
+    version: 'Version: {version}'
+    theme: 'Theme: {theme}'
+    logging: 'Logging: {logging}'
+    audit: 'Audit log: {audit}'
+general:
+  unknown_error: '{error} An unexpected error occurred.'
+  'yes': 'Yes'
+  'no': 'No'
+  no_permission: '{error} Only server administrators can use this command.'
+  bot_no_permission: '{error} The bot does not have permission to do that.'
+menu:
+  owner_only: '{error} This menu is private. Only the author can interact.'
+  expired: '{warning} This menu expired. Open it again to continue.'
+# The shared labels of the panels: the navigation of every panel reads them
+# from the theme's chrome (panels.chrome).
+ui:
+  back: Back
+  close: Close
+  previous: Previous
+  next: Next
+ping:
+  command:
+    name: ping
+    description: Show the bot latency
+  title: Pong!
+  latency: 'Latency: {ms}ms'
+time_parser:
+  seconds:
+  - second
+  - seconds
+  minutes:
+  - minute
+  - minutes
+  hours:
+  - hour
+  - hours
+  days:
+  - day
+  - days
+update:
+  command:
+    name: update
+    description: '[ADMIN] Update the bot'
+updater:
+  error_fetch: '{error} Could not fetch updates from git.'
+  error_dirty: '{error} Working tree is dirty ({ahead} local commit(s)): update refused.'
+  error_backup: '{error} Data backup failed: update aborted.'
+  error_reset: '{error} Git reset failed: check the bot logs.'
+  up_to_date: '{success} Already up to date.'
+  confirm_title: Update the bot?
+  confirm: Update to **{target}**? Back up data, reset and restart?
+  confirm_button: Update and restart
+  cancel_button: Cancel
+  cancelled: Update cancelled.
+  logs:
+    updating:
+      title: '{refresh} Bot Updating'
+      description: '{moderator} started an update to **{target}** (from {previous}). Restarting.'
+    auto_failed:
+      title: '{error} Auto-update Failed'
+      description: Automatic check failed ({reason}). It will retry on schedule.
+    updated:
+      title: '{success} Bot Updated'
+      description: 'Update applied: {previous} → {current}.'
+variables:
+  user:
+    label: User
+    description: Mention of the member
+  user_name:
+    label: User name
+    description: Display name of the member
+  user_avatar:
+    label: User avatar
+    description: Avatar image URL of the member
+  user_mention:
+    label: User mention
+    description: Mention of the user
+  server:
+    label: Server
+    description: Name of the server
+  rep:
+    label: Representative
+    description: Mentioned in the invite text (the command user by default)
+  count:
+    label: Count
+    description: A number for this card
+  matched:
+    label: Matched total
+    description: Messages the criterion selected (before deletion)
+  criterion:
+    label: Purge criterion
+    description: Sentence describing what the purge deletes (mode, author and scope)
+  inviter:
+    label: Inviter
+    description: Mention of who invited
+  inviter_mention:
+    label: Inviter mention
+    description: Mention of who invited
+  member:
+    label: Member
+    description: Mention of the member
+  member_id:
+    label: Member ID
+    description: Discord ID of the member
+  member_mention:
+    label: Member mention
+    description: Mention of the member
+  member_id_label:
+    label: Member ID label
+    description: Field name of the member ID on the moderation log cards
+  mention:
+    label: Mention
+    description: Ping for this card
+  moderator:
+    label: Moderator
+    description: Mention of the acting moderator
+  target:
+    label: Target
+    description: Mention of the target member
+  author:
+    label: Author
+    description: Mention of who acted
+  owner:
+    label: Owner
+    description: Mention of the owner
+  actor:
+    label: Actor
+    description: Mention of who acted
+  actor_avatar:
+    label: Actor avatar
+    description: URL of the actor's avatar (roleplay card thumbnail)
+  winner:
+    label: Winner
+    description: Mention of the winner
+  winner_mention:
+    label: Winner mention
+    description: Mention of the winner
+  winner_avatar:
+    label: Winner avatar
+    description: URL of the winner's avatar image
+  invitee:
+    label: Invitee
+    description: Mention of the invited member
+  reason:
+    label: Reason
+    description: Reason text
+  duration:
+    label: Duration
+    description: Duration text
+  has_warnings:
+    label: Has warnings
+    description: Whether the member has recorded warnings (drives the card color)
+  channel:
+    label: Channel
+    description: Mention of the channel
+  version:
+    label: Version
+    description: Current bot version
+  role:
+    label: Role
+    description: Mention of the role
+  role_name:
+    label: Role name
+    description: Name of the role
+  guild:
+    label: Guild
+    description: Name of the guild
+  body:
+    label: Body
+    description: Main text of the card
+  title:
+    label: Title
+    description: Title of the card
+  ping:
+    label: Ping
+    description: Ping text
+  ping_role:
+    label: Ping role
+    description: Mention of the ping role
+  tag:
+    label: Tag
+    description: Tag emoji
+  link:
+    label: Link
+    description: Invite link URL
+  url:
+    label: URL
+    description: Link URL
+  cooldown:
+    label: Cooldown
+    description: Cooldown duration text
+  days:
+    label: Days
+    description: Number of days
+  total:
+    label: Total
+    description: Total number
+  bumps:
+    label: Bumps
+    description: Number of bumps
+  bump_count:
+    label: Bump count
+    description: Number of bumps
+  winner_count:
+    label: Winner count
+    description: Winner bump count
+  total_wins:
+    label: Total wins
+    description: Total week wins
+  regular:
+    label: Regular
+    description: Regular invite count
+  bonus:
+    label: Bonus
+    description: Bonus invite count
+  fake:
+    label: Fake
+    description: Fake invite count
+  left:
+    label: Left
+    description: Members who left count
+  rank:
+    label: Rank
+    description: Leaderboard position
+  stars:
+    label: Stars
+    description: Star count on the starboard post
+  ms:
+    label: Milliseconds
+    description: Latency in milliseconds
+  image_url:
+    label: Image URL
+    description: URL of an attached image
+  gif_url:
+    label: Gif URL
+    description: URL of the gif shown on the roleplay card
+  roles:
+    label: Roles
+    description: Number of roles
+  channels:
+    label: Channels
+    description: Number of channels
+  created_at:
+    label: Created at
+    description: Server creation date
+  created_rel:
+    label: Creation (relative)
+    description: Server age as a Discord relative timestamp (e.g. "a year ago")
+  server_icon:
+    label: Server icon
+    description: Server icon image URL
+  banner_url:
+    label: Server banner
+    description: Server banner image URL
+  description:
+    label: Description
+    description: Public server description
+  text_channels:
+    label: Text channels
+    description: Number of text channels
+  voice_channels:
+    label: Voice channels
+    description: Number of voice channels
+  boosts:
+    label: Boosts
+    description: Number of server boosts
+  emojis:
+    label: Emojis
+    description: Number of server emojis
+  stickers:
+    label: Stickers
+    description: Number of server stickers
+  verification:
+    label: Verification
+    description: Server verification level (translated)
+  server_id:
+    label: Server ID
+    description: Numeric server ID
+  timestamp:
+    label: Relative time
+    description: Event moment as a Discord relative timestamp (e.g. "3 hours ago")
+  message_author:
+    label: Message author
+    description: Mention of who sent the message
+  message_author_name:
+    label: Author name
+    description: Display name of who sent the message
+  message:
+    label: Message
+    description: Original message content (in a text block)
+  new_message:
+    label: Edited message
+    description: New content after the edit (in a text block)
+  message_link:
+    label: Message link
+    description: Direct link to jump to the message
+  old_avatar:
+    label: Old avatar
+    description: URL of the previous avatar
+  new_avatar:
+    label: New avatar
+    description: URL of the current avatar
+  nickname:
+    label: Nickname
+    description: Member nickname on this server
+  joined_at:
+    label: Joined
+    description: Date the member joined the server
+  joined_rel:
+    label: Joined (relative)
+    description: Relative time since the member joined
+  top_role:
+    label: Top role
+    description: Highest role of the member
+  boosting_since:
+    label: Boosting since
+    description: When the member started boosting (empty when not boosting)
+  timeout:
+    label: Timeout
+    description: Timeout status of the member
+  is_bot:
+    label: Bot
+    description: Whether the member is a bot
+  user_id:
+    label: User ID
+    description: Discord ID of the user
+  emoji_name:
+    label: Emoji name
+    description: Name of the emoji or sticker
+  emoji_id:
+    label: Emoji ID
+    description: Discord ID of the emoji
+  animated:
+    label: Animated
+    description: Whether the emoji is animated
+  emoji_url:
+    label: Emoji image
+    description: Image URL of the emoji
+  source:
+    label: Origin
+    description: Where the emoji comes from (server or application)
+  sticker_name:
+    label: Sticker name
+    description: Name of the sticker
+  sticker_id:
+    label: Sticker ID
+    description: Discord ID of the sticker
+  sticker_url:
+    label: Sticker image
+    description: Image URL of the sticker
+  format:
+    label: Format
+    description: Image format of the sticker
+  tags:
+    label: Tags
+    description: Tags of the sticker
+  uploader:
+    label: Uploader
+    description: Member who uploaded the sticker
+  role_color:
+    label: Role color
+    description: Hex color of the role
+  role_icon:
+    label: Role icon
+    description: Icon image of the role
+  role_id:
+    label: Role ID
+    description: Discord ID of the role
+  mentionable:
+    label: Mentionable
+    description: Whether everyone can mention the role
+  hoist:
+    label: Shown separately
+    description: Whether the role is displayed separately in the member list
+  channel_name:
+    label: Channel name
+    description: Name of the channel
+  channel_type:
+    label: Channel type
+    description: Type of the channel
+  topic:
+    label: Topic
+    description: Topic set for the channel
+  category:
+    label: Category
+    description: Category the channel belongs to
+  nsfw:
+    label: Age restricted
+    description: Whether the channel is age restricted
+  slowmode:
+    label: Slowmode
+    description: Slowmode delay of the channel
+  bitrate:
+    label: Bitrate
+    description: Audio bitrate (voice channels)
+  user_limit:
+    label: User limit
+    description: Maximum simultaneous users (voice channels)
+  channel_id:
+    label: Channel ID
+    description: Discord ID of the channel
+  invite:
+    label: Server invite
+    description: Invite link of this server
+  action:
+    label: Consequence
+    description: Action applied (delete, kick, softban or ban)
+  file_url:
+    label: Purge file
+    description: Link to the .txt with the bulk-deleted messages
+  attachment_lines:
+    label: Attachment lines
+    description: Markdown links of the deleted message's attachments (one per line)
+  chat_image:
+    label: Message snapshot
+    description: Image simulating the deleted message's chat (author bubble)
+  joins:
+    label: Joins
+    description: Server join count
+  sent:
+    label: Sent
+    description: Messages sent count
+  failed:
+    label: Failed
+    description: Failure count
+  relayed:
+    label: Relayed
+    description: Messages relayed count
+  codes:
+    label: Codes
+    description: Invite code count
+  amount:
+    label: Amount
+    description: Bonus amount
+  max_members:
+    label: Max members
+    description: Member limit
+  max:
+    label: Maximum
+    description: Resource hard limit
+  members:
+    label: Members
+    description: Member count
+  code:
+    label: Code
+    description: Invite code
+  flags:
+    label: Flags
+    description: Extra flags text
+  label:
+    label: Label
+    description: Label text
+  expires:
+    label: Expiry
+    description: Expiry text
+  name:
+    label: Name
+    description: Name text
+  type:
+    label: Type
+    description: Type label
+  word:
+    label: Word
+    description: Purged word
+  previous:
+    label: Previous
+    description: Previous version text
+  current:
+    label: Current
+    description: Current version text
+  old:
+    label: Old
+    description: Old value
+  new:
+    label: New
+    description: New value
+  deleted:
+    label: Deleted
+    description: Deleted item name
+  enabled:
+    label: Enabled
+    description: Whether enabled
+  locked:
+    label: Locked
+    description: Whether locked
+  next:
+    label: Next
+    description: Next value text
+  when:
+    label: When
+    description: Timestamp text
+  status:
+    label: Status
+    description: Status text
+  leaderboard_list:
+    label: Leaderboard
+    description: Ranking lines
+  prefix:
+    label: Prefix
+    description: The server's text-command prefix
+  moderation_list:
+    label: Moderation commands
+    description: Rendered moderation command entries
+  info_list:
+    label: Information commands
+    description: Rendered information command entries
+  general_list:
+    label: General commands
+    description: Rendered general command entries
+  interactions_list:
+    label: Interactions block
+    description: Rendered roleplay interaction entries
+  position:
+    label: Position
+    description: Rank position
+  medal:
+    label: Medal
+    description: Rank medal emoji
+  warned:
+    label: Warning
+    description: Warning marker
+  member_label:
+    label: Member label
+    description: Label of the "Member" field in logs
+  moderator_label:
+    label: Moderator label
+    description: Label of the "Moderator" field in logs
+  reason_label:
+    label: Reason label
+    description: Label of the "Reason" field in logs
+  duration_label:
+    label: Duration label
+    description: Label of the "Duration" field in logs
+  user_label:
+    label: Target label
+    description: Label of the "Target" field in logs
+  action_label:
+    label: Consequence label
+    description: Label of the "Consequence" field in logs
+  old_owner:
+    label: Old owner
+    description: Mention of the previous owner
+  new_owner:
+    label: New owner
+    description: Mention of the new owner
+  old_name:
+    label: Old name
+    description: Previous name
+  new_name:
+    label: New name
+    description: New name
+  new_color:
+    label: New color
+    description: New color value
+  emoji:
+    label: Emoji
+    description: Emoji value
+  orphans:
+    label: Orphans
+    description: Orphan count
+  expired:
+    label: Expired
+    description: Expired count
+  start_timestamp:
+    label: Start time
+    description: Period start timestamp
+  end_timestamp:
+    label: End time
+    description: Period end timestamp
+  next_reset_timestamp:
+    label: Next reset
+    description: Next reset timestamp
+  next_bump_timestamp:
+    label: Next bump
+    description: Next bump timestamp
+  server_name:
+    label: Server name
+    description: Name of the server
+  suggestion_number:
+    label: Suggestion number
+    description: Sequential number of the suggestion
+  upvotes:
+    label: Upvotes
+    description: Positive votes on the suggestion
+  downvotes:
+    label: Downvotes
+    description: Negative votes on the suggestion
+  score:
+    label: Score
+    description: Upvotes minus downvotes
+  voter:
+    label: Voter
+    description: Mention of who voted on the suggestion
+  vote:
+    label: Vote
+    description: The vote word (upvote or downvote)
+  side:
+    label: Vote side
+    description: Which side was voted (up or down)
+  status_line:
+    label: Status line
+    description: The line the staff writes on the suggestion (approved or rejected)
+  reason_line:
+    label: Reason line
+    description: The motive behind the staff decision (empty when there is none)
+  command:
+    label: Command
+    description: The name of the command the card points at (localized)
+  confession_number:
+    label: Confession number
+    description: Sequential number of the confession
+  reply_index:
+    label: Reply number
+    description: Sequential reply number inside one confession
+  color_hex:
+    label: Color hex
+    description: Random accent color of the confession card
+  parent_line:
+    label: Parent line
+    description: Reference line to the replied comment
+  parent_link:
+    label: Parent link
+    description: Link to the comment being replied to
+  alias_name:
+    label: Anonymous name
+    description: Pseudonymous name shown as the confession card title
+  avatar_url:
+    label: Generated avatar
+    description: Generated identicon shown beside the anonymous name
+  op_emoji:
+    label: OP emoji
+    description: Emoji that marks the author of the confession
+  author_line:
+    label: Author line
+    description: Line revealing who wrote the confession (staff only)
+  path:
+    label: Card path
+    description: The card key that was rendered.
+  origin:
+    label: Origin
+    description: Where the active card definition came from.
+  setting:
+    label: Setting
+    description: Human-readable name of the changed setting.
+  guilds:
+    label: Guilds
+    description: Number of servers the bot is in.
+  flash:
+    label: Panel notice
+    description: The message of the panel's last action (the log test).
+  latency:
+    label: Latency
+    description: Current gateway latency in milliseconds.
+  uptime:
+    label: Uptime
+    description: How long the bot has been running.
+  theme:
+    label: Theme
+    description: Active visual theme name.
+  logging:
+    label: Logging
+    description: Whether the staff log channel is enabled.
+  audit:
+    label: Audit log
+    description: Whether the audit log channel is enabled.

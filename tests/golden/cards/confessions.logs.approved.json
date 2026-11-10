@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "description": "<@0> aprovou a confissão **#1**.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "✅ Confissão aprovada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "confessions.logs.approved",
+  "pings": [],
+  "view": []
+}

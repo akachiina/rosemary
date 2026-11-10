@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "A semana foi resetada, mas ninguém realizou bumps.",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "📊 Semana Resetada (Sem MVP)",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.no_winner",
+  "pings": [],
+  "view": []
+}

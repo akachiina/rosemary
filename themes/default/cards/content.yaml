@@ -1,0 +1,592 @@
+# The content cards: the info family (a server, a member, an emoji, a
+# sticker, a role, a channel), the roleplay interaction and the help list.
+#
+# The info cards share one frame: the subject's image rides the title, the
+# subtitle tells who it is, the rows carry the stats and the footer closes
+# the card with the id (in inline code: an id is a machine value).
+#
+# A row that only makes sense with some data disappears when that data never
+# arrives: the ``optional`` flag drops a row whose value is empty, and the
+# ``gate`` drops a row whose value is a composition (the two timestamps of a
+# creation date never arrive empty on their own).
+
+utility.serverinfo:
+  archetype: info_card
+  title: '{server}'
+  thumbnail: '{server_icon}'
+  image: '{banner_url}'
+  paragraphs:
+  - '{card.utility.serverinfo.subtitle}'
+  - '{description}'
+  fields:
+  - label: '{card.utility.serverinfo.created_label}'
+    value: '{card.utility.serverinfo.created_value}'
+    inline: true
+  - label: '{card.utility.serverinfo.channels_label}'
+    value: '{card.utility.serverinfo.channels_value}'
+    inline: true
+  - label: '{card.utility.serverinfo.roles_label}'
+    value: '{roles}'
+    inline: true
+  - label: '{card.utility.serverinfo.boosts_label}'
+    value: '{boosts}'
+    inline: true
+  - label: '{card.utility.serverinfo.emojis_label}'
+    value: '{emojis} · **{card.utility.serverinfo.stickers_label}:** {stickers} · **{card.utility.serverinfo.verification_label}:** {verification}'
+    inline: true
+  footer: '`{server_id}`'
+  variables:
+  - server
+  - owner
+  - members
+  - roles
+  - channels
+  - text_channels
+  - voice_channels
+  - boosts
+  - emojis
+  - stickers
+  - verification
+  - description
+  - server_icon
+  - banner_url
+  - created_at
+  - created_rel
+  - server_id
+  - title
+  - body
+  category: general
+
+utility.userinfo:
+  archetype: info_card
+  title: '{user_name}'
+  thumbnail: '{user_avatar}'
+  image: '{banner_url}'
+  description: '{card.utility.userinfo.subtitle}'
+  fields:
+  - label: '{card.utility.userinfo.created_label}'
+    value: '{card.utility.userinfo.created_value}'
+    inline: true
+  - label: '{card.utility.userinfo.joined_label}'
+    value: '{card.utility.userinfo.joined_value}'
+    inline: true
+  - label: '{card.utility.userinfo.nickname_label}'
+    value: '{nickname}'
+    inline: true
+    optional: true
+  - label: '{card.utility.userinfo.roles_label}'
+    value: '{roles}'
+    inline: true
+  - label: '{card.utility.userinfo.boosting_since_label}'
+    value: '{boosting_since}'
+    inline: true
+    optional: true
+  - label: '{card.utility.userinfo.timeout_label}'
+    value: '{timeout}'
+    inline: true
+  - label: '{card.utility.userinfo.is_bot_label}'
+    value: '{is_bot}'
+    inline: true
+  footer: '`{user_id}`'
+  variables:
+  - user
+  - user_name
+  - user_avatar
+  - banner_url
+  - nickname
+  - created_at
+  - created_rel
+  - joined_at
+  - joined_rel
+  - roles
+  - top_role
+  - boosting_since
+  - timeout
+  - is_bot
+  - user_id
+  - title
+  - body
+  category: general
+
+utility.emojiinfo:
+  archetype: info_card
+  title: '{emoji}'
+  thumbnail: '{emoji_url}'
+  description: '{card.utility.emojiinfo.subtitle}'
+  fields:
+  - label: '{card.utility.emojiinfo.created_label}'
+    value: '{card.utility.emojiinfo.created_value}'
+    gate: created_at
+    inline: true
+  - label: '{card.utility.emojiinfo.animated_label}'
+    value: '{animated}'
+    inline: true
+    optional: true
+  # A unicode glyph has no id: the footer exists only when the id arrived.
+  footer:
+  - '`{emoji_id}`'
+  - ''
+  variables:
+  - emoji
+  - emoji_name
+  - emoji_id
+  - animated
+  - emoji_url
+  - source
+  - created_at
+  - created_rel
+  - title
+  - body
+  category: general
+
+utility.stickerinfo:
+  archetype: info_card
+  title: '{sticker_name}'
+  image: '{sticker_url}'
+  fields:
+  - label: '{card.utility.stickerinfo.format_label}'
+    value: '{format}'
+    inline: true
+  - label: '{card.utility.stickerinfo.tags_label}'
+    value: '{tags}'
+    inline: true
+    optional: true
+  - label: '{card.utility.stickerinfo.uploader_label}'
+    value: '{uploader}'
+    inline: true
+    optional: true
+  - label: '{card.utility.stickerinfo.description_label}'
+    value: '{description}'
+    inline: true
+    optional: true
+  - label: '{card.utility.stickerinfo.created_label}'
+    value: '{card.utility.stickerinfo.created_value}'
+    inline: true
+  footer: '`{sticker_id}`'
+  variables:
+  - sticker_name
+  - sticker_id
+  - description
+  - format
+  - tags
+  - uploader
+  - sticker_url
+  - created_at
+  - created_rel
+  - title
+  - body
+  category: general
+
+utility.roleinfo:
+  archetype: info_card
+  title: '{role_name}'
+  thumbnail: '{role_icon}'
+  description: '{card.utility.roleinfo.subtitle}'
+  fields:
+  - label: '{card.utility.roleinfo.members_label}'
+    value: '{members}'
+    inline: true
+  - label: '{card.utility.roleinfo.position_label}'
+    value: '{position}'
+    inline: true
+  - label: '{card.utility.roleinfo.role_color_label}'
+    value: '{role_color}'
+    inline: true
+    optional: true
+  - label: '{card.utility.roleinfo.mentionable_label}'
+    value: '{mentionable}'
+    inline: true
+  - label: '{card.utility.roleinfo.hoist_label}'
+    value: '{hoist}'
+    inline: true
+  - label: '{card.utility.roleinfo.created_label}'
+    value: '{card.utility.roleinfo.created_value}'
+    inline: true
+  footer: '`{role_id}`'
+  variables:
+  - role
+  - role_name
+  - role_color
+  - members
+  - position
+  - mentionable
+  - hoist
+  - role_icon
+  - role_id
+  - created_at
+  - created_rel
+  - title
+  - body
+  category: general
+
+utility.channelinfo:
+  archetype: info_card
+  title: '{channel_name}'
+  fields:
+  - label: '{card.utility.channelinfo.channel_type_label}'
+    value: '{channel_type}'
+    inline: true
+  - label: '{card.utility.channelinfo.category_label}'
+    value: '{category}'
+    inline: true
+    optional: true
+  - label: '{card.utility.channelinfo.topic_label}'
+    value: '{topic}'
+    inline: true
+    optional: true
+  - label: '{card.utility.channelinfo.slowmode_label}'
+    value: '{slowmode}'
+    inline: true
+    optional: true
+  - label: '{card.utility.channelinfo.bitrate_label}'
+    value: '{bitrate}'
+    inline: true
+    optional: true
+  - label: '{card.utility.channelinfo.user_limit_label}'
+    value: '{user_limit}'
+    inline: true
+    optional: true
+  - label: '{card.utility.channelinfo.nsfw_label}'
+    value: '{nsfw}'
+    inline: true
+  - label: '{card.utility.channelinfo.position_label}'
+    value: '{position}'
+    inline: true
+  - label: '{card.utility.channelinfo.created_label}'
+    value: '{card.utility.channelinfo.created_value}'
+    inline: true
+  footer: '`{channel_id}`'
+  variables:
+  - channel
+  - channel_name
+  - channel_type
+  - topic
+  - category
+  - nsfw
+  - slowmode
+  - position
+  - bitrate
+  - user_limit
+  - channel_id
+  - created_at
+  - created_rel
+  - title
+  - body
+  category: general
+
+# The starboard post: the author's avatar rides the title, the starred
+# message is the body and its picture rides the gallery. The attribution
+# closes the card and the jump button sends the reader to the message.
+#
+# The color follows the star count: the theme owns the ramp (or its tier
+# styles), so the send site hands the document the color it computed. The
+# tone of a starred post is the fallback (the alternatives: the first one
+# whose variable arrived wins).
+starboard.card:
+  archetype: info_card
+  color:
+  - '{state_color}'
+  - 'warning'
+  title: '{title}'
+  description: '{body}'
+  thumbnail: '{user_avatar}'
+  image: '{image_url}'
+  footer: '{card.author_footer.text}'
+  actions:
+  - label: '{starboard.jump}'
+    url: '{message_link}'
+  variables:
+  - user
+  - user_name
+  - user_avatar
+  - stars
+  - title
+  - body
+  - image_url
+  - message_link
+  - timestamp
+  category: general
+
+# The suggestion card: the author's avatar rides the title, the suggestion
+# is the body and the live votes ride their own line. The staff's status
+# line is a paragraph of its own (it disappears while the suggestion is
+# open). The picture rides the gallery, the attribution and the hint close
+# the card.
+#
+# The color follows the state: the theme owns the score ramp (and the
+# fixed tones of a decided suggestion), so the send site hands the document
+# the color it computed.
+suggestions.card:
+  archetype: info_card
+  color:
+  - '{state_color}'
+  - 'info'
+  title: '{title}'
+  paragraphs:
+  - '{body}'
+  - '{up} {upvotes} · {down} {downvotes}'
+  - '{status_line}'
+  thumbnail: '{user_avatar}'
+  image: '{image_url}'
+  footer: "{card.author_footer.text}\n{suggest.card.hint}"
+  variables:
+  - user
+  - user_name
+  - user_avatar
+  - suggestion_number
+  - title
+  - body
+  - image_url
+  - upvotes
+  - downvotes
+  - score
+  - message_link
+  - timestamp
+  - status
+  - status_line
+  - command
+  category: suggestions
+
+# The vote notice DM: the sentence names the voter and the suggestion, and
+# the jump button sends the author back to it. The color follows the voted
+# side (green up, red down).
+suggestions.dm.vote:
+  form: embed
+  color:
+  - '{state_color}'
+  - 'info'
+  description: '{suggest.dm.body}'
+  actions:
+  - label: '{suggest.dm.jump}'
+    url: '{message_link}'
+  variables:
+  - voter
+  - suggestion_number
+  - body
+  - message_link
+  - vote
+  - side
+  rich: false
+  category: suggestions
+
+# The decision notice DM: the sentence names the staff member who decided,
+# the motive rides its own line (it disappears when there is none) and the
+# jump button sends the author back to the suggestion.
+suggestions.dm.approved:
+  form: embed
+  color: gold
+  paragraphs:
+  - '{suggest.dm.approved}'
+  - '{reason_line}'
+  actions:
+  - label: '{suggest.dm.jump}'
+    url: '{message_link}'
+  variables:
+  - suggestion_number
+  - body
+  - message_link
+  - moderator
+  - reason
+  - reason_line
+  - status
+  rich: false
+  category: suggestions
+
+suggestions.dm.rejected:
+  form: embed
+  color: danger
+  paragraphs:
+  - '{suggest.dm.rejected}'
+  - '{reason_line}'
+  actions:
+  - label: '{suggest.dm.jump}'
+    url: '{message_link}'
+  variables:
+  - suggestion_number
+  - body
+  - message_link
+  - moderator
+  - reason
+  - reason_line
+  - status
+  rich: false
+  category: suggestions
+
+# The public confession: the alias is the card's title (the OP emoji rides
+# beside it when the author wrote their own confession), the generated
+# identicon is the thumbnail and the confession text is the body. The
+# picture rides the image and the numbered title closes the card.
+#
+# Deliberately no real avatar anywhere: the post is anonymous and the
+# author's own picture would identify them.
+#
+# The accent is the alias' own color (a hex the send site stored); the
+# neutral tone is the fallback (the alternatives: the first one whose
+# variable arrived wins).
+confessions.card:
+  archetype: info_card
+  color:
+  - '{color_hex}'
+  - 'info'
+  title: '{alias_name}{op_emoji}'
+  description: '{body}'
+  thumbnail: '{avatar_url}'
+  image: '{image_url}'
+  footer: '{title}'
+  variables:
+  - confession_number
+  - title
+  - body
+  - image_url
+  - color_hex
+  - timestamp
+  - alias_name
+  - avatar_url
+  - op_emoji
+  category: confessions
+
+# The reply card: the same frame as the confession, plus the reference to
+# the parent comment in the footer (the parent's own text never rides the
+# card: the reference links to it).
+confessions.response:
+  archetype: info_card
+  color:
+  - '{color_hex}'
+  - 'info'
+  title: '{alias_name}{op_emoji}'
+  description: '{body}'
+  thumbnail: '{avatar_url}'
+  image: '{image_url}'
+  footer:
+  - '{parent_line} · {title}'
+  - '{title}'
+  variables:
+  - confession_number
+  - reply_index
+  - title
+  - body
+  - parent_line
+  - color_hex
+  - image_url
+  - alias_name
+  - avatar_url
+  - op_emoji
+  - parent_link
+  category: confessions
+
+# The approval notice DM: the sentence from the catalog and the button
+# that sends the author back to the thread.
+confessions.dm.approved:
+  form: embed
+  color: success
+  description: '{confess.dm.approved}'
+  actions:
+  - label: '{confess.dm.jump}'
+    url: '{message_link}'
+  variables:
+  - confession_number
+  - body
+  - message_link
+  rich: false
+  category: confessions
+
+# The denial notice DM: the sentence and the motive (it disappears when the
+# staff gave none). No button: the confession was never posted, so there is
+# no thread to jump to.
+confessions.dm.rejected:
+  form: embed
+  color: danger
+  paragraphs:
+  - '{confess.dm.rejected}'
+  - '{reason_line}'
+  variables:
+  - confession_number
+  - body
+  - reason
+  - reason_line
+  rich: false
+  category: confessions
+
+# The reply notice DM: the author of the confession hears about the answer
+# to their confession (nobody hears about their own reply).
+confessions.dm.response:
+  form: embed
+  color: info
+  description: '{confess.dm.response}'
+  actions:
+  - label: '{confess.dm.jump}'
+    url: '{message_link}'
+  variables:
+  - confession_number
+  - reply_index
+  - body
+  - message_link
+  rich: false
+  category: confessions
+
+# The roleplay interaction: the sentence pings both members, the gif rides
+# the card and the timestamp closes it.
+roleplay.card:
+  form: embed
+  color: brand
+  description: '{love_letter} {@actor} {action} {@target}'
+  image: '{gif_url}'
+  footer: '{timestamp}'
+  mention: single
+  rich: true
+  variables:
+  - actor
+  - target
+  - actor_avatar
+  - action
+  - gif_url
+  - timestamp
+  - title
+  - body
+  category: roleplay
+
+# The help list: the title, the intro and one paragraph per group (the
+# send site renders the group; an empty group drops its paragraph).
+help.card:
+  form: embed
+  color: brand
+  title: '{title}'
+  paragraphs:
+  - '{body}'
+  - '{moderation_list}'
+  - '{info_list}'
+  - '{general_list}'
+  - '{interactions_list}'
+  mention: none
+  rich: true
+  variables:
+  - prefix
+  - title
+  - body
+  - moderation_list
+  - info_list
+  - general_list
+  - interactions_list
+  category: general
+
+# The warnings report: the member's avatar rides the title, the body lists the
+# warnings and the attribution closes the card. The color follows the state:
+# green when the member is clean, the moderation tone when they are not (the
+# alternatives: the first one whose variable arrived wins).
+moderation.warnings:
+  archetype: info_card
+  color:
+  - '{state_color}'
+  - 'warning'
+  title: '{title}'
+  description: '{body}'
+  thumbnail: '{user_avatar}'
+  footer: '{card.author_footer.text}'
+  variables:
+  - user
+  - user_avatar
+  - has_warnings
+  - title
+  - body
+  - timestamp
+  category: moderation

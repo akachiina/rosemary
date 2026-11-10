@@ -34,9 +34,9 @@ the call site instead of breaking sends.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import logging
 import re
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -59,6 +59,21 @@ URL_MAX = 512
 _BLOCK_TYPES = frozenset({"text", "divider", "gallery", "row", "section", "container"})
 _CONTAINER_CHILDREN = frozenset({"text", "divider", "gallery", "row", "section"})
 _SECTION_ACCESSORIES = frozenset({"thumbnail", "button"})
+
+#: Message forms ----------------------------------------------------------------
+#:
+#: A card declares the form its default content ships in:
+#:
+#: * ``card``: Components V2 (the interactive/rich layout);
+#: * ``embed``: the classic embed (visual info, staff logs);
+#: * ``text``: one plain line (``{emoji} **|** message``).
+#:
+#: The form is a *default*, not a cage: a guild theme may ship the card in
+#: another form (``cards.<key>.form: embed``) or replace the whole document.
+FORM_CARD = "card"
+FORM_EMBED = "embed"
+FORM_TEXT = "text"
+FORMS: tuple[str, ...] = (FORM_CARD, FORM_EMBED, FORM_TEXT)
 
 _PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 #: Mention placeholder ``{@name}``: same value as ``{name}``, but records
@@ -92,12 +107,16 @@ class CardSpec:
     """Declares one customizable message.
 
     ``key`` is both the storage key and the i18n prefix: catalogs provide the
-    default copy through ``card.<key>.title`` / ``card.<key>.placeholders``.
+    default copy through ``card.<key>.title``.
     ``mention_default`` is the card's mention policy in
     :mod:`rosemary.core.mentions` (guilds override it per card in /customize).
     ``variables`` is the contract: the placeholder names the send site
-    provides (see :mod:`rosemary.core.variables`). The editor preview,
-    lint and hint derive from it.
+    provides (see :mod:`rosemary.core.variables`). The editor preview and
+    the lint derive from it.
+    ``form`` is the shape the default content ships in (Components V2, embed
+    or plain text); a guild theme may pick another form for the same content.
+    ``style`` names the theme style used by the text form (the
+    ``feedback_*`` prefix family).
     """
 
     key: str
@@ -105,17 +124,38 @@ class CardSpec:
     rich: bool = False  # rich cards open the full composer; plain ones a text field
     mention_default: str = "none"
     variables: tuple[str, ...] = ()
+    form: str = FORM_CARD
+    style: str = "info"
 
     @property
     def title_key(self) -> str:
         return f"card.{self.key}.title"
 
-    @property
-    def placeholders_key(self) -> str:
-        return f"card.{self.key}.placeholders"
-
 
 _CARDS: dict[str, CardSpec] = {}
+
+#: Whether the spec registry was already filled (see :func:`_load_registry`).
+_REGISTRY_LOADED = False
+
+
+def _load_registry() -> None:
+    """Fill the spec registry on first use.
+
+    The specs live in :mod:`rosemary.core.card_specs` (they import this
+    module, so the import cannot happen at module level). Every consumer of
+    the registry (the form resolution, the editor, the linter) goes through
+    :func:`get_card` / :func:`all_cards`, so the registry loads itself: a
+    card never silently loses its declared form because nobody imported the
+    specs yet.
+    """
+    global _REGISTRY_LOADED
+    if _REGISTRY_LOADED:
+        return
+    _REGISTRY_LOADED = True
+    try:
+        from rosemary.core import card_specs  # noqa: F401  (fills the registry)
+    except Exception:  # pragma: no cover - defensive: a broken spec never breaks a send
+        log.warning("Could not load the card specs", exc_info=True)
 
 
 def register_cards(*specs: CardSpec) -> None:
@@ -130,36 +170,29 @@ def register_cards(*specs: CardSpec) -> None:
                 spec.mention_default,
                 "none",
             )
-            spec = CardSpec(key=spec.key, category=spec.category, rich=spec.rich)
+            spec = dataclasses.replace(spec, mention_default="none")
         _CARDS[spec.key] = spec
 
 
 def all_cards() -> list[CardSpec]:
+    _load_registry()
     return list(_CARDS.values())
 
 
 def get_card(key: str) -> CardSpec | None:
+    _load_registry()
     return _CARDS.get(key)
 
 
-def cards_for_category(category: str) -> list[CardSpec]:
-    return [spec for spec in _CARDS.values() if spec.category == category]
+def default_form(key: str) -> str:
+    """The form a card ships in by default (its spec's, ``card`` when unknown).
 
-
-#: default builders --------------------------------------------------------
-
-#: Renders what members receive when a card has no override. Registered by
-#: features; powers the editor's "compare with default" screen. Signature:
-#: ``async fn(bot, guild_id, variables) -> list[ViewItem]``.
-_DEFAULT_BUILDERS: dict[str, Callable[..., Any]] = {}
-
-
-def set_default_builder(key: str, builder: Callable[..., Any]) -> None:
-    _DEFAULT_BUILDERS[key] = builder
-
-
-def get_default_builder(key: str) -> Callable[..., Any] | None:
-    return _DEFAULT_BUILDERS.get(key)
+    The form is a **preference**: a theme may pick another shape for the
+    same content (``cards.<key>.form: embed``).
+    """
+    spec = get_card(key)
+    form = getattr(spec, "form", FORM_CARD) if spec is not None else FORM_CARD
+    return form if form in FORMS else FORM_CARD
 
 
 #: Catalog key and fallback of the standard author-attribution footer line.
@@ -182,33 +215,7 @@ def author_footer_text(template: str, user_mention: str, timestamp: str) -> str:
     return safe_format(template, {"user": user_mention, "timestamp": timestamp})
 
 
-async def author_footer_blocks(bot, guild_id: int | None = None) -> list[dict[str, Any]]:
-    """The standard author-attribution footer blocks for default builders.
-
-    A divider plus one small (``-#``) line from ``card.author_footer.text``
-    in the catalogs (default ``by {user} · {timestamp}``) so every card that
-    attributes a person carries the same visual signature. ``{user}`` and
-    ``{timestamp}`` stay literal here: the render mapping resolves them
-    from the variables the send site passes (contract: ``user`` +
-    ``timestamp``).
-    """
-    template = await author_footer_template(bot, guild_id)
-    return [
-        {"type": "divider"},
-        {"type": "text", "body": f"-# {template}"},
-    ]
-
-
 #: resolution --------------------------------------------------------------
-
-
-def card_store(bot):
-    """Deprecated: per-card persistence moved to theme files.
-
-    Kept so stray imports fail loudly at call time instead of AttributeError
-    deep inside a send; returns ``None``.
-    """
-    return None
 
 
 async def _override_document(bot, guild_id: int | None, key: str) -> dict[str, Any] | None:
@@ -361,11 +368,6 @@ def preview_variables(*names: str, **extra: Any) -> dict[str, Any]:
     base = samples_for(names) if names else dict(PREVIEW_SAMPLES)
     base.update(extra)
     return base
-
-
-def spec_variables(spec: CardSpec) -> tuple[str, ...]:
-    """Placeholder names a card receives (its contract)."""
-    return tuple(spec.variables)
 
 
 def safe_format(template: str, mapping: dict[str, Any]) -> str:
@@ -777,6 +779,7 @@ def build_items(
     *,
     draft: bool = False,
     card_key: str | None = None,
+    resolved: bool = False,
 ) -> list[discord.ui.ViewItem]:
     """Render a validated document into top-level V2 items for a DesignerView.
 
@@ -784,13 +787,19 @@ def build_items(
     document breaks Discord's layout rules; callers should treat that as "fall
     back to the default message". ``draft=True`` skips empty text skeletons
     instead of failing, for live editor previews.
+
+    ``resolved=True`` means the document is already compiled (the IR
+    compiler resolved every placeholder): the validation and the substitution
+    are skipped, so the text ships exactly as it is.
     """
-    errors = validate_document(doc, theme=theme, variables=variables, draft=draft)
-    if errors:
-        raise CardsError(errors)
+    if not resolved:
+        errors = validate_document(doc, theme=theme, variables=variables, draft=draft)
+        if errors:
+            raise CardsError(errors)
     # Theme emojis are defaults; caller variables win on name clashes.
     mapping: dict[str, Any] = {**(getattr(theme, "emojis", {}) or {}), **(variables or {})}
-    doc = resolve_mention_fields(doc, mapping)
+    if not resolved:
+        doc = resolve_mention_fields(doc, mapping)
     blocks = [
         block
         for block in doc.get("blocks", [])
@@ -798,11 +807,19 @@ def build_items(
             draft
             and isinstance(block, dict)
             and block.get("type") == "text"
-            and not safe_format(str(block.get("body", "")), mapping).strip()
+            and not _block_text(block, mapping, resolved).strip()
         )
     ]
-    built = [_build_block(block, theme, mapping, card_key) for block in blocks]
+    built = [_build_block(block, theme, mapping, card_key, resolved) for block in blocks]
     return [item for item in built if item is not None]
+
+
+def _block_text(block: dict[str, Any], mapping: dict[str, Any], resolved: bool) -> str:
+    """The body of a text block, resolved (or final, when already compiled)."""
+    body = block.get("body", "")
+    if resolved:
+        return str(body)
+    return safe_format(str(body), mapping)
 
 
 def _build_block(
@@ -810,6 +827,7 @@ def _build_block(
     theme: Any,
     mapping: dict[str, Any],
     card_key: str | None = None,
+    resolved: bool = False,
 ) -> discord.ui.ViewItem:
     builder = {
         "text": _build_text,
@@ -822,11 +840,14 @@ def _build_block(
     # Only row/container builders take card_key (needed to scope action
     # button custom_ids); nested rows inherit it through the container.
     if block["type"] in ("row", "container"):
-        return builder(block, theme, mapping, card_key)
-    return builder(block, theme, mapping)
+        return builder(block, theme, mapping, card_key, resolved)
+    return builder(block, theme, mapping, resolved)
 
 
-def _fill(body: Any, mapping: dict[str, Any]) -> str:
+def _fill(body: Any, mapping: dict[str, Any], resolved: bool = False) -> str:
+    """Resolve a text field. ``resolved=True``: the text is already final."""
+    if resolved:
+        return str(body)
     return safe_format(str(body), mapping)
 
 
@@ -870,11 +891,15 @@ def resolve_mention_fields(
     return doc
 
 
-def _build_text(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> TextDisplay:
-    return TextDisplay(_fill(block.get("body", ""), mapping))
+def _build_text(
+    block: dict[str, Any], theme: Any, mapping: dict[str, Any], resolved: bool = False
+) -> TextDisplay:
+    return TextDisplay(_fill(block.get("body", ""), mapping, resolved))
 
 
-def _build_divider(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> Separator:
+def _build_divider(
+    block: dict[str, Any], theme: Any, mapping: dict[str, Any], resolved: bool = False
+) -> Separator:
     size = discord.SeparatorSpacingSize.large if block.get("spacing") == "large" else (
         discord.SeparatorSpacingSize.small
     )
@@ -882,12 +907,12 @@ def _build_divider(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -
 
 
 def _build_gallery(
-    block: dict[str, Any], theme: Any, mapping: dict[str, Any]
+    block: dict[str, Any], theme: Any, mapping: dict[str, Any], resolved: bool = False
 ) -> discord.ui.MediaGallery | None:
     items = [
-        discord.MediaGalleryItem(_fill(url, mapping))
+        discord.MediaGalleryItem(_fill(url, mapping, resolved))
         for url in block.get("urls", [])
-        if _fill(url, mapping).strip()
+        if _fill(url, mapping, resolved).strip()
     ]
     if not items:
         # Every url resolved empty (e.g. the starboard card's optional
@@ -896,74 +921,127 @@ def _build_gallery(
     return discord.ui.MediaGallery(*items)
 
 
-def _build_link_button(label: str, url: str, mapping: dict[str, Any]) -> discord.ui.Button:
+def _build_link_button(
+    label: str, url: str, mapping: dict[str, Any], resolved: bool = False
+) -> discord.ui.Button:
     return discord.ui.Button(
         style=discord.ButtonStyle.link,
-        label=_fill(label, mapping)[:LABEL_MAX],
-        url=_fill(url, mapping),
+        label=_fill(label, mapping, resolved)[:LABEL_MAX],
+        url=_fill(url, mapping, resolved),
     )
 
 
 def _build_action_button(
-    button: dict[str, Any], mapping: dict[str, Any], card_key: str | None
+    button: dict[str, Any],
+    mapping: dict[str, Any],
+    card_key: str | None,
+    resolved: bool = False,
 ) -> discord.ui.Button:
     from rosemary.core.card_actions import button_style, custom_id_for
 
     return discord.ui.Button(
         style=button_style(button.get("style")),
-        label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "•",
+        label=_fill(button.get("label", ""), mapping, resolved)[:LABEL_MAX] or "•",
         custom_id=custom_id_for(card_key or "", str(button.get("id", ""))),
-        emoji=_fill(button.get("emoji", ""), mapping) or None,
+        emoji=_fill(button.get("emoji", ""), mapping, resolved) or None,
     )
 
 
 def _build_row(
-    block: dict[str, Any], theme: Any, mapping: dict[str, Any], card_key: str | None = None
+    block: dict[str, Any],
+    theme: Any,
+    mapping: dict[str, Any],
+    card_key: str | None = None,
+    resolved: bool = False,
 ) -> ActionRow:
     buttons = []
     for button in block.get("buttons", []):
         if not isinstance(button, dict):
             continue
         if button.get("action") is not None:
-            buttons.append(_build_action_button(button, mapping, card_key))
+            buttons.append(_build_action_button(button, mapping, card_key, resolved))
         elif button.get("url") is not None:
             buttons.append(
-                _build_link_button(button.get("label", ""), button.get("url", ""), mapping)
+                _build_link_button(
+                    button.get("label", ""), button.get("url", ""), mapping, resolved
+                )
             )
         else:
             # Url-less, action-less button: a code-wired picker (color panel).
             # Its custom_id matches the picker's dispatcher; code outside the
             # document owns the callback.
-            buttons.append(_build_picker_button(button, mapping))
+            buttons.append(_build_picker_button(button, mapping, resolved))
     return ActionRow(*buttons)
 
 
-def _build_picker_button(button: dict[str, Any], mapping: dict[str, Any]) -> discord.ui.Button:
+def _build_picker_button(
+    button: dict[str, Any], mapping: dict[str, Any], resolved: bool = False
+) -> discord.ui.Button:
     """Interactive button owned by code, not by the document (color panel)."""
     from rosemary.core.card_actions import button_style
 
     return discord.ui.Button(
         style=button_style(button.get("style")),
-        label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "•",
+        label=_fill(button.get("label", ""), mapping, resolved)[:LABEL_MAX] or "•",
         custom_id=str(button.get("id", "")) or None,
-        emoji=_fill(button.get("emoji", ""), mapping) or None,
+        emoji=_fill(button.get("emoji", ""), mapping, resolved) or None,
     )
 
 
-def _build_section(block: dict[str, Any], theme: Any, mapping: dict[str, Any]) -> Section:
+def _build_section(
+    block: dict[str, Any], theme: Any, mapping: dict[str, Any], resolved: bool = False
+) -> Section:
     children = [
-        _build_text(child, theme, mapping)
+        _build_text(child, theme, mapping, resolved)
         for child in block.get("children", [])
         if isinstance(child, dict) and child.get("type") == "text"
     ]
     accessory = block.get("accessory") or {}
     if accessory.get("type") == "button":
         item = _build_link_button(
-            accessory.get("label", ""), accessory.get("url", ""), mapping
+            accessory.get("label", ""), accessory.get("url", ""), mapping, resolved
         )
     else:
-        item = discord.ui.Thumbnail(_fill(accessory.get("url", ""), mapping))
+        item = discord.ui.Thumbnail(_fill(accessory.get("url", ""), mapping, resolved))
     return Section(*children, accessory=item)
+
+
+def render_document(
+    bot,
+    doc: dict[str, Any],
+    variables: dict[str, Any] | None = None,
+    *,
+    guild_id: int | None = None,
+    card_key: str | None = None,
+    draft: bool = False,
+    resolved: bool = False,
+) -> discord.ui.DesignerView:
+    """Render one document into a Components V2 view.
+
+    ``guild_id`` selects the theme used for emoji tokens and color names:
+    the guild's active theme when known, the built-in one otherwise.
+    ``CardsError`` is intentionally allowed to propagate so callers can show
+    the structured issue instead of silently substituting another message.
+
+    ``resolved=True`` means the document is already compiled (the IR
+    compiler resolved every placeholder): it is drawn as it is.
+    """
+    from rosemary.core.card_actions import bind_action_callbacks
+    from rosemary.core.themes import theme_for
+
+    items = build_items(
+        theme_for(bot, guild_id),
+        doc,
+        variables or {},
+        draft=draft,
+        card_key=card_key,
+        resolved=resolved,
+    )
+    bind_action_callbacks(items)
+    view = discord.ui.DesignerView(store=False)
+    for item in items:
+        view.add_item(item)
+    return view
 
 
 #: embed documents ---------------------------------------------------------
@@ -983,8 +1061,17 @@ def is_embed_document(doc: dict[str, Any]) -> bool:
     return isinstance(doc, dict) and doc.get("kind") == "embed"
 
 
+def is_text_document(doc: dict[str, Any]) -> bool:
+    """Whether ``doc`` is a plain-text card (``kind: text``)."""
+    return isinstance(doc, dict) and doc.get("kind") == "text"
+
+
 def resolve_embed(
-    doc: dict[str, Any], theme: Any, mapping: dict[str, Any]
+    doc: dict[str, Any],
+    theme: Any,
+    mapping: dict[str, Any],
+    *,
+    resolved: bool = False,
 ) -> tuple[discord.Embed, list[dict[str, Any]]]:
     """Resolve one embed document: ``(discord.Embed, buttons)``.
 
@@ -992,6 +1079,9 @@ def resolve_embed(
     as defaults, caller variables win, unknown names stay visible. ``{@name}``
     mention fields resolve like V2 too (see :func:`resolve_mention_fields`)
     so pings-as-content keep working inside embeds.
+
+    ``resolved=True`` means the document is already compiled (the IR
+    compiler resolved every placeholder): the text ships exactly as it is.
     """
     from rosemary.core.embed_convert import (
         DESCRIPTION_MAX,
@@ -1001,19 +1091,23 @@ def resolve_embed(
     )
 
     raw = doc.get("embed") or {}
-    resolved = resolve_mention_fields({"blocks": [raw]}, mapping)["blocks"][0]
+    source = raw if resolved else resolve_mention_fields({"blocks": [raw]}, mapping)["blocks"][0]
 
     def fill(value: Any) -> str:
-        return safe_format(str(value), mapping) if isinstance(value, str) else ""
+        if not isinstance(value, str):
+            return ""
+        if resolved:
+            return value
+        return safe_format(value, mapping)
 
     embed = discord.Embed()
-    if resolved.get("title"):
-        embed.title = fill(resolved["title"])[:TITLE_MAX]
-    if resolved.get("description"):
-        embed.description = fill(resolved["description"])[:DESCRIPTION_MAX]
-    if resolved.get("url"):
-        embed.url = fill(resolved["url"])
-    color_token = resolved.get("color")
+    if source.get("title"):
+        embed.title = fill(source["title"])[:TITLE_MAX]
+    if source.get("description"):
+        embed.description = fill(source["description"])[:DESCRIPTION_MAX]
+    if source.get("url"):
+        embed.url = fill(source["url"])
+    color_token = source.get("color")
     if isinstance(color_token, str) and color_token.strip():
         token = color_token.strip()
         if _HEX_COLOR_RE.fullmatch(token):
@@ -1025,29 +1119,35 @@ def resolve_embed(
                 raise CardsError(
                     [CardIssue("color_unknown", (("color", token),))]
                 ) from exc
-    footer = resolved.get("footer") or {}
+    footer = source.get("footer") or {}
     if isinstance(footer, dict) and (footer.get("text") or footer.get("icon_url")):
         embed.set_footer(
             text=fill(footer.get("text"))[:2048] or None,
             icon_url=fill(footer.get("icon_url")) or None,
         )
-    author = resolved.get("author") or {}
+    author = source.get("author") or {}
     if isinstance(author, dict) and (author.get("name") or author.get("icon_url")):
         embed.set_author(
             name=fill(author.get("name"))[:256] or "\u200b",
             icon_url=fill(author.get("icon_url")) or None,
         )
-    if resolved.get("timestamp"):
+    if source.get("timestamp"):
         from datetime import UTC, datetime
 
-        embed.timestamp = datetime.fromtimestamp(int(resolved["timestamp"]), tz=UTC)
-    image = (resolved.get("image") or {}).get("url")
+        embed.timestamp = datetime.fromtimestamp(int(source["timestamp"]), tz=UTC)
+    image = (source.get("image") or {}).get("url")
     if image:
-        embed.set_image(url=fill(image))
-    thumbnail = (resolved.get("thumbnail") or {}).get("url")
+        # An url that resolves empty drops itself (the V2 gallery does the
+        # same): an empty image would 400 the whole payload.
+        url = fill(image)
+        if url:
+            embed.set_image(url=url)
+    thumbnail = (source.get("thumbnail") or {}).get("url")
     if thumbnail:
-        embed.set_thumbnail(url=fill(thumbnail))
-    for field in resolved.get("fields") or []:
+        url = fill(thumbnail)
+        if url:
+            embed.set_thumbnail(url=url)
+    for field in source.get("fields") or []:
         if not isinstance(field, dict):
             continue
         embed.add_field(
@@ -1071,7 +1171,10 @@ def resolve_embed(
 
 
 def _build_embed_button(
-    button: dict[str, Any], mapping: dict[str, Any], card_key: str | None
+    button: dict[str, Any],
+    mapping: dict[str, Any],
+    card_key: str | None,
+    resolved: bool = False,
 ) -> discord.ui.Button:
     """One classic-row button for an embed card (link or action)."""
     from rosemary.core.card_actions import custom_id_for
@@ -1079,14 +1182,14 @@ def _build_embed_button(
     if button.get("action") is not None:
         return discord.ui.Button(
             style=discord.ButtonStyle.primary,
-            label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "\u2022",
+            label=_fill(button.get("label", ""), mapping, resolved)[:LABEL_MAX] or "\u2022",
             custom_id=custom_id_for(card_key or "", str(button.get("id", ""))),
-            emoji=_fill(button.get("emoji", ""), mapping) or None,
+            emoji=_fill(button.get("emoji", ""), mapping, resolved) or None,
         )
     return discord.ui.Button(
         style=discord.ButtonStyle.link,
-        label=_fill(button.get("label", ""), mapping)[:LABEL_MAX] or "\u2022",
-        url=_fill(button.get("url", ""), mapping),
+        label=_fill(button.get("label", ""), mapping, resolved)[:LABEL_MAX] or "\u2022",
+        url=_fill(button.get("url", ""), mapping, resolved),
     )
 
 
@@ -1096,14 +1199,19 @@ def build_embed_view(
     card_key: str | None,
     *,
     owner_id: int | None = None,
+    resolved: bool = False,
 ) -> discord.ui.View | None:
-    """Classic ActionRow view carrying an embed card's buttons (or ``None``)."""
+    """Classic ActionRow view carrying an embed card's buttons (or ``None``).
+
+    ``resolved=True`` means the buttons are already compiled: their labels
+    ship exactly as they are.
+    """
     if not buttons:
         return None
     view = discord.ui.View(timeout=None)
     for button in buttons:
         if isinstance(button, dict):
-            view.add_item(_build_embed_button(button, mapping, card_key))
+            view.add_item(_build_embed_button(button, mapping, card_key, resolved))
     from rosemary.core.card_actions import bind_action_callbacks
 
     bind_action_callbacks(view.children)
@@ -1111,7 +1219,11 @@ def build_embed_view(
 
 
 def _build_container(
-    block: dict[str, Any], theme: Any, mapping: dict[str, Any], card_key: str | None = None
+    block: dict[str, Any],
+    theme: Any,
+    mapping: dict[str, Any],
+    card_key: str | None = None,
+    resolved: bool = False,
 ) -> Container:
     color = None
     token = block.get("color")
@@ -1123,7 +1235,10 @@ def _build_container(
                 color = theme.color(token)
             except KeyError as exc:
                 raise CardsError([CardIssue("color_unknown", (("color", token),))]) from exc
-    built = [_build_block(child, theme, mapping, card_key) for child in block.get("children", [])]
+    built = [
+        _build_block(child, theme, mapping, card_key, resolved)
+        for child in block.get("children", [])
+    ]
     children = [item for item in built if item is not None]
     if color is not None:
         return Container(*children, color=color)

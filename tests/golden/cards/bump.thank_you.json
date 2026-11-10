@@ -1,0 +1,22 @@
+{
+  "content": "<@0>",
+  "embed": {
+    "color": 5763719,
+    "description": "Muito obrigada pelo bump, <@0>! Sua dedicação mantém o servidor brilhando. 🍵\n\n**⏰ Próximo bump:** <t:1111111111:R>\n**⏳ Lembrete:** volto para te avisar em **…!**\n\n🏆 Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!\n",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "🎉 Bump Registrado!",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.thank_you",
+  "pings": [
+    0
+  ],
+  "view": []
+}

@@ -10,11 +10,15 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import discord
-import yaml
+from card_forms import payload_texts
+from catalog import load_catalog
 
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
-from rosemary.core.card_service import default_document, menu_heading_items
+from rosemary.core.card_service import (
+    render_card_message,
+)
 from rosemary.core.cards import all_cards, get_card
+from rosemary.ui.heading import menu_heading_items
 from rosemary.ui.theme import load_theme
 
 
@@ -27,10 +31,20 @@ class FakeTranslator:
 
 
 def make_bot():
+    import tempfile
+    from pathlib import Path
+
+    from rosemary.core.storage import GuildStorage
+    from rosemary.core.themes import ThemeStore
+
     bot = MagicMock()
     bot.theme = load_theme()
     bot.translator = FakeTranslator()
-    bot._theme_store = MagicMock()
+    # The card pipeline reads the guild's theme and settings through real
+    # objects (a mock would break the await).
+    root = Path(tempfile.mkdtemp())
+    bot.storage = GuildStorage(root)
+    bot._theme_store = ThemeStore(root, themes_dir=root / "themes")
     return bot
 
 
@@ -77,8 +91,7 @@ def test_promoted_spec_titles_in_both_catalogs():
     missing = []
     for spec in all_cards():
         for lang in ("en-US", "pt-BR"):
-            with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-                data = yaml.safe_load(fh)
+            data = load_catalog(lang)
             node = data["card"]
             try:
                 for part in spec.key.split("."):
@@ -91,12 +104,23 @@ def test_promoted_spec_titles_in_both_catalogs():
     assert missing == []
 
 
-#: seed documents render for every content card ------------------------------
+#: the panel documents render for every panel card ----------------------------
 
 
-async def test_seed_documents_render():
+async def test_panel_documents_render():
+    """The panel documents render end-to-end with the real catalog.
+
+    The panels point at the catalog for their copy (the heading and the
+    body), so the fake translator (which knows no copy) would leave them
+    silent: the real catalogs are the point of the test.
+    """
+    from pathlib import Path
+
+    from rosemary.core.i18n import Translator
+    from rosemary.core.theme_package import default_package
+
     bot = make_bot()
-    from rosemary.core.card_service import SEED_PARTS_BY_KEY
+    bot.translator = Translator(Path("language"))
 
     variables = {
         "ms": "42",
@@ -111,95 +135,148 @@ async def test_seed_documents_render():
         "created_at": "<t:1111111111:D>",
     }
     keys = [
-        "utility.ping",
-        "birthdays.list",
-        "partnerships.list",
-        "partnerships.audit",
-        "bump.stats",
         "settings.title",
         "themes.title",
         "boost.home",
     ]
+    package = default_package()
     for key in keys:
-        assert key in SEED_PARTS_BY_KEY, f"{key} missing from seed map"
-        doc = await default_document(bot, 1, key)
-        assert doc is not None, f"{key}: no default document"
-        assert doc["blocks"], f"{key}: empty document"
-        # Must be renderable end-to-end.
-        from rosemary.core.card_service import render_document
-
-        view = await render_document(
-            bot, doc, {**variables, "ping": "", "category": "", "category_label": ""},
-            guild_id=1, card_key=key,
+        assert key in package.documents, f"{key} missing from the package"
+        # Must be renderable end-to-end (whatever form the card ships in).
+        payload, _allowed = await render_card_message(
+            bot,
+            1,
+            key,
+            {**variables, "ping": "", "category": "", "category_label": ""},
         )
-        assert view.children, f"{key}: rendered no items"
+        assert payload is not None, f"{key}: no rendered payload"
+        assert payload_texts(payload), f"{key}: rendered no text"
 
 
-async def test_bump_stats_seed_carries_container_color():
-    """/bump stats renders through the seed in production: a colorless seed
-    produced floating text with no container while the code fallback showed
-    one. The seed color must match the fallback (style bump_leaderboard)."""
+async def test_the_notices_are_documents():
+    """The notices live in the default package: the document is the source of
+    truth (the seed map is gone)."""
+    from rosemary.core.theme_package import default_package
+
+    package = default_package()
+    notices = [
+        key
+        for key in package.card_keys()
+        if package.metadata(key)["form"] == "text"
+    ]
+    assert len(notices) == 39
+    for key in notices:
+        assert package.document(key) is not None, key
+
+
+async def test_the_listings_are_documents():
+    """The listings live in the default package: the document is the source of
+    truth (the seed map is gone)."""
+    from rosemary.core.theme_package import default_package
+
+    package = default_package()
+    listings = [
+        "about.card",
+        "bump.reminder",
+        "bump.no_bumps",
+        "bump.stats",
+        "bump.status",
+        "invites.leaderboard",
+        "invites.stats",
+        "invites.personal",
+        "invites.invited_list",
+        "invites.server_stats",
+        "invites.invited_by",
+        "invites.codes",
+        "invites.blacklist",
+        "birthdays.list",
+        "partnerships.list",
+        "partnerships.audit",
+        "colors.list",
+        "reminders.list",
+        "tickets.created",
+        "trap.notice",
+    ]
+    for key in listings:
+        assert key in package.documents, f"{key} missing from the package"
+        # The listing keeps its frame: the title names the list, the body
+        # carries the rows.
+        document = package.document(key)
+        assert document.get("title"), key
+        assert document.get("description") or document.get("paragraphs"), key
+
+
+async def test_bump_stats_carries_the_container_color():
+    """/bump stats renders through the document in production: a colorless
+    card produced floating text with no container while the code fallback
+    showed one. The document color must match the fallback (style
+    bump_leaderboard)."""
     bot = make_bot()
-    doc = await default_document(bot, 1, "bump.stats", {"title": "T", "body": "B"})
-    container = doc["blocks"][0]
-    assert container["type"] == "container"
-    assert container["color"] == bot.theme.style("bump_leaderboard").color
+    from rosemary.core.theme_package import default_package
 
-
-async def test_starboard_card_resolves_via_builder_not_seed():
-    """The builder owns the starboard default; a seed entry here would shadow
-    it with bare {title}/{body}: the exact bug that made live posts plain
-    (regression for the seed-map shadowing)."""
-    import rosemary.cogs.starboard  # noqa: F401  (registers the builder)
-    from rosemary.core.card_service import SEED_PARTS_BY_KEY, render_document
-
-    bot = make_bot()
-    assert "starboard.card" not in SEED_PARTS_BY_KEY, (
-        "a seed entry would shadow the registered rich builder"
+    document = default_package().document("bump.stats")
+    assert document is not None
+    assert document["color"] == bot.theme.style("bump_leaderboard").color
+    payload, _allowed = await render_card_message(
+        bot, 1, "bump.stats", {"title": "T", "body": "B"}
     )
-    doc = await default_document(bot, 1, "starboard.card")
-    assert doc is not None
-    view = await render_document(
+    assert payload is not None
+    assert payload.embed is not None
+    assert payload.embed.colour.value == bot.theme.color("warning").value
+
+
+async def test_starboard_card_resolves_via_document():
+    """The starboard default lives in the package: the document owns the
+    frame (the avatar rides the title, the picture rides the gallery and
+    the attribution closes the card)."""
+    from pathlib import Path
+
+    from rosemary.core.i18n import Translator
+    from rosemary.core.theme_package import default_package
+
+    bot = make_bot()
+    # Real catalogs: the document names the attribution copy.
+    bot.translator = Translator(Path("language"))
+    assert "starboard.card" in default_package().documents
+    payload, _allowed = await render_card_message(
         bot,
-        doc,
+        1,
+        "starboard.card",
         {
             "user": "<@5>",
             "user_name": "Ana",
             "user_avatar": "https://a.b/c.png",
             "stars": 3,
+            "state_color": "#F7EFA8",
             "title": "⭐ 3 · #geral",
             "body": "mensagem estrelada",
             "image_url": "https://a.b/img.png",
             "timestamp": "<t:1:R>",
         },
-        guild_id=1,
-        card_key="starboard.card",
     )
-    texts = container_texts(view)
+    texts = payload_texts(payload)
     assert any("mensagem estrelada" in text for text in texts)
-    # Builder signature: thumbnail section + author footer, not the bare seed.
-    assert any("-# by <@5>" in text for text in texts), texts
+    # Builder signature: author footer, not the bare seed.
+    assert any("by <@5>" in text for text in texts), texts
 
 
 #: serverinfo rich builder ---------------------------------------------------
 
 
-async def test_serverinfo_card_resolves_via_builder_not_seed():
-    """The serverinfo default lives in a registered rich builder (icon section,
-    stat columns, banner gallery, ID footer); a seed-map entry would shadow it
-    with bare key/value lines: same shadowing regression as the starboard."""
+async def test_serverinfo_card_resolves_via_document():
+    """The serverinfo default lives in the default package (icon thumbnail,
+    stat rows, banner image, ID footer): the document is the source of truth
+    (same shadowing regression as the starboard)."""
     from pathlib import Path
 
-    import rosemary.cogs.utility  # noqa: F401  (registers the builder)
-    from rosemary.core.card_service import SEED_PARTS_BY_KEY, render_document
+    import rosemary.cogs.utility  # noqa: F401  (registers the command)
     from rosemary.core.i18n import Translator
+    from rosemary.core.theme_package import default_package
 
     bot = make_bot()
-    # Real catalogs: the builder composes stat rows from serverinfo.* keys.
+    # Real catalogs: the document composes stat rows from serverinfo.* keys.
     bot.translator = Translator(Path("language"))
-    assert "utility.serverinfo" not in SEED_PARTS_BY_KEY, (
-        "a seed entry would shadow the registered rich builder"
-    )
+    assert "utility.serverinfo" in default_package().documents
     variables = {
         "server": "Overdose Community",
         "server_icon": "https://a.b/icon.png",
@@ -219,34 +296,27 @@ async def test_serverinfo_card_resolves_via_builder_not_seed():
         "created_rel": "<t:1111111111:R>",
         "server_id": "1388731936914280540",
     }
-    doc = await default_document(bot, 1, "utility.serverinfo")
-    assert doc is not None
-    view = await render_document(
-        bot, doc, variables, guild_id=1, card_key="utility.serverinfo"
+    payload, _allowed = await render_card_message(
+        bot, 1, "utility.serverinfo", variables
     )
-    texts = container_texts(view)
+    assert payload is not None
+    texts = payload_texts(payload)
     assert any("Overdose Community" in text for text in texts)
-    # Builder signature: stat lines (channel breakdown) + verification row.
+    # The document carries the stat rows (channel breakdown, verification).
     assert any("34" in text and "12" in text for text in texts), texts
     assert any("120" in text and "10" in text for text in texts), texts
     assert any("Médio" in text for text in texts), texts
-    # Exactly one icon: the header accessory (V2 sections stack texts, so a
-    # second section would duplicate the thumbnail).
-    from rosemary.core.cards import build_items
-
-    items = build_items(bot.theme, doc, variables)
-    sections = [i for i in items[0].items if type(i).__name__ == "Section"]
-    assert len(sections) == 1
-    assert type(sections[0].accessory).__name__ == "Thumbnail"
+    # Exactly one icon: the server icon rides the embed thumbnail.
+    assert payload.embed is not None
+    assert payload.embed.thumbnail.url == "https://a.b/icon.png"
 
 
-async def test_serverinfo_builder_degrades_without_banner_and_icon():
-    """No banner -> gallery resolves empty and is skipped; no icon -> the
-    section accessory is omitted instead of 400ing the payload."""
+async def test_serverinfo_card_degrades_without_banner_and_icon():
+    """No banner -> the image slot drops itself; no icon -> no thumbnail
+    instead of a 400ing the payload."""
     from pathlib import Path
 
-    import rosemary.cogs.utility  # noqa: F401  (registers the builder)
-    from rosemary.core.card_service import render_document
+    import rosemary.cogs.utility  # noqa: F401  (registers the command)
     from rosemary.core.i18n import Translator
 
     bot = make_bot()
@@ -270,14 +340,16 @@ async def test_serverinfo_builder_degrades_without_banner_and_icon():
         "created_rel": "<t:1111111111:R>",
         "server_id": "123",
     }
-    doc = await default_document(bot, 1, "utility.serverinfo")
-    view = await render_document(
-        bot, doc, variables, guild_id=1, card_key="utility.serverinfo"
+    payload, _allowed = await render_card_message(
+        bot, 1, "utility.serverinfo", variables
     )
-    assert view.children
-    texts = container_texts(view)
+    assert payload is not None
+    texts = payload_texts(payload)
     assert any("Serv" in text for text in texts)
     assert not any("servidor de testes" in text for text in texts)
+    # No icon, no banner: no empty image rides the card.
+    assert payload.embed.thumbnail is None
+    assert payload.embed.image is None
 
 
 async def test_serverinfo_send_does_not_ping_owner(tmp_path):
@@ -391,29 +463,20 @@ async def test_menu_heading_splices_themed_text_and_rejects_container(tmp_path):
 #: url placeholder contract ---------------------------------------------------
 
 
-async def test_default_builder_url_placeholders_come_from_contract():
+async def test_document_url_placeholders_come_from_contract():
     """Regression (live 400 on confessions): a ``{placeholder}`` left literal
     in a thumbnail/gallery/button URL is rejected by Discord ("Not a well
-    formed URL"). Every placeholder in a URL position of a default document
-    must belong to the card's variable contract, which the send site fills.
+    formed URL"). Every placeholder in a URL position of a document must
+    belong to the card's variable contract, which the send site fills.
     """
-    import importlib
     import re
-    from pathlib import Path
 
-    from rosemary.core.cards import _DEFAULT_BUILDERS, get_card
-    from rosemary.core.variables import samples_for
-
-    cogs_dir = Path(__file__).resolve().parents[1] / "cogs"
-    for path in sorted(cogs_dir.glob("*.py")):
-        if path.stem.startswith("_"):
-            continue
-        importlib.import_module(f"rosemary.cogs.{path.stem}")
+    from rosemary.core.theme_package import default_package
 
     def urls_in(node, found):
         if isinstance(node, dict):
             for key, value in node.items():
-                if key == "url" and isinstance(value, str):
+                if key in ("url", "thumbnail", "image") and isinstance(value, str):
                     found.append(value)
                 elif key == "urls" and isinstance(value, list):
                     found.extend(u for u in value if isinstance(u, str))
@@ -424,22 +487,14 @@ async def test_default_builder_url_placeholders_come_from_contract():
                 urls_in(item, found)
         return found
 
-    bot = make_bot()
+    package = default_package()
     problems = []
-    for key in sorted(_DEFAULT_BUILDERS):
-        spec = get_card(key)
-        if spec is None:
-            continue
-        try:
-            doc = await _DEFAULT_BUILDERS[key](bot, 1, **samples_for(spec.variables))
-        except Exception as exc:  # noqa: BLE001 - sweep reports, never raises here
-            problems.append(f"{key}: builder crashed on contract samples: {exc}")
-            continue
-        if not isinstance(doc, dict):
-            continue
-        for url in urls_in(doc.get("blocks", []), []):
+    for key in package.card_keys():
+        doc = package.document(key) or {}
+        contract = set(package.metadata(key)["variables"])
+        for url in urls_in(doc, []):
             names = set(re.findall(r"\{(\w+)\}", url))
-            outside = names - set(spec.variables)
+            outside = names - contract
             if outside:
                 problems.append(f"{key}: {sorted(outside)} in {url!r}")
     assert problems == []

@@ -1,0 +1,111 @@
+{
+  "buttons": [
+    {
+      "custom_id": "rp_mgr_add",
+      "disabled": false,
+      "emoji": null,
+      "label": "Adicionar gif",
+      "style": "primary"
+    },
+    {
+      "custom_id": "rp_mgr_restore",
+      "disabled": false,
+      "emoji": null,
+      "label": "Restaurar do tema",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "rp_mgr_exit",
+      "disabled": false,
+      "emoji": "⬅️",
+      "label": "Voltar",
+      "style": "secondary"
+    }
+  ],
+  "selects": [
+    {
+      "custom_id": "rp_mgr_action",
+      "disabled": false,
+      "options": [
+        {
+          "default": true,
+          "label": "abraçou",
+          "value": "hug"
+        },
+        {
+          "default": false,
+          "label": "beijou",
+          "value": "kiss"
+        },
+        {
+          "default": false,
+          "label": "fez cafuné em",
+          "value": "pat"
+        },
+        {
+          "default": false,
+          "label": "deu um tapa em",
+          "value": "slap"
+        },
+        {
+          "default": false,
+          "label": "mordeu",
+          "value": "bite"
+        },
+        {
+          "default": false,
+          "label": "socou",
+          "value": "punch"
+        },
+        {
+          "default": false,
+          "label": "atacou",
+          "value": "attack"
+        },
+        {
+          "default": false,
+          "label": "cutucou",
+          "value": "poke"
+        },
+        {
+          "default": false,
+          "label": "dançou com",
+          "value": "dance"
+        },
+        {
+          "default": false,
+          "label": "tocou as mãos de",
+          "value": "highfive"
+        },
+        {
+          "default": false,
+          "label": "encarou",
+          "value": "stare"
+        },
+        {
+          "default": false,
+          "label": "dormiu abraçado com",
+          "value": "cuddle"
+        }
+      ],
+      "placeholder": "Gerenciar gifs"
+    },
+    {
+      "custom_id": "rp_mgr_remove",
+      "disabled": false,
+      "options": [
+        {
+          "default": false,
+          "label": "1",
+          "value": "1"
+        }
+      ],
+      "placeholder": "Remover um gif..."
+    }
+  ],
+  "texts": [
+    "# Gerenciar gifs",
+    "Ação: **abraçou**. `api` = gif aleatório da categoria (nekos.best); `url` = gif fixo.",
+    "**Gifs configurados**\n1. aleatório (API): hug"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "**🖼️ Antes:** [ver avatar](https://cdn.discordapp.com/embed/avatars/0.png)\n**🖼️ Agora:** [ver avatar](https://cdn.discordapp.com/embed/avatars/1.png)\n",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "title": "🖼️ Avatar alterado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.avatar",
+  "pings": [],
+  "view": []
+}

@@ -11,7 +11,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
-import yaml
+from catalog import flatten, load_catalog
 
 from rosemary.core.settings import (
     SETTINGS,
@@ -346,25 +346,19 @@ def test_every_static_settings_menu_key_exists_in_both_catalogs():
     """
     import re
 
-    from rosemary.core.i18n import _flatten
-
     with open("ui/settings_menu.py", encoding="utf-8") as fh:
         src = fh.read()
     keys = sorted(set(re.findall(r'"(settings\.[a-z0-9_.]+)"', src)))
     assert keys, "sweep found no keys; check the regex"
     for lang in ("en-US", "pt-BR"):
-        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-            flat = _flatten(yaml.safe_load(fh))
+        flat = flatten(load_catalog(lang))
         missing = [key for key in keys if key not in flat]
         assert missing == [], f"{lang}: keys missing from catalog: {missing}"
 
 
 def test_list_ui_keys_in_both_catalogs():
-    from rosemary.core.i18n import _flatten
-
     for lang in ("en-US", "pt-BR"):
-        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-            flat = _flatten(yaml.safe_load(fh))
+        flat = flatten(load_catalog(lang))
         for key in (
             "settings.list.empty",
             "settings.list.remove",

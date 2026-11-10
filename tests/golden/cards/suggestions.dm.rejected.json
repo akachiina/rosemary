@@ -1,0 +1,20 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15158332,
+    "description": "❌ Sua sugestão **#1** foi recusada por <@0>.\nMotivo: …",
+    "fields": [],
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "suggestions.dm.rejected",
+  "pings": [],
+  "view": [
+    {
+      "label": "Ir para a sugestão",
+      "style": "link",
+      "type": "Button",
+      "url": "https://example.com/message"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "Ticket #… foi fechado.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🔒 Ticket Fechado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "tickets.logs.closed",
+  "pings": [],
+  "view": []
+}

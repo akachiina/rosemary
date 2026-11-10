@@ -1,0 +1,52 @@
+birthday:
+  command:
+    name: birthday
+    description: Register and list birthdays
+birthday_clear:
+  command:
+    name: clear
+    description: Remove your own birthday.
+birthday_list:
+  command:
+    name: list
+    description: List all registered birthdays grouped by month.
+birthday_set:
+  command:
+    name: set
+    description: Register a birthday; admins may set other members.
+    options:
+      day:
+        description: Day of the month
+      month:
+        description: Month number
+      member:
+        description: Another member (admin only)
+birthdays:
+  enabled:
+    label: Enable birthdays
+    description: Announce member birthdays daily.
+  channel:
+    label: Birthday channel
+    description: Channel for the announcement card.
+  role:
+    label: Celebrant role
+    description: Role granted for the day.
+  announce_time:
+    label: Announce time
+    description: Local time to post, as HH:MM (24h).
+  change_cooldown_days:
+    label: Change cooldown
+    description: Days before a member may change their own date again (0 = off).
+  errors.admin_only: '{error} Only admins can register another member''s birthday.'
+  errors.bad_month: '{error} Invalid month.'
+  errors.bad_day: '{error} Invalid day for that month.'
+  errors.cooldown: '{warning} You changed your birthday recently. Try again in {days} day(s).'
+  set: '{success} Birthday registered for {user}: {date}!'
+  list_title: Birthdays {calendar}
+  list_empty: No birthdays registered yet. Use /birthday set!
+  cleared: '{success} Your birthday was removed.'
+  not_found: '{info} You don''t have a birthday registered.'
+  months: January,February,March,April,May,June,July,August,September,October,November,December
+  announce:
+    title: Happy birthday! {gift}
+    body: '{user} is celebrating today. Join the party!'

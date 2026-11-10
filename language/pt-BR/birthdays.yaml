@@ -1,0 +1,52 @@
+birthday:
+  command:
+    name: aniversario
+    description: Registre e liste aniversários
+birthday_clear:
+  command:
+    name: apagar
+    description: Remove o seu próprio aniversário.
+birthday_list:
+  command:
+    name: listar
+    description: Lista todos os aniversários registrados agrupados por mês.
+birthday_set:
+  command:
+    name: definir
+    description: Registra um aniversário; admins podem registrar de outros membros.
+    options:
+      day:
+        description: Dia do mês
+      month:
+        description: Número do mês
+      member:
+        description: Outro membro (somente admin)
+birthdays:
+  enabled:
+    label: Ativar aniversários
+    description: Anuncia os aniversariantes do dia.
+  channel:
+    label: Canal de aniversários
+    description: Canal do card de anúncio.
+  role:
+    label: Cargo de aniversariante
+    description: Cargo concedido durante o dia.
+  announce_time:
+    label: Hora do anúncio
+    description: Hora local do post, no formato HH:MM (24h).
+  change_cooldown_days:
+    label: Intervalo para trocar
+    description: Dias até o membro poder trocar a própria data (0 = desligado).
+  errors.admin_only: '{error} Só administradores podem registrar o aniversário de outro membro.'
+  errors.bad_month: '{error} Mês inválido.'
+  errors.bad_day: '{error} Dia inválido para esse mês.'
+  errors.cooldown: '{warning} Você alterou seu aniversário recentemente. Tente em {days} dia(s).'
+  set: '{success} Aniversário registrado para {user}: {date}!'
+  list_title: Aniversários {calendar}
+  list_empty: Nenhum aniversário registrado ainda. Use /aniversario definir!
+  cleared: '{success} Seu aniversário foi removido.'
+  not_found: '{info} Você não tem aniversário registrado.'
+  months: Janeiro,Fevereiro,Março,Abril,Maio,Junho,Julho,Agosto,Setembro,Outubro,Novembro,Dezembro
+  announce:
+    title: Feliz aniversário! {gift}
+    body: '{user} está comemorando hoje. Participe da festa!'

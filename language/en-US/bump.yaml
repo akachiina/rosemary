@@ -1,0 +1,251 @@
+bump:
+  command:
+    name: bump
+    description: Disboard bump leaderboard
+  messages:
+    anti_camping: The channel is temporarily locked. Bump will be available shortly!
+    thank_you_title: '{tada} Bump Recorded!'
+    thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining. {cup}
+
+
+      **{clock} Next bump:** <t:{next_bump_timestamp}:R>
+
+      **{hourglass} Reminder:** I''ll be back to remind you in **{cooldown}!**
+
+
+      {trophy} Use `/bump leaderboard` to check the weekly rank and compete for **Bump-MVP**!
+
+      '
+    reminder_title: '{clock} Bump Time!'
+    reminder_description: 'The {cooldown} cooldown has passed since the last bump!
+
+
+      **{rocket} Your turn to help:** use `/bump` and earn a point on the board!
+
+      '
+    leaderboard_title: '{trophy} Weekly Bump Leaderboard'
+    leaderboard_description: 'Check out who helped the server the most this week!
+
+
+      **{calendar} Period:** <t:{start_timestamp}:d> to <t:{end_timestamp}:d>
+
+      **{hourglass} The week ends in:** <t:{next_reset_timestamp}:R>
+
+      **{crown} Winner:** {@winner_mention} with **{winner_count}** bumps!
+
+
+      **{gift} Prize:** Customizable **{role_name}** role for 1 week!
+
+      Use `/boost panel` to customize name, color, emoji and invite members.
+
+
+      {leaderboard_list}
+
+      '
+    leaderboard_line: '{medal} **#{position}** · {user_mention} **{bump_count}** bumps'
+    no_bumps_title: '{trophy} Weekly Bump Leaderboard'
+    no_bumps_description: 'Nobody bumped the server this week! {cry}
+
+
+      **{rocket} Be the first:** use `/bump` in the bump channel and earn a point!
+
+      '
+    no_bumps_you: '{bar_chart} You haven''t bumped this week yet! Use `/bump` in the bump channel.'
+  dm:
+    winner_new: 'You are the Bump-MVP of the Week!
+
+      Hello, {mention}! Your dedication kept the server shining. Thank you!
+
+
+      **{bar_chart} Weekly bumps:** {bump_count}
+
+      **{trophy} Role:** {role_name}
+
+
+      ### {palette} Customize your role
+
+      Use `/boost panel` to customize:
+
+      - {pencil} Name and emoji
+
+      - {palette} Color
+
+      - {members} Invite up to **{max_members}** members
+
+
+      Your customizations are saved and will return if you win again!
+
+
+      Enjoy it until the next reset.
+
+      '
+    winner_again: 'Bump-MVP once again!
+
+      Hello, {mention}! You''ve reclaimed the title. Your dedication is admirable!
+
+
+      **{bar_chart} Weekly bumps:** {bump_count}
+
+      **{trophy} Total wins:** {total_wins}
+
+
+      Your role **{role_name}** has been restored with your previous customizations!
+
+
+      Keep being awesome.
+
+      '
+    winner_lost: 'Your time as Bump-MVP has ended
+
+      Hello, {mention}! This week another member claimed the title. Don''t be discouraged!
+
+
+      **{bar_chart} Your bumps:** {bump_count}
+
+      **{crown} New winner:** {winner_mention}
+
+
+      Your customizations were saved and will return if you win again!
+
+
+      Keep bumping and reclaim the throne!
+
+      '
+  logs:
+    bump_recorded:
+      title: '{rocket} Bump Detected'
+      description: Bump executed by {user} in {channel}.
+    reminder_sent:
+      title: '{clock} Reminder Sent'
+      description: Bump reminder sent in {channel}.
+    channel_locked:
+      title: '{lock} Channel Locked'
+      description: Channel {channel} temporarily locked (anti-camping).
+    channel_unlocked:
+      title: '{unlock} Channel Unlocked'
+      description: Channel {channel} unlocked.
+    schedule_opened:
+      title: '{unlock} Bump Channel Open'
+      description: Channel {channel} opened on schedule.
+    schedule_closed:
+      title: '{lock} Bump Channel Closed'
+      description: Channel {channel} closed on schedule.
+    week_reset:
+      title: '{refresh} Bump Week Reset'
+      description: 'The weekly ranking was reset.
+
+        New MVP: {winner}
+
+        Bumps: {bumps}'
+    no_winner:
+      title: '{bar_chart} Week Reset (No MVP)'
+      description: The week was reset, but no bumps were recorded.
+    leaderboard_posted:
+      title: '{trophy} Leaderboard Posted'
+      description: The weekly leaderboard was posted in {channel}.
+    no_bumps_posted:
+      title: '{bar_chart} Empty Leaderboard Posted'
+      description: No bumps recorded this week. The 'no data' card was posted in {channel}.
+    week_reset_manual:
+      title: '{refresh} Week Reset Manually'
+      description: The bump week was reset manually by {author}.
+    bumps_added:
+      title: '{pencil} Test Bumps Added'
+      description: '{author} added {count} test bump(s) for {user} (weekly total: {total}).'
+  error_disabled: '{error} The bump system is disabled in this server.'
+  schedule:
+    open_message_default: The bump channel is open! {ping_role} Use `/bump` to help the server!
+    close_message_default: The bump channel is closed. Back at 06:00!
+  anti_camping:
+    message_default: The channel is temporarily locked. Bump will be available shortly!
+  error_no_channel: '{error} The bump channel is not configured. Set it in `/settings`.'
+  error_no_role: '{error} The Bump-MVP role is not configured.'
+  error_role_not_found: '{error} The configured winner role was not found in the server.'
+  error_leaderboard_disabled: '{error} The weekly bump leaderboard is disabled.'
+  test:
+    no_bumps: '{bar_chart} No bumps recorded this week; the leaderboard was not posted.'
+    simulated: '{success} Bump simulated successfully.'
+    reminder_sent: '{success} Reminder sent successfully.'
+  status:
+    card_title: '{rocket} Bump Status'
+    state_on: 'Yes'
+    state_off: 'No'
+    enabled: '**{success} Enabled:** {enabled}'
+    channel_locked: '**{lock} Channel locked:** {locked}'
+    reminder_sent: '**{clock} Reminder sent:** {sent}'
+    last_bump: '**{rocket} Last bump:** <t:{timestamp}:R>'
+    last_bump_na: '**{rocket} Last bump:** N/A'
+    next_reminder: '**{clock} Next reminder:** {next}'
+    none: N/A
+    last_reset: '**{refresh} Last reset:** {when} by {author} ({reason})'
+    last_reset_na: '**{refresh} Last reset:** N/A'
+    reset_actor_automatic: automatic
+    reset_reason:
+      scheduler: automatic reset
+      test_leaderboard: forced test
+      reset_week_command: manual command
+      settings_reset: settings panel
+      unknown: unknown
+  success:
+    leaderboard_posted: '{success} Weekly leaderboard posted successfully!'
+    week_reset: '{success} Bump week reset successfully!'
+    bumps_added: '{success} {count} bump(s) added for {user_mention}! Weekly total: {total}.'
+  stats:
+    title: '{bar_chart} Your Bump Statistics'
+    this_week: '**{calendar} This week:**
+
+      **{trophy} Leaderboard position:** #{position}
+
+      **{rocket} Bumps:** {bumps}
+
+      **{members} Server total:** {total_bumps} bumps
+
+      '
+    history: '**{crown} History:**
+
+      **{trophy} Wins:** {wins}
+
+      '
+    week_start: '**{calendar} Week started:** <t:{week_start_ts}:d>'
+    week_end: '**{hourglass} The week ends in:** <t:{next_reset_ts}:R>'
+bump_admin:
+  command:
+    name: bump_admin
+    description: '[ADMIN] Admin-only bump tools'
+bump_admin_add_test:
+  command:
+    name: add_test
+    description: '[ADMIN] Add test bumps for a user'
+    options:
+      user:
+        description: Member to add bumps to
+      count:
+        description: Number of bumps to add
+bump_admin_reset_week:
+  command:
+    name: reset_week
+    description: '[ADMIN] Manually reset the bump week'
+bump_admin_test_leaderboard:
+  command:
+    name: test_leaderboard
+    description: '[ADMIN] Force the weekly leaderboard calculation'
+bump_leaderboard:
+  command:
+    name: leaderboard
+    description: Show the weekly bump leaderboard
+bump_stats:
+  command:
+    name: stats
+    description: Show your bump statistics
+bump_status:
+  command:
+    name: status
+    description: '[ADMIN] Show the bump system status'
+bump_test:
+  command:
+    name: test
+    description: '[ADMIN] Simulate a bump to test the system'
+bump_test_reminder:
+  command:
+    name: test_reminder
+    description: '[ADMIN] Send the bump reminder immediately'

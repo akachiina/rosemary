@@ -14,7 +14,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
-import yaml
+from catalog import catalog_text
 
 import rosemary.cogs.partnerships as partnerships_module
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
@@ -24,15 +24,10 @@ from rosemary.core.themes import ThemeStore
 from rosemary.ui.theme import load_theme
 
 ROOT = Path(__file__).resolve().parents[1]
-CATALOG = ROOT / "language" / "pt-BR.yaml"
 
 
 def _catalog_text(key: str) -> str:
-    with CATALOG.open(encoding="utf-8") as fh:
-        node = yaml.safe_load(fh) or {}
-    for part in key.split("."):
-        node = node.get(part) if isinstance(node, dict) else None
-    return node if isinstance(node, str) else key
+    return catalog_text("pt-BR", key)
 
 
 class FakeTranslator:

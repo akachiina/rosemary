@@ -1,0 +1,20 @@
+# The tickets settings.
+settings:
+  tickets.enabled:
+    category: tickets
+    type: boolean
+    default: false
+  tickets.panel_channel:
+    category: tickets
+    type: channel
+    default: null
+  tickets.category:
+    category: tickets
+    type: category
+    default: null
+  tickets.max_open_per_user:
+    category: tickets
+    type: integer
+    default: 3
+    min: 1
+    max: 10

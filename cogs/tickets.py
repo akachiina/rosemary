@@ -20,14 +20,14 @@ import re
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import maybe_view, text_or
+from rosemary.core.cards import text_or
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.tickets import CLOSED, OPEN, TicketStore
 from rosemary.ui.confirm import ConfirmView
-from rosemary.ui.containers import TextDisplay, designer_container
+from rosemary.ui.containers import TextDisplay
 from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
@@ -143,32 +143,34 @@ class TicketsCog(commands.Cog):
         actions_view.add_item(await actions_view.action_row())
         return actions_view
 
-    async def _panel_view(self, guild_id: int, *, trace: bool = False):
-        """The full panel view: themed card (or catalog default) + picker.
+    async def _panel_view(self, guild_id: int):
+        """The full panel view: the card document + the type picker.
 
-        A themed panel that already carries ``open_ticket`` buttons replaces
-        the stock type picker: no duplicated controls. ``trace=True`` (real
-        channel sends) routes through :func:`render_card_message` so the
-        ``debug.card_paths`` hook fires; internal repaints stay silent."""
-        if trace:
-            from rosemary.core.card_service import render_card_message
+        The card pipeline owns the frame, so a themed panel that already
+        carries ``open_ticket`` buttons replaces the stock type picker: no
+        duplicated controls. A classic (embed) card carries the picker as a
+        classic row instead, because an embed has no V2 layout.
+        """
+        from rosemary.core.card_service import (
+            CardPayload,
+            render_card_message,
+            simple_payload,
+        )
 
-            payload, _allowed = await render_card_message(
-                self.bot, guild_id, "tickets.panel"
-            )
-        else:
-            from rosemary.core.card_service import CardPayload
-
-            payload = None
-            view = await maybe_view(self.bot, guild_id, "tickets.panel")
-            if view is not None:
-                payload = CardPayload(view=view)
+        payload, _allowed = await render_card_message(
+            self.bot, guild_id, "tickets.panel"
+        )
         if payload is None:
-            view = await self._build_panel_view(guild_id)
-            view.add_item(await self._panel_select_row(guild_id))
-            from rosemary.core.card_service import CardPayload as _Payload
-
-            return _Payload(view=view)
+            # No document resolved (the catalog has no copy): the card
+            # fallback answers in the card's own shape.
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "tickets.panel",
+                title=await self.bot.translator.t(guild_id, "tickets.panel.title"),
+                body=await self.bot.translator.t(guild_id, "tickets.panel.text"),
+                color="brand",
+            )
         if payload.embed is not None:
             # Embed form: no V2 layout: the type picker rides as classic rows.
             picker = TicketPanelView(self.bot, guild_id)
@@ -176,7 +178,14 @@ class TicketsCog(commands.Cog):
             panel_view = payload.view or discord.ui.View(timeout=None)
             for item in extra.children:
                 panel_view.add_item(item)
-            return CardPayload(embed=payload.embed, view=panel_view)
+            return CardPayload(
+                embed=payload.embed,
+                view=panel_view,
+                files=payload.files,
+                content=payload.content,
+            )
+        if payload.view is None:
+            return payload
         if not await _themed_panel_has_open_buttons(self.bot, guild_id):
             payload.view.add_item(await self._panel_select_row(guild_id))
         return payload
@@ -185,7 +194,7 @@ class TicketsCog(commands.Cog):
         from rosemary.core.mentions import allowed_for_ids
 
         message = await channel.send(
-            **(await self._panel_view(guild.id, trace=True)).message_kwargs(),
+            **(await self._panel_view(guild.id)).message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.panel"),
         )
         await self.store.set_panel(guild.id, message.id)
@@ -211,24 +220,6 @@ class TicketsCog(commands.Cog):
             except (discord.NotFound, discord.HTTPException):
                 pass  # message gone: re-post below
         await self._post_panel(guild, channel)
-
-    async def _build_panel_view(self, guild_id: int):
-        from rosemary.ui.containers import DesignerView
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("brand"),
-                TextDisplay(
-                    self.bot.theme.md(
-                        "title",
-                        title=await self.bot.translator.t(guild_id, "tickets.panel.title"),
-                    )
-                ),
-                TextDisplay(await self.bot.translator.t(guild_id, "tickets.panel.text")),
-            )
-        )
-        return view
 
     async def _log(
         self,
@@ -314,7 +305,11 @@ class TicketsCog(commands.Cog):
             "user": owner.mention,
             "type": await self._type_label(guild.id, ticket_type),
         }
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import (
+            CardPayload,
+            render_card_message,
+            simple_payload,
+        )
 
         payload, _allowed = await render_card_message(
             self.bot, guild.id, "tickets.created", variables
@@ -324,42 +319,31 @@ class TicketsCog(commands.Cog):
         ).action_row()
         if payload is None:
             t = self.bot.translator.t
-            payload = CardPayload(
-                view=await self._intro_view(
-                    guild.id,
-                    await t(guild.id, "tickets.created.text", **variables),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild.id,
+                "tickets.created",
+                title=await t(guild.id, "tickets.created.title"),
+                body=await t(guild.id, "tickets.created.text", **variables),
+                color="brand",
             )
         if payload.embed is not None:
             # Embed form has no V2 layout; the action row rides as classic view.
             actions_view = payload.view or discord.ui.View(timeout=None)
             for item in actions.children:
                 actions_view.add_item(item)
-            payload = CardPayload(embed=payload.embed, view=actions_view)
+            payload = CardPayload(
+                embed=payload.embed,
+                view=actions_view,
+                files=payload.files,
+                content=payload.content,
+            )
         else:
             payload.view.add_item(actions)
         await channel.send(
             **payload.message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "tickets.created"),
         )
-
-    async def _intro_view(self, guild_id: int, body: str):
-        from rosemary.ui.containers import DesignerView
-
-        t = self.bot.translator.t
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("brand"),
-                TextDisplay(
-                    self.bot.theme.md(
-                        "title", title=await t(guild_id, "tickets.created.title")
-                    )
-                ),
-                TextDisplay(body),
-            )
-        )
-        return view
 
     async def close_ticket(self, guild: discord.Guild, channel_id: int) -> bool:
         channel = guild.get_channel(channel_id)
@@ -567,11 +551,10 @@ class _TicketConfirmView(ConfirmView):
 
     async def _confirm(self, interaction: discord.Interaction) -> None:
         if self.result is not None:
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=True)
+            await self._ack(interaction, suppress_errors=True)
             return
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
+        if not await self._ack(interaction):
+            return
         cog = self.bot.get_cog("TicketsCog")
         guild = interaction.guild
         member = guild.get_member(interaction.user.id) if guild else None
@@ -638,16 +621,14 @@ class TicketPanelView(MenuView):
     async def _pick_type(self, interaction: discord.Interaction) -> None:
         values = (interaction.data or {}).get("values") or []
         if not values or values[0] not in TICKET_TYPES:
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=True)
+            await self._ack(interaction, suppress_errors=True)
             return
         cog = self.bot.get_cog("TicketsCog")
         guild = interaction.guild
         if cog is None or guild is None:
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=True)
+            await self._ack(interaction, suppress_errors=True)
             return
-        from rosemary.core.card_service import trace_card_path
+        from rosemary.core.debug import trace_card_path
 
         view = _TicketConfirmView(
             self.bot,
@@ -657,7 +638,7 @@ class TicketPanelView(MenuView):
         )
         await view.prepare()
         await trace_card_path(self.bot, guild.id, "tickets.confirm")
-        await interaction.response.send_message(view=view, ephemeral=True)
+        await interaction.response.send_message(**await view.message_kwargs(), ephemeral=True)
 
 
 class TicketActionsView(MenuView):
@@ -736,7 +717,8 @@ class TicketActionsView(MenuView):
         cog, guild, _ticket = resolved
         if cog is None:
             return
-        await interaction.response.defer(ephemeral=True)
+        if not await self._ack(interaction):
+            return
         _, channel_id = self._ids(interaction)
         if await cog.close_ticket(guild, channel_id):
             message = await self._t("tickets.closed_done")
@@ -749,7 +731,8 @@ class TicketActionsView(MenuView):
         cog, guild, _ticket = resolved
         if cog is None:
             return
-        await interaction.response.defer(ephemeral=True)
+        if not await self._ack(interaction):
+            return
         _, channel_id = self._ids(interaction)
         channel = guild.get_channel(channel_id)
         if not isinstance(channel, discord.TextChannel):
@@ -772,7 +755,8 @@ class TicketActionsView(MenuView):
         cog, guild, _ticket = resolved
         if cog is None:
             return
-        await interaction.response.defer(ephemeral=True)
+        if not await self._ack(interaction):
+            return
         _, channel_id = self._ids(interaction)
         if await cog.reopen_ticket(guild, channel_id):
             message = await self._t("tickets.reopened_done")
@@ -790,7 +774,8 @@ class TicketActionsView(MenuView):
             return await interaction.response.send_message(
                 await self._t("tickets.error_close_first"), ephemeral=True
             )
-        await interaction.response.defer(ephemeral=True)
+        if not await self._ack(interaction):
+            return
         channel = guild.get_channel(channel_id)
         await cog.store.delete_ticket(guild.id, channel_id)
         await cog._log(

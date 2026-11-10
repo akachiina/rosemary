@@ -1,0 +1,15 @@
+# The manifest of the built-in theme package.
+#
+# A package is a folder with:
+#   theme.yaml     this manifest (the name, the version, the parent);
+#   tokens.yaml    the look & feel (the colors, the emojis, the styles);
+#   archetypes.yaml the frames of the cards (the log_event, the announcement);
+#   fragments.yaml  the reusable pieces (the attribution line);
+#   cards/*.yaml   the card documents, one file per family.
+#
+# The selection name stays "default": the package is the theme every other
+# theme extends (the baseline of the tokens and the base of the cards).
+
+version: 2
+name: default
+extends: null

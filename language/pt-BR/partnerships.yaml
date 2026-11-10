@@ -1,0 +1,208 @@
+partnerships:
+  command:
+    name: parcerias
+    description: Gerencia parcerias do servidor
+  error_disabled: '{error} Parcerias estão desativadas neste servidor.'
+  error_no_channel: '{error} Nenhum canal de parcerias configurado.'
+  modal:
+    title: Anúncio de parceria
+    label: Texto do anúncio
+    placeholder: Escreva o anúncio. Use {{rep}} e {{ping_role}} onde quiser.
+  edit_modal:
+    title: Editar Anúncio de Parceria
+    label: Texto do anúncio
+    placeholder: Edite o anúncio. Use {{rep}} e {{ping_role}} onde quiser.
+  error_not_found: '{error} Sem parceria para {user}.'
+  error_not_rep: '{error} Você não representa nenhuma parceria aqui.'
+  error_rep_has_partnership: '{error} {user} já representa uma parceria aqui.'
+  list_empty: Sem parcerias ainda.
+  list_title: Parcerias
+  list_line: '- {user} ({days}d restantes){warned}'
+  audit_title: Auditoria de Parcerias
+  audit_body: 'Expiradas: {expired}
+
+    Órfãs: {orphans}'
+  invite_text: Faça parceria com a gente! Fale com a staff para participar.
+  invite_text_default: Faça parceria com a gente! Fale com {rep} para participar.
+  dm:
+    added: 'Nova Parceria Estabelecida!
+
+
+      Olá, {mention}! Você foi designado(a) como **representante oficial** da parceria com **{server}**.
+
+
+      ### {scroll} Suas responsabilidades
+
+      > Manter seu servidor seguro, ativo e acolhedor
+
+      > Seguir as regras de parceria do canal correspondente
+
+      > Representar as duas comunidades com respeito
+
+
+      {tada} Obrigado por fazer parte desta parceria!
+
+      Sair do servidor ou descumprir as regras pode resultar na perda da parceria. Dúvidas? Fale com a equipe de moderação!'
+    removed: 'Parceria Encerrada
+
+
+      Olá, {mention}! Sua parceria com **{server}** foi encerrada pela equipe.
+
+
+      {envelope} Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.
+
+
+      Esta é uma notificação automática da parceria.'
+    rep_changed: 'Você Agora Representa uma Parceria!
+
+
+      Olá, {mention}! A parceria com **{server}** agora é representada por você. O anúncio foi atualizado e o cargo de parceiro foi transferido.
+
+
+      ### {scroll} Suas responsabilidades
+
+      > Manter seu servidor seguro, ativo e acolhedor
+
+      > Seguir as regras de parceria do canal correspondente
+
+      > Representar as duas comunidades com respeito
+
+
+      {tada} Bem-vindo(a) à parceria!
+
+      Dúvidas? Fale com a equipe de moderação!'
+    warning: 'Renovação de Parceria Necessária!
+
+
+      Olá, {mention}! Sua parceria com **{server}** está chegando ao fim e precisa ser renovada.
+
+
+      ### Como renovar
+
+      > Use o comando `/parcerias renovar` no servidor antes do prazo acabar.
+
+
+      ### {warning} Prazo
+
+      > Você tem **{days} dia(s)** para agir.
+
+
+      Ao expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido.'
+    expired: 'Parceria Expirada
+
+
+      Olá, {mention}! A parceria com **{server}** expirou por falta de renovação e foi removida automaticamente.
+
+
+      ### {refresh} Quer voltar?
+
+      > Basta falar com a equipe do servidor para refazer o processo de parceria.
+
+
+      Seu anúncio foi deletado e o cargo de parceiro foi removido.'
+    expired_admin: 'Parceria Expirada
+
+
+      Olá, {mention}! A parceria que você adicionou com o representante {rep} expirou por falta de renovação e foi removida de **{server}**.
+
+
+      ### {calendar} Detalhes
+
+      > **Representante:** {rep}
+
+      > **Última renovação:** há {days} dia(s)
+
+
+      ### {refresh} Quer restabelecer?
+
+      > Refaça o processo normalmente no canal de parcerias.
+
+      > Convite para repassar ao representante: {invite}
+
+
+      Esta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria.'
+  invite: '{server} 🤝'
+  success:
+    added: '{success} Parceria adicionada para {user}.'
+    removed: '{success} Parceria removida de {user}.'
+    renewed: '{success} Parceria renovada.'
+    invite_posted: '{success} Convite de parceria postado.'
+    cleaned: '{success} {count} parceria(s) órfã(s) removidas.'
+    edited: '{success} Anúncio de parceria de {user} atualizado.'
+    edited_rep: '{success} Anúncio atualizado e representação transferida de {user} para {rep}.'
+  logs:
+    added:
+      title: '{plus} Parceria Adicionada'
+      description: '{author} adicionou parceria para {user}.'
+    removed:
+      title: '{minus} Parceria Removida'
+      description: '{author} removeu a parceria de {user}.'
+    edited:
+      title: '{pencil} Parceria Editada'
+    renewed:
+      title: '{refresh} Parceria Renovada'
+      description: '{user} renovou a parceria.'
+    warning_sent:
+      title: '{warning} Aviso de Parceria'
+      description: '{user} foi avisado ({days}d atrasado).'
+    expired:
+      title: '{clock} Parceria Expirada'
+      description: Parceria de {user} expirou. {ping}
+    invite_posted:
+      title: '{love_letter} Convite Postado'
+      description: '{author} postou o convite de parceria.'
+    orphans_cleaned:
+      title: '{trash} Órfãs Removidas'
+      description: '{author} removeu {count} parceria(s) órfã(s).'
+partnerships_admin:
+  command:
+    name: parcerias_admin
+    description: '[ADMIN] Ferramentas de parceria para administradores'
+partnerships_admin_add:
+  command:
+    name: adicionar
+    description: '[ADMIN] Adiciona uma parceria'
+    options:
+      member:
+        description: Representante da parceria
+partnerships_admin_audit:
+  command:
+    name: auditar
+    description: '[ADMIN] Audita parcerias sem agir'
+partnerships_admin_clean:
+  command:
+    name: limpar
+    description: '[ADMIN] Remove parcerias órfãs'
+partnerships_admin_edit:
+  command:
+    name: editar
+    description: '[ADMIN] Edita o anúncio e/ou o representante'
+    options:
+      member:
+        description: Representante da parceria
+      new_rep:
+        description: Novo representante (omita para manter o atual)
+partnerships_admin_invite:
+  command:
+    name: convidar
+    description: '[ADMIN] Posta o texto de convite'
+    options:
+      channel:
+        description: 'Canal para publicar o convite (padrão: atual)'
+      representative:
+        description: 'Representante mencionado via {{rep}} (padrão: você)'
+partnerships_admin_list:
+  command:
+    name: listar
+    description: '[ADMIN] Lista parcerias'
+partnerships_admin_remove:
+  command:
+    name: remover
+    description: '[ADMIN] Remove uma parceria'
+    options:
+      member:
+        description: Representante da parceria
+partnerships_renew:
+  command:
+    name: renovar
+    description: Renova seu anúncio de parceria

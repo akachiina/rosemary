@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15158332,
+    "description": "Parceria de <@0> expirou. …",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "⏰ Parceria Expirada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "partnerships.logs.expired",
+  "pings": [],
+  "view": []
+}

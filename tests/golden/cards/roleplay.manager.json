@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "roleplay.manager",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Gerenciar gifs",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "{body}",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

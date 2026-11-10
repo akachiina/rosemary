@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15844367,
+    "description": "Nenhum bump registrado esta semana. O card de ‘sem dados’ foi postado no canal #….",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "📊 Placar Vazio Postado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.no_bumps_posted",
+  "pings": [],
+  "view": []
+}

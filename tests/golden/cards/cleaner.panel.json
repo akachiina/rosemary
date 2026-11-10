@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "cleaner.panel",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#f1c40f",
+      "children": [
+        {
+          "content": "# Limpeza de mensagens",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "{body}",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

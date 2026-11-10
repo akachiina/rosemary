@@ -18,8 +18,7 @@ from __future__ import annotations
 import discord
 
 from rosemary.core.colors import MAX_COLORS, ColorStore
-from rosemary.ui.containers import TextDisplay, designer_container, divider
-from rosemary.ui.menu import MenuView
+from rosemary.ui.kit import ActionRow, Panel, TextDisplay, divider
 
 # Discord caps a message at 40 components total (nested items count). Each
 # entry costs two top-level items (text line + action row) plus its four
@@ -40,20 +39,31 @@ def resolve_color(member_colors: dict[int, int | None], entry) -> str:
     return entry.color
 
 
-class ColorsManagerView(MenuView):
+class ColorsManagerView(Panel):
     """List/add/attach/reorder/remove screens for one guild's colors."""
 
+    #: The navigation keeps the ids of the menu: a message posted before the
+    #: migration must keep working. ``back`` on the list swaps the settings
+    #: menu onto the same message; on the sub-screens it returns to the list.
+    nav_ids = {
+        "back": "colors_mgr_exit",
+        "previous": "colors_mgr_page_prev",
+        "next": "colors_mgr_page_next",
+    }
+    nav_labels = {
+        "back": "settings.back",
+        "previous": "settings.prev",
+        "next": "settings.next",
+    }
+
     def __init__(self, bot, guild_id: int, author_id: int) -> None:
-        super().__init__(author_id=author_id)
-        self.bot = bot
-        self.guild_id = guild_id
+        super().__init__(bot, guild_id, author_id=author_id)
         self.store = ColorStore(bot.storage.data_dir)
         self.page = 0
         self.mode = "list"  # list | attach | delete
         self.deleting_id: str | None = None
         self._pending_roles: tuple[int, ...] = ()
-        self.flash: str | None = None
-        self.flash_color: str = "brand"
+        self._page_total = 1
         self._register_handlers()
         # First open seeds the pastel defaults so the manager never shows an
         # empty list; store keeps a flag, so this is a no-op after the first
@@ -95,6 +105,8 @@ class ColorsManagerView(MenuView):
         """Back to /settings: swap this view out on the same message."""
         from rosemary.ui.settings_menu import SettingsMenuView
 
+        if not await self._ack(interaction):
+            return
         settings_view = SettingsMenuView(
             self.bot, self.guild_id, owner_id=self.author_id
         )
@@ -103,7 +115,8 @@ class ColorsManagerView(MenuView):
         self.stop()
 
     async def _back(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         self.mode = "list"
         self.deleting_id = None
         self._pending_roles = ()
@@ -113,11 +126,6 @@ class ColorsManagerView(MenuView):
 
     async def _entries(self):
         return await self.store.list_colors(self.guild_id)
-
-    def _flash_in(self, parts: list) -> None:
-        if self.flash:
-            parts.append(TextDisplay(self.flash))
-            self.flash = None
 
     def _page_window(self, entries: list):
         total_pages = max(1, -(-len(entries) // LIST_ITEMS_PER_PAGE))
@@ -140,6 +148,8 @@ class ColorsManagerView(MenuView):
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         await self.ensure_seeded()
+        if self.expired:
+            return await self.expired_items()
         if self.mode == "attach":
             return await self._build_attach()
         if self.mode == "delete":
@@ -147,198 +157,162 @@ class ColorsManagerView(MenuView):
         return await self._build_list()
 
     async def _build_list(self) -> list[discord.ui.ViewItem]:
-        theme = self.bot.theme
         entries = await self._entries()
         guild = self.bot.get_guild(self.guild_id)
         live = await self._role_colors(guild) if guild else {}
-        from rosemary.core.card_service import menu_heading_items
         from rosemary.ui.colors_panel import entry_number
 
-        parts = await menu_heading_items(self.bot, self.guild_id, "colors.manager") or [
-            TextDisplay(theme.md("title", title=await self._t("colors.manager.title"))),
-            TextDisplay(
-                await self._t("colors.manager.hint", count=len(entries), max=MAX_COLORS)
-            ),
-        ]
-        self._flash_in(parts)
-        container = designer_container(theme.color(self.flash_color or "brand"), *parts)
-        self.flash = None
-        self.flash_color = "brand"
-
-        items: list[discord.ui.ViewItem] = [container, divider()]
+        await self.set_screen(
+            "colors.manager.title",
+            "colors.manager.hint",
+            heading="colors.manager",
+            count=len(entries),
+            max=MAX_COLORS,
+        )
         window, total_pages = self._page_window(entries)
+        self._page_total = total_pages
+        self.nav_ids["back"] = "colors_mgr_exit"
         offset = self.page * LIST_ITEMS_PER_PAGE
+
+        sections: list[discord.ui.ViewItem] = [divider()]
         for position, entry in enumerate(window, start=offset + 1):
             hex_value = resolve_color(live, entry)
             role_part = (
                 f" <@&{entry.role_id}>"
                 if entry.role_id
-                else await self._t("colors.manager.no_role")
-            )
-            row = discord.ui.ActionRow(
-                self.make_button(
-                    custom_id=f"colors_mgr_up:{entry.id}",
-                    label=await self._t("colors.manager.move_up"),
-                    emoji=theme.emojis.get("up", ""),
-                    disabled=position == 1,
-                ),
-                self.make_button(
-                    custom_id=f"colors_mgr_down:{entry.id}",
-                    label=await self._t("colors.manager.move_down"),
-                    emoji=theme.emojis.get("down", ""),
-                    disabled=position == len(entries),
-                ),
-                self.make_button(
-                    custom_id=f"colors_mgr_edit:{entry.id}",
-                    label=await self._t("colors.manager.edit"),
-                    emoji=theme.emojis.get("gear", ""),
-                ),
-                self.make_button(
-                    custom_id=f"colors_mgr_remove:{entry.id}",
-                    label=await self._t("colors.manager.remove"),
-                    emoji=theme.emojis.get("trash", ""),
-                    style=discord.ButtonStyle.danger,
-                ),
+                else await self.t("colors.manager.no_role")
             )
             # Section accessories accept a single button or thumbnail only
             # (Discord 50035 otherwise), so each entry is a text line plus a
             # top-level ActionRow, not a Section with a row accessory.
-            items.append(
+            sections.append(
                 TextDisplay(
                     f"**{entry_number(position)}** {entry.name} · `{hex_value}`{role_part}"
                 )
             )
-            items.append(row)
-        items.append(divider())
+            sections.append(
+                ActionRow(
+                    await self.button(
+                        f"colors_mgr_up:{entry.id}",
+                        "colors.manager.move_up",
+                        emoji="up",
+                        disabled=position == 1,
+                    ),
+                    await self.button(
+                        f"colors_mgr_down:{entry.id}",
+                        "colors.manager.move_down",
+                        emoji="down",
+                        disabled=position == len(entries),
+                    ),
+                    await self.button(
+                        f"colors_mgr_edit:{entry.id}",
+                        "colors.manager.edit",
+                        emoji="gear",
+                    ),
+                    await self.button(
+                        f"colors_mgr_remove:{entry.id}",
+                        "colors.manager.remove",
+                        emoji="trash",
+                        style="danger",
+                    ),
+                )
+            )
+        sections.append(divider())
 
-        nav = [
-            self.make_button(
-                custom_id="colors_mgr_add",
-                label=await self._t("colors.manager.add"),
-                emoji=theme.emojis.get("plus", ""),
-                style=discord.ButtonStyle.success,
-                disabled=len(entries) >= MAX_COLORS,
-            ),
-            self.make_button(
-                custom_id="colors_mgr_create_role",
-                label=await self._t("colors.manager.role_add"),
-                emoji=theme.emojis.get("register", ""),
-                style=discord.ButtonStyle.success,
-                disabled=len(entries) >= MAX_COLORS,
-            ),
-            self.make_button(
-                custom_id="colors_mgr_attach",
-                label=await self._t("colors.manager.attach"),
-                style=discord.ButtonStyle.primary,
-            ),
-        ]
-        if total_pages > 1:
-            if self.page > 0:
-                nav.append(
-                    self.make_button(
-                        custom_id="colors_mgr_page_prev", label=await self._t("settings.prev")
-                    )
-                )
-            if self.page < total_pages - 1:
-                nav.append(
-                    self.make_button(
-                        custom_id="colors_mgr_page_next", label=await self._t("settings.next")
-                    )
-                )
-        items.append(discord.ui.ActionRow(*nav))
-        # Nav row follows the settings convention: Back pinned at index 0,
-        # returning to /settings on the same message (no dead-end Close).
-        items.append(
-            discord.ui.ActionRow(
-                self.make_button(
-                    custom_id="colors_mgr_exit",
-                    label=await self._t("settings.back"),
-                    emoji=theme.emojis.get("back", ""),
+        actions = [
+            ActionRow(
+                await self.button(
+                    "colors_mgr_add",
+                    "colors.manager.add",
+                    emoji="plus",
+                    style="success",
+                    disabled=len(entries) >= MAX_COLORS,
+                ),
+                await self.button(
+                    "colors_mgr_create_role",
+                    "colors.manager.role_add",
+                    emoji="register",
+                    style="success",
+                    disabled=len(entries) >= MAX_COLORS,
+                ),
+                await self.button(
+                    "colors_mgr_attach",
+                    "colors.manager.attach",
+                    style="primary",
                 ),
             )
-        )
-        return items
+        ]
+        nav = ["back"]
+        if total_pages > 1:
+            if self.page > 0:
+                nav.append("previous")
+            if self.page < total_pages - 1:
+                nav.append("next")
+        self.nav(*nav)
+        return await self.compose(sections, actions)
 
     async def _build_attach(self) -> list[discord.ui.ViewItem]:
-        theme = self.bot.theme
         pending = self._pending_roles
-        parts = [
-            TextDisplay(theme.md("title", title=await self._t("colors.manager.attach_title"))),
-            TextDisplay(await self._t("colors.manager.attach_hint")),
-        ]
+        await self.set_screen(
+            "colors.manager.attach_title",
+            "colors.manager.attach_hint",
+            color="brand",
+        )
         if pending:
             shown = " ".join(f"<@&{p}>" for p in pending[:25])
-            parts.append(
+            self.lines = [
                 TextDisplay(
-                    await self._t(
+                    await self.t(
                         "colors.manager.pending", count=len(pending), roles=shown
                     )
                 )
-            )
-        self._flash_in(parts)
-        container = designer_container(theme.color(self.flash_color or "brand"), *parts)
-        select = discord.ui.Select(
-            select_type=discord.ComponentType.role_select,
+            ]
+        self.nav_ids["back"] = "colors_mgr_back"
+        self.nav("back", back="settings.cancel")
+        select = self.make_role_select(
             custom_id="colors_mgr_pick",
-            placeholder=await self._t("colors.manager.attach_placeholder"),
-            min_values=1,
+            placeholder=await self.t("colors.manager.attach_placeholder"),
             max_values=25,
         )
-        select.callback = self._handlers["colors_mgr_pick"]
-        return [
-            container,
-            discord.ui.ActionRow(select),
-            discord.ui.ActionRow(
-                self.make_button(
-                    custom_id="colors_mgr_attach_confirm",
-                    label=await self._t("settings.list.confirm"),
-                    emoji=theme.emojis.get("check", ""),
-                    style=discord.ButtonStyle.success,
-                    disabled=not pending,
-                ),
-                self.make_button(
-                    custom_id="colors_mgr_back",
-                    label=await self._t("settings.cancel"),
-                    emoji=theme.emojis.get("back", ""),
-                ),
-            ),
-        ]
+        confirm = await self.button(
+            "colors_mgr_attach_confirm",
+            "settings.list.confirm",
+            emoji="check",
+            style="success",
+            disabled=not pending,
+        )
+        return await self.compose([], [ActionRow(select), ActionRow(confirm)])
 
     async def _build_delete(self) -> list[discord.ui.ViewItem]:
-        theme = self.bot.theme
         entry = await self.store.get_color(self.guild_id, self.deleting_id or "")
         name = entry.name if entry else "?"
-        container = designer_container(
-            theme.color("danger"),
-            TextDisplay(theme.md("title", title=await self._t("colors.manager.delete_title"))),
-            TextDisplay(await self._t("colors.manager.delete_text", name=name)),
+        await self.set_screen(
+            "colors.manager.delete_title",
+            "colors.manager.delete_text",
+            color="danger",
+            name=name,
         )
-        return [
-            container,
-            discord.ui.ActionRow(
-                self.make_button(
-                    custom_id="colors_mgr_delete_yes",
-                    label=await self._t("colors.manager.delete_confirm"),
-                    emoji=theme.emojis.get("trash", ""),
-                    style=discord.ButtonStyle.danger,
-                ),
-                self.make_button(
-                    custom_id="colors_mgr_delete_no",
-                    label=await self._t("settings.cancel"),
-                    emoji=theme.emojis.get("back", ""),
-                ),
-            ),
-        ]
+        self.nav_ids["back"] = "colors_mgr_back"
+        self.nav("back", back="settings.cancel")
+        confirm = await self.button(
+            "colors_mgr_delete_yes",
+            "colors.manager.delete_confirm",
+            emoji="trash",
+            style="danger",
+        )
+        return await self.compose([], [ActionRow(confirm)])
 
     # mutations ====================
 
     async def _page(self, interaction: discord.Interaction, delta: int) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         self.page = max(0, self.page + delta)
         await self.rerender(interaction)
 
     async def _move(self, interaction: discord.Interaction, color_id: str, delta: int) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         if await self.store.move(self.guild_id, color_id, delta):
             await self._panel_repaint()
         await self.rerender(interaction)
@@ -493,13 +467,15 @@ class ColorsManagerView(MenuView):
         await self.rerender(interaction)
 
     async def _open_attach(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         self.mode = "attach"
         await self.rerender(interaction)
 
     async def _attach_pick(self, interaction: discord.Interaction) -> None:
         """Stage role picks in the select itself; Concluir applies them."""
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         values = (interaction.data or {}).get("values") or []
         picks: list[int] = []
         for raw in values:
@@ -514,7 +490,8 @@ class ColorsManagerView(MenuView):
 
     async def _attach_confirm(self, interaction: discord.Interaction) -> None:
         """Attach every staged role, inheriting its live color."""
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         pending = self._pending_roles
         self._pending_roles = ()
         guild = self.bot.get_guild(self.guild_id)
@@ -542,13 +519,15 @@ class ColorsManagerView(MenuView):
         await self._back(interaction)
 
     async def _open_delete(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         self.mode = "delete"
         self.deleting_id = _suffix(interaction.custom_id)
         await self.rerender(interaction)
 
     async def _delete_yes(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         removed = await self.store.remove_color(self.guild_id, self.deleting_id or "")
         if removed is not None:
             await self._panel_repaint()
@@ -558,7 +537,8 @@ class ColorsManagerView(MenuView):
         await self.rerender(interaction)
 
     async def _delete_no(self, interaction: discord.Interaction) -> None:
-        await self._ack(interaction)
+        if not await self._ack(interaction):
+            return
         self.mode = "list"
         self.deleting_id = None
         await self.rerender(interaction)

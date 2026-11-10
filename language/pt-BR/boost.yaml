@@ -1,0 +1,466 @@
+boost:
+  command:
+    name: boost
+    description: Painel de cargos boost
+  titles:
+    home: Cargos Boost
+    my_roles: Meus Cargos Boost
+    pending_invites: Convites Pendentes
+    register: Registrar um Cargo
+    register_owner: Quem será o dono?
+    leave: Sair de um Cargo
+    leave_confirm: Sair do Cargo?
+    management_panel: 'Gerenciando: {role_name}'
+    select_color: Escolher Cor
+    manage_members: Membros de {role_name}
+    invites: Convites de {role_name}
+    invite_target: Convidar um Membro
+    transfer_target: Transferir Propriedade
+    remove_confirm: Remover Cargo Boost?
+    admin_panel: Cargos Boost | Admin
+    remove: Remover um Cargo
+    transfer: Transferir um Cargo
+    list_all: Todos os Cargos Boost
+  descriptions:
+    user_panel: Aqui estão os cargos boost do servidor. Gerencie os seus, participe ou saia.
+    as_owner: Você é o dono deste cargo
+    as_member: Você é um membro
+    my_roles_empty: Você ainda não é dono nem participa de nenhum cargo boost.
+    pending_invites_empty: Você não tem convites pendentes.
+    pending_invite_entry: '{invitee} · expira {expires}'
+    register: Escolha o cargo que você possui para registrá-lo como cargo boost. Depois você escolherá quem será o dono.
+    register_owner: Escolha quem será o dono do cargo {role}. Ele receberá uma mensagem privada com as instruções.
+    remove: Escolha um cargo boost para remover.
+    transfer: Escolha um cargo boost para transferir.
+    select_color: Escolha uma cor para o cargo.
+    leave: Escolha um dos cargos que você participa para sair dele.
+    leave_empty: Você não participa de nenhum cargo boost.
+    manage_hint: Use os botões abaixo para personalizar seu cargo.
+    members_count: '{count}/{max_members} membros'
+    manage_members: Gerencie os membros do seu cargo boost (máximo {max_members}).
+    members_empty: Nenhum membro ainda. Convide alguém pelo botão abaixo.
+    owner: Você é o dono deste cargo.
+    dm_hint: O membro receberá um convite nas mensagens privadas.
+    transfer_hint: Escolha o novo dono. Ele será avisado por mensagem privada.
+    new_owner: O novo dono receberá uma mensagem privada.
+    confirm_leave: Tem certeza que deseja sair de {role}? O dono será avisado.
+    confirm_removal: Tem certeza que deseja remover {role} do sistema de boost?
+    remove_hint: Você pode manter o cargo no Discord ou excluí-lo.
+    guide_admin: Registre, transfira ou remova cargos boost abaixo.
+    stats: '{roles} cargo(s) · {members} membro(s)'
+    role_entry: 'Dono: {owner} · Membros: {members}'
+    no_roles: Nenhum cargo boost registrado ainda.
+  buttons:
+    my_roles: Meus cargos
+    invites: Convites
+    register: Registrar
+    leave_role: Sair
+    close: Fechar
+    back: Voltar
+    previous: Anterior
+    next: Próximo
+    cancel: Cancelar
+    cancel_invite: Cancelar
+    confirm: Confirmar
+    manage_roles: Gerenciar
+    rename: Renomear
+    change_color: Cor
+    emoji: Emoji
+    icon: Ícone
+    manage_members: Membros
+    transfer: Transferir
+    remove: Remover
+    remove_member: Remover
+    custom_color: Cor customizada
+    add_member: Adicionar
+    add_by_id: Por ID
+    invite_member: Convidar Membro
+    list_all: Listar todos
+    accept_invite: Aceitar
+    decline_invite: Recusar
+    delete_role_yes: Excluir cargo
+    delete_role_no: Manter cargo
+  colors:
+    pink: Rosa Pastel
+    peach: Pêssego Pastel
+    yellow: Amarelo Pastel
+    green: Verde Pastel
+    blue: Azul Pastel
+    lavender: Lavanda Pastel
+    beige: Bege Pastel
+    gray: Cinza Claro
+    white: Branco Suave
+  placeholders:
+    select_role: Escolha um cargo...
+    select_color: Escolha uma cor...
+    select_member: Escolha um membro...
+  modals:
+    add_by_id:
+      title: Adicionar por ID
+      role_label: ID do cargo
+      role_placeholder: Cole o ID do cargo...
+    rename:
+      title: Renomear Cargo
+      label: Novo nome
+      placeholder: Digite o novo nome do cargo...
+    emoji:
+      title: Emoji do Cargo
+      label: Emoji
+      placeholder: Use um único emoji...
+    icon:
+      title: Ícone do Cargo
+      label: Envie uma imagem
+      description: A imagem virará o ícone do cargo (requer Nível 2 de boost).
+    custom_color:
+      title: Cor Customizada
+      label: Código hexadecimal
+      placeholder: '#FF5733 ou FF5733'
+    add_member:
+      title: Adicionar Membro
+      label: Usuário
+      placeholder: '@usuário ou ID'
+    transfer:
+      title: Transferir Propriedade
+      label: Novo dono
+      placeholder: ID do usuário
+    register_owner:
+      title: Dono do Cargo
+      label: Novo dono
+      placeholder: ID do usuário
+  dm:
+    registered: 'Você recebeu um Cargo Boost!
+
+      Olá, {mention}! O cargo boost @{role_name} foi registrado para você no **{server_name}**.
+
+
+      {pencil} Renomeie e escolha um emoji
+
+      {palette} Mude a cor
+
+      {members} Convide até **{max_members}** membros
+
+      {swap} Transfira a posse
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    transferred: 'Propriedade Transferida!
+
+      Olá, {mention}! A propriedade do cargo boost @{role_name} foi transferida para você no **{server_name}**.
+
+
+      {pencil} Renomeie e escolha um emoji
+
+      {palette} Mude a cor
+
+      {members} Convide até **{max_members}** membros
+
+      {swap} Transfira a posse
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    auto_transferred: 'Propriedade Transferida Automaticamente!
+
+      Olá, {mention}! Como o dono anterior saiu do servidor, a propriedade do cargo boost @{role_name} foi transferida para você no **{server_name}**.
+
+
+      Use o painel de cargos boost para gerenciar seu cargo.
+
+      '
+    auto_created: 'Você recebeu um Cargo Boost!
+
+      Olá, {mention}! O cargo boost @{role_name} foi criado para você no **{server_name}** porque você deu boost no servidor.
+
+
+      {pencil} Renomeie e escolha um emoji
+
+      {palette} Mude a cor
+
+      {members} Convide até **{max_members}** membros
+
+      {swap} Transfira a posse
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    auto_restored: 'Seu Cargo Boost Voltou!
+
+      Olá, {mention}! Seu cargo boost @{role_name} está ativo de novo no **{server_name}**, incluindo os membros anteriores.
+
+
+      Use o painel de cargos boost para gerenciar tudo.
+
+      '
+    unboost_deleted: 'Seu cargo boost foi removido
+
+      Olá, {mention}! Seu boost terminou, então o cargo boost @{role_name} foi removido do **{server_name}**.
+
+      Dê boost no servidor de novo e o cargo volta automaticamente, com os membros.
+
+      '
+    unboost_removed: 'Seu cargo boost foi retirado
+
+      Olá, {mention}! Seu boost terminou, então o cargo boost @{role_name} foi retirado de você e dos membros no **{server_name}**. O cargo continua existindo.
+
+      Dê boost no servidor de novo para recebê-lo de volta.
+
+      '
+    unboost_kept: 'Seu boost terminou
+
+      Olá, {mention}! Seu boost terminou, mas o cargo boost @{role_name} continua com você no **{server_name}**.
+
+      Só a equipe do servidor pode removê-lo.
+
+      '
+    invite: 'Convite para Cargo Boost!
+
+      Olá, {mention}! Você recebeu um convite para fazer parte de um cargo boost no **{server_name}**.
+
+
+      > **{tag} Cargo:** @{role_name}
+
+      > **{user} Convidado por:** {inviter_mention}
+
+      > **{clock} Expira:** {expires}
+
+
+      Ao aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!
+
+      '
+    accepted: 'Convite Aceito!
+
+      O cargo @{role_name} foi adicionado a você com sucesso.
+
+      Para sair do cargo a qualquer momento, use `/boost painel`.
+
+      '
+    declined: 'Convite Recusado
+
+      Você recusou o convite para o cargo @{role_name}.
+
+      O dono do cargo foi notificado sobre sua decisão.
+
+      '
+    owner_accepted: 'Convite Aceito!
+
+      {member_mention} aceitou seu convite e foi adicionado ao cargo @{role_name}!
+
+      '
+    owner_declined: 'Convite Recusado
+
+      {member_mention} recusou seu convite para o cargo @{role_name}.
+
+      Você pode convidar outra pessoa se desejar.
+
+      '
+    member_left: 'Você Saiu do Cargo
+
+      Você saiu do cargo @{role_name} com sucesso.
+
+      O dono do cargo foi notificado.
+
+      '
+    owner_member_left: 'Membro Saiu do Cargo
+
+      {member_mention} saiu do cargo @{role_name}.
+
+      Você pode adicionar outro membro se desejar.
+
+      '
+    error: 'Ops!
+
+      {body}
+
+      '
+  emoji:
+    owner: Dono
+    members: Membros
+    user: Usuário
+    roles: Cargos
+  success:
+    role_registered: '{success} O cargo {role} foi registrado!'
+    role_removed: '{success} O cargo boost foi removido do sistema.'
+    ownership_transferred: '{success} A propriedade de {role} foi transferida!'
+    role_renamed: '{success} Cargo renomeado de **{old}** para **{new}**.'
+    color_changed: '{success} Cor do cargo atualizada!'
+    emoji_set: '{success} Emoji do cargo definido para {emoji}.'
+    icon_set: '{success} Ícone do cargo atualizado!'
+    member_added: '{success} {member} entrou em {role}.'
+    member_removed: '{success} {member} foi removido do cargo.'
+    invite_sent: '{success} Convite enviado para {member}.'
+    invite_cancelled: '{success} Convite cancelado.'
+    left_role: '{success} Você saiu de {role}.'
+  errors:
+    role_already_registered: '{error} Este cargo já está registrado.'
+    role_not_found: '{error} Cargo não encontrado.'
+    role_not_registered: '{error} Este cargo não está registrado como cargo boost.'
+    forbidden_manage_role: '{error} Não tenho permissão para editar este cargo.'
+    forbidden_add_role: '{error} Não tenho permissão para adicionar este cargo.'
+    forbidden_remove_role: '{error} Não tenho permissão para remover este cargo.'
+    generic_error: '{error} Algo deu errado. Tente novamente.'
+    empty_name: '{error} O nome do cargo não pode estar vazio.'
+    invalid_emoji: '{error} Emoji inválido. Use um único emoji válido.'
+    requires_boost_level_2: '{error} Este servidor precisa de Nível 2 de Boost para emojis e ícones em cargos.'
+    invalid_image: '{error} Imagem inválida. Envie um PNG, JPG ou GIF.'
+    image_download_failed: '{error} Não foi possível baixar a imagem.'
+    icon_too_large: '{error} A imagem é grande demais (limite de 1 MB).'
+    invalid_hex_color: '{error} Cor inválida. Use o formato hexadecimal (ex.: #FF5733).'
+    member_not_found: '{error} Membro não encontrado.'
+    member_is_owner: '{error} O dono já possui o cargo automaticamente.'
+    member_already_added: '{error} Este membro já está no cargo.'
+    member_already_invited: '{error} Este membro já tem um convite pendente.'
+    max_members_reached: '{error} Este cargo atingiu o limite de {max_members} membros.'
+    max_pending_invites: '{error} Este cargo já tem {max_invites} convites pendentes.'
+    cannot_leave_as_owner: '{error} Você é o dono. Transfira a propriedade primeiro.'
+    bot_not_allowed: '{error} Bots não podem ser donos de cargos boost.'
+    dm_failed: '{error} Não foi possível enviar a mensagem privada.'
+    invite_not_found: '{error} Convite não encontrado.'
+    invite_not_for_you: '{error} Este convite pertence a outro usuário.'
+    invite_expired: '{error} Este convite já expirou.'
+    invite_invalid_old: '{error} Este convite não é mais válido.'
+  logs:
+    register:
+      title: '{register} Cargo Boost Registrado'
+      description: '**{tag} Cargo:** {role}
+
+        **{people} Dono:** {owner}
+
+        **{gear} Registrado por:** {actor}'
+    remove:
+      title: '{trash} Cargo Boost Removido'
+      description: '**{tag} Cargo:** {role}
+
+        **{people} Dono:** {owner}
+
+        **{gear} Removido por:** {actor}
+
+        **{trash} Cargo excluído:** {deleted}'
+    transfer:
+      title: '{swap} Propriedade Transferida'
+      description: '**{tag} Cargo:** {role}
+
+        **{people} Dono anterior:** {old_owner}
+
+        **{people} Novo dono:** {new_owner}
+
+        **{gear} Transferido por:** {actor}'
+    rename:
+      title: '{pencil} Cargo Renomeado'
+      description: '**{tag} Cargo:** {role}
+
+        **{pencil} De:** {old_name}
+
+        **{pencil} Para:** {new_name}
+
+        **{gear} Por:** {actor}'
+    color_change:
+      title: '{palette} Cor Alterada'
+      description: '**{tag} Cargo:** {role}
+
+        **{palette} Nova cor:** {new_color}
+
+        **{gear} Por:** {actor}'
+    emoji_change:
+      title: '{tag} Emoji Alterado'
+      description: '**{tag} Cargo:** {role}
+
+        **{frame} Novo emoji:** {emoji}
+
+        **{gear} Por:** {actor}'
+    icon:
+      title: '{frame} Ícone Alterado'
+      description: '**{tag} Cargo:** {role}
+
+        **{frame} Ícone:** atualizado por {actor}.'
+    member_add:
+      title: '{plus} Membro Adicionado'
+      description: '**{tag} Cargo:** {role}
+
+        {member} entrou no cargo.
+
+        **{gear} Adicionado por:** {actor}'
+    member_remove:
+      title: '{minus} Membro Removido'
+      description: '**{tag} Cargo:** {role}
+
+        {member} foi removido do cargo.
+
+        **{gear} Removido por:** {actor}'
+    member_left:
+      title: '{door} Membro Saiu do Cargo'
+      description: '**{tag} Cargo:** {role}
+
+        {member} saiu do cargo.
+
+        **{people} Dono:** {owner}'
+    invite_sent:
+      title: '{love_letter} Convite Enviado'
+      description: '**{tag} Cargo:** {role}
+
+        **{people} Convidado:** {invitee}
+
+        **{people} Por:** {inviter}
+
+        **{clock} Expira:** {expires}'
+    invite_cancelled:
+      title: '{error} Convite Cancelado'
+      description: '**{tag} Cargo:** {role}
+
+        Convite para {invitee} cancelado.
+
+        **{gear} Por:** {actor}'
+    invite_accepted:
+      title: '{success} Convite Aceito'
+      description: '**{tag} Cargo:** {role}
+
+        {member} aceitou o convite.
+
+        **{people} Convidado por:** {inviter}'
+    invite_declined:
+      title: '{error} Convite Recusado'
+      description: '**{tag} Cargo:** {role}
+
+        {member} recusou o convite.
+
+        **{people} Convidado por:** {inviter}'
+    invite_expired:
+      title: '{clock} Convite Expirado'
+      description: '**{tag} Cargo:** {role}
+
+        Convite para {invitee} expirou.
+
+        **{people} Convidado por:** {inviter}'
+    auto_transfer:
+      title: '{warning} Transferência Automática de Propriedade'
+      description: '**{tag} Cargo:** {role} foi transferido de {old_owner} para {new_owner}.'
+    orphan_remove:
+      title: '{ban} Cargo Órfão Removido'
+      description: '**{tag} Cargo:** {role} de {owner} foi removido do sistema.'
+    auto_create:
+      title: '{crown} Cargo Boost Criado Automaticamente'
+      description: '**{tag} Cargo:** {role}
+
+        **{crown} Dono:** {owner}
+
+
+        O cargo foi criado automaticamente porque o dono deu boost no servidor.'
+    unboost:
+      title: '{warning} Boost Terminou'
+      description: '**{tag} Cargo:** {role}
+
+        **{crown} Dono:** {owner}
+
+        **{gear} Ação:** {action}'
+  error_disabled: '{error} O sistema de cargos boost está desativado neste servidor.'
+boost_admin:
+  command:
+    name: admin
+    description: Painel de cargos boost para administradores
+boost_panel:
+  command:
+    name: painel
+    description: Painel de cargos boost

@@ -1,0 +1,26 @@
+# The confessions settings.
+settings:
+  confessions.enabled:
+    category: confessions
+    type: boolean
+    default: false
+  confessions.public_channel:
+    category: confessions
+    type: channel
+    default: null
+  confessions.review_channel:
+    category: confessions
+    type: channel
+    default: null
+  confessions.review_required:
+    category: confessions
+    type: boolean
+    default: false
+  confessions.reveal_author:
+    category: confessions
+    type: boolean
+    default: false
+  confessions.mark_op:
+    category: confessions
+    type: boolean
+    default: true

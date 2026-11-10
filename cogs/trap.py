@@ -128,25 +128,24 @@ class TrapCog(commands.Cog):
         return {"server": guild.name, "action": action_text}
 
     async def _fallback_notice(self, guild: discord.Guild):
-        """Code-built notice card (no theme override / builder failure)."""
-        from rosemary.core.card_service import CardPayload
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        """Code-built notice (no theme override / builder failure).
+
+        The card ships as a classic embed, so the fallback does too: the
+        surface never changes under the member.
+        """
+        from rosemary.core.card_service import simple_payload
 
         t = self.bot.translator.t
-        theme = self.bot.theme
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                theme.color("danger"),
-                TextDisplay(
-                    theme.md("title", title=await t(guild.id, "card.trap.notice.title"))
-                ),
-                TextDisplay(
-                    await t(guild.id, "trap.notice.text", **await self._notice_variables(guild))
-                ),
-            )
+        return simple_payload(
+            self.bot,
+            guild.id,
+            "trap.notice",
+            title=await t(guild.id, "card.trap.notice.title"),
+            body=await t(
+                guild.id, "trap.notice.text", **await self._notice_variables(guild)
+            ),
+            color="danger",
         )
-        return CardPayload(view=view)
 
     async def post_notice(self, guild: discord.Guild) -> None:
         """Post the notice card, retiring any earlier notice message."""
@@ -211,20 +210,34 @@ class TrapCog(commands.Cog):
             except discord.HTTPException:
                 return  # transient: retry on the next fan-out
             if message is not None:
-                from rosemary.core.card_service import render_card_message
+                from rosemary.core.card_service import align_to_message, render_card_message
 
-                payload, _allowed = await render_card_message(
-                    self.bot, guild.id, "trap.notice", await self._notice_variables(guild)
+                variables = await self._notice_variables(guild)
+                payload, allowed = await render_card_message(
+                    self.bot, guild.id, "trap.notice", variables
                 )
                 if payload is None:
                     payload = await self._fallback_notice(guild)
-                try:
-                    kwargs = payload.message_kwargs()
-                    kwargs["attachments"] = []
-                    await message.edit(**kwargs)
-                    return
-                except (discord.Forbidden, discord.HTTPException):
-                    pass  # fall through to a fresh post
+                    allowed = discord.AllowedMentions.none()
+                payload, allowed = await align_to_message(
+                    self.bot,
+                    guild.id,
+                    "trap.notice",
+                    variables,
+                    payload,
+                    allowed,
+                    message,
+                )
+                if payload is not None:
+                    try:
+                        kwargs = payload.message_kwargs()
+                        kwargs["attachments"] = []
+                        await message.edit(**kwargs)
+                        return
+                    except (discord.Forbidden, discord.HTTPException):
+                        pass  # fall through to a fresh post
+                # The message shape forbids the card (or the edit failed): a
+                # fresh post retires the old notice.
         await self.post_notice(guild)
 
     #: consequence ==========================================================

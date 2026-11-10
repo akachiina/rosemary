@@ -1,0 +1,33 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15844367,
+    "fields": [
+      {
+        "inline": false,
+        "name": "🏷️ Cargo",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "👑 Dono(a)",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "⚙️ Ação",
+        "value": "…"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "⚠️ Boost Terminou",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "boost.logs.unboost",
+  "pings": [],
+  "view": []
+}

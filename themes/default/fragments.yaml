@@ -1,0 +1,24 @@
+# The reusable pieces of the default card package.
+#
+# A fragment is a named chunk of a document: the cards that use it share the
+# same copy and the same frame. The fragments are merged in the order the
+# card lists them (``use:``), and the card's own keys win.
+
+fragments:
+  # The attribution line of a staff log. The first alternative wins when its
+  # placeholders are known: the actor footer when there is an actor, the
+  # system footer otherwise.
+  attribution:
+    footer:
+      - "{log.actor_footer}"
+      - "{log.system_footer}"
+
+  # The frame of a log with the member's avatar on the right.
+  audit_frame:
+    thumbnail: "{user_avatar}"
+    timestamp: true
+
+  # The frame of an announcement: the member is the author.
+  member_frame:
+    author: "{user}"
+    author_icon: "{user_avatar}"

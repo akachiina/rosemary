@@ -1,0 +1,24 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 15844367,
+    "description": "**👥 Autor:** <@0>\n**💬 Canal:** #…\n\n…\n\n[arquivo.png](https://example.com/arquivo.png)",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "image": {
+      "url": "attachment://mensagem.png"
+    },
+    "title": "🗑️ Mensagem deletada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.message_delete",
+  "pings": [],
+  "view": []
+}

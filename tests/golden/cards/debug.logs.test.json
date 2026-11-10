@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "Esta mensagem confirma que o canal de log está funcionando.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "⚙️ Teste de log",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "debug.logs.test",
+  "pings": [],
+  "view": []
+}

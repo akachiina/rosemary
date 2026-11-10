@@ -7,7 +7,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
-import yaml
+from catalog import load_catalog
 
 from rosemary.cogs.invites import InvitesCog
 from rosemary.core.storage import GuildStorage
@@ -75,96 +75,75 @@ async def test_join_attributes_via_prejoin_cache(tmp_path, monkeypatch):
 
 
 async def test_event_titles_are_not_double_decorated():
-    """Catalog titles that already carry an emoji token must not receive the
-    builder's theme emoji a second time (live bug: '🚫🚫 Membro banido').
-    Dry titles (audit cards) keep getting the theme emoji prefixed."""
-    from rosemary.cogs.audit import default_audit_document
-    from rosemary.cogs.welcome import default_event_document
+    """Catalog titles that already carry an emoji token must not receive a
+    second one (live bug: '🚫🚫 Membro banido').
 
-    bot = MagicMock()
-    bot.theme = load_theme()
+    The event documents point at the catalog copy, so the token of the copy
+    is the only decoration. Dry titles (the audit cards) get the theme emoji
+    from the document."""
+    from golden_cards import make_bot
+
+    from rosemary.core.card_service import render_card_message
+
+    bot = make_bot()
     ban_emoji = bot.theme.emojis["ban"]
 
-    class T:
-        async def raw(self, guild_id, key):
-            return {
-                "events.ban.title": "{ban} Membro banido",
-                "events.ban.body": "{user_name} foi banido.",
-                "card.audit.ban.title": "Membro banido",
-                "card.audit.ban.body": "{user_name} foi banido.",
-                "card.author_footer.text": "por {user} · {timestamp}",
-            }[key]
-
-    bot.translator = T()
-
-    event_doc = await default_event_document(
-        bot, 1, title_key="events.ban.title",
-        body_key="events.ban.body", color="danger", emoji_token="ban",
+    payload, _allowed = await render_card_message(
+        bot,
+        1,
+        "events.ban",
+        {
+            "user": "<@2>",
+            "user_name": "Ana",
+            "user_id": "2",
+            "server": "Serv",
+            "count": 3,
+            "user_avatar": "https://a.b/2.png",
+            "inviter": "",
+        },
     )
-    event_title = event_doc["blocks"][0]["children"][0]["children"][0]["body"]
-    assert event_title.count(ban_emoji) == 1, event_title
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.title.count(ban_emoji) == 1, payload.embed.title
 
-    audit_doc = await default_audit_document(
-        bot, 1, title_key="card.audit.ban.title",
-        body_key="card.audit.ban.body", color="danger", emoji_token="ban",
+    # The audit card: the document carries the emoji token, the catalog title
+    # is dry. The two never meet, so the title has one emoji.
+    payload, _allowed = await render_card_message(
+        bot, 1, "audit.ban", {"user": "<@2>", "user_avatar": "https://a.b/2.png"}
     )
-    audit_title = audit_doc["blocks"][0]["children"][0]["children"][0]["body"]
-    assert audit_title.count(ban_emoji) == 1, audit_title
+    assert payload.embed.title.count(ban_emoji) == 1, payload.embed.title
 
 
-async def test_event_document_has_avatar_section_and_footer(tmp_path):
-    """Default event docs: avatar thumbnail section, emoji title, footer."""
-    from rosemary.cogs.welcome import default_event_document
-    from rosemary.core.cards import build_items
+async def test_event_document_has_avatar_thumbnail_and_footer():
+    """The event documents: the member's avatar rides the card and the
+    footer names the server, the count and the id (the id in inline code)."""
+    from golden_cards import make_bot
 
-    bot = MagicMock()
-    bot.theme = load_theme()
-    bot.theme.emojis.setdefault("tada", "🎉")
+    from rosemary.core.card_service import render_card_message
+    from rosemary.core.theme_package import default_package
 
-    class T:
-        async def raw(self, guild_id, key):
-            return {
-                "events.welcome.title": "{tada} Bem-vindo(a)!",
-                "events.welcome.body": "{user} entrou!",
-            }[key]
+    document = default_package().document("events.welcome")
+    assert document is not None
+    assert document["thumbnail"] == "{user_avatar}"
+    assert "`{user_id}`" in document["footer"]
 
-    bot.translator = T()
-
-    doc = await default_event_document(
-        bot, 1,
-        title_key="events.welcome.title",
-        body_key="events.welcome.body",
-        color="brand",
-        emoji_token="tada",
+    bot = make_bot()
+    payload, _allowed = await render_card_message(
+        bot,
+        1,
+        "events.welcome",
+        {
+            "user": "<@5>",
+            "user_name": "Ana",
+            "user_id": "5",
+            "server": "Serv",
+            "count": 3,
+            "user_avatar": "https://a.b/ana.png",
+            "inviter": "",
+        },
     )
-    container = doc["blocks"][0]
-    kinds = [child["type"] for child in container["children"]]
-    assert kinds == ["section", "divider", "text"]
-    section = container["children"][0]
-    assert section["accessory"] == {"type": "thumbnail", "url": "{user_avatar}"}
-    assert section["children"][0]["body"].startswith("# ")
-    assert container["children"][2]["body"].startswith("-# ")
-
-    items = build_items(
-        load_theme(), doc,
-        {"user": "<@5>", "user_avatar": "https://a.b/ana.png",
-         "server": "Serv", "count": 3, "tada": "🎉"},
-    )
-    found_thumb = False
-
-    def walk(node):
-        nonlocal found_thumb
-        if isinstance(node, discord.ui.Thumbnail):
-            found_thumb = "https://a.b/ana.png" in node.media.url
-        for child in list(getattr(node, "items", []) or []) + list(
-            getattr(node, "children", []) or []
-        ) + [getattr(node, "accessory", None)]:
-            if child is not None:
-                walk(child)
-
-    for item in items:
-        walk(item)
-    assert found_thumb, "avatar thumbnail must render with the resolved url"
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.thumbnail.url == "https://a.b/ana.png"
+    assert payload.embed.footer.text == "Serv · #3 · `5`"
 
 
 #: catalog templates: real newlines, never literal "\n" ----------------------
@@ -175,9 +154,8 @@ def test_every_log_title_has_theme_emoji():
     import re
 
     pattern = re.compile(r"^\{[a-z_]+\}")
-    for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
-        with open(path, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+    for code in ("en-US", "pt-BR"):
+        data = load_catalog(code)
 
         def walk(node, prefix=""):
             if isinstance(node, dict):
@@ -192,14 +170,13 @@ def test_every_log_title_has_theme_emoji():
                 and (".logs." in key or ".log." in key)
                 and not key.startswith("card.")
             ):
-                assert pattern.match(str(value)), f"{path}:{key} lacks emoji token: {value!r}"
+                assert pattern.match(str(value)), f"{code}:{key} lacks emoji token: {value!r}"
 
 
 def test_boost_log_fields_are_bold_labeled():
     """Boost logs use the compact field format: emoji + bold label on data lines."""
     for lang, first_label in (("pt-BR", "**{tag} Cargo:**"), ("en-US", "**{tag} Role:**")):
-        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+        data = load_catalog(lang)
         for name, entry in data["boost"]["logs"].items():
             desc = entry["description"]
             assert desc.startswith(first_label), f"{lang}:boost.logs.{name}: {desc!r}"
@@ -207,12 +184,11 @@ def test_boost_log_fields_are_bold_labeled():
 
 def test_birthday_catalog_keys_match_spec():
     """birthdays.announce is the customizable card key: catalogs follow."""
-    for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
-        with open(path, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+    for code in ("en-US", "pt-BR"):
+        data = load_catalog(code)
         b = data["birthdays"]
         assert "announce" in b and "title" in b["announce"]
-        assert "card" not in b, f"{path}: legacy birthdays.card still present"
+        assert "card" not in b, f"{code}: legacy birthdays.card still present"
 
 
 def _flatten(node, out):
@@ -229,9 +205,8 @@ def _flatten(node, out):
 def test_log_templates_use_real_newlines():
     """Single-quoted YAML kept '\\n' literal (screenshot bug); these templates
     must now parse to real newlines."""
-    for path in ("language/en-US.yaml", "language/pt-BR.yaml"):
-        with open(path, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+    for code in ("en-US", "pt-BR"):
+        data = load_catalog(code)
         strings: list[str] = []
         _flatten(data["moderation"]["logs"], strings)
         _flatten(data["settings"]["log"], strings)
@@ -239,6 +214,6 @@ def test_log_templates_use_real_newlines():
         _flatten(data["invites"]["logs"]["join"], strings)
         _flatten(data["invites"]["logs"]["leave"], strings)
         _flatten(data["boost"]["logs"], strings)
-        assert strings, f"{path}: templates missing"
+        assert strings, f"{code}: templates missing"
         for text in strings:
-            assert "\\n" not in text, f"{path}: literal backslash-n in {text!r}"
+            assert "\\n" not in text, f"{code}: literal backslash-n in {text!r}"

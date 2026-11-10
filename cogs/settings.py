@@ -3,7 +3,7 @@
 import discord
 from discord.ext import commands
 
-from rosemary.core.card_service import trace_card_path
+from rosemary.core.debug import trace_card_path
 from rosemary.ui.settings_menu import SettingsMenuView
 
 

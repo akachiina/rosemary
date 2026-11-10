@@ -3,8 +3,9 @@
 Snowflake IDs, command usages and the text-command prefix render as inline
 code (single backticks) in card text: machine values are monospace, while
 mentions, timestamps and plain counters are not. The catalogs are swept
-recursively and the code-built ID footers (info family plus the welcome
-event cards) are source-scanned, so a new card cannot regress the standard.
+recursively, the footers the code builds by hand are source-scanned and the
+packaged documents are swept by slot, so a new card cannot regress the
+standard.
 """
 
 from __future__ import annotations
@@ -13,13 +14,18 @@ import re
 from pathlib import Path
 
 import yaml
+from catalog import load_catalog
 
 #: Single-brace placeholders, the shape live card text uses.
 _PLACEHOLDER_RE = re.compile(r"\{([a-z0-9_]+)\}")
 
-#: Card-builder sources with code-built footers: the info family plus the
-#: welcome event cards.
-_FOOTER_SOURCES = ("cogs/info.py", "cogs/utility.py", "cogs/welcome.py")
+#: The feature code that still lays a card out by hand: its footers are
+#: written by hand too, so they are swept like the packaged ones.
+_CODE_DIRS = ("cogs", "core", "ui")
+
+#: The default package: the documents carry the footers as semantic slots
+#: (the serializer writes the ``-#`` marker), so the sweep reads the slot.
+_PACKAGE_DIR = Path("themes/default")
 
 
 def _is_machine_value(name: str) -> bool:
@@ -28,13 +34,9 @@ def _is_machine_value(name: str) -> bool:
 
 
 def _card_strings(node):
-    """Yield every string in the catalog, skipping editor hint nodes."""
+    """Yield every string in the catalog."""
     if isinstance(node, dict):
-        for key, value in node.items():
-            # ``placeholders:`` hints document the contract with doubled braces
-            # for the card editor; they are never rendered card text.
-            if key == "placeholders":
-                continue
+        for value in node.values():
             yield from _card_strings(value)
     elif isinstance(node, list):
         for item in node:
@@ -47,8 +49,7 @@ def test_machine_values_are_inline_code_in_catalogs():
     """Every ``{..._id}`` and ``{prefix}`` sits inside a code span per line."""
     offenders = []
     for code in ("en-US", "pt-BR"):
-        with open(f"language/{code}.yaml", encoding="utf-8") as fh:
-            catalog = yaml.safe_load(fh) or {}
+        catalog = load_catalog(code)
         for text in _card_strings(catalog):
             for line in text.splitlines():
                 for match in _PLACEHOLDER_RE.finditer(line):
@@ -66,27 +67,67 @@ def test_machine_values_are_inline_code_in_catalogs():
     assert offenders == []
 
 
-def test_builder_id_footers_are_inline_code():
-    """The info-family ID footers are code-built text, so scan the sources.
+def test_code_built_id_footers_are_inline_code():
+    """The footers the code still builds by hand are swept like the packaged
+    ones: on every ``-# `` footer line, a machine value opens inside an
+    inline code span (odd backtick count before it on the line).
 
-    The rule mirrors the catalog sweep: on every ``-# `` footer line, each
-    machine value must open inside an inline code span (odd backtick count
-    before it on the line; f-string composite footers included). The scan
-    also asserts each source still carries at least one backticked footer,
-    so deleting the footers cannot satisfy it.
+    The info family lives in the default package now (its footers are
+    semantic slots), so the packaged sweep below carries its guarantee.
     """
-    for rel in _FOOTER_SOURCES:
-        source = Path(rel).read_text(encoding="utf-8")
-        held = False
-        for line in source.splitlines():
-            if "-#" not in line:
-                continue
-            for match in _PLACEHOLDER_RE.finditer(line):
-                name = match.group(1)
-                if not _is_machine_value(name):
+    offenders: list[str] = []
+    for directory in _CODE_DIRS:
+        for path in sorted(Path(directory).rglob("*.py")):
+            for number, line in enumerate(
+                path.read_text(encoding="utf-8").splitlines(), 1
+            ):
+                if "-#" not in line:
                     continue
-                assert line[: match.start()].count("`") % 2 == 1, (
-                    f"{rel}: machine value outside inline code: {name}"
-                )
-                held = True
-        assert held, f"{rel}: no inline-code ID footer found"
+                for match in _PLACEHOLDER_RE.finditer(line):
+                    name = match.group(1)
+                    if not _is_machine_value(name):
+                        continue
+                    if line[: match.start()].count("`") % 2 != 1:
+                        offenders.append(f"{path}:{number}: {{{name}}}")
+    assert offenders == []
+
+
+def _footer_slots(node):
+    """Every footer slot of a document tree (the value may be a list)."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "footer":
+                if isinstance(value, str):
+                    yield value
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, str):
+                            yield item
+                continue
+            yield from _footer_slots(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _footer_slots(item)
+
+
+def test_packaged_id_footers_are_inline_code():
+    """The packaged documents carry the footers as semantic slots.
+
+    The serializer writes the ``-#`` marker, so the slot is the footer text
+    as the member reads it: the machine value (the id) still opens inside an
+    inline code span.
+    """
+    held = False
+    for path in sorted(_PACKAGE_DIR.rglob("*.yaml")):
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        for footer in _footer_slots(data):
+            for line in footer.splitlines():
+                for match in _PLACEHOLDER_RE.finditer(line):
+                    name = match.group(1)
+                    if not _is_machine_value(name):
+                        continue
+                    assert line[: match.start()].count("`") % 2 == 1, (
+                        f"{path}: machine value outside inline code: {name}"
+                    )
+                    held = True
+    assert held, "the package carries no inline-code ID footer"

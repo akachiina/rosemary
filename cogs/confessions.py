@@ -105,200 +105,6 @@ def _is_staff(guild: discord.Guild, user_id: int) -> bool:
     )
 
 
-async def default_confession_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default public card (``confessions.card``).
-
-    The alias name is the card's title: in bold, with the ``OP`` emoji
-    beside it when the author is the confession's own, and the generated
-    identicon as the section's thumbnail (the same frame the audit logs
-    use for the member's avatar). The confession text keeps its normal
-    weight, the picture rides the self-dropping gallery and the numbered
-    title ("Confissão (#60)") closes the card as the small (``-#``)
-    footer, the standard every other card uses.
-
-    Deliberately no real avatar anywhere: the post is anonymous and the
-    author's avatar image would identify them.
-    """
-    content: list[dict] = []
-    if str(variables.get("alias_name") or "").strip():
-        content.append({"type": "text", "body": "**{alias_name}**{op_emoji}"})
-    if str(variables.get("body") or "").strip():
-        content.append({"type": "text", "body": "{body}"})
-    children: list[dict] = []
-    avatar = str(variables.get("avatar_url") or "").strip()
-    if avatar and content:
-        children.append(
-            {
-                "type": "section",
-                "accessory": {"type": "thumbnail", "url": "{avatar_url}"},
-                "children": content,
-            }
-        )
-    else:
-        children.extend(content)
-    image_url = str(variables.get("image_url") or "").strip()
-    if image_url:
-        children.append({"type": "gallery", "urls": [image_url]})
-    children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# {title}"})
-    return {
-        "v": 1,
-        "blocks": [
-            {
-                "type": "container",
-                "color": variables.get("color_hex") or "info",
-                "children": children,
-            }
-        ],
-    }
-
-
-async def default_confession_review_document(
-    bot, guild_id: int, **variables
-) -> dict:
-    """Catalog-default review card (``confessions.review``).
-
-    Same body as the public card plus the ``author_line`` block, which the
-    send site leaves empty unless ``reveal_author`` is on (an empty line
-    renders nothing). No avatar thumbnail either: with reveal off, the
-    author's avatar image would unmask them to staff. Buttons ride as
-    code, like every interactive row. The review stays plain text on
-    purpose: the staff must read, copy and search the confession. It
-    closes with the bot's standard small (``-#``) timestamp footer.
-    """
-    children: list[dict] = [
-        {"type": "text", "body": "# {title}"},
-        {"type": "text", "body": "{body}"},
-        {"type": "gallery", "urls": ["{image_url}"]},
-    ]
-    if variables.get("author_line"):
-        children.append({"type": "text", "body": "{author_line}"})
-    children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# {timestamp}"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": "info", "children": children}],
-    }
-
-
-async def default_confession_response_document(
-    bot, guild_id: int, **variables) -> dict:
-    """Catalog-default reply card (``confessions.response``).
-
-    The title is the alias name (bold, with the ``OP`` emoji when the
-    reply comes from the confession's own author) and the identicon is the
-    section's thumbnail, exactly like the confession card. The footer
-    follows the bot's standard: a divider and small (``-#``) lines with
-    the reference to the parent comment and the numbered title. The
-    parent's own text never rides the card (the reference links to it) and
-    the ``OP`` emoji alone marks the confession's author.
-    """
-    content: list[dict] = []
-    if str(variables.get("alias_name") or "").strip():
-        content.append({"type": "text", "body": "**{alias_name}**{op_emoji}"})
-    if str(variables.get("body") or "").strip():
-        content.append({"type": "text", "body": "{body}"})
-    children: list[dict] = []
-    avatar = str(variables.get("avatar_url") or "").strip()
-    if avatar and content:
-        children.append(
-            {
-                "type": "section",
-                "accessory": {"type": "thumbnail", "url": "{avatar_url}"},
-                "children": content,
-            }
-        )
-    else:
-        children.extend(content)
-    image_url = str(variables.get("image_url") or "").strip()
-    if image_url:
-        children.append({"type": "gallery", "urls": [image_url]})
-    children.append({"type": "divider"})
-    if str(variables.get("parent_line") or "").strip():
-        children.append({"type": "text", "body": "-# {parent_line}"})
-    children.append({"type": "text", "body": "-# {title}"})
-    return {
-        "v": 1,
-        "blocks": [
-            {
-                "type": "container",
-                "color": variables.get("color_hex") or "info",
-                "children": children,
-            }
-        ],
-    }
-
-
-async def _confession_dm_shell(
-    bot, guild_id: int, *, body_key: str, color: str, variables: dict,
-    jump_url: str, reason: str = "",
-) -> dict:
-    """One DM document: literal body template, optional motive line, link row.
-
-    The body comes from ``raw()`` (``t()`` would log a formatting warning
-    without variables); the reason line resolves only when non-empty.
-    """
-    raw = bot.translator.raw
-    body = await raw(guild_id, body_key)
-    jump_label = await bot.translator.t(guild_id, "confess.dm.jump")
-    children: list[dict] = [{"type": "text", "body": body}]
-    if reason:
-        reason_line = await bot.translator.t(
-            guild_id, "confess.dm.reason", reason=reason
-        )
-        children.append({"type": "text", "body": reason_line})
-    if variables.get("message_link"):
-        children.append(
-            {
-                "type": "row",
-                "buttons": [{"label": jump_label, "url": "{message_link}"}],
-            }
-        )
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": color, "children": children}],
-    }
-
-
-async def default_confession_approved_dm(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default approval DM (``confessions.dm.approved``)."""
-    return await _confession_dm_shell(
-        bot, guild_id, body_key="confess.dm.approved", color="success",
-        variables=variables, jump_url=variables.get("message_link") or "",
-    )
-
-
-async def default_confession_rejected_dm(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default denial DM (``confessions.dm.rejected``)."""
-    return await _confession_dm_shell(
-        bot, guild_id, body_key="confess.dm.rejected", color="danger",
-        variables=variables, jump_url=variables.get("message_link") or "",
-        reason=(variables.get("reason") or "").strip(),
-    )
-
-
-async def default_confession_response_dm(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default reply notice DM (``confessions.dm.response``)."""
-    return await _confession_dm_shell(
-        bot, guild_id, body_key="confess.dm.response", color="info",
-        variables=variables, jump_url=variables.get("message_link") or "",
-    )
-
-
-def _register_default_builders() -> None:
-    from rosemary.core.cards import set_default_builder
-
-    set_default_builder("confessions.card", default_confession_document)
-    set_default_builder("confessions.review", default_confession_review_document)
-    set_default_builder("confessions.response", default_confession_response_document)
-    set_default_builder("confessions.dm.approved", default_confession_approved_dm)
-    set_default_builder("confessions.dm.rejected", default_confession_rejected_dm)
-    set_default_builder("confessions.dm.response", default_confession_response_dm)
-
-
-_register_default_builders()
-
-
 class ConfessionView(MenuView):
     """Public and reply cards: write another + reply (fixed ids)."""
 
@@ -475,16 +281,12 @@ class ConfessionReviewView(MenuView):
         guild = interaction.guild
         message = getattr(interaction, "message", None)
         if guild is None or message is None:
-            if not interaction.response.is_done():
-                with contextlib.suppress(discord.HTTPException):
-                    await interaction.response.defer(ephemeral=True)
+            await self._ack(interaction, suppress_errors=True)
             return None
         cog = self.bot.get_cog("ConfessionsCog")
         t = self.bot.translator.t
         if cog is None:
-            if not interaction.response.is_done():
-                with contextlib.suppress(discord.HTTPException):
-                    await interaction.response.defer(ephemeral=True)
+            await self._ack(interaction, suppress_errors=True)
             return None
         if not _is_staff(guild, interaction.user.id):
             await interaction.response.send_message(
@@ -505,8 +307,9 @@ class ConfessionReviewView(MenuView):
         if resolved is None:
             return
         cog, guild, _entry = resolved
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
+        # The single ACK of every menu click (and a dead token stops here).
+        if not await self._ack(interaction):
+            return
         try:
             outcome, _public = await cog.approve_confession(
                 guild, interaction.message.id, interaction.user
@@ -726,34 +529,27 @@ class ConfessionsCog(commands.Cog):
         self, guild: discord.Guild, key: str, color_token: str, variables: dict
     ):
         """Themed DM card (or code fallback) for confession notices."""
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, guild.id, key, variables
         )
         if payload is not None:
             return payload
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
         t = self.bot.translator.t
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color(color_token),
-                TextDisplay(await t(guild.id, key, **variables)),
-            )
-        )
+        buttons = ()
         if variables.get("message_link"):
-            view.add_item(
-                discord.ui.ActionRow(
-                    discord.ui.Button(
-                        style=discord.ButtonStyle.link,
-                        label=await t(guild.id, "confess.dm.jump"),
-                        url=variables["message_link"],
-                    )
-                )
-            )
-        return CardPayload(view=view)
+            jump_label = await t(guild.id, "confess.dm.jump")
+            buttons = ((jump_label, variables["message_link"]),)
+        # The fallback follows the card's own form: the DM keeps its shape.
+        return simple_payload(
+            self.bot,
+            guild.id,
+            key,
+            body=await t(guild.id, key, **variables),
+            color=color_token,
+            buttons=buttons,
+        )
 
     async def _send_dm(self, guild: discord.Guild, user_id: int, payload) -> bool:
         """DM one user a card payload (best effort, never pings)."""
@@ -1105,7 +901,7 @@ class ConfessionsCog(commands.Cog):
         self, guild: discord.Guild, entry: dict
     ):
         """Themed review card (or code fallback) plus its mention policy."""
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message
 
         variables = await self._review_variables(
             guild, entry, timestamp=discord.utils.format_dt(
@@ -1117,21 +913,29 @@ class ConfessionsCog(commands.Cog):
         )
         if payload is not None:
             return payload, allowed
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import simple_payload
 
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(f"# {variables['title']}"),
-                TextDisplay(str(variables["body"] or "")),
-            )
+        # The fallback follows the card's own form (a panel).
+        body = "\n\n".join(
+            str(part)
+            for part in (variables.get("body"), variables.get("author_line"))
+            if str(part or "").strip()
         )
-        return CardPayload(view=view), discord.AllowedMentions.none()
+        payload = simple_payload(
+            self.bot,
+            guild.id,
+            "confessions.review",
+            title=str(variables["title"]),
+            body=body,
+            color="info",
+            image=variables.get("image_url"),
+            footer=str(variables.get("timestamp") or ""),
+        )
+        return payload, discord.AllowedMentions.none()
 
     async def _render_public(self, guild: discord.Guild, entry: dict):
         """Themed public card (or code fallback) plus its mention policy."""
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         variables = await self._public_variables(
             guild, entry, timestamp=discord.utils.format_dt(
@@ -1146,17 +950,16 @@ class ConfessionsCog(commands.Cog):
         )
         if payload is not None:
             return payload, allowed
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(f"# {variables['title']}"),
-                TextDisplay(str(variables["body"] or "")),
-            )
+        # The fallback follows the card's own form (an embed).
+        payload = simple_payload(
+            self.bot,
+            guild.id,
+            "confessions.card",
+            title=str(variables["title"]),
+            body=str(variables["body"] or ""),
+            color="info",
         )
-        return CardPayload(view=view), discord.AllowedMentions.none()
+        return payload, discord.AllowedMentions.none()
 
     async def _public_view(self, guild_id: int):
         """Public card row (write + reply) with its translated labels."""
@@ -1178,7 +981,11 @@ class ConfessionsCog(commands.Cog):
             view = payload.view or discord.ui.View(timeout=None)
             for item in row.children:
                 view.add_item(item)
-            return CardPayload(embed=payload.embed, view=view)
+            # The content (the ping carrier) and the files ride along: an
+            # embed card may carry the essential ping in its content.
+            return CardPayload(
+                embed=payload.embed, view=view, files=payload.files, content=payload.content
+            )
         payload.view.add_item(row)
         return payload
 
@@ -1374,6 +1181,14 @@ class ConfessionsCog(commands.Cog):
         if entry is None or entry.get("status") != "pending":
             return "not_found", None
         await self.store.set_status(guild.id, review_message_id, "denied")
+        motive = (reason or "").strip()
+        # The motive rides its own line: the document keeps the frame, the
+        # send site owns the wording.
+        reason_line = ""
+        if motive:
+            reason_line = await self.bot.translator.t(
+                guild.id, "confess.dm.reason", reason=motive
+            )
         await self._dm_card_send(
             guild,
             int(entry.get("author_id") or 0),
@@ -1382,7 +1197,8 @@ class ConfessionsCog(commands.Cog):
             {
                 "confession_number": entry.get("number", 0),
                 "body": entry.get("body") or "",
-                "reason": (reason or "").strip(),
+                "reason": motive,
+                "reason_line": reason_line,
             },
             "confess.dm.rejected",
         )
@@ -1466,34 +1282,27 @@ class ConfessionsCog(commands.Cog):
         body_key: str,
     ):
         """Themed DM card (or code fallback) for confession notices."""
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, guild_id, key, variables
         )
         if payload is not None:
             return payload
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
         t = self.bot.translator.t
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color(color_token),
-                TextDisplay(await t(guild_id, body_key, **variables)),
-            )
-        )
+        buttons = ()
         if variables.get("message_link"):
-            view.add_item(
-                discord.ui.ActionRow(
-                    discord.ui.Button(
-                        style=discord.ButtonStyle.link,
-                        label=await t(guild_id, "confess.dm.jump"),
-                        url=variables["message_link"],
-                    )
-                )
-            )
-        return CardPayload(view=view)
+            jump_label = await t(guild_id, "confess.dm.jump")
+            buttons = ((jump_label, variables["message_link"]),)
+        # The fallback follows the card's own form: the DM keeps its shape.
+        return simple_payload(
+            self.bot,
+            guild_id,
+            key,
+            body=await t(guild_id, body_key, **variables),
+            color=color_token,
+            buttons=buttons,
+        )
 
     async def resolve_thread_context(
         self, guild_id: int, message_id: int
@@ -1650,23 +1459,16 @@ class ConfessionsCog(commands.Cog):
                 variables,
             )
             if payload is None:
-                from rosemary.ui.containers import (
-                    DesignerView,
-                    TextDisplay,
-                    designer_container,
-                )
+                from rosemary.core.card_service import simple_payload
 
-                view = DesignerView(store=False)
-                view.add_item(
-                    designer_container(
-                        self.bot.theme.color("info"),
-                        TextDisplay(f"# {variables['title']}"),
-                        TextDisplay(body),
-                    )
+                payload = simple_payload(
+                    self.bot,
+                    guild.id,
+                    "confessions.response",
+                    title=str(variables["title"]),
+                    body=body,
+                    color="info",
                 )
-                from rosemary.core.card_service import CardPayload as _Payload
-
-                payload = _Payload(view=view)
                 allowed = discord.AllowedMentions.none()
             view = ConfessionView(self.bot, guild.id)
             view.add_item(await view.reply_row())

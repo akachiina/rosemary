@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "description": "**Convidado:** <@0>\n**Código:** `abc123`\n**Convidador:** <@0>…",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🚀 Membro Entrou Com Convite",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "invites.logs.join",
+  "pings": [],
+  "view": []
+}

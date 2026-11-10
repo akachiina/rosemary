@@ -1,0 +1,24 @@
+# The starboard settings.
+settings:
+  starboard.enabled:
+    category: starboard
+    type: boolean
+    default: false
+  starboard.channel:
+    category: starboard
+    type: channel
+    default: null
+  starboard.threshold:
+    category: starboard
+    type: integer
+    default: 3
+    min: 1
+    max: 25
+  starboard.self_star_counts:
+    category: starboard
+    type: boolean
+    default: false
+  starboard.allow_bots:
+    category: starboard
+    type: boolean
+    default: false

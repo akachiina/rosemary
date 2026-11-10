@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15844367,
+    "description": "<@0> removeu a parceria de <@0>.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "➖ Parceria Removida",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "partnerships.logs.removed",
+  "pings": [],
+  "view": []
+}

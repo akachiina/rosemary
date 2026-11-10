@@ -1,0 +1,15 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "`card.moderation.logs.ban` ← default",
+    "fields": [],
+    "timestamp": "<iso>",
+    "title": "Card rastreado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "debug.trace",
+  "pings": [],
+  "view": []
+}

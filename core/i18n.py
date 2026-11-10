@@ -1,6 +1,8 @@
 """Per-guild internationalization for Rosemary.
 
-Loads ``language/*.yaml`` at boot. All user-facing strings are translation keys;
+Loads the catalogs at boot: one folder per language
+(``language/<code>/<feature>.yaml``) or the old single file
+(``language/<code>.yaml``). All user-facing strings are translation keys;
 code and comments stay in English. The per-guild language is resolved through an
 injected resolver; missing keys fall back to the default language, then to the
 raw key itself.
@@ -53,29 +55,73 @@ class Translator:
         self.load()
 
     def load(self) -> None:
-        """Load every ``*.yaml`` in the languages directory, flattened to dotted keys."""
+        """Load every catalog, flattened to dotted keys.
+
+        A catalog is a **folder** (``language/<code>/<feature>.yaml``, the
+        modular format) or the old single file (``language/<code>.yaml``).
+        The folder wins when both exist: the feature files are the source
+        of truth, the single file is the legacy shape that still loads.
+        """
         self._catalogs = {}
         self._meta = {}
         self._available = []
         if not self.languages_dir.exists():
             log.warning("Languages directory not found: %s", self.languages_dir)
             return
-        for path in sorted(self.languages_dir.glob("*.yaml")):
-            code = path.stem
+        for code, path in self._catalog_sources():
             try:
-                with path.open("r", encoding="utf-8") as fh:
-                    data = yaml.safe_load(fh) or {}
-                meta = data.get(_META_KEY) or {}
-                self._meta[code] = {
-                    "name": str(meta.get("name", code)),
-                    "flag": str(meta.get("flag", "")),
-                }
-                translations = {k: v for k, v in data.items() if k != _META_KEY}
-                self._catalogs[code] = _flatten(translations)
-                self._available.append(code)
+                data = self._read_catalog(path)
             except yaml.YAMLError as exc:
                 log.error("Failed to load language %s: %s", path, exc)
+                continue
+            meta = data.get(_META_KEY) or {}
+            self._meta[code] = {
+                "name": str(meta.get("name", code)),
+                "flag": str(meta.get("flag", "")),
+            }
+            translations = {k: v for k, v in data.items() if k != _META_KEY}
+            self._catalogs[code] = _flatten(translations)
+            self._available.append(code)
         log.info("Loaded %d languages: %s", len(self._available), ", ".join(self._available))
+
+    def _catalog_sources(self) -> list[tuple[str, Path]]:
+        """The catalogs of the directory: the folders first, then the files."""
+        folders = {
+            path.name: path
+            for path in sorted(self.languages_dir.iterdir())
+            if path.is_dir()
+        }
+        sources: list[tuple[str, Path]] = [
+            (code, path) for code, path in folders.items()
+        ]
+        files = sorted(self.languages_dir.glob("*.yaml")) + sorted(
+            self.languages_dir.glob("*.yml")
+        )
+        for path in files:
+            if path.stem in folders:
+                # The folder carries this language: the single file is the
+                # legacy shape and never wins.
+                continue
+            sources.append((path.stem, path))
+        return sources
+
+    def _read_catalog(self, path: Path) -> dict[str, Any]:
+        """One catalog read: a folder of feature files or a single file."""
+        if not path.is_dir():
+            return _read_yaml(path)
+        merged: dict[str, Any] = {}
+        files = sorted(path.glob("*.yaml")) + sorted(path.glob("*.yml"))
+        for file in files:
+            data = _read_yaml(file)
+            for key in data:
+                if key in merged:
+                    log.warning(
+                        "Language %s: the section %r is declared in two files",
+                        path.name,
+                        key,
+                    )
+            merged = _deep_merge(merged, data)
+        return merged
 
     @property
     def available_languages(self) -> list[str]:
@@ -132,6 +178,27 @@ class Translator:
         except (AttributeError, KeyError, IndexError, TypeError, ValueError) as exc:
             log.warning("Failed to format translation %r: %s", key, exc)
             return template
+
+
+def _read_yaml(path: Path) -> dict[str, Any]:
+    """One YAML file of a catalog (an empty file is an empty section)."""
+    with path.open("r", encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+    if not isinstance(data, dict):
+        raise yaml.YAMLError(f"{path.name}: the catalog must be a mapping")
+    return data
+
+
+def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
+    """Two mappings merged deeply (the overlay wins on the leaves)."""
+    out = dict(base)
+    for key, value in overlay.items():
+        current = out.get(key)
+        if isinstance(current, dict) and isinstance(value, dict):
+            out[key] = _deep_merge(current, value)
+            continue
+        out[key] = value
+    return out
 
 
 def _flatten(data: dict, prefix: str = "") -> dict:

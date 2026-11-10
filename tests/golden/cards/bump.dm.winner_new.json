@@ -1,0 +1,10 @@
+{
+  "content": "✅ **|** Você é o Bump-MVP da Semana!\nOlá, <@0>! Sua dedicação manteve o servidor brilhando. Muito obrigada!\n\n**📊 Bumps na semana:** 1\n**🏆 Cargo:** …\n\n### 🎨 Personalize seu cargo\nUse `/boost painel` para customizar:\n- ✏️ Nome e emoji\n- 🎨 Cor\n- 👥 Convidar até **10** membros\n\nSuas customizações são salvas e voltam caso você ganhe novamente!\n\nAproveite até o próximo reset.",
+  "embed": null,
+  "form": "text",
+  "key": "bump.dm.winner_new",
+  "pings": [
+    0
+  ],
+  "view": []
+}

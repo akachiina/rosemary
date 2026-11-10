@@ -1,0 +1,62 @@
+# The moderation settings.
+settings:
+  moderation.enabled:
+    category: moderation
+    type: boolean
+    default: true
+  moderation.warn_limit:
+    category: moderation
+    type: integer
+    default: 3
+    min: 1
+    max: 10
+  moderation.auto_ban_enabled:
+    category: moderation
+    type: boolean
+    default: true
+  cleaner.enabled:
+    category: moderation
+    type: boolean
+    default: true
+  anti_invite.enabled:
+    category: moderation
+    type: boolean
+    default: false
+  anti_invite.warn_on_delete:
+    category: moderation
+    type: boolean
+    default: true
+  anti_invite.exempt_places:
+    category: moderation
+    type: channel_list
+    default: []
+    legacy_single_key: anti_invite.exempt_channel
+  trap.enabled:
+    category: moderation
+    type: boolean
+    default: false
+  trap.channel:
+    category: moderation
+    type: channel
+    default: null
+  trap.action:
+    category: moderation
+    type: choice
+    default: "none"
+    choices: ["none", "kick", "softban", "ban"]
+  trap.delete_window:
+    category: moderation
+    type: choice
+    default: "24h"
+    choices: ["none", "1h", "24h", "7d"]
+  trap.dm_enabled:
+    category: moderation
+    type: boolean
+    default: true
+  moderation.mute_seconds:
+    category: moderation
+    type: integer
+    default: 3600
+    min: 60
+    max: 604800
+    duration: true

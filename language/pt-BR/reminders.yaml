@@ -1,0 +1,42 @@
+reminders:
+  command:
+    name: lembretes
+    description: Gerencia lembretes
+  error_disabled: '{error} Lembretes estão desativados neste servidor.'
+  saved: '{success} Lembrete `{name}` salvo.'
+  deleted: '{success} Lembrete `{name}` apagado.'
+  not_found: '{error} Nenhum lembrete chamado `{name}`.'
+  list_title: Lembretes salvos
+  list_empty: Nenhum lembrete salvo ainda.
+  done: '{success} Lembrete enviado para {sent} membro(s) ({failed} falharam).'
+  logs:
+    sent:
+      title: '{envelope} Lembrete Enviado'
+      description: '{moderator} enviou `{name}` ({sent} enviados, {failed} falharam).'
+reminders_delete:
+  command:
+    name: apagar
+    description: '[ADMIN] Apaga uma mensagem de lembrete'
+    options:
+      name:
+        description: Nome curto
+reminders_list:
+  command:
+    name: listar
+    description: '[ADMIN] Lista mensagens de lembrete'
+reminders_save:
+  command:
+    name: salvar
+    description: '[ADMIN] Salva uma mensagem de lembrete'
+    options:
+      name:
+        description: Nome curto
+      message:
+        description: Texto da mensagem
+reminders_send:
+  command:
+    name: enviar
+    description: '[ADMIN] Envia lembrete por DM a todos'
+    options:
+      name:
+        description: Nome curto

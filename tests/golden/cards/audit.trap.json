@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 15158332,
+    "description": "**🔊 Canal:** #…\n**⚙️ Consequência:** {action}\n**✅ Resultado:** {outcome}\n",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "title": "🔒 Caiu na armadilha",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.trap",
+  "pings": [],
+  "view": []
+}

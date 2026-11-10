@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15844367,
+    "description": "Canal #… bloqueado temporariamente (anti-camping).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🔒 Canal Bloqueado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.channel_locked",
+  "pings": [],
+  "view": []
+}

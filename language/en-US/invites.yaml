@@ -1,0 +1,189 @@
+invited:
+  command:
+    name: invited
+    description: List members invited by someone
+    options:
+      member:
+        description: Inviter to inspect
+invites:
+  command:
+    name: invites
+    description: Show invite stats for yourself or another member
+  error_disabled: '{error} Invite tracking is disabled on this server.'
+  error_leaderboard_disabled: '{error} The invites leaderboard is disabled.'
+  stats:
+    title: '{bar_chart} Invites of {user}'
+    breakdown: '{regular} regular · {bonus} bonus · {fake} fake · {left} left'
+    total: '**Total:** {total} (#{rank})'
+    retention: 'Retention: {percent}% ({stayed} of {total_real} still here)'
+    latest: 'Latest invite: {user} {when}'
+    unknown: '{user} has no invites yet.'
+  leaderboard:
+    title: '{trophy} Top Inviters'
+    line: '{medal} **{position}.** {user}: **{total}**'
+    empty: No invites tracked yet. Share your invite link!
+  inviter:
+    title: Invited by
+    body: 'Member: {user}
+
+      Inviter: {inviter}
+
+      Code: `{code}`
+
+      Joined: {when}
+
+      Status: {status}'
+    unknown: No record for {user} (they joined before tracking started).
+  invited:
+    title: Members invited by {user}
+    line: '- {user} ({when}, {status})'
+    empty: '{user} has not invited anyone yet.'
+  personal:
+    title: Your invite link
+    body: 'Share this link: {link}
+
+      Total: **{total}** ({regular} regular · {bonus} bonus)'
+    no_channel: '{error} No channel available to create an invite.'
+  server:
+    title: '{bar_chart} Server Invite Stats'
+    joins: 'Tracked joins: **{count}**'
+    top: 'Top inviter: {user} (**{total}**)'
+  unknown: Unknown
+  status:
+    ok: valid
+    fake: fake
+    flagged: flagged rejoin
+    rejoin: rejoin (not counted)
+    excluded: excluded
+    unknown: unknown
+  flags:
+    fake: ' ⚠️ fake'
+    flagged: ' 🚩 flagged rejoin'
+  bonus:
+    added: '{success} Added {amount} bonus invite(s) to {user} (total: {total}).'
+    removed: '{success} Removed {amount} bonus invite(s) from {user} (total: {total}).'
+    invalid: '{error} Amount must be between -100 and 100, excluding 0.'
+  sync:
+    success: '{success} Recounted {codes} invite code(s).'
+  codes:
+    title: Invite codes
+    line: '`{code}`: {uses} use(s) by {inviter}{label}'
+    empty: No invite codes found.
+  blacklist:
+    added: '{success} Added {target} to the {kind} list.'
+    removed: '{success} Removed {target} from the {kind} list.'
+    already: '{error} {target} is already on the {kind} list.'
+    missing: '{error} {target} is not on the {kind} list.'
+    missing_role: '{error} Pick a role for the roles list.'
+    missing_member: '{error} Pick a member for this list.'
+    title: Invite blacklist
+    empty: All blacklist lists are empty.
+    users: Users
+    roles: Roles
+    hidden: Hidden
+    nobody: none
+  reset:
+    confirm_title: Reset all invite stats?
+    confirm_text: This erases every tracked join and counter. This cannot be undone.
+    confirm: Confirm reset
+    cancel: Cancel
+    success: '{success} All invite stats were reset.'
+    cancelled: Reset cancelled.
+  label:
+    set: '{success} Code `{code}` labeled “{label}”.'
+    cleared: '{success} Label removed from `{code}`.'
+  logs:
+    join:
+      title: '{rocket} Member Joined With Invite'
+      description: '**Invitee:** {user}
+
+        **Code:** `{code}`
+
+        **Inviter:** {inviter}{label}{flags}'
+    leave:
+      title: '{door} Member Left'
+      description: '**Member:** {user}
+
+        **Inviter:** {inviter}'
+    bonus:
+      title: '{plus} Bonus Adjusted'
+      description: '{moderator} adjusted {user} by {amount} (total: {total}).'
+    sync:
+      title: '{refresh} Invites Synced'
+      description: Recounted {codes} code(s) (requested by {moderator}).
+    reset:
+      title: '{warning} Invites Reset'
+      description: Invite stats were reset by {moderator}.
+invites_admin:
+  command:
+    name: invites_admin
+    description: '[ADMIN] Admin-only invite tools'
+invites_admin_blacklist:
+  command:
+    name: blacklist
+    description: '[ADMIN] Manage the invite blacklist'
+    options:
+      action:
+        description: add, remove or list
+      kind:
+        description: users, roles or hidden
+      member:
+        description: User
+      role:
+        description: Role (for roles)
+invites_admin_bonus:
+  command:
+    name: bonus
+    description: '[ADMIN] Add or remove bonus invites'
+    options:
+      member:
+        description: Member to adjust
+      amount:
+        description: Between -100 and 100, excluding 0
+invites_admin_codes:
+  command:
+    name: codes
+    description: '[ADMIN] List invite codes and uses'
+invites_admin_label:
+  command:
+    name: label
+    description: '[ADMIN] Label an invite code'
+    options:
+      code:
+        description: Invite code
+      label:
+        description: Label (omit to clear)
+invites_admin_reset:
+  command:
+    name: reset
+    description: '[ADMIN] Reset all invite stats'
+invites_admin_sync:
+  command:
+    name: sync
+    description: '[ADMIN] Recount invite uses from Discord'
+invites_leaderboard:
+  command:
+    name: leaderboard
+    description: Show the top inviters ranking
+invites_stats:
+  command:
+    name: stats
+    description: Show invite stats for yourself or another member
+    options:
+      member:
+        description: Member to inspect
+my_invite:
+  command:
+    name: my_invite
+    description: Get your personal invite link and stats
+server_invites:
+  command:
+    name: server_invites
+    description: Show server-wide invite statistics
+who_invited:
+  command:
+    name: who_invited
+    description: Show who invited a member
+    options:
+      member:
+        description: Member to inspect

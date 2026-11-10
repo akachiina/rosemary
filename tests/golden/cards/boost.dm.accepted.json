@@ -1,0 +1,8 @@
+{
+  "content": "✅ **|** Convite Aceito!\nO cargo @… foi adicionado a você com sucesso.\nPara sair do cargo a qualquer momento, use `/boost painel`.",
+  "embed": null,
+  "form": "text",
+  "key": "boost.dm.accepted",
+  "pings": [],
+  "view": []
+}

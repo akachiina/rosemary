@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "description": "@you (`123456789012345678`) foi desbanido. **📜 Motivo:** …\n**⚙️ Moderador:** <@0>",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "title": "✅ Membro desbanido",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.unban",
+  "pings": [],
+  "view": []
+}

@@ -1,0 +1,25 @@
+events:
+  enabled:
+    label: Ativar anúncios
+    description: Envia mensagens de entrada, saída e banimento.
+  welcome_channel:
+    label: Canal de boas-vindas
+    description: Canal das mensagens de entrada.
+  leave_channel:
+    label: Canal de saídas
+    description: Canal das mensagens de saída.
+  ban_channel:
+    label: Canal de banimentos
+    description: Canal dos avisos de banimento.
+  raid_protection:
+    label: Proteção contra raid
+    description: Atrasa boas-vindas quando muitos membros entram de uma vez.
+  welcome:
+    title: '{tada} Bem-vindo(a)!'
+    body: '{user} acabou de entrar. Diga oi! Membro #{count} do {server}.'
+  leave:
+    title: '{door} Até a próxima'
+    body: '{user_name} saiu do servidor. Agora somos {count} membros.'
+  ban:
+    title: '{ban} Membro banido'
+    body: '{user_name} (`{user_id}`) foi banido do {server}.'

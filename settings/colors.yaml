@@ -1,0 +1,21 @@
+# The colors settings.
+settings:
+  colors.enabled:
+    category: colors
+    type: boolean
+    default: false
+  colors.panel_channel:
+    category: colors
+    type: channel
+    default: null
+  colors.picker:
+    category: colors
+    type: choice
+    default: "buttons"
+    choices: ["buttons", "select"]
+  colors.per_container:
+    category: colors
+    type: integer
+    default: 10
+    min: 3
+    max: 25

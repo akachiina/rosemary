@@ -12,7 +12,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-import yaml
+from catalog import load_catalog
 
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
 from rosemary.bot import RosemaryBot
@@ -45,8 +45,7 @@ class PtTranslator:
 
     def __init__(self):
         self.theme = load_theme()
-        with open("language/pt-BR.yaml", encoding="utf-8") as fh:
-            self.catalog = yaml.safe_load(fh) or {}
+        self.catalog = load_catalog("pt-BR")
 
     def _text(self, key: str):
         node = self.catalog
@@ -152,6 +151,15 @@ def _replied_view(ctx) -> object:
     return view
 
 
+def _replied_text(ctx) -> str:
+    """The text of the last reply (the notice layer sends plain content)."""
+    assert ctx.reply.call_count >= 1
+    call = ctx.reply.call_args
+    if call.args:
+        return str(call.args[0])
+    return str(call.kwargs.get("content") or "")
+
+
 def _base_bot(tmp_path, translator=None) -> object:
     from discord.ext import commands
 
@@ -241,7 +249,7 @@ async def test_mute_prefix_uses_the_setting_default_duration(tmp_path):
 
     await cog.mute_prefix(ctx, [target], None)
 
-    text = _view_text(_replied_view(ctx))
+    text = _replied_text(ctx)
     assert "duration=1h" in text  # moderation.mute_seconds, not an error
 
 
@@ -251,7 +259,7 @@ async def test_mute_prefix_parses_explicit_duration(tmp_path):
 
     await cog.mute_prefix(ctx, [target], "10m")
 
-    text = _view_text(_replied_view(ctx))
+    text = _replied_text(ctx)
     assert "duration=10m" in text
 
 
@@ -261,7 +269,7 @@ async def test_mute_prefix_rejects_an_invalid_duration(tmp_path):
 
     await cog.mute_prefix(ctx, [target], "banana")
 
-    text = _view_text(_replied_view(ctx))
+    text = _replied_text(ctx)
     assert "mute.invalid_duration" in text
     assert "duration=" not in text  # no confirmation dialog was built
 
@@ -272,7 +280,13 @@ async def test_warnings_prefix_shows_the_card(tmp_path):
 
     await cog.warnings_prefix(ctx, target)
 
-    assert "warnings.none" in _view_text(_replied_view(ctx))
+    # The warnings card ships as an embed.
+    embed = ctx.reply.call_args.kwargs.get("embed")
+    assert embed is not None
+    assert "warnings.none" in "\n".join(
+        [embed.title or "", embed.description or ""]
+        + [field.value or "" for field in embed.fields]
+    )
 
 
 async def test_unwarn_prefix_removes_one_warning(tmp_path):
@@ -282,7 +296,7 @@ async def test_unwarn_prefix_removes_one_warning(tmp_path):
 
     await cog.unwarn_prefix(ctx, target, 1)
 
-    text = _view_text(_replied_view(ctx))
+    text = _replied_text(ctx)
     assert "unwarn.removed" in text
     assert await cog.warnings.get_warnings(1, target.id) == []
 
@@ -354,7 +368,13 @@ async def test_help_prefix_lists_localized_commands(tmp_path):
     await cog.help_prefix(ctx)
 
     assert ctx.reply.call_args.kwargs.get("mention_author") is False
-    text = _view_text(_replied_view(ctx))
+    # The help card ships as an embed.
+    embed = ctx.reply.call_args.kwargs.get("embed")
+    assert embed is not None
+    text = "\n".join(
+        [embed.title or "", embed.description or ""]
+        + [field.value or "" for field in embed.fields]
+    )
     # groups with pt-BR headings, entries in the ``**!name:** description``
     # shape, the guild's real prefix applied
     assert "## Moderação" in text
@@ -379,7 +399,12 @@ async def test_help_prefix_lists_interactions_when_roleplay_enabled(tmp_path):
 
     await cog.help_prefix(ctx)
 
-    text = _view_text(_replied_view(ctx))
+    embed = ctx.reply.call_args.kwargs.get("embed")
+    assert embed is not None
+    text = "\n".join(
+        [embed.title or "", embed.description or ""]
+        + [field.value or "" for field in embed.fields]
+    )
     assert "## Interações" in text
     assert "`!hug · !kiss" in text  # one code span over every latin action verb
     assert "!cuddle`" in text  # the same span closes right after the last verb
@@ -402,22 +427,41 @@ def test_help_table_covers_every_registered_prefix_command(tmp_path):
     assert registered <= listed, f"missing from !help: {sorted(registered - listed)}"
 
 
-async def test_help_builder_accepts_variables_and_skips_empty_lists():
-    """The builder takes **variables (live sends forward extras) and omits
-    the block of a group the send site turned off, keeping placeholders
-    when the value is absent (editor previews)."""
-    from rosemary.cogs.about import default_help_document
+async def test_help_card_skips_empty_lists(tmp_path):
+    """The help card drops the paragraph of a group the send site turned off
+    (roleplay off) and keeps the placeholder when the value is absent (the
+    editor preview)."""
+    from rosemary.core.card_service import render_card_message
 
-    doc = await default_help_document(SimpleNamespace(), 1, interactions_list="", x=1)
-    children = doc["blocks"][0]["children"]
-    bodies = [c["body"] for c in children if c.get("type") == "text"]
-    assert "{interactions_list}" not in bodies  # roleplay off: block omitted
-    assert "{moderation_list}" in bodies
+    bot = SimpleNamespace(
+        theme=load_theme(),
+        translator=PtTranslator(),
+        storage=GuildStorage(tmp_path),
+    )
+    payload, _allowed = await render_card_message(
+        bot,
+        1,
+        "help.card",
+        {
+            "title": "Ajuda",
+            "body": "Comandos",
+            "moderation_list": "M",
+            "info_list": "I",
+            "general_list": "G",
+            "interactions_list": "",
+        },
+    )
+    assert payload is not None and payload.embed is not None
+    description = payload.embed.description or ""
+    assert "M" in description and "I" in description and "G" in description
+    assert "interactions_list" not in description  # roleplay off: block omitted
 
-    doc = await default_help_document(SimpleNamespace(), 1)
-    children = doc["blocks"][0]["children"]
-    bodies = [c["body"] for c in children if c.get("type") == "text"]
-    assert "{interactions_list}" in bodies  # preview: placeholder kept
+    # The value never arrived: the placeholder stays (the editor preview).
+    payload, _allowed = await render_card_message(
+        bot, 1, "help.card", {"title": "Ajuda", "body": "Comandos"}
+    )
+    assert payload is not None and payload.embed is not None
+    assert "{interactions_list}" in (payload.embed.description or "")
 
 
 #: error feedback -------------------------------------------------------
@@ -450,8 +494,8 @@ async def test_permission_failure_answers_the_invoker(tmp_path):
 
     await bot.on_command_error(ctx, commands.MissingPermissions(["manage_messages"]))
 
-    text = _view_text(ctx.reply.call_args.kwargs["view"])
-    assert "general.no_permission" in text
+    content = ctx.reply.call_args.args[0]
+    assert "general.no_permission" in content
 
 
 async def test_real_failure_answers_and_logs(tmp_path, caplog):
@@ -464,8 +508,8 @@ async def test_real_failure_answers_and_logs(tmp_path, caplog):
         ctx, commands.CommandInvokeError(RuntimeError("boom"))
     )
 
-    text = _view_text(ctx.reply.call_args.kwargs["view"])
-    assert "general.unknown_error" in text
+    content = ctx.reply.call_args.args[0]
+    assert "general.unknown_error" in content
     assert "boom" in caplog.text
 
 

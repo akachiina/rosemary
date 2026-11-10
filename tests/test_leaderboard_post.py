@@ -13,7 +13,6 @@ import discord
 
 from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
 from rosemary.core.storage import GuildStorage
-from rosemary.ui.containers import DesignerView
 from rosemary.ui.theme import load_theme
 
 
@@ -58,9 +57,10 @@ async def test_post_current_leaderboard_empty_publishes_no_bumps_card(tmp_path):
 
     assert posted is False
     channel.send.assert_awaited_once()
-    view = channel.send.await_args.kwargs["view"]
-    assert isinstance(view, DesignerView)
-    assert view.children
+    # The "no data" notice is content: it ships as a classic embed.
+    embed = channel.send.await_args.kwargs["embed"]
+    assert isinstance(embed, discord.Embed)
+    assert embed.title
 
 
 async def test_post_current_leaderboard_disabled_does_nothing(tmp_path):
@@ -135,11 +135,24 @@ async def test_weekly_post_mentions_winner(tmp_path):
         await cog._post_leaderboard(guild, channel, [(111, 5), (222, 3)], 111, 5, "MVP")
 
     kwargs = channel.send.await_args.kwargs
-    texts = [
-        item.content
-        for item in kwargs["view"].walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
+    texts = []
+    view = kwargs.get("view")
+    if view is not None:
+        texts = [
+            item.content
+            for item in view.walk_children()
+            if isinstance(item, discord.ui.TextDisplay)
+        ]
+    embed = kwargs.get("embed")
+    if embed is not None:
+        texts.append(embed.title or "")
+        texts.append(embed.description or "")
+        for field in embed.fields:
+            texts.append(field.name or "")
+            texts.append(field.value or "")
+    content = kwargs.get("content")
+    if isinstance(content, str):
+        texts.append(content)
     assert any("<@111>" in text for text in texts), texts
     allowed = await allowed_for_ids(
         bot, 1, "bump.leaderboard", user_ids=[111]

@@ -1,0 +1,10 @@
+{
+  "content": "⚠️ **|** Você foi expulso de **…** por <@0>!\n**📜 Motivo:** …",
+  "embed": null,
+  "form": "text",
+  "key": "kick.dm",
+  "pings": [
+    0
+  ],
+  "view": []
+}

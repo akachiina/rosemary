@@ -1,0 +1,33 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15844367,
+    "fields": [
+      {
+        "inline": false,
+        "name": "🏷️ Cargo",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "👤 Convidado(a)",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "👤 Quem convidou",
+        "value": "<@0>"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "⏰ Convite Expirado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "boost.logs.invite_expired",
+  "pings": [],
+  "view": []
+}

@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15844367,
+    "description": "Stats de convites resetados por <@0>.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "⚠️ Convites Resetados",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "invites.logs.reset",
+  "pings": [],
+  "view": []
+}

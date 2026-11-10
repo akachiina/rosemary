@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "description": "@you entrou em #….",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "title": "🚪 Entrou em canal de voz",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.voice_join",
+  "pings": [],
+  "view": []
+}

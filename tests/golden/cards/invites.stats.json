@@ -1,0 +1,16 @@
+{
+  "content": "<@0>",
+  "embed": {
+    "color": 3447003,
+    "description": "…",
+    "fields": [],
+    "title": "📊 Convites de <@0>",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "invites.stats",
+  "pings": [
+    0
+  ],
+  "view": []
+}

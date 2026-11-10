@@ -1,0 +1,1322 @@
+# The staff log events: one document per event.
+#
+# The document is semantic: it says what the log is (title, body,
+# fields, author, footer) and points at the catalog for the copy.
+# The archetype carries the frame (log_event names the actor in the
+# footer, log_named keeps the timestamp only).
+moderation.logs.ban:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{moderation.logs.ban.title}'
+  fields:
+  - target: '{member}'
+  - member_id: '{member_id}'
+  - moderator: '{moderator}'
+  - reason: '{reason}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  thumbnail: '{user_avatar}'
+  timestamp: true
+  variables:
+  - member
+  - member_id
+  - moderator
+  - reason
+  - member_label
+  - member_id_label
+  - moderator_label
+  - reason_label
+  - timestamp
+  - actor
+  - user_avatar
+  mention: none
+  category: moderation
+moderation.logs.auto_ban:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{moderation.logs.auto_ban.title}'
+  fields:
+  - target: '{member}'
+  - member_id: '{member_id}'
+  - moderator: '{moderator}'
+  - reason: '{reason}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  thumbnail: '{user_avatar}'
+  timestamp: true
+  variables:
+  - member
+  - member_id
+  - moderator
+  - reason
+  - member_label
+  - member_id_label
+  - moderator_label
+  - reason_label
+  - timestamp
+  - actor
+  - user_avatar
+  mention: none
+  category: moderation
+moderation.logs.kick:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{moderation.logs.kick.title}'
+  fields:
+  - target: '{member}'
+  - member_id: '{member_id}'
+  - moderator: '{moderator}'
+  - reason: '{reason}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  thumbnail: '{user_avatar}'
+  timestamp: true
+  variables:
+  - member
+  - member_id
+  - moderator
+  - reason
+  - member_label
+  - member_id_label
+  - moderator_label
+  - reason_label
+  - timestamp
+  - actor
+  - user_avatar
+  mention: none
+  category: moderation
+moderation.logs.mute:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{moderation.logs.mute.title}'
+  fields:
+  - target: '{member}'
+  - member_id: '{member_id}'
+  - moderator: '{moderator}'
+  - label: '{log.field.duration.label}'
+    value: '{duration}'
+    optional: true
+  - reason: '{reason}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  thumbnail: '{user_avatar}'
+  timestamp: true
+  variables:
+  - member
+  - member_id
+  - moderator
+  - reason
+  - duration
+  - member_label
+  - member_id_label
+  - moderator_label
+  - reason_label
+  - duration_label
+  - timestamp
+  - actor
+  - user_avatar
+  mention: none
+  category: moderation
+moderation.logs.warn:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{moderation.logs.warn.title}'
+  fields:
+  - target: '{member}'
+  - member_id: '{member_id}'
+  - moderator: '{moderator}'
+  - reason: '{reason}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  thumbnail: '{user_avatar}'
+  timestamp: true
+  variables:
+  - member
+  - member_id
+  - moderator
+  - reason
+  - member_label
+  - member_id_label
+  - moderator_label
+  - reason_label
+  - timestamp
+  - actor
+  - user_avatar
+  mention: none
+  category: moderation
+boost.logs.register:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{boost.logs.register.title}'
+  fields:
+  - role: '{role}'
+  - owner: '{owner}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.remove:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{boost.logs.remove.title}'
+  fields:
+  - role: '{role}'
+  - owner: '{owner}'
+  - actor: '{actor}'
+  - deleted: '{deleted}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - deleted
+  - owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.transfer:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{boost.logs.transfer.title}'
+  fields:
+  - role: '{role}'
+  - old_owner: '{old_owner}'
+  - new_owner: '{new_owner}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - new_owner
+  - old_owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.rename:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{boost.logs.rename.title}'
+  fields:
+  - role: '{role}'
+  - old_name: '{old_name}'
+  - new_name: '{new_name}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - new_name
+  - old_name
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.color_change:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{boost.logs.color_change.title}'
+  fields:
+  - role: '{role}'
+  - new_color: '{new_color}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - new_color
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.emoji_change:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{boost.logs.emoji_change.title}'
+  fields:
+  - role: '{role}'
+  - emoji: '{emoji}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - emoji
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.icon:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{boost.logs.icon.title}'
+  fields:
+  - role: '{role}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.member_add:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{boost.logs.member_add.title}'
+  fields:
+  - role: '{role}'
+  - member: '{member}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - member
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.member_remove:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{boost.logs.member_remove.title}'
+  fields:
+  - role: '{role}'
+  - member: '{member}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - member
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.member_left:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{boost.logs.member_left.title}'
+  fields:
+  - role: '{role}'
+  - member: '{member}'
+  - owner: '{owner}'
+  author: '{member}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - member
+  - owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.invite_sent:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{boost.logs.invite_sent.title}'
+  fields:
+  - role: '{role}'
+  - invitee: '{invitee}'
+  - inviter: '{inviter}'
+  - expires: '{expires}'
+  actor: '{inviter}'
+  author: '{inviter}'
+  timestamp: true
+  variables:
+  - expires
+  - invitee
+  - inviter
+  - role
+  - timestamp
+  - actor
+  mention: none
+  category: boost
+boost.logs.invite_cancelled:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{boost.logs.invite_cancelled.title}'
+  fields:
+  - role: '{role}'
+  - invitee: '{invitee}'
+  - actor: '{actor}'
+  actor: '{actor}'
+  author: '{actor}'
+  timestamp: true
+  variables:
+  - actor
+  - invitee
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.invite_accepted:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{boost.logs.invite_accepted.title}'
+  fields:
+  - role: '{role}'
+  - member: '{member}'
+  - inviter: '{inviter}'
+  actor: '{inviter}'
+  author: '{inviter}'
+  timestamp: true
+  variables:
+  - inviter
+  - member
+  - role
+  - timestamp
+  - actor
+  mention: none
+  category: boost
+boost.logs.invite_declined:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{boost.logs.invite_declined.title}'
+  fields:
+  - role: '{role}'
+  - member: '{member}'
+  - inviter: '{inviter}'
+  actor: '{member}'
+  author: '{member}'
+  timestamp: true
+  variables:
+  - inviter
+  - member
+  - role
+  - timestamp
+  - actor
+  mention: none
+  category: boost
+boost.logs.invite_expired:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{boost.logs.invite_expired.title}'
+  fields:
+  - role: '{role}'
+  - invitee: '{invitee}'
+  - inviter: '{inviter}'
+  timestamp: true
+  variables:
+  - invitee
+  - inviter
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.orphan_remove:
+  archetype: log_event
+  form: embed
+  color: danger
+  title: '{boost.logs.orphan_remove.title}'
+  fields:
+  - role: '{role}'
+  - owner: '{owner}'
+  timestamp: true
+  variables:
+  - owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.auto_transfer:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{boost.logs.auto_transfer.title}'
+  fields:
+  - role: '{role}'
+  - old_owner: '{old_owner}'
+  - new_owner: '{new_owner}'
+  timestamp: true
+  variables:
+  - new_owner
+  - old_owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.auto_create:
+  archetype: log_event
+  form: embed
+  color: success
+  title: '{boost.logs.auto_create.title}'
+  fields:
+  - role: '{role}'
+  - owner: '{owner}'
+  timestamp: true
+  variables:
+  - owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+boost.logs.unboost:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{boost.logs.unboost.title}'
+  fields:
+  - role: '{role}'
+  - owner: '{owner}'
+  - action: '{action}'
+  timestamp: true
+  variables:
+  - action
+  - owner
+  - role
+  - timestamp
+  mention: none
+  category: boost
+bump.logs.channel_locked:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{bump.logs.channel_locked.title}'
+  description: '{bump.logs.channel_locked.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: bump
+bump.logs.channel_unlocked:
+  archetype: log_event
+  form: embed
+  color: success
+  title: '{bump.logs.channel_unlocked.title}'
+  description: '{bump.logs.channel_unlocked.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: bump
+bump.logs.schedule_opened:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{bump.logs.schedule_opened.title}'
+  description: '{bump.logs.schedule_opened.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: bump
+bump.logs.schedule_closed:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{bump.logs.schedule_closed.title}'
+  description: '{bump.logs.schedule_closed.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: bump
+bump.logs.reminder_sent:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{bump.logs.reminder_sent.title}'
+  description: '{bump.logs.reminder_sent.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: bump
+bump.logs.bump_recorded:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{bump.logs.bump_recorded.title}'
+  description: '{bump.logs.bump_recorded.description}'
+  actor: '{user}'
+  author: '{user}'
+  timestamp: true
+  variables:
+  - channel
+  - user
+  - timestamp
+  - actor
+  mention: none
+  category: bump
+bump.logs.week_reset:
+  archetype: log_event
+  form: embed
+  color: success
+  title: '{bump.logs.week_reset.title}'
+  fields:
+  - winner: '{winner}'
+  - bumps: '{bumps}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - winner
+  - bumps
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: bump
+bump.logs.no_winner:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{bump.logs.no_winner.title}'
+  description: '{bump.logs.no_winner.description}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: bump
+bump.logs.no_bumps_posted:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{bump.logs.no_bumps_posted.title}'
+  description: '{bump.logs.no_bumps_posted.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: bump
+bump.logs.leaderboard_posted:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{bump.logs.leaderboard_posted.title}'
+  description: '{bump.logs.leaderboard_posted.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: bump
+bump.logs.week_reset_manual:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{bump.logs.week_reset_manual.title}'
+  description: '{bump.logs.week_reset_manual.description}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: bump
+bump.logs.bumps_added:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{bump.logs.bumps_added.title}'
+  description: '{bump.logs.bumps_added.description}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - author
+  - count
+  - total
+  - user
+  - timestamp
+  - actor
+  mention: none
+  category: bump
+bump.logs.no_role:
+  archetype: log_event
+  form: embed
+  color: danger
+  title: '{bump.logs.no_winner.title}'
+  description: '{bump.error_role_not_found}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  legacy_body: false
+  variables:
+  - timestamp
+  - actor
+  mention: none
+  category: bump
+invites.logs.join:
+  archetype: log_event
+  form: embed
+  color: success
+  title: '{invites.logs.join.title}'
+  description: '{invites.logs.join.description}'
+  author: '{user}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - user
+  - code
+  - inviter
+  - label
+  - flags
+  - timestamp
+  mention: none
+  category: invites
+invites.logs.leave:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{invites.logs.leave.title}'
+  description: '{invites.logs.leave.description}'
+  author: '{user}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - user
+  - inviter
+  - timestamp
+  - user_avatar
+  mention: none
+  category: invites
+invites.logs.bonus:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{invites.logs.bonus.title}'
+  description: '{invites.logs.bonus.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - user
+  - amount
+  - total
+  - timestamp
+  - actor
+  mention: none
+  category: invites
+invites.logs.sync:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{invites.logs.sync.title}'
+  description: '{invites.logs.sync.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - codes
+  - moderator
+  - timestamp
+  - actor
+  mention: none
+  category: invites
+invites.logs.reset:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{invites.logs.reset.title}'
+  description: '{invites.logs.reset.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - timestamp
+  - actor
+  mention: none
+  category: invites
+cleaner.logs.purged:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{cleaner.logs.purged.title}'
+  fields:
+  - moderator: '{moderator}'
+  - matched: '{matched}'
+  - deleted: '{deleted}'
+  - criterion: '{criterion}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - criterion
+  - count
+  - deleted
+  - matched
+  - timestamp
+  - actor
+  mention: none
+  category: moderation
+anti_invite.logs.blocked:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{anti_invite.logs.blocked.title}'
+  description: '{anti_invite.logs.blocked.description}'
+  author: '{user}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - user
+  - channel
+  - code
+  - timestamp
+  mention: none
+  category: moderation
+trap.logs.failed:
+  archetype: log_event
+  form: embed
+  color: danger
+  title: '{trap.logs.failed.title}'
+  fields:
+  - target: '{user}'
+  - consequence: '{action}'
+  - reason: '{reason}'
+  author: '{user}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - user
+  - action
+  - reason
+  - user_label
+  - action_label
+  - reason_label
+  - timestamp
+  mention: none
+  category: moderation
+reminders.logs.sent:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{reminders.logs.sent.title}'
+  description: '{reminders.logs.sent.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - name
+  - sent
+  - failed
+  - timestamp
+  - actor
+  mention: none
+  category: general
+broadcast.logs.started:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{broadcast.logs.started.title}'
+  fields:
+  - moderator: '{moderator}'
+  - title: '{title}'
+  - channel: '{channel}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - title
+  - channel
+  - timestamp
+  - actor
+  mention: none
+  category: general
+broadcast.logs.ended:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{broadcast.logs.ended.title}'
+  fields:
+  - moderator: '{moderator}'
+  - relayed: '{relayed}'
+  - sent: '{sent}'
+  - failed: '{failed}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - relayed
+  - sent
+  - failed
+  - timestamp
+  - actor
+  mention: none
+  category: general
+tickets.logs.opened:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{tickets.logs.opened.title}'
+  description: '{tickets.logs.opened.description}'
+  actor: '{user}'
+  author: '{user}'
+  timestamp: true
+  variables:
+  - user
+  - type
+  - channel
+  - timestamp
+  - actor
+  mention: none
+  category: tickets
+tickets.logs.closed:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{tickets.logs.closed.title}'
+  description: '{tickets.logs.closed.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: tickets
+tickets.logs.reopened:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{tickets.logs.reopened.title}'
+  description: '{tickets.logs.reopened.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: tickets
+tickets.logs.deleted:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{tickets.logs.deleted.title}'
+  description: '{tickets.logs.deleted.description}'
+  timestamp: true
+  variables:
+  - channel
+  - timestamp
+  mention: none
+  category: tickets
+tickets.logs.transcript:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{tickets.logs.transcript.title}'
+  description: '{tickets.logs.transcript.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - channel
+  - moderator
+  - timestamp
+  - actor
+  mention: none
+  category: tickets
+suggestions.logs.created:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{suggestions.logs.created.title}'
+  description: '{suggestions.logs.created.description}'
+  actor: '{user}'
+  author: '{user}'
+  timestamp: true
+  variables:
+  - user
+  - suggestion_number
+  - channel
+  - timestamp
+  - actor
+  mention: none
+  category: suggestions
+suggestions.logs.approved:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{suggestions.logs.approved.title}'
+  description: '{suggestions.logs.approved.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - user
+  - suggestion_number
+  - reason
+  - timestamp
+  - actor
+  mention: none
+  category: suggestions
+suggestions.logs.rejected:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{suggestions.logs.rejected.title}'
+  description: '{suggestions.logs.rejected.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - user
+  - suggestion_number
+  - reason
+  - timestamp
+  - actor
+  mention: none
+  category: suggestions
+confessions.logs.approved:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{confessions.logs.approved.title}'
+  description: '{confessions.logs.approved.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - confession_number
+  - timestamp
+  - actor
+  mention: none
+  category: confessions
+confessions.logs.denied:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{confessions.logs.denied.title}'
+  description: '{confessions.logs.denied.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - confession_number
+  - reason
+  - timestamp
+  - actor
+  mention: none
+  category: confessions
+confessions.logs.replied:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{confessions.logs.replied.title}'
+  description: '{confessions.logs.replied.description}'
+  timestamp: true
+  variables:
+  - confession_number
+  - reply_index
+  - timestamp
+  mention: none
+  category: confessions
+confessions.logs.banned:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{confessions.logs.banned.title}'
+  description: '{confessions.logs.banned.description}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - user
+  - reason
+  - timestamp
+  - actor
+  mention: none
+  category: confessions
+partnerships.logs.added:
+  archetype: log_named
+  form: embed
+  color: success
+  title: '{partnerships.logs.added.title}'
+  description: '{partnerships.logs.added.description}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - user
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: partnerships
+partnerships.logs.removed:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{partnerships.logs.removed.title}'
+  description: '{partnerships.logs.removed.description}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - user
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: partnerships
+partnerships.logs.renewed:
+  archetype: log_event
+  form: embed
+  color: success
+  title: '{partnerships.logs.renewed.title}'
+  description: '{partnerships.logs.renewed.description}'
+  author: '{user}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - user
+  - timestamp
+  mention: none
+  category: partnerships
+partnerships.logs.warning_sent:
+  archetype: log_event
+  form: embed
+  color: warning
+  title: '{partnerships.logs.warning_sent.title}'
+  description: '{partnerships.logs.warning_sent.description}'
+  author: '{user}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - days
+  - user
+  - timestamp
+  mention: none
+  category: partnerships
+partnerships.logs.expired:
+  archetype: log_event
+  form: embed
+  color: danger
+  title: '{partnerships.logs.expired.title}'
+  description: '{partnerships.logs.expired.description}'
+  author: '{user}'
+  author_icon: '{user_avatar}'
+  timestamp: true
+  variables:
+  - user
+  - ping
+  - timestamp
+  mention: none
+  category: partnerships
+partnerships.logs.invite_posted:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{partnerships.logs.invite_posted.title}'
+  description: '{partnerships.logs.invite_posted.description}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: partnerships
+partnerships.logs.orphans_cleaned:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{partnerships.logs.orphans_cleaned.title}'
+  description: '{partnerships.logs.orphans_cleaned.description}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - author
+  - count
+  - timestamp
+  - actor
+  mention: none
+  category: partnerships
+partnerships.logs.edited:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{partnerships.logs.edited.title}'
+  fields:
+  - member: '{user}'
+  - label: '{log.field.new_rep.label}'
+    value: '{rep}'
+    optional: true
+  - moderator: '{moderator}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - user
+  - rep
+  - moderator
+  - timestamp
+  - actor
+  mention: none
+  category: partnerships
+updater.logs.updating:
+  archetype: log_named
+  form: embed
+  color: warning
+  title: '{updater.logs.updating.title}'
+  fields:
+  - moderator: '{moderator}'
+  - target: '{target}'
+  - previous: '{previous}'
+  actor: '{moderator}'
+  author: '{moderator}'
+  timestamp: true
+  variables:
+  - moderator
+  - target
+  - previous
+  - timestamp
+  - actor
+  mention: none
+  category: general
+updater.logs.updated:
+  archetype: log_event
+  form: embed
+  color: success
+  title: '{updater.logs.updated.title}'
+  description: '{updater.logs.updated.description}'
+  timestamp: true
+  variables:
+  - previous
+  - current
+  - timestamp
+  mention: none
+  category: general
+updater.logs.auto_failed:
+  archetype: log_event
+  form: embed
+  color: danger
+  title: '{updater.logs.auto_failed.title}'
+  description: '{updater.logs.auto_failed.description}'
+  timestamp: true
+  variables:
+  - reason
+  - timestamp
+  mention: none
+  category: general
+settings.log:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{settings.log.title}'
+  fields:
+  - setting: '{setting}'
+  - category: '{category}'
+  - old: '{old}'
+  - new: '{new}'
+  - actor: '{author}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - setting
+  - category
+  - old
+  - new
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: general
+settings.logs.language:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{settings.logs.language.title}'
+  fields:
+  - old: '{old}'
+  - new: '{new}'
+  - actor: '{author}'
+  actor: '{author}'
+  author: '{author}'
+  timestamp: true
+  variables:
+  - old
+  - new
+  - author
+  - timestamp
+  - actor
+  mention: none
+  category: general
+debug.logs.test:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{debug.logs.test.title}'
+  description: '{debug.logs.test.description}'
+  timestamp: true
+  variables:
+  - timestamp
+  mention: none
+  category: general
+debug.trace:
+  archetype: log_event
+  form: embed
+  color: info
+  title: '{debug.trace.title}'
+  description: '{debug.trace.card_path}'
+  footer: null
+  timestamp: true
+  legacy_body: false
+  variables:
+  - path
+  - origin
+  - timestamp
+  mention: none
+  category: general

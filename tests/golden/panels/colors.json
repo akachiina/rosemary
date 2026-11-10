@@ -1,0 +1,66 @@
+{
+  "buttons": [
+    {
+      "custom_id": "colors_mgr_up:c1",
+      "disabled": true,
+      "emoji": "⬆️",
+      "label": "Subir",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "colors_mgr_down:c1",
+      "disabled": true,
+      "emoji": "⬇️",
+      "label": "Descer",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "colors_mgr_edit:c1",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "colors_mgr_remove:c1",
+      "disabled": false,
+      "emoji": "🗑️",
+      "label": "Remover",
+      "style": "danger"
+    },
+    {
+      "custom_id": "colors_mgr_add",
+      "disabled": false,
+      "emoji": "➕",
+      "label": "Criar",
+      "style": "success"
+    },
+    {
+      "custom_id": "colors_mgr_create_role",
+      "disabled": false,
+      "emoji": "📝",
+      "label": "Criar cargo",
+      "style": "success"
+    },
+    {
+      "custom_id": "colors_mgr_attach",
+      "disabled": false,
+      "emoji": null,
+      "label": "Anexar cargos",
+      "style": "primary"
+    },
+    {
+      "custom_id": "colors_mgr_exit",
+      "disabled": false,
+      "emoji": "⬅️",
+      "label": "Voltar",
+      "style": "secondary"
+    }
+  ],
+  "selects": [],
+  "texts": [
+    "# Gerenciar Cores",
+    "Cores: 1/25. ↑/↓ reordenam (afetam a imagem e os botões); editar muda nome e hexadecimal.",
+    "**1.** Rosa · `#FFB7C5`sem cargo"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15844367,
+    "description": "<@0> recusou a confissão **#1** (…).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "❌ Confissão recusada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "confessions.logs.denied",
+  "pings": [],
+  "view": []
+}

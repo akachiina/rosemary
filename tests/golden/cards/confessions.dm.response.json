@@ -1,0 +1,20 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "✉️ Nova resposta anônima **#1-1**:\n> …",
+    "fields": [],
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "confessions.dm.response",
+  "pings": [],
+  "view": [
+    {
+      "label": "Ir para a thread",
+      "style": "link",
+      "type": "Button",
+      "url": "https://example.com/message"
+    }
+  ]
+}

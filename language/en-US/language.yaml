@@ -1,0 +1,16 @@
+language:
+  command:
+    name: language
+    description: Set the server language
+    options:
+      language:
+        description: Language code (e.g. en-US, pt-BR)
+  title: Language
+  text: Choose the language used by the bot in this server.
+  updated: '{success} Language set to **{language}**.'
+  invalid: '{error} Unknown language ''{language}''.
+
+    Available:
+
+    {available}'
+  current: 'Current language: {language}.'

@@ -261,99 +261,83 @@ class ColorsCog(commands.Cog):
     # panel ====================
 
     async def build_panel_view(self, guild_id: int, entries=None):
-        """Default frame + chunk containers (with images) + picker controls.
+        """Themed frame + chunk containers (with images) + picker controls.
 
-        Returns ``(CardPayload, ColorPickerView)``. The picker rows are the
-        only components with callbacks; the frame and chunk containers are
-        static V2 (chunk buttons are code-built so each row carries the
-        dispatcher's handlers).
+        Returns ``(CardPayload, ColorPickerView)``. The frame is the
+        ``colors.panel`` document (a theme may restyle or reshape it); the
+        chunk cards and the picker rows stay code, because they carry the
+        Discord-bound callbacks.
         """
+        from rosemary.core.card_service import render_card_message, simple_payload
         from rosemary.core.cards import build_items
         from rosemary.core.themes import theme_for
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
         if entries is None:
             entries = await self.store.list_colors(guild_id)
         per = await self.per_container(guild_id)
-        theme = self.bot.theme
-        t = self.bot.translator.t
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                theme.color("brand"),
-                TextDisplay(theme.md("title", title=await t(guild_id, "colors.panel.title"))),
-                TextDisplay(await t(guild_id, "colors.panel.text", count=len(entries))),
+        mode = await self.picker_mode(guild_id)
+        variables = {"count": len(entries)}
+        payload, _allowed = await render_card_message(
+            self.bot, guild_id, "colors.panel", variables
+        )
+        if payload is None:
+            t = self.bot.translator.t
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "colors.panel",
+                title=await t(guild_id, "colors.panel.title"),
+                body=await t(guild_id, "colors.panel.text", count=len(entries)),
+                color="brand",
             )
-        )
-        files, documents = chunk_containers(
-            self.bot, guild_id, entries, per, await self.picker_mode(guild_id)
-        )
+        picker = ColorPickerView(self.bot, guild_id, entries)
+        if payload.embed is not None:
+            # An embed cannot carry V2 chunks or galleries: the picker rides
+            # as classic rows (the images are dropped, as they always were).
+            view = payload.view
+            if view is None:
+                view = discord.ui.View(timeout=None)
+                payload = CardPayload(
+                    embed=payload.embed,
+                    view=view,
+                    files=payload.files,
+                    content=payload.content,
+                )
+            if mode == "select":
+                view.add_item(await picker.select_row())
+            else:
+                for row in picker.classic_rows_all(entries):
+                    view.add_item(row)
+            return payload, picker
+        if payload.view is None:
+            # A plain-text frame cannot carry controls: ask the pipeline for
+            # the V2 form (a panel without its picker is not a panel).
+            payload, _allowed = await render_card_message(
+                self.bot, guild_id, "colors.panel", variables, form="card"
+            )
+            if payload is None or payload.view is None:
+                return payload, picker
+        files, documents = chunk_containers(self.bot, guild_id, entries, per, mode)
         # One self-contained card per chunk: gallery image + that chunk's
         # numbered buttons inside the container. In select mode the cards
         # carry only the image; the single select row closes the message.
         for doc in documents:
             try:
                 for item in build_items(theme_for(self.bot, guild_id), {"blocks": [doc]}):
-                    view.add_item(item)
+                    payload.view.add_item(item)
             except Exception as exc:
                 log.warning("color panel block skipped in %s: %s", guild_id, exc)
-        picker = ColorPickerView(self.bot, guild_id, entries)
-        if await self.picker_mode(guild_id) == "select":
-            view.add_item(await picker.select_row())
-        return CardPayload(view=view, files=files), picker
+        if mode == "select":
+            payload.view.add_item(await picker.select_row())
+        return CardPayload(
+            embed=payload.embed,
+            content=payload.content,
+            view=payload.view,
+            files=files,
+        ), picker
 
-    async def _panel_payload(self, guild_id: int, *, trace: bool = False):
-        """Themed frame (or default) + chunks + picker, ready to send.
-
-        ``trace=True`` (real sends) routes through :func:`render_card_message`
-        so ``debug.card_paths`` fires; internal repaints stay silent. An
-        embed-form theme frame can only take classic rows: the picker rides
-        as buttons/select and the chunk images are dropped (embeds carry no
-        V2 galleries).
-        """
-        from rosemary.core.card_service import render_card_message
-
-        if trace:
-            payload, _allowed = await render_card_message(
-                self.bot, guild_id, "colors.panel"
-            )
-            if payload is not None:
-                entries = await self.store.list_colors(guild_id)
-                picker = ColorPickerView(self.bot, guild_id, entries)
-                mode = await self.picker_mode(guild_id)
-                if payload.embed is not None:
-                    if mode == "select":
-                        payload.view.add_item(await picker.select_row())
-                    else:
-                        for row in picker.classic_rows_all(entries):
-                            payload.view.add_item(row)
-                    return payload
-                # V2 themed frame: splice one self-contained card per chunk
-                # (image + buttons inside) onto it; select mode adds the
-                # single select row instead.
-                files, documents = chunk_containers(
-                    self.bot,
-                    guild_id,
-                    entries,
-                    await self.per_container(guild_id),
-                    mode,
-                )
-                from rosemary.core.cards import build_items
-                from rosemary.core.themes import theme_for
-
-                for doc in documents:
-                    try:
-                        for item in build_items(
-                            theme_for(self.bot, guild_id), {"blocks": [doc]}
-                        ):
-                            payload.view.add_item(item)
-                    except Exception as exc:
-                        log.warning("color panel block skipped in %s: %s", guild_id, exc)
-                if mode == "select":
-                    payload.view.add_item(await picker.select_row())
-                return CardPayload(view=payload.view, files=files)
-            # No themed override (or invalid): fall through to the default
-            # builder so both trace paths share the exact same layout.
+    async def _panel_payload(self, guild_id: int):
+        """The posted panel: the document frame + chunks + picker."""
         return await self.build_panel_view(guild_id)
 
     async def _fingerprint(self, guild_id: int) -> str:
@@ -439,7 +423,7 @@ class ColorsCog(commands.Cog):
             stale.add(replace_id)
         stale |= await self._orphan_ids(guild)
         fingerprint = await self._fingerprint(guild.id)
-        payload, _picker = await self._panel_payload(guild.id, trace=True)
+        payload, _picker = await self._panel_payload(guild.id)
         message = await channel.send(
             **payload.message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "colors.panel"),
@@ -572,8 +556,7 @@ class ColorsCog(commands.Cog):
             if entry.role_id and entry.role_id in wearing:
                 mark = await self.bot.translator.t(guild_id, "colors.list_current")
             lines.append(f"**{position}.** {entry.name}{mark}")
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         title = await self.bot.translator.t(guild_id, "colors.list_title")
         body = "\n".join(lines)
@@ -581,14 +564,12 @@ class ColorsCog(commands.Cog):
             self.bot, guild_id, "colors.list", {"title": title, "body": body}
         )
         if payload is None:
-            theme = self.bot.theme
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    theme.color("info"),
-                    TextDisplay(theme.md("title", title=title)),
-                    TextDisplay(body),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "colors.list",
+                title=title,
+                body=body,
+                color="info",
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)

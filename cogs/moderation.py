@@ -22,21 +22,27 @@ from typing import Any
 import discord
 from discord.ext import commands
 
+from rosemary.core.command_surface import Surface, notice, run
 from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.storage import GuildStorage
+from rosemary.core.themes import theme_for
 from rosemary.core.time_parser import TimeParser, localized_aliases
 from rosemary.core.timezone import resolve_timezone
 from rosemary.ui.confirm import ConfirmView
 from rosemary.ui.containers import (
     ActionRow,
     TextDisplay,
-    designer_container,
-    header_display,
 )
 from rosemary.ui.responses import PrefixContext
 
 log = logging.getLogger(__name__)
+
+#: The surface of the moderation family: the confirmation panel is the answer
+#: (the command never defers), the answer is ephemeral for a slash command and
+#: public for a prefix one, and the family checks the permissions itself (it
+#: knows the role hierarchy, which a plain permission check does not).
+MODERATION = Surface(card_key="moderation.error_failed", defer=False)
 
 #: action -> permissions the author and the bot must hold.
 _ACTION_PERMISSIONS: dict[str, tuple[str, ...]] = {
@@ -268,15 +274,6 @@ class ModerationCog(commands.Cog):
 
     #: helpers -----------------------------------------------------------
 
-    def _response_view(self, title: str, *, color: str = "info") -> discord.ui.DesignerView:
-        """One-line ack view; the container color follows the theme style."""
-        theme = self.bot.theme
-        view = discord.ui.DesignerView(store=False)
-        view.add_item(
-            designer_container(theme.color(theme.style(color).color), header_display(title))
-        )
-        return view
-
     def _ctx_guild_id(self, ctx) -> int | None:
         """Guild ID for a slash (:class:`ApplicationContext`) or prefix
         (:class:`commands.Context`) command context."""
@@ -286,29 +283,51 @@ class ModerationCog(commands.Cog):
         return guild_id
 
     async def _respond(self, ctx, *, title: str, color: str) -> None:
-        """Send a plain one-message response on a slash or prefix context."""
-        view = self._response_view(title, color=color)
-        if isinstance(ctx, discord.ApplicationContext):
-            await ctx.respond(view=view, ephemeral=True)
-        else:
-            await ctx.reply(view=view)
+        """Send one plain notice line on a slash or prefix context."""
+        from rosemary.core.feedback import line as notice_line
 
-    async def _respond_error(self, ctx, key: str) -> None:
-        await self._respond(
-            ctx, title=await self.bot.translator.t(self._ctx_guild_id(ctx), key), color="danger"
+        content = notice_line(self.bot, self._ctx_guild_id(ctx), title, style=color)
+        # The notice never notifies: the copy names the target of the action.
+        mentions = discord.AllowedMentions.none()
+        if isinstance(ctx, discord.ApplicationContext):
+            await ctx.respond(content, ephemeral=True, allowed_mentions=mentions)
+        else:
+            await ctx.reply(content, allowed_mentions=mentions)
+
+    async def _respond_error(self, ctx, key: str, **variables) -> None:
+        """One error notice (the theme's prefix, never a ping)."""
+        await notice(
+            ctx,
+            self.bot,
+            self._ctx_guild_id(ctx),
+            key,
+            style="danger",
+            ephemeral=isinstance(ctx, discord.ApplicationContext),
+            **variables,
         )
 
-    async def _respond_success(self, ctx, key: str) -> None:
-        await self._respond(
-            ctx, title=await self.bot.translator.t(self._ctx_guild_id(ctx), key), color="success"
+    async def _respond_success(self, ctx, key: str, **variables) -> None:
+        """One success notice (the theme's prefix, never a ping)."""
+        await notice(
+            ctx,
+            self.bot,
+            self._ctx_guild_id(ctx),
+            key,
+            style="success",
+            ephemeral=isinstance(ctx, discord.ApplicationContext),
+            **variables,
         )
 
     async def _send_view(self, ctx, view: discord.ui.View) -> None:
         """Attach an interactive menu to a slash or prefix message."""
+        kwargs = {}
+        message_kwargs = getattr(view, "message_kwargs", None)
+        if callable(message_kwargs):
+            kwargs = await message_kwargs()
         if isinstance(ctx, discord.ApplicationContext):
-            await ctx.respond(view=view, ephemeral=True)
+            await ctx.respond(**kwargs, ephemeral=True)
         else:
-            await ctx.reply(view=view)
+            await ctx.reply(**kwargs)
 
     async def _can_moderate(
         self, ctx: discord.ApplicationContext, target: discord.Member, action: str
@@ -530,6 +549,44 @@ class ModerationCog(commands.Cog):
             )
         return await t(guild_id, f"{action}.success", member=target.mention)
 
+    #: the shared flow ---------------------------------------------------
+
+    async def _moderate(
+        self,
+        ctx,
+        action: str,
+        targets: list[discord.Member],
+        reason: str | None,
+        duration: timedelta | None = None,
+    ) -> None:
+        """Check every target, then open the confirmation panel."""
+        for target in targets:
+            ok, error_key = await self._can_moderate(ctx, target, action)
+            if not ok:
+                await self._respond_error(ctx, error_key)
+                return
+        await self._confirm_and_execute(ctx, action, targets, reason, duration)
+
+    async def _mute(
+        self,
+        ctx,
+        member: discord.Member,
+        reason: str | None,
+        duration: str | None,
+    ) -> None:
+        """The timeout command: the duration comes from the text or the setting."""
+        if duration is None:
+            seconds = await get_setting(
+                self.bot.storage, self._ctx_guild_id(ctx), "moderation.mute_seconds"
+            )
+            parsed = timedelta(seconds=seconds)
+        else:
+            aliases = await localized_aliases(self.bot.translator, self._ctx_guild_id(ctx))
+            parsed = TimeParser.parse(duration, aliases=aliases)
+            if parsed is None:
+                return await self._respond_error(ctx, "mute.invalid_duration")
+        await self._moderate(ctx, "mute", [member], reason, parsed)
+
     #: commands ----------------------------------------------------------
 
     @discord.slash_command(
@@ -545,10 +602,7 @@ class ModerationCog(commands.Cog):
         reason: discord.Option(str, description="Reason", default=None),
     ) -> None:
         """Ban a member from the server."""
-        ok, error_key = await self._can_moderate(ctx, member, "ban")
-        if not ok:
-            return await self._respond_error(ctx, error_key)
-        await self._confirm_and_execute(ctx, "ban", [member], reason)
+        await run(ctx, MODERATION, lambda: self._moderate(ctx, "ban", [member], reason))
 
     @discord.slash_command(
         name="kick",
@@ -563,10 +617,7 @@ class ModerationCog(commands.Cog):
         reason: discord.Option(str, description="Reason", default=None),
     ) -> None:
         """Kick a member from the server."""
-        ok, error_key = await self._can_moderate(ctx, member, "kick")
-        if not ok:
-            return await self._respond_error(ctx, error_key)
-        await self._confirm_and_execute(ctx, "kick", [member], reason)
+        await run(ctx, MODERATION, lambda: self._moderate(ctx, "kick", [member], reason))
 
     @discord.slash_command(
         name="mute",
@@ -584,20 +635,7 @@ class ModerationCog(commands.Cog):
         reason: discord.Option(str, description="Reason", default=None),
     ) -> None:
         """Timeout a member for the given duration."""
-        if duration is None:
-            seconds = await get_setting(
-                self.bot.storage, self._ctx_guild_id(ctx), "moderation.mute_seconds"
-            )
-            parsed = timedelta(seconds=seconds)
-        else:
-            aliases = await localized_aliases(self.bot.translator, self._ctx_guild_id(ctx))
-            parsed = TimeParser.parse(duration, aliases=aliases)
-            if parsed is None:
-                return await self._respond_error(ctx, "mute.invalid_duration")
-        ok, error_key = await self._can_moderate(ctx, member, "mute")
-        if not ok:
-            return await self._respond_error(ctx, error_key)
-        await self._confirm_and_execute(ctx, "mute", [member], reason, parsed)
+        await run(ctx, MODERATION, lambda: self._mute(ctx, member, reason, duration))
 
     @discord.slash_command(
         name="warn",
@@ -612,10 +650,7 @@ class ModerationCog(commands.Cog):
         reason: discord.Option(str, description="Reason", default=None),
     ) -> None:
         """Record a warning for a member."""
-        ok, error_key = await self._can_moderate(ctx, member, "warn")
-        if not ok:
-            return await self._respond_error(ctx, error_key)
-        await self._confirm_and_execute(ctx, "warn", [member], reason)
+        await run(ctx, MODERATION, lambda: self._moderate(ctx, "warn", [member], reason))
 
     @discord.slash_command(
         name="warnings",
@@ -629,11 +664,14 @@ class ModerationCog(commands.Cog):
         member: discord.Option(discord.Member, description="Member to inspect"),
     ) -> None:
         """Show every warning recorded for a member."""
+        await run(ctx, MODERATION, lambda: self._warnings(ctx, member))
+
+    async def _warnings(self, ctx: discord.ApplicationContext, member: discord.Member) -> None:
+        """The warning list of one member (the card carries the copy)."""
         ok, error_key = await self._can_moderate(ctx, member, "warn")
         if not ok:
             return await self._respond_error(ctx, error_key)
         t = self.bot.translator.t
-        theme = self.bot.theme
         guild_id = self._ctx_guild_id(ctx)
         tz = resolve_timezone(await get_setting(self.bot.storage, guild_id, "general.timezone"))
 
@@ -661,9 +699,13 @@ class ModerationCog(commands.Cog):
             if entries
             else await t(guild_id, "warnings.none")
         )
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
+        # The state chooses the color token of the card (the document writes
+        # the alternatives): a clean member reads green, a warned one the
+        # moderation tone. The guild's theme owns what the token means.
+        state_style = "success" if not entries else "moderation_warnings"
+        state_color = theme_for(self.bot, guild_id).style(state_style).color
         payload, _allowed = await render_card_message(
             self.bot,
             guild_id,
@@ -674,21 +716,22 @@ class ModerationCog(commands.Cog):
                     member.display_avatar.url if member.display_avatar else ""
                 ),
                 "has_warnings": bool(entries),
+                "state_color": state_color,
                 "title": title,
                 "body": body,
                 "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
             },
         )
         if payload is None:
-            parts = [TextDisplay(theme.md("title", title=title)), TextDisplay(body)]
-            view = discord.ui.DesignerView(store=False)
-            state_style = "success" if not entries else "moderation_warnings"
-            view.add_item(
-                designer_container(
-                    theme.color(theme.style(state_style).color), *parts
-                )
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "moderation.warnings",
+                title=title,
+                body=body,
+                color=state_color,
+                thumbnail=member.display_avatar.url if member.display_avatar else None,
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @discord.slash_command(
@@ -704,10 +747,18 @@ class ModerationCog(commands.Cog):
         index: discord.Option(int, description="Warning number (omit to clear all)", default=None),
     ) -> None:
         """Remove one warning, or clear all of a member's warnings."""
+        await run(ctx, MODERATION, lambda: self._unwarn(ctx, member, index))
+
+    async def _unwarn(
+        self,
+        ctx: discord.ApplicationContext,
+        member: discord.Member,
+        index: int | None,
+    ) -> None:
+        """Remove one warning, or clear all of them (behind a confirmation)."""
         ok, error_key = await self._can_moderate(ctx, member, "warn")
         if not ok:
             return await self._respond_error(ctx, error_key)
-        t = self.bot.translator.t
 
         if index is None:
             count = len(await self.warnings.get_warnings(self._ctx_guild_id(ctx), member.id))
@@ -725,22 +776,13 @@ class ModerationCog(commands.Cog):
                 on_confirm=clear_all,
             )
             await view.prepare()
-            return await ctx.respond(view=view, ephemeral=True)
+            return await ctx.respond(**await view.message_kwargs(), ephemeral=True)
 
         removed = await self.warnings.remove_warning(self._ctx_guild_id(ctx), member.id, index - 1)
         if not removed:
             return await self._respond_error(ctx, "unwarn.invalid_index")
-        await ctx.respond(
-            view=self._response_view(
-                await t(
-                    self._ctx_guild_id(ctx),
-                    "unwarn.removed",
-                    member=member.mention,
-                    index=index,
-                ),
-                color="success",
-            ),
-            ephemeral=True,
+        return await self._respond_success(
+            ctx, "unwarn.removed", member=member.mention, index=index
         )
 
     #: prefix commands ---------------------------------------------------
@@ -820,6 +862,21 @@ class ModerationCog(commands.Cog):
         duration: str | None = None,
     ) -> None:
         """Shared flow for prefix commands: validate, then confirm/execute."""
+        await run(
+            PrefixContext(ctx),
+            MODERATION,
+            lambda: self._prefix_flow(ctx, action, members, reason, duration),
+        )
+
+    async def _prefix_flow(
+        self,
+        ctx: commands.Context,
+        action: str,
+        members: list[discord.Member],
+        reason: str | None,
+        duration: str | None = None,
+    ) -> None:
+        """Validate every target (the blocked ones answer together), then act."""
         t = self.bot.translator.t
         targets = list(dict.fromkeys(members))
         if not targets:

@@ -1,0 +1,24 @@
+{
+  "buttons": [
+    {
+      "custom_id": "cleaner_yes",
+      "disabled": false,
+      "emoji": null,
+      "label": "Apagar tudo",
+      "style": "danger"
+    },
+    {
+      "custom_id": "cleaner_no",
+      "disabled": false,
+      "emoji": null,
+      "label": "Cancelar",
+      "style": "secondary"
+    }
+  ],
+  "selects": [],
+  "texts": [
+    "# Limpeza de mensagens",
+    "**🔍 Critério:** spam",
+    "Isso apaga mensagens de forma permanente. Não pode ser desfeito."
+  ]
+}

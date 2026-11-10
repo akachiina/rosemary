@@ -1,0 +1,478 @@
+settings:
+  title: Configurações do Bot
+  command:
+    name: configuracoes
+    description: Configura as definições do bot
+  hint: Escolha uma categoria para ver as definições.
+  category_label: Categoria
+  category:
+    placeholder: Selecione uma categoria
+    general: Geral
+    moderation: Moderação
+    logging: Log
+    boost: Cargos Boost
+    bump: Disboard Bump
+    events: Anúncios
+    audit: Registro de Eventos
+    starboard: Starboard
+    suggestions: Sugestões
+    birthdays: Aniversários
+    invites: Convites
+    tickets: Tickets
+    partnerships: Parcerias
+    broadcast_reminders: Broadcast & Lembretes
+    colors: Painel de Cores
+    roleplay: Roleplay
+    confessions: Confissões
+  colors.enabled:
+    label: Painel de Cores Ativado
+    description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).
+  colors.panel_channel:
+    label: Canal do Painel
+    description: Canal onde o painel de cores é postado e repintado quando muda.
+  colors.picker:
+    label: Seletor do Painel
+    description: Como os membros escolhem a cor no painel.
+    choices:
+      buttons: Botões numerados
+      select: Menu de seleção
+  colors.per_container:
+    label: Cores por Card
+    description: Quantas cores por card do painel (cada card tem a própria imagem e botões).
+  colors.manage: Gerenciar cores
+  roleplay.enabled:
+    label: Roleplay ativado
+    description: Cards de roleplay com gif (abraçar, beijar e outros).
+  roleplay.manage: Gerenciar gifs
+  roleplay.no_repeat_gifs:
+    label: Evitar gifs repetidos
+    description: Não repete os gifs usados recentemente em cada ação.
+  bump.enabled:
+    label: Disboard Bump Ativado
+    description: Ativa ou desativa o sistema de Disboard Bump e placar semanal.
+  bump.channel:
+    label: Canal do Bump
+    description: O canal onde o bot do Disboard posta e onde os lembretes serão enviados.
+  bump.ping_role:
+    label: Cargo de Ping
+    description: Cargo a ser mencionado quando o lembrete de bump for enviado.
+  bump.cooldown:
+    label: Cooldown do Bump
+    description: 'Tempo de espera exigido pelo Disboard entre bumps (ex: 2h, 90m).'
+  bump.anti_camping.enabled:
+    label: Anti-camping Ativado
+    description: Trava o canal pouco antes do bump ficar disponível para evitar camping.
+  bump.anti_camping.lock_delay:
+    label: Antecedência do Lock
+    description: 'Quanto tempo antes do bump disponível o canal será travado (ex: 15m).'
+  bump.anti_camping.unlock_delay:
+    label: Delay para Destravar
+    description: 'Tempo após o cooldown para destravar o canal (ex: 15s).'
+  bump.anti_camping.message:
+    label: Mensagem Anti-camping
+    description: A mensagem exibida quando o canal é travado pelo anti-camping.
+  bump.detection_text:
+    label: Texto de Detecção do Bump
+    description: 'Texto enviado pelo Disboard no bump bem-sucedido (ex: "Bump feito"). Ignora maiúsculas/minúsculas.'
+  bump.detection_bot_id:
+    label: ID do Bot de Bump
+    description: ID Discord do bot de bump (padrão Disboard).
+  bump.schedule.enabled:
+    label: Abrir/Fechar Agendado Ativado
+    description: Tranca o canal de bump em horário fixo diário.
+  bump.schedule.open_time:
+    label: Hora de Abertura Diária
+    description: 'Hora que o canal abre todo dia (HH:MM, ex: 06:00).'
+  bump.schedule.open_message:
+    label: Mensagem de Abertura
+    description: Mensagem postada quando o canal abre. Suporta {{ping_role}}.
+  bump.schedule.close_time:
+    label: Hora de Fechamento Diária
+    description: 'Hora que o canal fecha todo dia (HH:MM, ex: 23:00).'
+  bump.schedule.close_message:
+    label: Mensagem de Fechamento
+    description: Mensagem postada quando o canal fecha. Suporta {{ping_role}}.
+  bump.leaderboard.enabled:
+    label: Placar Semanal Ativado
+    description: Ativa o ranking semanal e o cargo de Bump-MVP.
+  bump.leaderboard.winner_role:
+    label: Cargo do Vencedor
+    description: O cargo temporário concedido ao Bump-MVP da semana.
+  bump.leaderboard.reset_day:
+    label: Dia do Reset Semanal
+    description: Em qual dia da semana o placar reinicia.
+    choices:
+      Monday: Segunda-feira
+      Tuesday: Terça-feira
+      Wednesday: Quarta-feira
+      Thursday: Quinta-feira
+      Friday: Sexta-feira
+      Saturday: Sábado
+      Sunday: Domingo
+  bump.leaderboard.reset_hour:
+    label: Hora do Reset (0-23)
+    description: 'A hora exata do dia para resetar o placar (ex: 20).'
+  invites.enabled:
+    label: Rastreamento de Convites Ativado
+    description: Rastreia com qual convite cada membro entrou.
+  invites.show_inviter:
+    label: Mostrar Quem Convidou
+    description: Mostra quem convidou cada membro no card de boas-vindas.
+  invites.track_leaves:
+    label: Rastrear Saídas
+    description: Desconta do convidador quando um convidado sai.
+  invites.count_rejoins:
+    label: Contar Retornos
+    description: Conta membros que saem e voltam a entrar.
+  invites.fake_delay_days:
+    label: Carência Fake (dias)
+    description: Contas mais novas que isso contam como fake (0 desativa).
+  invites.anti_cheat_days:
+    label: Janela Anti-fraude (dias)
+    description: Retornos por outro convidador na janela não pontuam (0 desativa).
+  invites.leaderboard_enabled:
+    label: Ranking de Convites Ativado
+    description: Ativa o ranking de maiores convidadores.
+  invites.leaderboard_size:
+    label: Tamanho do Ranking (5-25)
+    description: Quantos convidadores o ranking mostra.
+  edit: Editar
+  back: Voltar
+  close: Fechar
+  prev: Anterior
+  next: Próxima
+  edit_title: 'Editar: {setting}'
+  select_value: Escolha um novo valor.
+  saved: '{success} Valor definido para {setting}.'
+  invalid_value: '{error} Valor inválido para {setting}.'
+  default_value: 'Padrão: {value}'
+  preview_value: 'Prévia: {value}…'
+  none: Não definido
+  page_indicator: Página {page} de {pages}
+  test:
+    title: '{rocket} Testar Sistema de Bump'
+    hint: Dispare ações reais do sistema de bump para validar sem esperar o cooldown.
+    thank_you: Mensagem de Bump
+    reminder: Enviar Lembrete
+    leaderboard: Postar Placar
+    lock: Travar Canal
+    unlock: Destravar Canal
+    reset: Resetar Semana
+    thank_you_done: '{success} Mensagem de agradecimento enviada no canal de bump.'
+    reminder_done: '{success} Lembrete enviado no canal de bump.'
+    lock_done: '{success} Canal de bump travado.'
+    unlock_done: '{success} Canal de bump destravado.'
+    leaderboard_done: '{success} Placar semanal postado no canal de bump.'
+    no_data: '{error} Não há dados de bump nesta semana para postar.'
+    reset_done: '{success} Semana de bumps resetada.'
+    error: '{error} O sistema de bump não está carregado.'
+    open: Ações de teste
+  log:
+    title: '{gear} Configuração Alterada'
+    description: '**{pencil} {setting}** ({category}): {old} → {new}
+
+      **{people} Por:** {author}'
+  logs:
+    language:
+      description: '**De:** {old}
+
+        **Para:** {new}
+
+        **Por:** {author}'
+      title: '{gear} Idioma Alterado'
+  bool:
+    'true': Ativado
+    'false': Desativado
+  general.timezone:
+    label: Fuso horário
+    description: Fuso horário usado nos carimbos de data e hora.
+  general.prefix:
+    label: Prefixo do bot
+    description: 'Prefixo dos comandos de texto (ex.: !warn).'
+  general.menu_timeout:
+    label: Tempo de expiração dos menus
+    description: Segundos até um menu interativo expirar (60-900).
+  moderation.enabled:
+    label: Moderação ativada
+    description: Define se os comandos de moderação funcionam neste servidor.
+  moderation.warn_limit:
+    label: Limite de warns
+    description: Warns antes de atingir o limite (1-10).
+  moderation.auto_ban_enabled:
+    label: Auto-ban no limite
+    description: Bane membros ao atingir o limite de warns.
+  cleaner.enabled:
+    label: Limpeza ativada
+    description: Se o comando de purge por palavra funciona.
+  anti_invite.enabled:
+    label: Anti-convite ativado
+    description: Apaga links de convite externos na hora.
+  anti_invite.warn_on_delete:
+    label: Avisar ao apagar
+    description: Posta um aviso quando um convite é apagado.
+  anti_invite.exempt_places:
+    label: Locais isentos do anti-convite
+    description: Canais e categorias onde links de convite são permitidos.
+  trap.enabled:
+    label: Canal armadilha ativado
+    description: Quem falar no canal armadilha sofre a consequência configurada.
+  trap.channel:
+    label: Canal armadilha
+    description: Canal onde ninguém deve falar (o membro é punido ao postar).
+  trap.action:
+    label: Consequência na armadilha
+    description: O que acontece com quem postar no canal armadilha.
+    choices:
+      none: Só apagar a mensagem
+      kick: Expulsar do servidor
+      softban: Softban (expulsa e apaga mensagens)
+      ban: Banir do servidor
+  trap.delete_window:
+    label: Janela de mensagens apagadas
+    description: Ban e softban apagam as mensagens recentes do membro (nativo do Discord).
+    choices:
+      none: Não apagar histórico
+      1h: Última hora
+      24h: Últimas 24 horas
+      7d: Últimos 7 dias
+  trap.dm_enabled:
+    label: Avisar a vítima por DM
+    description: Envia DM explicando a consequência (silencioso no canal).
+  list.empty: Nenhum local isento ainda. Use Adicionar para escolher canais ou categorias.
+  list.remove: Remover
+  list.add: Adicionar
+  list.clear: Limpar tudo
+  list.add_hint: Toque no seletor para escolher vários locais. Categorias valem para todos os canais dentro delas.
+  list.confirm: Concluir
+  list.pending: 'Selecionados ({count}): {places}'
+  list.pick_placeholder: Canais e categorias…
+  cancel: Cancelar
+  reminders.enabled:
+    label: Lembretes ativados
+    description: Se lembretes por DM podem ser usados.
+  reminders.target_role:
+    label: Cargo-alvo dos lembretes
+    description: Somente membros com este cargo recebem lembretes. Vazio significa todos.
+  reminders.delay_seconds:
+    label: Pausa entre DMs dos lembretes (0-30s)
+    description: Pausa entre DMs de lembrete.
+  broadcast.enabled:
+    label: Broadcast ativado
+    description: Se broadcast ao vivo pode ser usado.
+  broadcast.target_role:
+    label: Cargo-alvo do broadcast
+    description: Somente membros com este cargo recebem broadcasts. Vazio significa todos.
+  broadcast.delay_seconds:
+    label: Pausa entre DMs do broadcast (0-30s)
+    description: Pausa entre DMs do broadcast.
+  updater.enabled:
+    label: Auto-update ativado
+    description: Verifica e aplica updates sozinho.
+  updater.check_interval_hours:
+    label: Checar a cada (horas)
+    description: Horas entre checagens automáticas (1-168).
+  updater.channel:
+    label: Canal de update
+    description: Releases estáveis ou cada push do git.
+    choices:
+      stable: Releases estáveis
+      git: Pushes do git
+  updater.branch:
+    label: Branch de update
+    description: Branch git de onde atualizar.
+  tickets.enabled:
+    label: Tickets ativados
+    description: Se o painel de tickets funciona.
+  tickets.panel_channel:
+    label: Canal do painel
+    description: Canal onde o painel de tickets é postado.
+  tickets.category:
+    label: Categoria dos tickets
+    description: Categoria dos canais de ticket abertos.
+  tickets.max_open_per_user:
+    label: Máx. tickets abertos (1-10)
+    description: Tickets abertos permitidos por membro.
+  partnerships.enabled:
+    label: Parcerias ativadas
+    description: Se anúncios de parceria funcionam.
+  partnerships.channel:
+    label: Canal de parcerias
+    description: Canal onde os anúncios são postados.
+  partnerships.role:
+    label: Cargo de parceiro
+    description: Cargo dado aos representantes.
+  partnerships.ping_role:
+    label: Cargo de ping de parcerias
+    description: Cargo mencionado na expiração.
+  partnerships.invite_text:
+    label: Texto do convite de parceria
+    description: 'Texto postado por /parcerias convidar. Placeholders: {{rep}} e {{ping_role}}.'
+  partnerships.renewal_days:
+    label: Prazo de renovação (dias)
+    description: Dias até o anúncio expirar (1-90).
+  partnerships.grace_days:
+    label: Carência (dias)
+    description: Dias após expirar antes de remover (0-30).
+  moderation.mute_seconds:
+    label: Duração padrão do mute
+    description: Duração padrão do mute em segundos (60-604800).
+  logging.enabled:
+    label: Log ativado
+    description: Define se os eventos do bot são enviados a um canal de log.
+  logging.channel:
+    label: Canal de log
+    description: Canal onde os logs da equipe e os cards de eventos são publicados.
+  debug.card_paths:
+    label: Rastreio de caminho de cards
+    description: Publica no canal de log o caminho e a origem de cada card enviado.
+  boost.enabled:
+    label: Cargos boost ativados
+    description: Define se o sistema de cargos boost funciona neste servidor.
+  boost.max_members:
+    label: Limite de membros do cargo boost
+    description: Máximo de membros por cargo boost (1-25).
+  boost.invite_seconds:
+    label: Duração do convite boost
+    description: Por quanto tempo os convites boost ficam válidos.
+  boost.max_pending_invites:
+    label: Limite de convites pendentes
+    description: Máximo de convites pendentes por cargo boost (1-20).
+  boost.auto_create.enabled:
+    label: Criar cargo automaticamente
+    description: Cria automaticamente um cargo boost para quem dá boost no servidor.
+  boost.auto_create.below_role:
+    label: Criar abaixo do cargo
+    description: Cargos automáticos são criados logo abaixo deste cargo. O cargo do bot deve estar acima dele.
+  boost.auto_create.unboost_action:
+    label: Ação ao fim do boost
+    description: O que acontece com o cargo automático quando o boost do membro termina.
+    choices:
+      delete: Deletar (volta no próximo boost)
+      remove: Retirar dos membros
+      keep: Manter
+  events.enabled:
+    label: Anúncios ativados
+    description: Envia mensagens de entrada, saída e banimento.
+  events.welcome_channel:
+    label: Canal de boas-vindas
+    description: Canal das mensagens de entrada.
+  events.leave_channel:
+    label: Canal de saídas
+    description: Canal das mensagens de saída.
+  events.ban_channel:
+    label: Canal de bans
+    description: Canal dos anúncios de banimento.
+  events.raid_protection:
+    label: Proteção anti-raid
+    description: Atrasa boas-vindas quando muita gente entra de uma vez.
+  events.welcome_ping_role:
+    label: Cargo de recepcionista
+    description: Cargo pingado junto de cada mensagem de boas-vindas.
+  events.leave_ping_role:
+    label: Cargo de avisos de saída
+    description: Cargo pingado junto de cada mensagem de saída.
+  events.ban_ping_role:
+    label: Cargo de avisos de ban
+    description: Cargo pingado junto de cada anúncio de banimento.
+  audit.enabled:
+    label: Registro de Eventos ativado
+    description: Ativa o registro de eventos do servidor (bans, mensagens, cargos, voz).
+  audit.channel:
+    label: Canal do registro
+    description: Canal onde todos os eventos registrados serão anunciados.
+  audit.ban_enabled:
+    label: Avisar quando alguém for banido
+    description: Registra banimentos, com moderador e motivo quando disponíveis.
+  audit.unban_enabled:
+    label: Avisar quando alguém for desbanido
+    description: Registra a remoção de banimentos.
+  audit.message_delete_enabled:
+    label: Avisar quando uma mensagem for deletada
+    description: Registra mensagens apagadas com o conteúdo original.
+  audit.message_edit_enabled:
+    label: Avisar quando uma mensagem for editada
+    description: Registra edições com o antes e o depois entre ```texto```.
+  audit.nickname_enabled:
+    label: Avisar quando alguém alterar o apelido
+    description: Mostra o apelido antigo e o novo.
+  audit.avatar_enabled:
+    label: Avisar quando alguém alterar o avatar
+    description: Mostra o avatar antigo e o novo (pode não capturar todas as mudanças).
+  audit.roles_enabled:
+    label: Avisar quando alguém ganhar ou perder cargo
+    description: Lista os cargos adicionados e removidos.
+  audit.timeout_enabled:
+    label: Avisar quando alguém receber timeout
+    description: Registra aplicação e remoção de timeout, com data de validade.
+  audit.voice_enabled:
+    label: Avisar entrada e saída de canal de voz
+    description: Registra quando alguém entra ou sai de um canal de voz.
+  audit.bulk_delete_enabled:
+    label: Avisar purga de mensagens em massa
+    description: Um resumo com o total apagado e quem executou, em vez de um card por mensagem.
+  audit.bulk_file_enabled:
+    label: Anexar arquivo das mensagens apagadas
+    description: Envia um .txt com as mensagens da purga junto do resumo.
+  audit.snapshot_enabled:
+    label: Imagem da mensagem nos logs
+    description: Monta uma imagem simulando o chat (bolha do autor) nos logs de mensagem apagada ou editada.
+  audit.trap_enabled:
+    label: Avisar punições do canal armadilha
+    description: Registra quem caiu na armadilha e a consequência aplicada.
+  starboard.enabled:
+    label: Starboard ativado
+    description: Destaca mensagens populares no Starboard.
+  starboard.channel:
+    label: Canal do Starboard
+    description: Canal onde as mensagens destacadas são postadas.
+  starboard.threshold:
+    label: Limite de estrelas (1-25)
+    description: Reações necessárias para destacar uma mensagem.
+  starboard.self_star_counts:
+    label: Auto-estrela conta
+    description: Se a estrela do próprio autor conta.
+  starboard.allow_bots:
+    label: Permitir mensagens de bots
+    description: Se mensagens de bots podem ser destacadas.
+  suggestions.enabled:
+    label: Sugestões ativadas
+    description: Recebe sugestões dos membros com voto em botões.
+  suggestions.channel:
+    label: Canal de sugestões
+    description: Canal onde as sugestões são postadas.
+  suggestions.dm_votes:
+    label: DMs de voto
+    description: Avisa o autor por DM a cada voto.
+  confessions.enabled:
+    label: Confissões ativadas
+    description: Recebe confissões anônimas dos membros.
+  confessions.public_channel:
+    label: Canal de confissões
+    description: Canal onde as confissões aprovadas são postadas.
+  confessions.review_channel:
+    label: Canal de revisão
+    description: Canal onde a staff revisa as confissões.
+  confessions.review_required:
+    label: Revisão da staff
+    description: Segura as confissões para revisão antes de postar.
+  confessions.reveal_author:
+    label: Revelar autor
+    description: Mostra quem escreveu cada confissão para a staff.
+  confessions.mark_op:
+    label: Marcar o autor da confissão
+    description: Marca as respostas escritas pelo autor da própria confissão.
+  birthdays.enabled:
+    label: Aniversários ativados
+    description: Registra aniversários e posta anúncios.
+  birthdays.channel:
+    label: Canal de aniversários
+    description: Canal dos anúncios de aniversário.
+  birthdays.role:
+    label: Cargo de aniversário
+    description: Cargo dado aos aniversariantes do dia.
+  birthdays.announce_time:
+    label: Hora do anúncio
+    description: 'Hora do anúncio diário (HH:MM, ex: 12:00).'
+  birthdays.change_cooldown_days:
+    label: Carência de troca (dias)
+    description: Dias para poder trocar o aniversário (0-365).

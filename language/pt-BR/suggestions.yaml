@@ -1,0 +1,81 @@
+suggest:
+  command:
+    name: sugestao
+    description: Envie sugestões para o servidor
+  modal:
+    title: Enviar sugestão
+    label: Sua sugestão
+    placeholder: Escreva sua sugestão aqui...
+    image_label: Imagem (opcional)
+    image_description: Anexe uma imagem à sua sugestão.
+  card:
+    title: 'Sugestão #{suggestion_number}'
+    hint: Use `/{command}` ou o botão abaixo para enviar a sua sugestão!
+  vote:
+    new: Enviar sugestão
+  status:
+    approved: '{check} Aprovada pela staff'
+    rejected: '{error} Recusada pela staff'
+  dm:
+    up: upvote
+    down: downvote
+    body: '{voter} deu um **{vote}** na sua **sugestão #{suggestion_number}:**
+
+      > {body}'
+    jump: Ir para a sugestão
+    approved: '{check} Sua sugestão **#{suggestion_number}** foi aprovada por {moderator}!'
+    rejected: '{error} Sua sugestão **#{suggestion_number}** foi recusada por {moderator}.'
+    reason: 'Motivo: {reason}'
+  sent: '{success} Sua sugestão foi postada!'
+  voted: '{success} Voto registrado! ({up} a favor, {down} contra)'
+  error_disabled: '{error} Sugestões estão desativadas neste servidor.'
+  error_no_channel: '{error} Nenhum canal de sugestões configurado.'
+  error_no_perms: '{error} Não consigo postar no canal de sugestões.'
+  error_failed: '{error} Não foi possível postar sua sugestão. Tente de novo.'
+  error_empty: '{error} Sua sugestão não pode estar vazia.'
+  error_too_long: '{error} Sua sugestão é longa demais.'
+  error_bad_image: '{error} Anexe um arquivo de imagem.'
+  error_image_too_large: '{error} A imagem é grande demais (limite de 8 MB).'
+  error_gone: '{error} Essa sugestão não existe mais.'
+  error_not_found: '{error} Sugestão #{suggestion_number} não encontrada.'
+  error_decided: '{error} A sugestão #{suggestion_number} já foi avaliada.'
+  decided_approved: '{success} Sugestão #{suggestion_number} aprovada.'
+  decided_rejected: '{success} Sugestão #{suggestion_number} recusada.'
+  no_reason: Sem motivo informado.
+suggest_admin:
+  command:
+    name: suggest_admin
+    description: '[ADMIN] Moderação de sugestões para a staff'
+suggest_admin_approve:
+  command:
+    name: aprovar
+    description: '[ADMIN] Aprova uma sugestão pelo número'
+    options:
+      number:
+        description: Número da sugestão
+      reason:
+        description: Motivo mostrado ao autor
+suggest_admin_reject:
+  command:
+    name: recusar
+    description: '[ADMIN] Recusa uma sugestão pelo número'
+    options:
+      number:
+        description: Número da sugestão
+      reason:
+        description: Motivo mostrado ao autor
+suggest_send:
+  command:
+    name: enviar
+    description: Envie uma sugestão para o servidor
+suggestions:
+  logs:
+    created:
+      title: '{pencil} Sugestão postada'
+      description: '{user} postou a sugestão **#{suggestion_number}** em {channel}.'
+    approved:
+      title: '{check} Sugestão aprovada'
+      description: '{moderator} aprovou a sugestão **#{suggestion_number}** de {user} ({reason}).'
+    rejected:
+      title: '{error} Sugestão recusada'
+      description: '{moderator} recusou a sugestão **#{suggestion_number}** de {user} ({reason}).'

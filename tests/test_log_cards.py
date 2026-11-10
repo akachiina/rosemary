@@ -1,169 +1,151 @@
-"""Default log cards: layout, footer, legacy body and full-card overrides."""
+"""The staff log cards: the documents of the log family.
+
+The log events are documents now (``themes/default/cards/logs.yaml``): the
+document says what the log is (title, body, fields, author, footer) and the
+catalog carries the copy. These tests pin the frame of the family: the
+fields, the avatar, the footer and the legacy theme overrides.
+"""
 
 from __future__ import annotations
 
-import rosemary.core.card_specs  # noqa: F401  (registers every card builder)
-from rosemary.core.card_service import get_effective_document
-from rosemary.core.debug_cards import default_debug_panel
-from rosemary.core.log_cards import default_log_document
-from rosemary.core.log_specs import LOG_SPECS
+from golden_cards import make_bot
+
+import rosemary.core.card_specs  # noqa: F401  (registers every card)
+from rosemary.core.card_service import render_card_message
+from rosemary.core.cards import get_card
+from rosemary.core.theme_package import default_package
 from rosemary.ui.theme import load_theme
 
 
-class _Translator:
-    def __init__(self, words=None) -> None:
-        self.words = words or {}
-
-    async def t(self, guild_id, key, **kwargs):
-        found = self.words.get(key)
-        if found is not None:
-            return found
-        return f"{key}:{kwargs}" if kwargs else key
-
-    async def raw(self, guild_id, key):
-        return self.words.get(key, key)
+async def _render(bot, key: str, variables: dict | None = None, *, form: str | None = None):
+    """Render one log card and return its payload."""
+    payload, _allowed = await render_card_message(bot, 1, key, variables or {}, form=form)
+    return payload
 
 
-class _ThemeStore:
-    def __init__(self, theme) -> None:
-        self.theme = theme
-
-    async def effective_theme(self, bot, guild_id):
-        return self.theme
-
-
-class _Bot:
-    def __init__(self, theme=None) -> None:
-        self.theme = theme or load_theme()
-        self._theme_cache = {1: self.theme}
-        self._theme_store = _ThemeStore(self.theme)
-        self.translator = _Translator()
-
-
-def _children(doc: dict) -> list[dict]:
-    return doc["blocks"][0]["children"]
-
-
-async def test_fields_log_uses_a_timestamp_only_footer():
-    spec = LOG_SPECS["moderation.logs.ban"]
-    doc = await default_log_document(
-        _Bot(),
-        1,
-        spec,
-        member="<@2>",
-        member_id="2",
-        moderator="<@3>",
-        reason="spam",
-    )
-    children = _children(doc)
-    assert children[0]["body"] == "# moderation.logs.ban.title"
-    fields = children[1]["body"]
-    assert "**log.field.target.label:** <@2>" in fields
-    assert "**log.field.moderator.label:** <@3>" in fields
-    assert children[-1]["body"] == "-# {timestamp}"
+def test_every_log_event_has_a_document():
+    """The package carries the whole log family, with its contract."""
+    package = default_package()
+    # The log family: the staff log events, the settings log and the trace.
+    events = [
+        key
+        for key in package.card_keys()
+        if ".logs." in key or key in ("settings.log", "debug.trace")
+    ]
+    assert len(events) == 75
+    for key in events:
+        spec = get_card(key)
+        assert spec is not None, key
+        meta = package.metadata(key)
+        assert spec.category == meta["category"]
+        assert spec.variables == meta["variables"]
+        assert spec.form == meta["form"]
 
 
-async def test_moderation_log_uses_the_avatar_section():
-    doc = await default_log_document(
-        _Bot(),
-        1,
-        LOG_SPECS["moderation.logs.warn"],
-        member="<@2>",
-        member_id="2",
-        user_avatar="https://cdn.example/2.png",
-        moderator="<@3>",
-        reason="spam",
-    )
-    children = _children(doc)
-    section = children[0]
-    assert section["type"] == "section"
-    assert section["accessory"] == {
-        "type": "thumbnail",
-        "url": "https://cdn.example/2.png",
-    }
-    assert section["children"][0]["body"] == "# moderation.logs.warn.title"
-    assert "**log.field.target.label:** <@2>" in section["children"][1]["body"]
-    assert children[-1]["body"] == "-# {timestamp}"
-
-
-async def test_invites_leave_log_uses_the_avatar_section():
-    bot = _Bot()
-    bot.translator = _Translator(
-        {
-            "invites.logs.leave.title": "{door} Membro Saiu",
-            "invites.logs.leave.description": "**Membro:** {user}\n**Convidador:** {inviter}",
-        }
-    )
-    doc = await default_log_document(
+async def test_a_fields_log_shows_its_fields_and_a_timestamp_footer():
+    bot = make_bot()
+    payload = await _render(
         bot,
-        1,
-        LOG_SPECS["invites.logs.leave"],
-        user="<@2>",
-        user_avatar="https://cdn.example/left.png",
-        inviter="<@3>",
-    )
-    children = _children(doc)
-    section = children[0]
-    assert section["type"] == "section"
-    assert section["accessory"] == {
-        "type": "thumbnail",
-        "url": "https://cdn.example/left.png",
-    }
-    assert "Membro Saiu" in section["children"][0]["body"]
-    assert "{user}" in section["children"][1]["body"]
-    assert "{inviter}" in section["children"][1]["body"]
-    assert children[-1]["body"] == "-# {timestamp}"
-
-
-async def test_field_labels_resolve_catalog_keys():
-    bot = _Bot()
-    bot.translator = _Translator(
+        "moderation.logs.ban",
         {
-            "log.field.target.label": "{people} Alvo",
-            "log.field.member_id.label": "{numbers} ID do membro",
-            "log.field.moderator.label": "{gear} Moderador(a)",
-            "log.field.reason.label": "{scroll} Motivo",
-        }
+            "member": "<@2>",
+            "member_id": "123456789012345678",
+            "moderator": "<@3>",
+            "reason": "spam",
+            "actor": "<@3>",
+            "timestamp": "<t:1:R>",
+        },
     )
-    doc = await default_log_document(
+    embed = payload.embed
+    assert embed.title == "🚫 Banimento"
+    assert [field.name for field in embed.fields] == [
+        "👥 Alvo",
+        "🔢 ID do membro",
+        "⚙️ Moderador(a)",
+        "📜 Motivo",
+    ]
+    assert embed.fields[0].value == "<@2>"
+    # A machine value (a snowflake) renders as inline code.
+    assert embed.fields[1].value == "`123456789012345678`"
+    assert embed.fields[3].value == "spam"
+    # The actor is named in the fields: the footer carries the time only.
+    assert embed.footer.text == "<t:1:R>"
+    assert embed.author.name == "<@3>"
+
+
+async def test_the_moderation_log_shows_the_target_avatar():
+    bot = make_bot()
+    payload = await _render(
         bot,
-        1,
-        LOG_SPECS["moderation.logs.ban"],
-        member="<@2>",
-        member_id="2",
-        moderator="<@3>",
-        reason="spam",
+        "moderation.logs.warn",
+        {
+            "member": "<@2>",
+            "member_id": "2",
+            "moderator": "<@3>",
+            "reason": "spam",
+            "actor": "<@3>",
+            "user_avatar": "https://cdn.example/2.png",
+            "timestamp": "<t:1:R>",
+        },
     )
-    fields = _children(doc)[1]["body"]
-    assert "**{people} Alvo:** <@2>" in fields
-    assert "**{gear} Moderador(a):** <@3>" in fields
-    assert "log.field." not in fields
+    embed = payload.embed
+    assert embed.thumbnail.url == "https://cdn.example/2.png"
+    assert embed.author.name == "<@3>"
+    assert embed.author.icon_url is None
 
 
-async def test_log_title_uses_the_theme_title_preset():
-    theme = load_theme()
-    theme.markdown["title"] = "## {title}"
-    doc = await default_log_document(
-        _Bot(theme), 1, LOG_SPECS["debug.logs.test"]
+async def test_the_leave_log_uses_the_avatar_as_the_author_icon():
+    bot = make_bot()
+    payload = await _render(
+        bot,
+        "invites.logs.leave",
+        {
+            "user": "<@2>",
+            "inviter": "<@3>",
+            "user_avatar": "https://cdn.example/left.png",
+            "timestamp": "<t:1:R>",
+        },
     )
-    assert _children(doc)[0]["body"] == "## debug.logs.test.title"
+    embed = payload.embed
+    # Nobody acted: the member is the author, with their own icon.
+    assert embed.author.name == "<@2>"
+    assert embed.author.icon_url == "https://cdn.example/left.png"
+    assert embed.thumbnail is None
+    assert embed.description == "**Membro:** <@2>\n**Convidador:** <@3>"
 
 
-async def test_actor_footer_when_the_body_does_not_name_the_actor():
-    spec = LOG_SPECS["bump.logs.no_role"]
-    doc = await default_log_document(
-        _Bot(),
-        1,
-        spec,
-        actor="<@9>",
-        body_key="bump.error_role_not_found",
+async def test_the_title_uses_the_theme_title_preset():
+    bot = make_bot()
+    bot.theme.markdown["title"] = "## {title}"
+    payload = await _render(bot, "bump.logs.channel_locked", {"channel": "#geral"}, form="card")
+    container = payload.view.children[0]
+    body = container.items[0].content
+    assert body == "## 🔒 Canal Bloqueado"
+
+
+async def test_the_actor_footer_when_the_body_does_not_name_the_actor():
+    bot = make_bot()
+    payload = await _render(
+        bot,
+        "bump.logs.no_role",
+        {"actor": "<@9>", "timestamp": "<t:1:R>"},
     )
-    assert _children(doc)[-1]["body"] == "-# by {actor} · {timestamp}"
+    assert payload.embed.footer.text == "por <@9> · <t:1:R>"
 
 
-async def test_legacy_body_override_keeps_the_new_title_and_footer():
-    theme = load_theme()
-    theme.cards = {
+async def test_the_system_footer_when_there_is_no_actor():
+    bot = make_bot()
+    payload = await _render(
+        bot,
+        "bump.logs.channel_locked",
+        {"channel": "#geral", "timestamp": "<t:1:R>"},
+    )
+    assert payload.embed.footer.text == "<t:1:R>"
+
+
+async def test_the_legacy_body_override_keeps_the_new_title_and_footer():
+    bot = make_bot()
+    bot.theme.cards = {
         "moderation.logs.ban.description": {
             "v": 1,
             "blocks": [
@@ -177,22 +159,28 @@ async def test_legacy_body_override_keeps_the_new_title_and_footer():
             ],
         }
     }
-    doc = await default_log_document(
-        _Bot(theme),
-        1,
-        LOG_SPECS["moderation.logs.ban"],
-        member="<@2>",
-        member_id="2",
-        moderator="<@3>",
-        reason="spam",
+    payload = await _render(
+        bot,
+        "moderation.logs.ban",
+        {
+            "member": "<@2>",
+            "member_id": "2",
+            "moderator": "<@3>",
+            "reason": "spam",
+            "actor": "<@3>",
+            "timestamp": "<t:1:R>",
+        },
     )
-    children = _children(doc)
-    assert children[0]["body"] == "# moderation.logs.ban.title"
-    assert "legacy body for <@2>" in children[1]["body"]
-    assert children[-1]["body"] == "-# {timestamp}"
+    embed = payload.embed
+    assert embed.title == "🚫 Banimento"
+    assert embed.description == "legacy body for <@2>"
+    # The fields gave way to the legacy body, the frame stayed.
+    assert embed.fields == []
+    assert embed.footer.text == "<t:1:R>"
 
 
-async def test_full_card_override_wins_over_the_log_builder():
+async def test_a_full_card_override_wins_over_the_document():
+    bot = make_bot()
     override = {
         "v": 1,
         "blocks": [
@@ -203,30 +191,18 @@ async def test_full_card_override_wins_over_the_log_builder():
             }
         ],
     }
+    bot.theme.cards = {"moderation.logs.ban": override}
+    payload = await _render(bot, "moderation.logs.ban", {"member": "<@2>"})
+    assert payload.embed is None
+    body = payload.view.children[0].items[0].content
+    assert body == "full override"
+
+
+def test_the_default_theme_still_carries_the_log_copy():
+    """The copy of a log lives in the catalogs, not in the document."""
     theme = load_theme()
-    theme.cards = {"moderation.logs.ban": override}
-    doc = await get_effective_document(
-        _Bot(theme), 1, "moderation.logs.ban", {}
-    )
-    assert doc == override
-
-
-async def test_debug_panel_is_a_rich_card():
-    doc = await default_debug_panel(
-        _Bot(),
-        1,
-        guilds=2,
-        members=15,
-        latency="500",
-        uptime="1h",
-        version="1.0",
-        theme="default",
-        logging="On",
-        audit="Off",
-        timestamp="now",
-    )
-    children = _children(doc)
-    assert children[0]["body"] == "# Debug panel"
-    assert "debug.guilds" in children[1]["body"]
-    assert "debug.panel.logging" in children[1]["body"]
-    assert children[-1]["body"] == "-# now"
+    assert theme.emojis  # the theme is loaded
+    package = default_package()
+    document = package.document("moderation.logs.ban")
+    assert document["title"] == "{moderation.logs.ban.title}"
+    assert document["fields"][0] == {"target": "{member}"}

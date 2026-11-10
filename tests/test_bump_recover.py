@@ -185,7 +185,9 @@ async def test_send_reminder_separates_content_and_view(tmp_path):
     cog.bot = bot
     cog.store = AsyncMock()
     cog.store.mark_reminder_sent = AsyncMock()
-    cog._build_reminder_view = AsyncMock(return_value=MagicMock())
+    card = MagicMock()
+    card.message_kwargs.return_value = {"embed": MagicMock()}
+    cog._build_reminder_payload = AsyncMock(return_value=card)
 
     try:
         await cog.send_reminder(1)
@@ -193,18 +195,18 @@ async def test_send_reminder_separates_content_and_view(tmp_path):
         mod.get_setting = orig_get_setting
         mod.send_log = orig_send_log
 
-    # Two send calls: one for the role ping, one for the view alone.
+    # Two send calls: one for the role ping, one for the card alone.
     assert channel.send.await_count == 2
 
     first_call = channel.send.await_args_list[0]
     second_call = channel.send.await_args_list[1]
 
-    # First call: content only (no view)
+    # First call: content only (no card)
     assert first_call.args[0] == "<@&42>"
-    assert first_call.kwargs.get("view") is None
+    assert first_call.kwargs.get("embed") is None
 
-    # Second call: view only (no content)
-    assert second_call.kwargs.get("view") is not None
+    # Second call: the card alone (no content): the reminder is an embed.
+    assert second_call.kwargs.get("embed") is not None
     assert len(second_call.args) == 0
 
     cog.store.mark_reminder_sent.assert_awaited_once_with(1)

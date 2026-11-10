@@ -275,7 +275,8 @@ async def test_open_default_localized_pt_with_ping_role(tmp_path):
     assert "The bump channel is open" not in message
     # Theme emojis resolve in the same pass (no "{unlock}" literal left).
     assert "{unlock}" not in message
-    assert "\U0001F513" in message
+    # The copy carries no emoji: the notice prefix owns the only one.
+    assert "\U0001F513" not in message
 
 
 async def test_open_default_localized_en(tmp_path):
@@ -292,7 +293,8 @@ async def test_open_default_localized_en(tmp_path):
     assert "The bump channel is open!" in message
     assert "<@&" not in message
     assert "{unlock}" not in message
-    assert "\U0001F513" in message
+    # The copy carries no emoji: the notice prefix owns the only one.
+    assert "\U0001F513" not in message
 
 
 async def test_custom_message_is_preserved(tmp_path):
@@ -357,5 +359,7 @@ async def test_open_send_pings_role_by_default(tmp_path):
     assert channel.send.await_count == 1
     sent_text = channel.send.call_args.args[0]
     assert "<@&222>" in sent_text
+    # The channel notice is one plain line: the theme prefix plus the copy.
+    assert sent_text.startswith("✅ **|** ")
     allowed = channel.send.call_args.kwargs.get("allowed_mentions")
     assert [r.id for r in (allowed.roles or [])] == [222]

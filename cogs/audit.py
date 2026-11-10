@@ -109,276 +109,6 @@ def _timeout_until(member):
     return getattr(member, "communication_disabled_until", getattr(member, "timed_out_until", None))
 
 
-async def default_audit_document(
-    bot,
-    guild_id: int,
-    *,
-    title_key: str,
-    body_key: str,
-    color: str,
-    emoji_token: str,
-    actor_key: str | None = None,
-    **variables,
-) -> dict:
-    """Catalog-default audit card, mirroring the welcome-cog event layout.
-
-    Without ``actor_key`` the footer is the standard author attribution
-    (``card.author_footer.text``): ``{user}`` and ``{timestamp}`` stay
-    literal in the blocks and resolve at render from the send-site
-    variables. Events that declare ``actor_key`` (ban / unban / bulk purge)
-    carry their actor (the moderator) in ``variables[actor_key]``, so the
-    builder resolves the attribution itself with
-    :func:`~rosemary.core.cards.author_footer_text`: the event's *target*
-    (``{user}``) must never become the "por" mention, or viewers render
-    "@usuário-desconhecido" for anyone outside their member cache. With no
-    discovered moderator the footer degrades to the timestamp-only system
-    line instead of inventing an empty attribution.
-    """
-    from rosemary.core.cards import (
-        ECHO_VARIABLES,
-        author_footer_blocks,
-        author_footer_template,
-        author_footer_text,
-        safe_format,
-    )
-
-    mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
-
-    async def raw(key: str) -> str:
-        return safe_format(await bot.translator.raw(guild_id, key), mapping)
-
-    title = await raw(title_key)
-    if not title.startswith("#"):
-        # Catalog titles usually carry their own emoji token; prefixing the
-        # theme emoji on top of an already-decorated title doubles it.
-        already = any(e and e in title for e in bot.theme.emojis.values())
-        emoji = "" if already else bot.theme.emojis.get(emoji_token, "")
-        title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
-    body = await raw(body_key)
-    children: list[dict] = [
-        {
-            "type": "section",
-            "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
-            "children": [
-                {"type": "text", "body": title},
-                {"type": "text", "body": body},
-            ],
-        }
-    ]
-    if actor_key is None:
-        children.extend(await author_footer_blocks(bot, guild_id))
-    else:
-        template = await author_footer_template(bot, guild_id)
-        actor = str(variables.get(actor_key) or "").strip()
-        timestamp = str(variables.get("timestamp") or "").strip() or "{timestamp}"
-        footer = (
-            author_footer_text(template, actor, timestamp) if actor else timestamp
-        )
-        children.extend(
-            [
-                {"type": "divider"},
-                {"type": "text", "body": f"-# {footer}"},
-            ]
-        )
-    return {
-        "v": 1,
-        "blocks": [
-            {"type": "container", "color": color, "children": children}
-        ],
-    }
-
-
-async def default_message_document(
-    bot,
-    guild_id: int,
-    *,
-    title_key: str,
-    body_key: str,
-    color: str,
-    emoji_token: str,
-    **variables,
-) -> dict:
-    """Catalog-default card for message_delete / message_edit.
-
-    The event layout plus the optional media blocks: the attachments line
-    (``card.audit.attachments_line``, composed at the send site into
-    ``{attachment_lines}``), then the visual content (chat snapshot image via
-    ``{chat_image}``, falling back to the original image URL) as a gallery.
-    Both drop out when their variables resolve empty; the author footer stays.
-    """
-    from rosemary.core.cards import ECHO_VARIABLES, author_footer_blocks, safe_format
-
-    mapping = {**bot.theme.emojis, **ECHO_VARIABLES, **variables}
-
-    async def raw(key2: str) -> str:
-        return safe_format(await bot.translator.raw(guild_id, key2), mapping)
-
-    title = await raw(title_key)
-    if not title.startswith("#"):
-        already = any(e and e in title for e in bot.theme.emojis.values())
-        emoji = "" if already else bot.theme.emojis.get(emoji_token, "")
-        title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
-    body = await raw(body_key)
-    footer = await author_footer_blocks(bot, guild_id)
-
-    children: list[dict] = [
-        {
-            "type": "section",
-            "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
-            "children": [
-                {"type": "text", "body": title},
-                {"type": "text", "body": body},
-            ],
-        }
-    ]
-    attachments = str(variables.get("attachment_lines") or "").strip()
-    if attachments:
-        line_template = await bot.translator.raw(guild_id, "card.audit.attachments_line")
-        if (
-            isinstance(line_template, str)
-            and line_template.strip()
-            and line_template != "card.audit.attachments_line"
-        ):
-            children.append(
-                {
-                    "type": "text",
-                    "body": safe_format(
-                        line_template, {**mapping, "attachment_lines": attachments}
-                    ),
-                }
-            )
-        else:
-            children.append({"type": "text", "body": attachments})
-    chat_image = str(variables.get("chat_image") or "").strip()
-    image_url = str(variables.get("image_url") or "").strip()
-    if chat_image or image_url:
-        children.append({"type": "divider"})
-        children.append({"type": "gallery", "urls": [chat_image or image_url]})
-    children.extend(footer)
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": color, "children": children}],
-    }
-
-
-_AUDIT_EVENTS = (
-    ("ban", "card.audit.ban.title", "card.audit.ban.body", "danger", "ban", "moderator"),
-    (
-        "unban",
-        "card.audit.unban.title",
-        "card.audit.unban.body",
-        "success",
-        "check",
-        "moderator",
-    ),
-    (
-        "bulk_delete",
-        "card.audit.bulk_delete.title",
-        "card.audit.bulk_delete.body",
-        "warning",
-        "trash",
-        "moderator",
-    ),
-    ("nickname", "card.audit.nickname.title", "card.audit.nickname.body", "info", "swap", None),
-    ("avatar", "card.audit.avatar.title", "card.audit.avatar.body", "info", "frame", None),
-    ("roles", "card.audit.roles.title", "card.audit.roles.body", "info", "tag", None),
-    ("timeout", "card.audit.timeout.title", "card.audit.timeout.body", "danger", "mute", None),
-    (
-        "voice_join",
-        "card.audit.voice_join.title",
-        "card.audit.voice_join.body",
-        "success",
-        "door",
-        None,
-    ),
-    (
-        "voice_leave",
-        "card.audit.voice_leave.title",
-        "card.audit.voice_leave.body",
-        "info",
-        "door",
-        None,
-    ),
-    ("trap", "card.audit.trap.title", "card.audit.trap.body", "danger", "lock", None),
-)
-
-
-def _register_default_builders() -> None:
-    from rosemary.core.cards import set_default_builder
-
-    for name, title_key, body_key, color, emoji, actor in _AUDIT_EVENTS:
-
-        # Send-site variables flow through (``**_variables``); the layout is
-        # fixed per event, so only the closure-bound keys matter here.
-        async def _builder(
-            bot,
-            guild_id,
-            *,
-            t=title_key,
-            b=body_key,
-            c=color,
-            e=emoji,
-            a=actor,
-            **_variables,
-        ):
-            return await default_audit_document(
-                bot,
-                guild_id,
-                title_key=t,
-                body_key=b,
-                color=c,
-                emoji_token=e,
-                actor_key=a,
-                **_variables,
-            )
-
-        set_default_builder(f"audit.{name}", _builder)
-
-    # message_delete / message_edit own a dedicated builder: the media blocks
-    # (attachments line, gallery) react to the send-site variables.
-    for name, title_key, body_key, color, emoji in (
-        (
-            "message_delete",
-            "card.audit.message_delete.title",
-            "card.audit.message_delete.body",
-            "warning",
-            "trash",
-        ),
-        (
-            "message_edit",
-            "card.audit.message_edit.title",
-            "card.audit.message_edit.body",
-            "info",
-            "pencil",
-        ),
-    ):
-
-        async def _message_builder(
-            bot,
-            guild_id,
-            *,
-            t=title_key,
-            b=body_key,
-            c=color,
-            e=emoji,
-            **_variables,
-        ):
-            return await default_message_document(
-                bot,
-                guild_id,
-                title_key=t,
-                body_key=b,
-                color=c,
-                emoji_token=e,
-                **_variables,
-            )
-
-        set_default_builder(f"audit.{name}", _message_builder)
-
-
-_register_default_builders()
-
-
 class AuditCog(commands.Cog):
     """Registro de Eventos: registry cards for moderation-relevant activity."""
 
@@ -502,41 +232,44 @@ class AuditCog(commands.Cog):
             template, {**self.bot.theme.emojis, "file_url": file_url}
         )
 
+    async def _attachments_line(self, guild_id: int, attachments: str) -> str:
+        """``card.audit.attachments_line`` prefixed with a newline, or empty.
+
+        The line joins the body of a message event: the send site composes
+        it (the catalog owns the label and the emoji), so the card never
+        shows a label with nothing after it.
+        """
+        if not attachments:
+            return ""
+        template = await _line(self.bot, guild_id, "attachments_line")
+        from rosemary.core.cards import safe_format
+
+        if not template:
+            return "\n" + attachments
+        return "\n" + safe_format(
+            template, {**self.bot.theme.emojis, "attachment_lines": attachments}
+        )
+
     async def _send(self, channel, guild_id: int, key: str, variables: dict) -> None:
         """Render ``audit.<event>`` through the shared pipeline and send it."""
-        from rosemary.core.card_service import CardPayload, render_card_message, send_card
-        from rosemary.core.cards import maybe_text
+        from rosemary.core.card_service import render_card_message, send_card, simple_payload
         from rosemary.core.mentions import allowed_for_ids
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
 
         card_key = f"audit.{key}"
         try:
             payload, allowed = await render_card_message(self.bot, guild_id, card_key, variables)
             if payload is None:
-                # No theme override and the default builder failed: catalog
-                # text fallback, still a themed container.
-                text = await maybe_text(self.bot, guild_id, card_key, **variables)
-                view = DesignerView(store=False)
-                if text is None:
-                    t = self.bot.translator.t
-                    theme = self.bot.theme
-                    view.add_item(
-                        designer_container(
-                            theme.color("info"),
-                            TextDisplay(
-                                theme.md(
-                                    "title",
-                                    title=await t(guild_id, f"card.{card_key}.title"),
-                                )
-                            ),
-                            TextDisplay(
-                                await t(guild_id, f"card.{card_key}.body", **variables)
-                            ),
-                        )
-                    )
-                else:
-                    view.add_item(TextDisplay(text))
-                payload = CardPayload(view=view)
+                # No theme override and the default builder failed: the
+                # catalog copy, in the card's own form (an embed).
+                t = self.bot.translator.t
+                payload = simple_payload(
+                    self.bot,
+                    guild_id,
+                    card_key,
+                    title=await t(guild_id, f"card.{card_key}.title"),
+                    body=await t(guild_id, f"card.{card_key}.body", **variables),
+                    color="info",
+                )
                 allowed = await allowed_for_ids(self.bot, guild_id, card_key, user_ids=[])
             if self._snapshot_files:
                 # Chat snapshot images ride the same message: the card's
@@ -705,6 +438,7 @@ class AuditCog(commands.Cog):
             if stamp and stamp[1] > time.monotonic():
                 return
             attachment_lines, image_url = _media(message)
+            attachments = "\n".join(attachment_lines)
             await self._send(
                 channel,
                 guild.id,
@@ -717,7 +451,8 @@ class AuditCog(commands.Cog):
                     "channel": message.channel.mention,
                     "message_link": message.jump_url,
                     **await self._snapshot_vars(guild, guild.id, message),
-                    "attachment_lines": "\n".join(attachment_lines),
+                    "attachment_lines": attachments,
+                    "attachments_line": await self._attachments_line(guild.id, attachments),
                     "image_url": image_url,
                 },
             )
@@ -736,6 +471,7 @@ class AuditCog(commands.Cog):
             if channel is None or not await self._on(guild.id, "audit.message_edit_enabled"):
                 return
             attachment_lines, image_url = _media(after)
+            attachments = "\n".join(attachment_lines)
             await self._send(
                 channel,
                 guild.id,
@@ -749,7 +485,8 @@ class AuditCog(commands.Cog):
                     "channel": before.channel.mention,
                     "message_link": after.jump_url,
                     **await self._snapshot_vars(guild, guild.id, after, before=before),
-                    "attachment_lines": "\n".join(attachment_lines),
+                    "attachment_lines": attachments,
+                    "attachments_line": await self._attachments_line(guild.id, attachments),
                     "image_url": image_url,
                 },
             )

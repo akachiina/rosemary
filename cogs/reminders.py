@@ -114,8 +114,7 @@ class RemindersCog(commands.Cog):
                 await self.bot.translator.t(ctx.guild_id, "reminders.list_empty"),
                 ephemeral=True,
             )
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         t = self.bot.translator.t
         title = await t(ctx.guild_id, "reminders.list_title")
@@ -124,15 +123,14 @@ class RemindersCog(commands.Cog):
             self.bot, ctx.guild_id, "reminders.list", {"title": title, "body": body}
         )
         if payload is None:
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    self.bot.theme.color("info"),
-                    TextDisplay(self.bot.theme.md("title", title=title)),
-                    TextDisplay(body),
-                )
+            payload = simple_payload(
+                self.bot,
+                ctx.guild_id,
+                "reminders.list",
+                title=title,
+                body=body,
+                color="info",
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @reminders_group.command(

@@ -1,0 +1,24 @@
+# The birthdays settings.
+settings:
+  birthdays.enabled:
+    category: birthdays
+    type: boolean
+    default: true
+  birthdays.channel:
+    category: birthdays
+    type: channel
+    default: null
+  birthdays.role:
+    category: birthdays
+    type: role
+    default: null
+  birthdays.announce_time:
+    category: birthdays
+    type: string
+    default: "12:00"
+  birthdays.change_cooldown_days:
+    category: birthdays
+    type: integer
+    default: 15
+    min: 0
+    max: 365

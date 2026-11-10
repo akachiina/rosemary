@@ -1,0 +1,14 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "Membro: <@0>\nConvidado por: <@0>\nCódigo: `abc123`\nEntrou: …\nStatus: …",
+    "fields": [],
+    "title": "Convidado por",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "invites.invited_by",
+  "pings": [],
+  "view": []
+}

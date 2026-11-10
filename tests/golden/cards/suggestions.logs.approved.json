@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "description": "<@0> aprovou a sugestão **#1** de <@0> (…).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "✅ Sugestão aprovada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "suggestions.logs.approved",
+  "pings": [],
+  "view": []
+}

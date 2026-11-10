@@ -1,0 +1,14 @@
+# The suggestions settings.
+settings:
+  suggestions.enabled:
+    category: suggestions
+    type: boolean
+    default: false
+  suggestions.channel:
+    category: suggestions
+    type: channel
+    default: null
+  suggestions.dm_votes:
+    category: suggestions
+    type: boolean
+    default: true

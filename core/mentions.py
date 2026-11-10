@@ -76,11 +76,11 @@ def theme_pings(bot, guild_id: int | None, key: str) -> bool:
         # log cards used to live under ``<event>.description``.
         legacy = _RENAMED_PINGS.get(key)
         if legacy is None:
-            from rosemary.core.log_specs import LOG_SPECS
+            from rosemary.core.theme_package import default_package, legacy_body_key
 
-            spec = LOG_SPECS.get(key)
-            if spec is not None and spec.legacy_key:
-                legacy = spec.legacy_key
+            doc = default_package().document(key)
+            if doc is not None:
+                legacy = legacy_body_key(doc, key) or None
         if legacy is not None and legacy in overrides:
             return bool(overrides[legacy])
     return pings_default(key)

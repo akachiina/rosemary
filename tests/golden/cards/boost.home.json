@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "boost.home",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Cargos Boost",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Aqui estão os cargos boost do servidor. Gerencie os seus, participe ou saia.",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

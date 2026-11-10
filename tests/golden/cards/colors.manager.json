@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "colors.manager",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Gerenciar Cores",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Cores: 1/25. ↑/↓ reordenam (afetam a imagem e os botões); editar muda nome e hexadecimal.",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

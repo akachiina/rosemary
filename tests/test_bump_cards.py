@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
-import discord
 import pytest
 
 from rosemary.cogs.bump_leaderboard import _next_reset
@@ -94,8 +93,8 @@ async def _build_views(bot, guild, cooldown_display="2h", next_bump_timestamp=99
     from rosemary.cogs.bump_reminder import BumpReminderCog
 
     cog = BumpReminderCog(bot)
-    reminder = await cog._build_reminder_view(guild, cooldown_display)
-    thanks = await cog._build_thank_you_view(
+    reminder = await cog._build_reminder_payload(guild, cooldown_display)
+    thanks = await cog._build_thank_you_payload(
         guild, 456, cooldown_display, next_bump_timestamp
     )
     return reminder, thanks
@@ -103,31 +102,35 @@ async def _build_views(bot, guild, cooldown_display="2h", next_bump_timestamp=99
 
 async def test_bump_cards_build_without_avatar(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(False))
-    assert reminder.children
-    assert thanks.children
+    # The bump cards are content: they ship as classic embeds.
+    assert reminder.embed is not None
+    assert thanks.embed is not None
 
 
 async def test_bump_cards_build_with_avatar(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(True))
-    assert reminder.children
-    assert thanks.children
+    assert reminder.embed is not None
+    assert thanks.embed is not None
+    # The winner's avatar rides the thumbnail.
+    assert thanks.embed.thumbnail.url == "https://example.com/avatar.png"
 
 
-@pytest.mark.parametrize("has_avatar", [True, False])
-async def test_bump_card_layout_valid(bot, has_avatar):
-    bot = BotWithGuild(bot.storage, has_avatar=has_avatar)
+async def test_bump_card_layout_valid(bot):
+    """The embed carries the whole card: a title, a body and nothing else."""
+    bot = BotWithGuild(bot.storage, has_avatar=True)
     guild = bot.get_guild(1)
     reminder, thanks = await _build_views(bot, guild)
-    _assert_valid_layout(reminder, "bump_reminder")
-    _assert_valid_layout(thanks, "bump_thank_you")
+    for payload in (reminder, thanks):
+        assert payload.embed.title
+        assert payload.embed.description
+        assert payload.view is None
 
 
 async def test_bump_cards_use_reminder_style_color(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(True))
     expected = bot.theme.color(bot.theme.style("bump_reminder").color)
-    for view in (reminder, thanks):
-        container = view.children[0]
-        assert container.color == expected
+    for payload in (reminder, thanks):
+        assert payload.embed.color == expected
 
 
 def test_next_reset():
@@ -164,36 +167,25 @@ def test_next_reset_honors_guild_timezone():
     assert _next_reset(monday_01_utc, "Sunday", 20, tz) == datetime(2026, 8, 30, 23, 0, tzinfo=UTC)
 
 
-#: default builders (the production render path) ------------------------------
+#: the card documents (the production render path) ----------------------------
 
 
-def test_bump_builders_registered():
-    """The rich bump cards resolve through builders, never through seeds."""
-    from rosemary.core.bump_cards import (
-        default_bump_leaderboard_document,
-        default_bump_thank_you_document,
-    )
-    from rosemary.core.cards import get_default_builder
+def test_bump_cards_are_documents():
+    """The rich bump cards live in the default package: the document is the
+    source of truth (no builder, no seed)."""
+    from rosemary.core.cards import get_card
+    from rosemary.core.theme_package import default_package
 
-    assert get_default_builder("bump.thank_you") is default_bump_thank_you_document
-    assert get_default_builder("bump.leaderboard") is default_bump_leaderboard_document
-
-
-def test_bump_builder_cards_have_no_seed():
-    """A seed entry would shadow the registered builder and strip the avatar
-    (AGENTS.md rule; bump.thank_you once carried a seed that contradicted the
-    map's own comment)."""
-    from rosemary.core.card_service import SEED_PARTS_BY_KEY
-
+    package = default_package()
     for key in ("bump.thank_you", "bump.leaderboard"):
-        assert key not in SEED_PARTS_BY_KEY, f"seed would shadow the builder: {key}"
+        assert key in package.documents
+        assert get_card(key) is not None
 
 
-def _builder_bot():
-    """A bot with the real catalogs (pt-BR) so builder copy resolves for real."""
-    from pathlib import Path
-
+def _card_bot(tmp_path):
+    """A bot with the real catalogs (pt-BR) so the card copy resolves for real."""
     from rosemary.core.i18n import Translator
+    from rosemary.core.storage import GuildStorage
 
     async def resolver(gid):
         return "pt-BR"
@@ -204,6 +196,7 @@ def _builder_bot():
         def __init__(self) -> None:
             self.theme = theme
             self._theme_cache: dict = {}
+            self.storage = GuildStorage(tmp_path)
             self.translator = Translator(
                 Path(__file__).resolve().parents[1] / "language",
                 resolver=resolver,
@@ -236,19 +229,10 @@ _LEADERBOARD_VARS = {
 }
 
 
-def _doc_texts(view) -> list[str]:
-    return [
-        item.content
-        for item in view.walk_children()
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
-
-
 @pytest.mark.parametrize(
-    ("builder", "key", "style", "avatar_var", "variables", "has_author_footer"),
+    ("key", "style", "avatar_var", "variables", "has_author_footer"),
     [
         (
-            "default_bump_thank_you_document",
             "bump.thank_you",
             "bump_reminder",
             "user_avatar",
@@ -256,7 +240,6 @@ def _doc_texts(view) -> list[str]:
             True,
         ),
         (
-            "default_bump_leaderboard_document",
             "bump.leaderboard",
             "bump_leaderboard",
             "winner_avatar",
@@ -265,69 +248,67 @@ def _doc_texts(view) -> list[str]:
         ),
     ],
 )
-async def test_bump_builder_document_layout_and_style(
-    builder, key, style, avatar_var, variables, has_author_footer
+async def test_bump_card_document_layout_and_style(
+    key, style, avatar_var, variables, has_author_footer, tmp_path
 ):
-    """Builders follow the theme styles and produce valid V2 documents.
+    """The cards follow the theme styles and keep their frame.
 
     The thank-you card keeps the author footer (``{user}`` is the bumper);
     the leaderboard must not carry one: it is a bot-posted ranking, and the
     footer used to credit whoever happened to be in first place.
     """
-    import rosemary.core.bump_cards as bump_cards
-    from rosemary.core.card_service import render_document
+    from rosemary.core.card_service import render_card_message
+    from rosemary.core.themes import theme_for
 
-    bot = _builder_bot()
-    doc = await getattr(bump_cards, builder)(bot, 1, **variables)
-    container = doc["blocks"][0]
-    assert container["type"] == "container"
-    # The container color is the theme style token, not a hardcoded name.
-    assert container["color"] == bot.theme.style(style).color
-
-    section = container["children"][0]
-    assert section["type"] == "section"
-    assert section["accessory"]["url"] == variables[avatar_var]
-    bodies = [c["body"] for c in container["children"] if c["type"] == "text"]
-    # The leaderboard description itself ends with a "-# ..." hint line, so
-    # the check targets the author attribution, not just any small line.
-    assert any("-# por" in body for body in bodies) is has_author_footer
-
-    view = await render_document(bot, doc, dict(variables), guild_id=1, card_key=key)
-    _assert_valid_layout(view, key)
-    texts = _doc_texts(view)
-    assert any("Bump" in text for text in texts)  # resolved catalog copy
-    assert any("-# por <@" in text for text in texts) is has_author_footer
+    bot = _card_bot(tmp_path)
+    state_color = theme_for(bot, 1).style(style).color
+    payload, _allowed = await render_card_message(
+        bot, 1, key, {**variables, "state_color": state_color}
+    )
+    assert payload is not None and payload.embed is not None
+    embed = payload.embed
+    # The color is the token the theme style names.
+    assert embed.colour.value == theme_for(bot, 1).color(state_color).value
+    assert embed.title
+    assert embed.description
+    assert embed.thumbnail and embed.thumbnail.url == variables[avatar_var]
+    footer = (embed.footer.text if embed.footer else "") or ""
+    assert ("por <@" in footer) is has_author_footer
 
 
 @pytest.mark.parametrize(
-    ("builder", "avatar_var", "variables"),
+    ("key", "avatar_var", "variables"),
     [
-        ("default_bump_thank_you_document", "user_avatar", _THANK_YOU_VARS),
-        ("default_bump_leaderboard_document", "winner_avatar", _LEADERBOARD_VARS),
+        ("bump.thank_you", "user_avatar", _THANK_YOU_VARS),
+        ("bump.leaderboard", "winner_avatar", _LEADERBOARD_VARS),
     ],
 )
-async def test_bump_builder_without_avatar_omits_accessory(builder, avatar_var, variables):
+async def test_bump_card_without_avatar_omits_thumbnail(
+    key, avatar_var, variables, tmp_path
+):
     """A missing avatar must degrade to plain text, never an empty accessory."""
-    import rosemary.core.bump_cards as bump_cards
+    from rosemary.core.card_service import render_card_message
 
-    bot = _builder_bot()
-    bare = dict(variables)
-    bare[avatar_var] = ""
-    doc = await getattr(bump_cards, builder)(bot, 1, **bare)
-    section = doc["blocks"][0]["children"][0]
-    assert "accessory" not in section
+    bot = _card_bot(tmp_path)
+    bare = {**variables, avatar_var: ""}
+    payload, _allowed = await render_card_message(
+        bot, 1, key, {**bare, "state_color": "brand"}
+    )
+    assert payload is not None and payload.embed is not None
+    assert payload.embed.thumbnail is None
 
 
-async def test_bump_builder_colors_follow_theme_styles(tmp_path):
-    """Restyling ``styles.bump_*`` in a theme file changes the built cards:
-    the token in the document tracks the guild's active theme."""
+async def test_bump_card_colors_follow_theme_styles(tmp_path):
+    """Restyling ``styles.bump_*`` in a theme file changes the cards: the
+    send site resolves the style to a token and the document uses it."""
     import yaml
 
-    import rosemary.core.bump_cards as bump_cards
+    from rosemary.core.card_service import render_card_message
+    from rosemary.core.themes import theme_for
     from rosemary.ui.theme import load_theme as _load
 
     default_yaml = (
-        Path(__file__).resolve().parents[1] / "themes" / "default.yaml"
+        Path(__file__).resolve().parents[1] / "themes" / "default" / "tokens.yaml"
     ).read_text(encoding="utf-8")
     data = yaml.safe_load(default_yaml)
     data["styles"]["bump_reminder"]["color"] = "success"
@@ -337,12 +318,16 @@ async def test_bump_builder_colors_follow_theme_styles(tmp_path):
         yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8"
     )
 
-    bot = _builder_bot()
+    bot = _card_bot(tmp_path)
     bot._theme_cache[1] = _load(theme_file)
 
-    thanks = await bump_cards.default_bump_thank_you_document(bot, 1, **_THANK_YOU_VARS)
-    board = await bump_cards.default_bump_leaderboard_document(
-        bot, 1, **_LEADERBOARD_VARS
+    thanks_color = theme_for(bot, 1).style("bump_reminder").color
+    board_color = theme_for(bot, 1).style("bump_leaderboard").color
+    thanks, _ = await render_card_message(
+        bot, 1, "bump.thank_you", {**_THANK_YOU_VARS, "state_color": thanks_color}
     )
-    assert thanks["blocks"][0]["color"] == "success"
-    assert board["blocks"][0]["color"] == "danger"
+    board, _ = await render_card_message(
+        bot, 1, "bump.leaderboard", {**_LEADERBOARD_VARS, "state_color": board_color}
+    )
+    assert thanks.embed.colour.value == theme_for(bot, 1).color("success").value
+    assert board.embed.colour.value == theme_for(bot, 1).color("danger").value

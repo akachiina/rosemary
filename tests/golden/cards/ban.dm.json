@@ -1,0 +1,10 @@
+{
+  "content": "❌ **|** Você foi banido de **…** por <@0>!\n**📜 Motivo:** …",
+  "embed": null,
+  "form": "text",
+  "key": "ban.dm",
+  "pings": [
+    0
+  ],
+  "view": []
+}

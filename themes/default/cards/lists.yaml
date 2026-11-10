@@ -1,0 +1,275 @@
+# The listings: the cards that show a list of things.
+#
+# A listing has a title (the name of the list) and a body (the rows). The
+# body comes in two flavors: the copy lives in the catalog (the bump
+# reminder, the trap notice, the about card) or the send site builds it and
+# sends it as the {body} variable (the invites, the leaderboards).
+#
+# The title follows the same rule: the catalog names it (the copy of the
+# feature) or the send site sends it as the {title} variable.
+
+about.card:
+  archetype: listing
+  color: brand
+  title: '{about.title}'
+  paragraphs:
+  - '{about.text}'
+  - '{about.version}'
+  variables:
+  - version
+  - channel
+  category: general
+
+bump.reminder:
+  archetype: listing
+  color: brand
+  title: '{bump.messages.reminder_title}'
+  description: '{bump.messages.reminder_description}'
+  variables:
+  - cooldown
+  mention: role
+  category: bump
+
+bump.no_bumps:
+  archetype: listing
+  title: '{bump.messages.no_bumps_title}'
+  description: '{bump.messages.no_bumps_description}'
+  variables: []
+  category: bump
+
+# The bump thank-you: the bumper's avatar rides the title, the body tells
+# when the next bump is and the attribution closes the card. The color comes
+# from the theme style of the reminder: the send site resolves the style to
+# its token and the document picks it up (the theme owns what it means).
+bump.thank_you:
+  archetype: listing
+  color:
+  - '{state_color}'
+  - 'brand'
+  title: '{bump.messages.thank_you_title}'
+  description: '{bump.messages.thank_you_description}'
+  thumbnail: '{user_avatar}'
+  footer: '{card.author_footer.text}'
+  variables:
+  - mention
+  - cooldown
+  - next_bump_timestamp
+  - user_avatar
+  - user
+  - timestamp
+  mention: single
+  category: bump
+
+# The weekly leaderboard: the winner's avatar rides the title and the body
+# names the winner and the ranking. No attribution footer: it is a ranking
+# posted by the bot, not an action by the member in first place. The color
+# comes from the theme style of the leaderboard.
+bump.leaderboard:
+  archetype: listing
+  color:
+  - '{state_color}'
+  - 'warning'
+  title: '{bump.messages.leaderboard_title}'
+  description: '{bump.messages.leaderboard_description}'
+  thumbnail: '{winner_avatar}'
+  variables:
+  - winner_mention
+  - winner_count
+  - winner_avatar
+  - role_name
+  - leaderboard_list
+  - start_timestamp
+  - end_timestamp
+  - next_reset_timestamp
+  - user
+  - timestamp
+  mention: winner_auto
+  category: bump
+
+bump.stats:
+  archetype: listing
+  color: warning
+  title: '{title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: general
+
+bump.status:
+  archetype: listing
+  title: '{title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: bump
+
+invites.leaderboard:
+  archetype: listing
+  title: '{invites.leaderboard.title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: invites
+
+invites.stats:
+  archetype: listing
+  rich: false
+  title: '{invites.stats.title}'
+  description: '{body}'
+  variables:
+  - user
+  - total
+  - regular
+  - bonus
+  - fake
+  - left
+  - rank
+  - title
+  - body
+  mention: single
+  category: invites
+
+invites.personal:
+  archetype: listing
+  rich: false
+  title: '{invites.personal.title}'
+  description: '{body}'
+  variables:
+  - user
+  - link
+  - total
+  - regular
+  - bonus
+  - title
+  - body
+  mention: single
+  category: invites
+
+invites.invited_list:
+  archetype: listing
+  rich: false
+  title: '{invites.invited.title}'
+  description: '{body}'
+  variables:
+  - user
+  - title
+  - body
+  category: invites
+
+invites.server_stats:
+  archetype: listing
+  rich: false
+  title: '{invites.server.title}'
+  description: '{body}'
+  variables:
+  - joins
+  - regular
+  - bonus
+  - fake
+  - left
+  - title
+  - body
+  category: invites
+
+invites.invited_by:
+  archetype: listing
+  rich: false
+  title: '{invites.inviter.title}'
+  description: '{invites.inviter.body}'
+  variables:
+  - user
+  - inviter
+  - code
+  - when
+  - status
+  - title
+  - body
+  category: invites
+
+invites.codes:
+  archetype: listing
+  title: '{title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: invites
+
+invites.blacklist:
+  archetype: listing
+  title: '{title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: invites
+
+birthdays.list:
+  archetype: listing
+  title: '{birthdays.list_title}'
+  description: '{body}'
+  variables:
+  - body
+  category: general
+
+partnerships.list:
+  archetype: listing
+  title: '{partnerships.list_title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: general
+
+partnerships.audit:
+  archetype: listing
+  color: warning
+  title: '{partnerships.audit_title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: general
+
+colors.list:
+  archetype: listing
+  title: '{title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: colors
+
+reminders.list:
+  archetype: listing
+  title: '{title}'
+  description: '{body}'
+  variables:
+  - title
+  - body
+  category: general
+
+tickets.created:
+  archetype: listing
+  rich: false
+  color: brand
+  title: '{tickets.created.title}'
+  description: '{tickets.created.text}'
+  variables:
+  - user
+  - type
+  category: tickets
+
+trap.notice:
+  archetype: listing
+  rich: false
+  color: danger
+  title: '{card.trap.notice.title}'
+  description: '{trap.notice.text}'
+  variables:
+  - server
+  - action
+  category: moderation

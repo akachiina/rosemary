@@ -2,7 +2,7 @@
 
 Every message is a customizable card (``events.welcome`` / ``events.leave`` /
 ``events.ban``): guilds edit them through /customize; without an override the
-default catalog templates render as a themed V2 container. Channels and
+default document of the package renders as a themed card. Channels and
 switches live in the EVENTS category of /settings.
 """
 
@@ -17,7 +17,6 @@ from collections import deque
 import discord
 from discord.ext import commands
 
-from rosemary.core.cards import ECHO_VARIABLES, maybe_text, set_default_builder
 from rosemary.core.settings import get_setting
 
 log = logging.getLogger(__name__)
@@ -25,78 +24,6 @@ log = logging.getLogger(__name__)
 RAID_WINDOW_SECONDS = 10.0
 RAID_THRESHOLD = 5
 RAID_WELCOME_DELAY = 2.0
-
-
-async def default_event_document(
-    bot,
-    guild_id: int,
-    *,
-    title_key: str,
-    body_key: str,
-    color: str,
-    emoji_token: str,
-    **_variables,
-) -> dict:
-    """Catalog-default event message as an editable block document.
-
-    Layout: a section whose accessory is the member's avatar thumbnail, the
-    emoji-decorated ``#`` title and body beside it, a divider and the
-    server/count/ID footer. Placeholders (``{user}``, ``{server}``,
-    ``{user_id}``...) stay literal: this is a template resolved at render
-    from the send-site variables. Theme emoji tokens resolve; unknown
-    placeholders are preserved by :func:`rosemary.core.cards.safe_format`.
-    """
-    from rosemary.core.cards import safe_format
-
-    mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
-
-    async def raw(key: str) -> str:
-        return safe_format(await bot.translator.raw(guild_id, key), mapping)
-
-    title = await raw(title_key)
-    if not title.startswith("#"):
-        # Catalog titles usually carry their own emoji token; prefixing the
-        # theme emoji on top of an already-decorated title doubles it.
-        already = any(e and e in title for e in bot.theme.emojis.values())
-        emoji = "" if already else bot.theme.emojis.get(emoji_token, "")
-        title = f"# {f'{emoji} ' if emoji else ''}{title}".strip()
-    body = await raw(body_key)
-    server = safe_format("{server}", mapping)
-    count = safe_format("{count}", mapping)
-    return {
-        "v": 1,
-        "blocks": [
-            {"type": "container", "color": color, "children": [
-                {"type": "section",
-                 "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
-                 "children": [
-                     {"type": "text", "body": title},
-                     {"type": "text", "body": body},
-                 ]},
-                {"type": "divider"},
-                {"type": "text", "body": f"-# {server} · #{count} · `{{user_id}}`"},
-            ]}
-        ],
-    }
-
-
-def _register_default_builders() -> None:
-    for name, title, body, color in (
-        ("welcome", "events.welcome.title", "events.welcome.body", "brand"),
-        ("leave", "events.leave.title", "events.leave.body", "warning"),
-        ("ban", "events.ban.title", "events.ban.body", "danger"),
-    ):
-        # Send-site variables flow through (``**_variables``); the layout is
-        # fixed per event.
-        async def _builder(bot, guild_id, *, t=title, b=body, c=color, n=name, **_variables):
-            return await default_event_document(
-                bot, guild_id, title_key=t, body_key=b, color=c, emoji_token=n
-            )
-
-        set_default_builder(f"events.{name}", _builder)
-
-
-_register_default_builders()
 
 
 class WelcomeCog(commands.Cog):
@@ -171,50 +98,28 @@ class WelcomeCog(commands.Cog):
         own message, best-effort.
         """
         guild_id = guild.id
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
         from rosemary.core.mentions import allowed_for_ids
 
         payload, allowed = await render_card_message(
             self.bot, guild_id, key, variables
         )
         if payload is None:
-            text = await maybe_text(self.bot, guild_id, key, **variables)
-            if text is None:
-                from rosemary.ui.containers import (
-                    DesignerView,
-                    TextDisplay,
-                    designer_container,
-                )
-
-                theme = self.bot.theme
-                view = DesignerView(store=False)
-                view.add_item(
-                    designer_container(
-                        theme.color(color),
-                        TextDisplay(
-                            theme.md(
-                                "title",
-                                title=await self._t(guild_id, title_key, **variables),
-                            )
-                        ),
-                        TextDisplay(await self._t(guild_id, body_key, **variables)),
-                    )
-                )
-                payload = CardPayload(view=view)
-                allowed = await allowed_for_ids(
-                    self.bot, guild_id, key,
-                    user_ids=[user_id] if user_id else [],
-                )
-            else:
-                from rosemary.ui.containers import DesignerView
-
-                view = DesignerView(store=False)
-                view.add_item(TextDisplay(text))
-                payload = CardPayload(view=view)
-                allowed = await allowed_for_ids(
-                    self.bot, guild_id, key,
-                    user_ids=[user_id] if user_id else [],
-                )
+            # The fallback follows the card's own form (an embed): the
+            # announcement never changes its surface.
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                key,
+                title=await self._t(guild_id, title_key, **variables),
+                body=await self._t(guild_id, body_key, **variables),
+                color=color,
+                thumbnail=variables.get("user_avatar") or None,
+            )
+            allowed = await allowed_for_ids(
+                self.bot, guild_id, key,
+                user_ids=[user_id] if user_id else [],
+            )
         await self._send_receptionist_ping(channel, guild, key)
         await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
 

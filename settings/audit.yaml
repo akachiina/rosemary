@@ -1,0 +1,62 @@
+# The audit settings.
+settings:
+  audit.enabled:
+    category: audit
+    type: boolean
+    default: false
+  audit.channel:
+    category: audit
+    type: channel
+    default: null
+  audit.ban_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.unban_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.message_delete_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.message_edit_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.nickname_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.avatar_enabled:
+    category: audit
+    type: boolean
+    default: false
+  audit.roles_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.timeout_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.voice_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.bulk_delete_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.bulk_file_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.snapshot_enabled:
+    category: audit
+    type: boolean
+    default: true
+  audit.trap_enabled:
+    category: audit
+    type: boolean
+    default: false

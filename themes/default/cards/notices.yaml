@@ -1,0 +1,399 @@
+# The notices: one plain line, no frame.
+#
+# A notice is the bot answering an action, a channel notice, a confirmation
+# prompt or a plain-text DM. The copy is the whole card: the archetype keeps
+# the surface (one line), the style names the tone of the prefix (the theme
+# owns it) and the body points at the catalog for the words.
+#
+# A notice that says more than one thing uses the slots: the ping answers
+# with a title and the latency. The text serializer joins the slots (one
+# line when every slot is a line): the join is the dialect of the form, never
+# the copy.
+utility.ping:
+  archetype: notice
+  rich: true
+  title: '{ping.title}'
+  description: '{ping.latency}'
+  variables:
+  - ms
+  category: general
+
+anti_invite.warning:
+  archetype: notice
+  style: warning
+  description: '{anti_invite.warning}'
+  variables:
+  - user
+  category: moderation
+
+trap.dm:
+  archetype: notice
+  style: warning
+  description: '{trap.dm.text}'
+  variables:
+  - server
+  - action
+  category: moderation
+
+bump.anti_camping:
+  archetype: notice
+  style: warning
+  description: '{bump.messages.anti_camping}'
+  category: bump
+
+bump.schedule.open:
+  archetype: notice
+  style: success
+  description: '{bump.schedule.open_message_default}'
+  variables:
+  - ping_role
+  mention: role
+  category: bump
+
+bump.schedule.close:
+  archetype: notice
+  description: '{bump.schedule.close_message_default}'
+  variables:
+  - ping_role
+  category: bump
+
+cleaner.result:
+  archetype: notice
+  style: success
+  description: '{cleaner.result}'
+  variables:
+  - count
+  - matched
+  - criterion
+  category: moderation
+
+cleaner.confirm:
+  archetype: notice
+  style: warning
+  description: '{cleaner.confirm_text}'
+  category: moderation
+
+updater.confirm:
+  archetype: notice
+  style: warning
+  description: '{updater.confirm}'
+  variables:
+  - target
+  category: general
+
+partnerships.invite:
+  archetype: notice
+  rich: true
+  description: '{partnerships.invite_text}'
+  variables:
+  - server
+  mention: role
+  category: partnerships
+
+# The boost notices: the role lifecycle told to the member.
+boost.dm.registered:
+  archetype: notice
+  style: success
+  description: '{boost.dm.registered}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  - max_members
+  mention: single
+  category: boost
+
+boost.dm.transferred:
+  archetype: notice
+  style: success
+  description: '{boost.dm.transferred}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  - max_members
+  mention: single
+  category: boost
+
+boost.dm.auto_transferred:
+  archetype: notice
+  style: success
+  description: '{boost.dm.auto_transferred}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  mention: single
+  category: boost
+
+boost.dm.auto_created:
+  archetype: notice
+  style: success
+  description: '{boost.dm.auto_created}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  - max_members
+  mention: single
+  category: boost
+
+boost.dm.auto_restored:
+  archetype: notice
+  style: success
+  description: '{boost.dm.auto_restored}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  - max_members
+  mention: single
+  category: boost
+
+boost.dm.unboost_deleted:
+  archetype: notice
+  style: error
+  description: '{boost.dm.unboost_deleted}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  mention: single
+  category: boost
+
+boost.dm.unboost_removed:
+  archetype: notice
+  style: error
+  description: '{boost.dm.unboost_removed}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  mention: single
+  category: boost
+
+boost.dm.unboost_kept:
+  archetype: notice
+  description: '{boost.dm.unboost_kept}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  mention: single
+  category: boost
+
+boost.dm.invite:
+  archetype: notice
+  description: '{boost.dm.invite}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  - inviter_mention
+  - expires
+  mention: single
+  category: boost
+
+boost.dm.accepted:
+  archetype: notice
+  style: success
+  description: '{boost.dm.accepted}'
+  variables:
+  - role_name
+  mention: single
+  category: boost
+
+boost.dm.declined:
+  archetype: notice
+  description: '{boost.dm.declined}'
+  variables:
+  - role_name
+  mention: single
+  category: boost
+
+boost.dm.owner_accepted:
+  archetype: notice
+  style: success
+  description: '{boost.dm.owner_accepted}'
+  variables:
+  - member_mention
+  - role_name
+  mention: single
+  category: boost
+
+boost.dm.owner_declined:
+  archetype: notice
+  description: '{boost.dm.owner_declined}'
+  variables:
+  - member_mention
+  - role_name
+  mention: single
+  category: boost
+
+boost.dm.member_left:
+  archetype: notice
+  description: '{boost.dm.member_left}'
+  variables:
+  - role_name
+  mention: single
+  category: boost
+
+boost.dm.owner_member_left:
+  archetype: notice
+  description: '{boost.dm.owner_member_left}'
+  variables:
+  - member_mention
+  - role_name
+  mention: single
+  category: boost
+
+boost.dm.error:
+  archetype: notice
+  style: error
+  description: '{boost.dm.error}'
+  variables:
+  - body
+  mention: single
+  category: boost
+
+# The Bump-MVP notices.
+bump.dm.winner_new:
+  archetype: notice
+  style: success
+  description: '{bump.dm.winner_new}'
+  variables:
+  - mention
+  - bump_count
+  - role_name
+  - max_members
+  mention: single
+  category: bump
+
+bump.dm.winner_again:
+  archetype: notice
+  style: success
+  description: '{bump.dm.winner_again}'
+  variables:
+  - mention
+  - bump_count
+  - role_name
+  - total_wins
+  mention: single
+  category: bump
+
+bump.dm.winner_lost:
+  archetype: notice
+  description: '{bump.dm.winner_lost}'
+  variables:
+  - mention
+  - bump_count
+  - winner_mention
+  mention: single
+  category: bump
+
+# The moderation notices: the action told to the member.
+warn.dm:
+  archetype: notice
+  style: warning
+  description: '{warn.dm}'
+  variables:
+  - guild
+  - moderator
+  - reason
+  mention: single
+  category: moderation
+
+mute.dm:
+  archetype: notice
+  style: warning
+  description: '{mute.dm}'
+  variables:
+  - guild
+  - moderator
+  - reason
+  - duration
+  mention: single
+  category: moderation
+
+kick.dm:
+  archetype: notice
+  style: warning
+  description: '{kick.dm}'
+  variables:
+  - guild
+  - moderator
+  - reason
+  mention: single
+  category: moderation
+
+ban.dm:
+  archetype: notice
+  style: error
+  description: '{ban.dm}'
+  variables:
+  - guild
+  - moderator
+  - reason
+  mention: single
+  category: moderation
+
+# The partnership notices.
+partnerships.dm.added:
+  archetype: notice
+  style: success
+  description: '{partnerships.dm.added}'
+  variables:
+  - server
+  - mention
+  mention: single
+  category: partnerships
+
+partnerships.dm.removed:
+  archetype: notice
+  description: '{partnerships.dm.removed}'
+  variables:
+  - server
+  - mention
+  mention: single
+  category: partnerships
+
+partnerships.dm.rep_changed:
+  archetype: notice
+  description: '{partnerships.dm.rep_changed}'
+  variables:
+  - server
+  - mention
+  mention: single
+  category: partnerships
+
+partnerships.dm.warning:
+  archetype: notice
+  style: warning
+  description: '{partnerships.dm.warning}'
+  variables:
+  - days
+  - server
+  - mention
+  mention: single
+  category: partnerships
+
+partnerships.dm.expired:
+  archetype: notice
+  description: '{partnerships.dm.expired}'
+  variables:
+  - server
+  - mention
+  mention: single
+  category: partnerships
+
+partnerships.dm.expired_admin:
+  archetype: notice
+  description: '{partnerships.dm.expired_admin}'
+  variables:
+  - rep
+  - server
+  - days
+  - invite
+  - mention
+  mention: single
+  category: partnerships

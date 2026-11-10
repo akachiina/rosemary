@@ -1,0 +1,13 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15158332,
+    "description": "❌ Sua confissão **#1** foi recusada.\nMotivo: …",
+    "fields": [],
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "confessions.dm.rejected",
+  "pings": [],
+  "view": []
+}

@@ -4,7 +4,9 @@
 prefix alias. ``!help`` replaces py-cord's default English help with a themed
 card listing the server's TEXT commands (prefix aliases keep latin names by
 design; only their descriptions localize), grouped and rendered through the
-``help.card`` CardSpec: a theme may restyle the whole card."""
+``help.card`` CardSpec: a theme may restyle the whole card. The default
+layout of both cards lives in the default package
+(``themes/default/cards/``)."""
 
 from __future__ import annotations
 
@@ -12,12 +14,7 @@ import discord
 from discord.ext import commands
 
 from rosemary import __version__
-from rosemary.ui.containers import (
-    DesignerView,
-    TextDisplay,
-    designer_container,
-    divider,
-)
+from rosemary.core.card_service import simple_payload
 from rosemary.ui.responses import PrefixContext
 
 #: ``!help`` sections: (group key, ((prefix command, description key), ...)).
@@ -60,40 +57,6 @@ _HELP_SECTIONS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
 )
 
 
-async def default_help_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default ``!help`` card (no theme override).
-
-    The send site renders every group (heading included) into its ``*_list``
-    variable, so this layout is purely structural: heading, intro, divider,
-    one text block per list. An empty list means the group is off for the
-    guild (interactions with roleplay disabled) and its block is omitted;
-    a missing value keeps the placeholder so editor previews stay rich.
-    """
-    children: list[dict] = [
-        {"type": "text", "body": "# {title}"},
-        {"type": "text", "body": "{body}"},
-        {"type": "divider"},
-    ]
-    for name in ("moderation_list", "info_list", "general_list", "interactions_list"):
-        value = variables.get(name)
-        if isinstance(value, str) and not value.strip():
-            continue
-        children.append({"type": "text", "body": f"{{{name}}}"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": "brand", "children": children}],
-    }
-
-
-def _register_default_builders() -> None:
-    from rosemary.core.cards import set_default_builder
-
-    set_default_builder("help.card", default_help_document)
-
-
-_register_default_builders()
-
-
 class AboutCog(commands.Cog):
     """Bot information."""
 
@@ -113,7 +76,7 @@ class AboutCog(commands.Cog):
             channel = await get_setting(self.bot.storage, ctx.guild_id, "updater.channel")
         else:
             channel = "stable"
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message
 
         variables = {"version": __version__, "channel": channel}
         payload, _allowed = await render_card_message(
@@ -122,22 +85,24 @@ class AboutCog(commands.Cog):
         if payload is None:
             # Sections require an accessory (Thumbnail/Button); plain text
             # must use TextDisplay directly to keep the message valid.
-            container = designer_container(
-                self.bot.theme.color("brand"),
-                TextDisplay(
-                    self.bot.theme.md(
-                        "title", title=await t(ctx.guild_id, "about.title")
-                    )
+            payload = simple_payload(
+                self.bot,
+                ctx.guild_id,
+                "about.card",
+                title=await t(ctx.guild_id, "about.title"),
+                body="\n".join(
+                    [
+                        await t(ctx.guild_id, "about.text"),
+                        await t(
+                            ctx.guild_id,
+                            "about.version",
+                            version=__version__,
+                            channel=channel,
+                        ),
+                    ]
                 ),
-                TextDisplay(await t(ctx.guild_id, "about.text")),
-                divider(),
-                TextDisplay(
-                    await t(ctx.guild_id, "about.version", version=__version__, channel=channel)
-                ),
+                color="brand",
             )
-            view = DesignerView(store=False)
-            view.add_item(container)
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs())
 
     #: prefix commands ---------------------------------------------------
@@ -158,7 +123,7 @@ class AboutCog(commands.Cog):
         """
         if getattr(self.bot, "translator", None) is None:
             return  # before _setup(): no commands or translations loaded yet
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message
         from rosemary.core.roleplay import ACTIONS
         from rosemary.core.settings import get_setting
 
@@ -215,15 +180,14 @@ class AboutCog(commands.Cog):
         )
         if payload is None:
             # Defensive: a broken themed document never breaks the listing.
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    theme.color("brand"),
-                    TextDisplay(theme.md("title", title=variables["title"])),
-                    TextDisplay(variables["body"]),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "help.card",
+                title=variables["title"],
+                body=variables["body"],
+                color="brand",
             )
-            payload = CardPayload(view=view)
         await ctx.reply(
             **payload.message_kwargs(), allowed_mentions=allowed, mention_author=False
         )

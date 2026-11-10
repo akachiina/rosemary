@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": {
+    "color": 16770210,
+    "description": "…\n⬆️ 1 · ⬇️ 0",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>\nUse `/sugestao` ou o botão abaixo para enviar a sua sugestão!"
+    },
+    "image": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "…",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "suggestions.card",
+  "pings": [],
+  "view": []
+}

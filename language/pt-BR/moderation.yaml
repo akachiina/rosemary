@@ -1,0 +1,277 @@
+anti_invite:
+  warning: '{user}, links de convite externos não são permitidos aqui.'
+  logs:
+    blocked:
+      title: '{ban} Convite Bloqueado'
+      description: '{user} postou `{code}` em {channel} (apagado).'
+ban:
+  command:
+    name: banir
+    description: Banir um membro
+    options:
+      member:
+        description: Membro a banir
+      reason:
+        description: Motivo
+  confirm_title: Banir este membro?
+  success: '{success} {member} foi banido.'
+  dm: 'Você foi banido de **{guild}** por {moderator}!
+
+    **{scroll} Motivo:** {reason}'
+cleaner:
+  error_disabled: '{error} A limpeza de mensagens está desativada neste servidor.'
+  error_no_mode: '{error} Diga uma palavra, um regex ou quantas mensagens apagar (últimas N).'
+  error_conflict: '{error} Use palavra OU regex, não os dois.'
+  error_bad_regex: '{error} Regex inválida: {reason}'
+  error_last_range: '{error} O limite de últimas mensagens deve ser de 1 a 1000.'
+  confirm_text: Isso apaga mensagens de forma permanente. Não pode ser desfeito.
+  confirm: Apagar tudo
+  cancel: Cancelar
+  stop: Parar
+  panel_title: Limpeza de mensagens
+  progress_criterion: '**{search} Critério:** {criterion}'
+  progress_current: '**{speech} Canal atual:** {channel}'
+  progress_done: '**{numbers} Canais:** {done}/{total}'
+  progress_scanned: '**{search} Varridas:** {count}'
+  progress_counts: '**{trash} Apagadas:** {deleted} de {matched}'
+  progress_elapsed: '**{clock} Decorrido:** {elapsed}'
+  result: '{count} mensagem(ns) apagadas de {matched} que bateram no critério. {criterion}'
+  result_gap: '{warning} {gap} mensagem(ns) que bateram não puderam ser apagadas.'
+  stopped: 'Limpeza interrompida: {count} mensagem(ns) apagadas de {matched} que bateram. {criterion}'
+  cancelled: Limpeza cancelada.
+  criterion_word: com a palavra “{word}”
+  criterion_regex: casa com o regex `{regex}`
+  criterion_last: as últimas {count} mensagem(ns)
+  criterion_last_word: as últimas {count} mensagem(ns) com a palavra “{word}”
+  criterion_last_regex: as últimas {count} mensagem(ns) que casam com `{regex}`
+  criterion_author: do autor {author}
+  criterion_channel: em {channel}
+  criterion_all: em todos os canais
+  logs:
+    purged:
+      title: '{trash} Mensagens Apagadas'
+      description: '{moderator} apagou {deleted} de {count} mensagem(ns) que bateram. {criterion}.'
+confirm:
+  confirm: Confirmar
+  cancel: Cancelar
+  failed: '{error} A ação falhou. Verifique os logs do bot.'
+  cancelled: Ação cancelada.
+kick:
+  command:
+    name: expulsar
+    description: Expulsar um membro
+    options:
+      member:
+        description: Membro a expulsar
+      reason:
+        description: Motivo
+  confirm_title: Expulsar este membro?
+  success: '{success} {member} foi expulso.'
+  dm: 'Você foi expulso de **{guild}** por {moderator}!
+
+    **{scroll} Motivo:** {reason}'
+limpar:
+  command:
+    name: limpar
+    description: Apaga mensagens por palavra, regex ou quantidade
+    options:
+      palavra:
+        description: Palavra ou frase para limpar
+      regex:
+        description: Padrão regex (Python) para limpar
+      last:
+        description: Limitar às N correspondências mais recentes
+      canal:
+        description: Restringir a um canal
+      autor:
+        description: Somente mensagens deste autor
+moderation:
+  confirm_notify: Confirmar e notificar
+  confirm_silent: Confirmar sem notificar
+  confirm_clear: Limpar todos os warns
+  cancel: Cancelar
+  cancelled: Ação cancelada.
+  error_failed: '{error} A ação falhou. Verifique os logs do bot.'
+  auto_ban_applied: Auto-ban aplicado (limite de {limit} warns).
+  auto_ban_failed: '{warning} Warn registrado, mas o auto-ban falhou (verifique permissões).'
+  no_reason: Nenhum motivo informado
+  summary: '{member}
+
+    **{scroll} Motivo:** {reason}'
+  multi_summary: '{targets}
+
+    **{scroll} Motivo:** {reason}'
+  error_disabled: '{error} Os comandos de moderação estão desativados neste servidor.'
+  error_no_members: '{error} Mencione pelo menos um membro.'
+  error_self: '{error} Você não pode usar comandos de moderação em si mesmo.'
+  error_self_bot: '{error} O bot não pode moderar a si mesmo.'
+  error_author_permissions: '{error} Você não tem permissão para fazer isso.'
+  error_bot_permissions: '{error} O bot não tem permissão para fazer isso.'
+  error_hierarchy: '{error} Este membro tem um cargo igual ou superior ao meu.'
+  error_bot_hierarchy: '{error} O cargo deste membro é igual ou superior ao do bot.'
+  logs:
+    auto_ban:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{ban} Auto-ban aplicado'
+    ban:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{ban} Banimento'
+    kick:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{kick} Expulsão'
+    mute:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{duration_label}:** {duration}
+
+        **{reason_label}:** {reason}'
+      title: '{mute} Silenciamento'
+    warn:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{warning} Warn'
+mute:
+  command:
+    name: silenciar
+    description: Silenciar um membro por um período
+    options:
+      member:
+        description: Membro a silenciar
+      duration:
+        description: 'Duração (ex.: 10m, 2h, 3d)'
+      reason:
+        description: Motivo
+  confirm_title: Silenciar este membro?
+  success: '{success} {member} foi silenciado por {duration}.'
+  dm: 'Você foi silenciado em **{guild}** por {moderator}!
+
+    **{clock} Duração:** {duration}
+
+    **{scroll} Motivo:** {reason}'
+  invalid_duration: '{error} Duração inválida. Use formatos como 10m, 2h ou 3d.'
+  summary: '{member}
+
+    **{clock} Duração:** {duration}
+
+    **{scroll} Motivo:** {reason}'
+trap:
+  reason: Caiu no canal armadilha
+  notice:
+    text: 'Este canal é uma **armadilha** de moderação do {server}.
+
+
+      ### {ban} Não envie mensagens aqui
+
+      > Este canal existe para capturar contas de spam, bots e RAID. Quem enviar mensagem aqui perde a mensagem na hora e sofre uma consequência.
+
+
+      **{gear} Consequência configurada:** {action}
+
+
+      {envelope} Caiu aqui por engano? Fale com a equipe de moderação.'
+    action:
+      none: A mensagem é apagada.
+      kick: Expulsão do servidor.
+      softban: Expulsão com apagamento das mensagens recentes.
+      ban: Banimento do servidor.
+  failure:
+    no_ban: O bot não tem permissão de banir (ou o cargo da vítima está acima do dele).
+    no_kick: O bot não tem permissão de expulsar.
+    no_hierarchy: O cargo da vítima está acima do cargo do bot.
+    no_unban: 'O banimento funcionou, mas o desbanimento do softban falhou: a vítima continua banida.'
+  logs:
+    failed:
+      title: '{error} Armadilha Falhou'
+      description: '**{people} Alvo:** {user}\n**{gear} Consequência:** {action}\n**{scroll} Motivo:** {reason}'
+  dm:
+    text: 'Você postou no canal armadilha de **{server}** e a mensagem foi removida.
+
+
+      {action}
+
+
+      Esta é uma notificação automática. Dúvidas? Fale com a equipe de moderação.'
+    action:
+      none: Sua mensagem foi apagada.
+      kick: Você foi expulso(a) do servidor.
+      softban: Você foi expulso(a) e suas mensagens recentes foram apagadas. Pode voltar com um novo convite.
+      ban: Você foi banido(a) do servidor e suas mensagens recentes foram apagadas.
+  audit:
+    applied: Consequência aplicada
+    skipped: Falha ao aplicar (permissão ou hierarquia)
+    action:
+      none: Só apagar a mensagem
+      kick: Expulsão
+      softban: Softban
+      ban: Banimento
+    user_label: Alvo
+    action_label: Consequência
+    reason_label: Motivo
+unwarn:
+  command:
+    name: remover_warn
+    description: Remove um warn
+    options:
+      member:
+        description: Membro para remover advertência
+      index:
+        description: Número da advertência (omita para limpar todas)
+  clear_all_title: Limpar todos os warns?
+  clear_all_summary: Remover todos os warns de {member}?
+  cleared: '{success} Removidos {count} warn(s) de {member}.'
+  removed: '{success} Warn #{index} removido de {member}.'
+  invalid_index: '{error} Não há warn com esse número.'
+  none_for: '{success} Este membro não tem warns para limpar.'
+warn:
+  command:
+    name: warn
+    description: Aplicar um warn a um membro
+    options:
+      member:
+        description: Membro a advertir
+      reason:
+        description: Motivo
+  confirm_title: Aplicar warn a este membro?
+  success: '{success} Warn registrado para {member} ({count}/{limit}).'
+  dm: 'Você recebeu um warn em **{guild}** de {moderator}!
+
+    **{scroll} Motivo:** {reason}'
+warnings:
+  command:
+    name: warnlist
+    description: Lista os warns de um membro
+    options:
+      member:
+        description: Membro a inspecionar
+  title: Warns de {member}
+  none: '{success} Este membro não tem warns.'
+  entry: '{reason}
+
+    por {moderator} · {date}'

@@ -1,0 +1,18 @@
+starboard:
+  enabled:
+    label: Enable starboard
+    description: Highlight popular messages on a board.
+  channel:
+    label: Starboard channel
+    description: Where starred messages are posted.
+  threshold:
+    label: Star threshold
+    description: Stars needed to reach the board.
+  self_star_counts:
+    label: Self-stars count
+    description: Whether the author's own star counts.
+  allow_bots:
+    label: Allow bots
+    description: Let bot messages reach the board.
+  jump: Jump to message
+  no_content: '*[No text content]*'

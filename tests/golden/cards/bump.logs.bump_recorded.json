@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "description": "Bump efetuado por <@0> no canal #….",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🚀 Bump Detectado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.bump_recorded",
+  "pings": [],
+  "view": []
+}

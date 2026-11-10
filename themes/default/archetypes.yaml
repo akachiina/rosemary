@@ -1,0 +1,124 @@
+# The frames of the default card package.
+#
+# An archetype is a fragment that also declares defaults and policy: the card
+# that uses it inherits everything it does not override. The resolution order
+# is: the archetype, the fragments it uses (``use:``), then the card's own
+# keys.
+
+archetypes:
+  # A staff log that does not name the actor in its own content: the footer
+  # attributes it ("by @actor · the time").
+  log_event:
+    form: embed
+    color: info
+    use: [attribution]
+    timestamp: true
+
+  # A staff log that names the actor in its content (a field or the body):
+  # the footer carries the timestamp only, with no second mention.
+  log_named:
+    form: embed
+    color: info
+    footer: "{log.system_footer}"
+    timestamp: true
+
+  # An announcement to the members: the author is the member, the footer is
+  # the server.
+  announcement:
+    form: embed
+    color: brand
+    author: "{user}"
+    author_icon: "{user_avatar}"
+    footer: "{server}"
+    timestamp: true
+
+  # A one-line notice: the copy is the whole card. The style names the tone
+  # of the prefix (the theme owns it); a plain notice is not a rich card, so
+  # the editor opens a text field, not the full composer.
+  notice:
+    form: text
+    color: info
+    style: info
+    rich: false
+    legacy_body: false
+
+  # An event announcement (a member joined, left or got banned): the
+  # member's avatar rides the title, the body tells the story and the
+  # footer names the server, the member count and the id.
+  event:
+    form: embed
+    color: brand
+    thumbnail: '{user_avatar}'
+    footer: '{server} · #{count} · `{user_id}`'
+    mention: single
+    rich: true
+
+  # A listing: the card shows a list of things (the invites, the birthdays,
+  # the partnerships). The title names the list, the body carries the rows:
+  # the copy of the catalog or the body the send site built.
+  listing:
+    form: embed
+    color: info
+    mention: none
+    rich: true
+    legacy_body: false
+
+  # An info card (a member, a server, a role, a channel...): the subject's
+  # image rides the title, the subtitle tells who it is, the rows carry the
+  # stats and the footer closes the card with the id.
+  info_card:
+    form: embed
+    color: brand
+    mention: none
+    rich: true
+
+  # A panel: an interactive card (a menu, a manager, a posted panel). Its
+  # components live in code (Discord needs registered callbacks), so the
+  # document owns the frame only: the heading, the color and the body the
+  # panel shows. A guild restyles a panel by writing its own document under
+  # ``cards.<key>``: the themed document replaces the heading in place.
+  panel:
+    form: card
+    color: brand
+    mention: none
+    rich: true
+
+  # A registry entry of a moderation-relevant event: the member owns the
+  # author line (their mention with their own icon), the event owns the
+  # title and the body, and the footer names the actor (the moderator)
+  # when there is one.
+  audit_event:
+    form: embed
+    author: '{user}'
+    author_icon: '{user_avatar}'
+    footer:
+      - '{log.actor_footer}'
+      - '{log.system_footer}'
+    variables:
+      - user
+      - user_name
+      - user_id
+      - user_avatar
+      - server
+      - timestamp
+      - moderator
+      - reason
+      - message_author
+      - message_author_name
+      - message
+      - new_message
+      - message_link
+      - channel
+      - count
+      - file_url
+      - old_name
+      - new_name
+      - old_avatar
+      - new_avatar
+      - role
+      - duration
+      - attachment_lines
+      - image_url
+      - chat_image
+    mention: none
+    category: audit

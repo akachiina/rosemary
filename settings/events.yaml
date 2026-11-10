@@ -1,0 +1,34 @@
+# The events settings.
+settings:
+  events.enabled:
+    category: events
+    type: boolean
+    default: true
+  events.welcome_channel:
+    category: events
+    type: channel
+    default: null
+  events.leave_channel:
+    category: events
+    type: channel
+    default: null
+  events.ban_channel:
+    category: events
+    type: channel
+    default: null
+  events.welcome_ping_role:
+    category: events
+    type: role
+    default: null
+  events.leave_ping_role:
+    category: events
+    type: role
+    default: null
+  events.ban_ping_role:
+    category: events
+    type: role
+    default: null
+  events.raid_protection:
+    category: events
+    type: boolean
+    default: false

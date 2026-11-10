@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import yaml
+from catalog import catalog_files, flatten, load_catalog
 
 from rosemary.core.i18n import Translator, _flatten
 from rosemary.ui.theme import load_theme
@@ -21,9 +22,7 @@ def _resolver(language: str):
 
 
 def _read_keys(code: str) -> set[str]:
-    with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
-        data = yaml.safe_load(fh) or {}
-    return set(_flatten(data))
+    return set(_flatten(load_catalog(code)))
 
 
 async def test_catalogs_load_and_key_parity():
@@ -31,6 +30,39 @@ async def test_catalogs_load_and_key_parity():
     assert tr.available_languages == ["en-US", "pt-BR"]
     assert _read_keys("en-US") == _read_keys("pt-BR")
     assert _read_keys("en-US")  # non-empty catalog
+
+
+def test_the_modular_catalogs_keep_the_reference_keys():
+    """The split into feature files must not lose a single key.
+
+    ``tests/catalog_reference.json`` pins the hash of the flattened keys of
+    each catalog: the split is a mechanical move, so the **shape** of the
+    catalog is frozen. The copy may change (a new wording), the key set may
+    not (a lost key is a silent hole in the UI).
+    """
+    import hashlib
+    import json
+
+    reference = json.loads(
+        (Path(__file__).resolve().parent / "catalog_reference.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    for code, expected in reference.items():
+        flat = flatten(load_catalog(code))
+        raw = json.dumps(sorted(flat), ensure_ascii=False)
+        found = "sha256:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        assert found == expected["keys"], f"{code}: the catalog lost keys"
+
+
+def test_every_catalog_file_carries_its_feature():
+    """The modular layout: one file per feature, the sections never split."""
+    for code in ("en-US", "pt-BR"):
+        files = catalog_files(code)
+        assert len(files) > 1, f"{code}: the catalog is not split"
+        for path in files:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            assert isinstance(data, dict) and data, f"{path}: empty catalog file"
 
 
 def test_no_boolean_keys():
@@ -51,9 +83,7 @@ def test_no_boolean_keys():
                 walk(value, f"{path}.{key}")
 
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
-        walk(data, code)
+        walk(load_catalog(code), code)
 
 
 def test_no_duplicate_yaml_keys():
@@ -77,16 +107,15 @@ def test_no_duplicate_yaml_keys():
     )
 
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
-            yaml.load(fh, Loader=DupCheckLoader)
+        for path in catalog_files(code):
+            yaml.load(path.read_text(encoding="utf-8"), Loader=DupCheckLoader)
 
 
 def test_settings_descriptions_fit_modal_placeholder():
     """Discord modal placeholders cap at 100 chars, so every settings
     description must stay within the limit (bump.detection_text regression)."""
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         for key, spec in (data.get("settings") or {}).items():
             if isinstance(spec, dict) and "description" in spec:
                 assert len(spec["description"]) <= 100, (
@@ -103,8 +132,7 @@ def test_every_setting_has_catalog_copy():
     from rosemary.core.settings import SETTINGS
 
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         catalog = data.get("settings") or {}
         for key, spec in SETTINGS.items():
             entry = catalog.get(key)
@@ -316,21 +344,43 @@ async def test_invalid_message_multiline_available():
     assert message.startswith(theme.emojis["error"])
 
 
+def _document_label_keys(document: dict) -> list[str]:
+    """The ``log.field.*.label`` keys a document asks for.
+
+    The short form (``- target: "{member}"``) names the field, the long form
+    (``- {label: "{log.field.target.label}", ...}``) carries the key.
+    """
+    keys: list[str] = []
+    for field in document.get("fields") or []:
+        if not isinstance(field, dict):
+            continue
+        label = field.get("label")
+        if isinstance(label, str):
+            key = label.strip().removeprefix("{").removesuffix("}")
+            if key.startswith("log.field."):
+                keys.append(key)
+            continue
+        name = next(iter(field), "")
+        if name and name != "label":
+            keys.append(f"log.field.{name}.label")
+    return keys
+
+
 def test_every_log_field_label_resolves_in_both_catalogs():
     """A missing ``log.field.*.label`` leaks the raw key into live log cards."""
-    from rosemary.core.log_specs import LOG_SPECS
+    from rosemary.core.theme_package import default_package
 
+    package = default_package()
     for code in ("en-US", "pt-BR"):
-        with (LANG_DIR / f"{code}.yaml").open("r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh) or {}
+        data = load_catalog(code)
         missing = []
-        for spec in LOG_SPECS.values():
-            for field in spec.fields:
+        for key in package.card_keys():
+            for label in _document_label_keys(package.document(key) or {}):
                 node = data
-                for part in field.label.split("."):
+                for part in label.split("."):
                     node = node.get(part) if isinstance(node, dict) else None
                 if not isinstance(node, str) or not node.strip():
-                    missing.append(f"{code}:{spec.event}:{field.label}")
+                    missing.append(f"{code}:{key}:{label}")
         assert missing == []
 
 
@@ -343,10 +393,8 @@ def test_field_lines_carry_theme_emoji_token():
     """
     theme = load_theme()
 
-    with (LANG_DIR / "pt-BR.yaml").open("r", encoding="utf-8") as fh:
-        pt = yaml.safe_load(fh) or {}
-    with (LANG_DIR / "en-US.yaml").open("r", encoding="utf-8") as fh:
-        en = yaml.safe_load(fh) or {}
+    pt = load_catalog("pt-BR")
+    en = load_catalog("en-US")
 
     expectations = {
         # Audit bodies: label fields carry the semantic emoji.

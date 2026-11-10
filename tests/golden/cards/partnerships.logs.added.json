@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "description": "<@0> adicionou parceria para <@0>.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "➕ Parceria Adicionada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "partnerships.logs.added",
+  "pings": [],
+  "view": []
+}

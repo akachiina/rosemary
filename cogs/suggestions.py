@@ -28,6 +28,7 @@ from rosemary.core.interactions import ack
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.suggestions import SuggestionStore
+from rosemary.core.themes import theme_for
 from rosemary.ui.menu import MenuView
 
 log = logging.getLogger(__name__)
@@ -82,6 +83,21 @@ def _side_color(side: str | None) -> str:
     return "info"
 
 
+def _state_color(theme, status: str, score: int) -> str:
+    """The accent of a suggestion card, as the theme understands it.
+
+    An open suggestion follows the score ramp (the theme owns the ramp, the
+    send site only reads it); a decided one snaps to its fixed tone (gold for
+    an approval, red for a rejection). The result is a color token or a hex:
+    the document picks it up through ``{state_color}``.
+    """
+    if status == "approved":
+        return "gold"
+    if status == "rejected":
+        return "danger"
+    return _score_hex(theme, score)
+
+
 def _safe_filename(name: str) -> str:
     """Attachment-safe filename (``attachment://`` URLs reject spaces)."""
     clean = re.sub(r"[^\w.\-]+", "_", (name or "").strip()).strip("._")
@@ -96,135 +112,16 @@ def _image_url_from(attachments) -> str:
     return ""
 
 
-async def default_suggestion_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default suggestion card (``suggestions.card``).
+def _names_variable(card, name: str) -> bool:
+    """Whether the card's contract names a variable (the card may show it).
 
-    Layout: the numbered title beside the author's avatar thumbnail, the
-    suggestion body, the optional image gallery (self-drops when empty),
-    the live vote counts (``{up}``/``{down}`` resolve from theme emojis),
-    the standard author footer and a small hint with the guild's localized
-    command name. A decided suggestion (``status`` ``approved``/``rejected``)
-    snaps to its fixed accent and gains a staff status line instead of the
-    score ramp. Placeholders stay literal: this is a template resolved
-    at render.
+    The contract is the copy the send site delivers: a card that names a
+    variable may show it, so the message needs a second pass once the value
+    is known (the jump link of a posted suggestion).
     """
-    from rosemary.core.cards import author_footer_blocks
-
-    score = int(variables.get("score") or 0)
-    status = variables.get("status") or "open"
-    if status == "approved":
-        color: str = "gold"
-    elif status == "rejected":
-        color = "danger"
-    else:
-        color = _score_hex(getattr(bot, "theme", None), score)
-    command = await bot.translator.t(guild_id, "suggest.command.name")
-    hint = await bot.translator.t(guild_id, "suggest.card.hint", command=command)
-    children: list[dict] = [
-        {
-            "type": "section",
-            "accessory": {"type": "thumbnail", "url": "{user_avatar}"},
-            "children": [
-                {"type": "text", "body": "# {title}"},
-                {"type": "text", "body": "{body}"},
-            ],
-        },
-        {"type": "gallery", "urls": ["{image_url}"]},
-        {"type": "text", "body": "{up} {upvotes} · {down} {downvotes}"},
-    ]
-    if status in ("approved", "rejected"):
-        line = await bot.translator.t(guild_id, f"suggest.status.{status}")
-        children.append({"type": "text", "body": line})
-    children.extend(await author_footer_blocks(bot, guild_id))
-    children.append({"type": "text", "body": f"-# {hint}"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": color, "children": children}],
-    }
-
-
-async def default_suggestion_vote_dm_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default vote notice DM (``suggestions.dm.vote``).
-
-    Layout: the vote sentence from ``suggest.dm.body`` (who voted, which
-    suggestion, quoted text) plus a link button jumping to the suggestion.
-    The accent follows the voted side (green up, red down). The template is
-    read via ``raw()``: ``t()`` would attempt formatting without variables
-    and log a warning on every vote. Placeholders stay literal: this is a
-    template resolved at render.
-    """
-    raw = bot.translator.raw
-    body = await raw(guild_id, "suggest.dm.body")
-    jump_label = await bot.translator.t(guild_id, "suggest.dm.jump")
-    return {
-        "v": 1,
-        "blocks": [
-            {
-                "type": "container",
-                "color": _side_color(variables.get("side")),
-                "children": [
-                    {"type": "text", "body": body},
-                    {
-                        "type": "row",
-                        "buttons": [{"label": jump_label, "url": "{message_link}"}],
-                    },
-                ],
-            }
-        ],
-    }
-
-
-async def default_suggestion_decision_dm_document(
-    bot, guild_id: int, **variables
-) -> dict:
-    """Catalog-default approval/rejection DM (``suggestions.dm.approved`` etc).
-
-    One builder serves both keys: ``status`` selects the body template
-    (``suggest.dm.approved``/``suggest.dm.rejected``) and the accent
-    (gold/danger). The optional ``reason`` appends a resolved motive line;
-    an empty reason renders nothing. Templates come from ``raw()`` so no
-    formatting warning fires; placeholders resolve at render.
-    """
-    status = variables.get("status") or "approved"
-    if status not in ("approved", "rejected"):
-        status = "approved"
-    raw = bot.translator.raw
-    body = await raw(guild_id, f"suggest.dm.{status}")
-    jump_label = await bot.translator.t(guild_id, "suggest.dm.jump")
-    children: list[dict] = [{"type": "text", "body": body}]
-    if variables.get("reason"):
-        reason_line = await bot.translator.t(
-            guild_id, "suggest.dm.reason", **variables
-        )
-        children.append({"type": "text", "body": reason_line})
-    children.append(
-        {
-            "type": "row",
-            "buttons": [{"label": jump_label, "url": "{message_link}"}],
-        }
-    )
-    return {
-        "v": 1,
-        "blocks": [
-            {
-                "type": "container",
-                "color": "gold" if status == "approved" else "danger",
-                "children": children,
-            }
-        ],
-    }
-
-
-def _register_default_builder() -> None:
-    from rosemary.core.cards import set_default_builder
-
-    set_default_builder("suggestions.card", default_suggestion_document)
-    set_default_builder("suggestions.dm.vote", default_suggestion_vote_dm_document)
-    set_default_builder("suggestions.dm.approved", default_suggestion_decision_dm_document)
-    set_default_builder("suggestions.dm.rejected", default_suggestion_decision_dm_document)
-
-
-_register_default_builder()
+    if card is None:
+        return False
+    return name in (getattr(card, "variables", ()) or ())
 
 
 class SuggestionVoteView(MenuView):
@@ -415,7 +312,7 @@ class SuggestionsCog(commands.Cog):
             guild_id, "suggest.card.title", suggestion_number=number
         )
 
-    def _variables_for(
+    async def _variables_for(
         self,
         guild: discord.Guild | None,
         entry: dict,
@@ -423,6 +320,13 @@ class SuggestionsCog(commands.Cog):
         message_link: str = "",
         timestamp: str = "",
     ) -> dict:
+        """The contract variables of ``suggestions.card`` (the send site).
+
+        Besides the copy, the send site hands the document the color the
+        state chose (``state_color``) and the staff's status line: the
+        document keeps the frame, the send site owns the data.
+        """
+        guild_id = guild.id if guild is not None else None
         author_id = int(entry.get("author_id") or 0)
         member = guild.get_member(author_id) if guild is not None else None
         if member is not None:
@@ -434,6 +338,12 @@ class SuggestionsCog(commands.Cog):
             name = entry.get("user_name") or mention
             avatar = entry.get("user_avatar") or ""
         up, down = SuggestionStore.counts(entry)
+        status = entry.get("status", "open") or "open"
+        status_line = ""
+        if status in ("approved", "rejected"):
+            status_line = await self.bot.translator.t(
+                guild_id, f"suggest.status.{status}"
+            )
         return {
             "user": mention,
             "user_name": name,
@@ -446,47 +356,55 @@ class SuggestionsCog(commands.Cog):
             "score": up - down,
             "message_link": message_link,
             "timestamp": timestamp,
-            "status": entry.get("status", "open") or "open",
+            "status": status,
+            "status_line": status_line,
+            # The localized name of the command the card points at (the hint
+            # in the footer names it).
+            "command": await self.bot.translator.t(guild_id, "suggest.command.name"),
+            # The color token the state chose: the theme owns what it means.
+            "state_color": _state_color(
+                theme_for(self.bot, guild_id), status, up - down
+            ),
         }
 
     async def _card_payload(self, guild_id: int, variables: dict):
         """Themed card (or code fallback) plus its mention policy."""
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, allowed = await render_card_message(
             self.bot, guild_id, "suggestions.card", variables
         )
         if payload is not None:
             return payload, allowed
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
-        theme = self.bot.theme
-        command = await self.bot.translator.t(guild_id, "suggest.command.name")
-        hint = await self.bot.translator.t(guild_id, "suggest.card.hint", command=command)
+        theme = theme_for(self.bot, guild_id)
         status = variables.get("status") or "open"
-        if status == "approved":
-            accent = theme.color("gold")
-        elif status == "rejected":
-            accent = theme.color("danger")
-        else:
-            accent = discord.Colour(
-                int(_score_hex(theme, int(variables.get("score") or 0)).lstrip("#"), 16)
-            )
-        items: list = [
-            TextDisplay(f"# {variables.get('title', '')}"),
-            TextDisplay(str(variables.get("body") or "")),
-            TextDisplay(f"{variables.get('upvotes', 0)} · {variables.get('downvotes', 0)}"),
-        ]
-        if status in ("approved", "rejected"):
-            items.append(
-                TextDisplay(
-                    await self.bot.translator.t(guild_id, f"suggest.status.{status}")
-                )
-            )
-        items.append(TextDisplay(f"-# {hint}"))
-        view = DesignerView(store=False)
-        view.add_item(designer_container(accent, *items))
-        return CardPayload(view=view), discord.AllowedMentions.none()
+        accent = theme.color(_state_color(theme, status, int(variables.get("score") or 0)))
+        body = str(variables.get("body") or "")
+        status_line = str(variables.get("status_line") or "")
+        if status_line:
+            body = "\n".join([body, status_line]).strip()
+        command = str(variables.get("command") or "")
+        hint = await self.bot.translator.t(guild_id, "suggest.card.hint", command=command)
+        # The fallback follows the card's own form (an embed): the vote
+        # counts ride as fields, the hint as the footer.
+        return (
+            simple_payload(
+                self.bot,
+                guild_id,
+                "suggestions.card",
+                title=str(variables.get("title") or ""),
+                body=body,
+                color=accent,
+                thumbnail=variables.get("user_avatar") or None,
+                image=variables.get("image_url") or None,
+                footer=hint,
+                fields=(
+                    ("Upvotes", str(variables.get("upvotes", 0)), True),
+                    ("Downvotes", str(variables.get("downvotes", 0)), True),
+                ),
+            ),
+            discord.AllowedMentions.none(),
+        )
 
     async def _attach_row(self, payload, guild_id: int, up: int, down: int):
         """Attach the vote row whatever form the card took (V2 or embed)."""
@@ -497,7 +415,10 @@ class SuggestionsCog(commands.Cog):
             view = payload.view or discord.ui.View(timeout=None)
             for item in row.children:
                 view.add_item(item)
-            return CardPayload(embed=payload.embed, view=view)
+            # The content (the ping carrier) and the files ride along.
+            return CardPayload(
+                embed=payload.embed, view=view, files=payload.files, content=payload.content
+            )
         payload.view.add_item(row)
         return payload
 
@@ -523,21 +444,18 @@ class SuggestionsCog(commands.Cog):
             data, name = image
             files.append(discord.File(io.BytesIO(data), filename=name))
             image_url = f"attachment://{name}"
-        variables = {
-            "user": author.mention,
-            "user_name": author.display_name,
-            "user_avatar": author.display_avatar.url,
-            "suggestion_number": number,
-            "title": await self._title_for(guild.id, number),
-            "body": body,
-            "image_url": image_url,
-            "upvotes": 0,
-            "downvotes": 0,
-            "score": 0,
-            "message_link": "",
-            "timestamp": timestamp,
-            "status": "open",
-        }
+        variables = await self._variables_for(
+            guild,
+            {
+                "author_id": author.id,
+                "number": number,
+                "body": body,
+                "image_url": image_url,
+                "status": "open",
+            },
+            timestamp=timestamp,
+        )
+        variables["title"] = await self._title_for(guild.id, number)
         payload, allowed = await self._card_payload(guild.id, variables)
         payload = await self._attach_row(payload, guild.id, 0, 0)
         send_kwargs = payload.message_kwargs()
@@ -569,12 +487,10 @@ class SuggestionsCog(commands.Cog):
         # but skip the second edit when the card references neither.
         variables["image_url"] = stored_image_url
         variables["message_link"] = sent.jump_url
-        from rosemary.core.card_service import get_effective_document
+        from rosemary.core.card_resolution import get_effective_card
 
-        doc = await get_effective_document(
-            self.bot, guild.id, "suggestions.card", variables
-        )
-        if stored_image_url or (doc is not None and "message_link" in str(doc)):
+        card = await get_effective_card(self.bot, guild.id, "suggestions.card", variables)
+        if stored_image_url or _names_variable(card, "message_link"):
             payload, allowed = await self._card_payload(guild.id, variables)
             payload = await self._attach_row(payload, guild.id, 0, 0)
             with contextlib.suppress(discord.HTTPException):
@@ -643,7 +559,7 @@ class SuggestionsCog(commands.Cog):
         self, guild: discord.Guild, message: discord.Message, entry: dict
     ) -> None:
         """Build the card variables for ``entry`` and edit the message."""
-        variables = self._variables_for(
+        variables = await self._variables_for(
             guild,
             entry,
             message_link=message.jump_url,
@@ -656,6 +572,21 @@ class SuggestionsCog(commands.Cog):
             variables["image_url"] = live_image
         variables["title"] = await self._title_for(guild.id, entry.get("number", 0))
         payload, allowed = await self._card_payload(guild.id, variables)
+        from rosemary.core.card_service import align_to_message
+
+        payload, allowed = await align_to_message(
+            self.bot,
+            guild.id,
+            "suggestions.card",
+            variables,
+            payload,
+            allowed,
+            message,
+        )
+        if payload is None:
+            # The message shape forbids this card (a classic message never
+            # becomes Components V2): the posted card stays as it is.
+            return
         up, down = SuggestionStore.counts(entry)
         payload = await self._attach_row(payload, guild.id, up, down)
         await message.edit(**payload.message_kwargs(), allowed_mentions=allowed)
@@ -687,39 +618,24 @@ class SuggestionsCog(commands.Cog):
             "message_link": message_link,
             "vote": await self.bot.translator.t(guild.id, f"suggest.dm.{side}"),
             "side": side,
+            # The color token the state chose: the theme owns what it means.
+            "state_color": _side_color(side),
         }
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, guild.id, "suggestions.dm.vote", variables
         )
         if payload is None:
-            from rosemary.ui.containers import (
-                ActionRow,
-                DesignerView,
-                TextDisplay,
-                designer_container,
-            )
-
-            theme = self.bot.theme
             t = self.bot.translator.t
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    theme.color(_side_color(side)),
-                    TextDisplay(await t(guild.id, "suggest.dm.body", **variables)),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild.id,
+                "suggestions.dm.vote",
+                body=await t(guild.id, "suggest.dm.body", **variables),
+                color=_side_color(side),
+                buttons=((await t(guild.id, "suggest.dm.jump"), message_link),),
             )
-            view.add_item(
-                ActionRow(
-                    discord.ui.Button(
-                        style=discord.ButtonStyle.link,
-                        label=await t(guild.id, "suggest.dm.jump"),
-                        url=message_link,
-                    )
-                )
-            )
-            payload = CardPayload(view=view)
         target = guild.get_member(author_id)
         if target is None:
             try:
@@ -791,48 +707,38 @@ class SuggestionsCog(commands.Cog):
         author_id = int(entry.get("author_id") or 0)
         if not author_id:
             return
+        motive = (reason or "").strip()
+        reason_line = ""
+        if motive:
+            reason_line = await self.bot.translator.t(
+                guild.id, "suggest.dm.reason", reason=motive
+            )
         variables = {
             "suggestion_number": entry.get("number", 0),
             "body": entry.get("body") or "",
             "message_link": message_link,
             "moderator": moderator.mention,
-            "reason": (reason or "").strip(),
+            "reason": motive,
+            "reason_line": reason_line,
             "status": decision,
         }
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, guild.id, f"suggestions.dm.{decision}", variables
         )
         if payload is None:
-            from rosemary.ui.containers import (
-                ActionRow,
-                DesignerView,
-                TextDisplay,
-                designer_container,
-            )
-
-            theme = self.bot.theme
             t = self.bot.translator.t
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    theme.color("gold" if decision == "approved" else "danger"),
-                    TextDisplay(
-                        await t(guild.id, f"suggest.dm.{decision}", **variables)
-                    ),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild.id,
+                f"suggestions.dm.{decision}",
+                body=await t(guild.id, f"suggest.dm.{decision}", **variables),
+                color="gold" if decision == "approved" else "danger",
+                buttons=(
+                    (await t(guild.id, "suggest.dm.jump"), variables["message_link"]),
+                ),
             )
-            view.add_item(
-                ActionRow(
-                    discord.ui.Button(
-                        style=discord.ButtonStyle.link,
-                        label=await t(guild.id, "suggest.dm.jump"),
-                        url=variables["message_link"],
-                    )
-                )
-            )
-            payload = CardPayload(view=view)
         target = guild.get_member(author_id)
         if target is None:
             try:

@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15158332,
+    "description": "❌ O cargo de vencedor configurado não foi encontrado no servidor.",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "📊 Semana Resetada (Sem MVP)",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.no_role",
+  "pings": [],
+  "view": []
+}

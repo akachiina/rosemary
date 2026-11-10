@@ -22,6 +22,7 @@ from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
+from rosemary.core.themes import theme_for
 from rosemary.core.timezone import resolve_timezone
 from rosemary.ui.boost_dm import send_preview
 
@@ -271,20 +272,20 @@ class BumpLeaderboardCog(commands.Cog):
             await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
             return
 
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import simple_payload
 
-        view = DesignerView(store=False)
         content = await self.bot.translator.t(guild.id, "bump.messages.no_bumps_description")
         no_bumps_title = await self.bot.translator.t(guild.id, "bump.messages.no_bumps_title")
-        view.add_item(
-            designer_container(
-                self.bot.theme.color(self.bot.theme.style("bump_no_data").color),
-                TextDisplay(self.bot.theme.md("title", title=no_bumps_title)),
-                TextDisplay(content),
-            )
+        payload = simple_payload(
+            self.bot,
+            guild.id,
+            "bump.no_bumps",
+            title=no_bumps_title,
+            body=content,
+            color=self.bot.theme.style("bump_no_data").color,
         )
         await channel.send(
-            view=view,
+            **payload.message_kwargs(),
             allowed_mentions=await allowed_for_ids(self.bot, guild.id, "bump.no_bumps"),
         )
 
@@ -362,6 +363,11 @@ class BumpLeaderboardCog(commands.Cog):
         )
         context["user"] = f"<@{winner_id}>"
         context["timestamp"] = discord.utils.format_dt(discord.utils.utcnow(), style="R")
+        # The color token comes from the guild's theme style (the theme owns
+        # what the token means); the document picks it up.
+        context["state_color"] = theme_for(self.bot, guild.id).style(
+            "bump_leaderboard"
+        ).color
         return context
 
     async def _post_leaderboard(
@@ -373,7 +379,7 @@ class BumpLeaderboardCog(commands.Cog):
         winner_count: int,
         role_name: str | None = None,
     ) -> None:
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message
         from rosemary.core.mentions import allowed_for_ids
 
         context = await self._leaderboard_payload(
@@ -383,10 +389,8 @@ class BumpLeaderboardCog(commands.Cog):
             self.bot, guild.id, "bump.leaderboard", context
         )
         if payload is None:
-            payload = CardPayload(
-                view=await self._build_leaderboard_view(
-                    guild, sorted_lb, winner_id, winner_count, role_name, context,
-                )
+            payload = await self._build_leaderboard_payload(
+                guild, sorted_lb, winner_id, winner_count, role_name, context,
             )
             # Mentions stay content-driven on the fallback too: the description
             # carries the winner token, so the policy is the same either way.
@@ -396,7 +400,7 @@ class BumpLeaderboardCog(commands.Cog):
             )
         await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
 
-    async def _build_leaderboard_view(
+    async def _build_leaderboard_payload(
         self,
         guild: discord.Guild,
         sorted_lb: list[tuple[int, int]],
@@ -404,8 +408,9 @@ class BumpLeaderboardCog(commands.Cog):
         winner_count: int,
         role_name: str | None = None,
         context: dict | None = None,
-    ) -> discord.ui.DesignerView:
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+    ):
+        """The code-built leaderboard, in the card's own form (an embed)."""
+        from rosemary.core.card_service import simple_payload
 
         if context is None:
             context = await self._leaderboard_context(
@@ -425,26 +430,22 @@ class BumpLeaderboardCog(commands.Cog):
         description, _mention_ids = safe_format_mentions(
             template, {**emojis, **context}
         )
-
-        view = DesignerView(store=False)
         lb_title = await self.bot.translator.t(guild.id, "bump.messages.leaderboard_title")
-
         winner_member = guild.get_member(winner_id)
-        if winner_member and winner_member.display_avatar:
-            title_section = discord.ui.Section(
-                TextDisplay(self.bot.theme.md("title", title=lb_title)),
-                accessory=discord.ui.Thumbnail(winner_member.display_avatar.url),
-            )
-            items = [title_section, TextDisplay(description)]
-        else:
-            items = [
-                TextDisplay(self.bot.theme.md("title", title=lb_title)),
-                TextDisplay(description),
-            ]
-
-        container_color = self.bot.theme.color(self.bot.theme.style("bump_leaderboard").color)
-        view.add_item(designer_container(container_color, *items))
-        return view
+        thumbnail = (
+            winner_member.display_avatar.url
+            if winner_member and getattr(winner_member, "display_avatar", None)
+            else None
+        )
+        return simple_payload(
+            self.bot,
+            guild.id,
+            "bump.leaderboard",
+            title=lb_title,
+            body=description,
+            color=self.bot.theme.style("bump_leaderboard").color,
+            thumbnail=thumbnail,
+        )
 
     async def _transfer_mvp_role(
         self,
@@ -588,7 +589,7 @@ class BumpLeaderboardCog(commands.Cog):
         role = guild.get_role(role_id) if role_id else None
         role_name = role.name if role else None
 
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message
 
         context = await self._leaderboard_payload(
             guild, sorted_lb, winner_id, winner_count, role_name
@@ -599,10 +600,8 @@ class BumpLeaderboardCog(commands.Cog):
             self.bot, guild.id, "bump.leaderboard", context, silent=True
         )
         if payload is None:
-            payload = CardPayload(
-                view=await self._build_leaderboard_view(
-                    guild, sorted_lb, winner_id, winner_count, role_name, context,
-                )
+            payload = await self._build_leaderboard_payload(
+                guild, sorted_lb, winner_id, winner_count, role_name, context,
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
@@ -612,8 +611,6 @@ class BumpLeaderboardCog(commands.Cog):
     )
     async def bump_stats(self, ctx: discord.ApplicationContext) -> None:
         """Show the caller's bump statistics for this week."""
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
-
         guild = ctx.guild
         if not await get_setting(self.bot.storage, guild.id, "bump.enabled"):
             return await ctx.respond(
@@ -688,23 +685,20 @@ class BumpLeaderboardCog(commands.Cog):
         )
 
         body = "\n\n".join(lines)
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, guild.id, "bump.stats", {"title": stats_title, "body": body}
         )
         if payload is None:
-            from rosemary.ui.containers import TextDisplay, designer_container
-
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    self.bot.theme.color(self.bot.theme.style("bump_leaderboard").color),
-                    TextDisplay(self.bot.theme.md("title", title=stats_title)),
-                    TextDisplay(body),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild.id,
+                "bump.stats",
+                title=stats_title,
+                body=body,
+                color=self.bot.theme.style("bump_leaderboard").color,
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @bump_admin_group.command(
@@ -796,18 +790,27 @@ class BumpLeaderboardCog(commands.Cog):
         role_id = await get_setting(self.bot.storage, guild_id, "bump.leaderboard.winner_role")
         role = guild.get_role(role_id) if role_id else None
         role_name = role.name if role else None
-        view = await self._build_leaderboard_view(
-            guild, sorted_lb, winner_id, winner_count, role_name,
-        )
-        from rosemary.core.mentions import allowed_for_ids
+        # The card pipeline owns the layout (the themed document included):
+        # the weekly post is the same card the manual command sends.
+        from rosemary.core.card_service import render_card_message
 
-        await channel.send(
-            view=view,
-            allowed_mentions=await allowed_for_ids(
+        context = await self._leaderboard_payload(
+            guild, sorted_lb, winner_id, winner_count, role_name
+        )
+        payload, allowed = await render_card_message(
+            self.bot, guild.id, "bump.leaderboard", context
+        )
+        if payload is None:
+            payload = await self._build_leaderboard_payload(
+                guild, sorted_lb, winner_id, winner_count, role_name, context,
+            )
+            from rosemary.core.mentions import allowed_for_ids
+
+            allowed = await allowed_for_ids(
                 self.bot, guild_id, "bump.leaderboard",
                 user_ids=[winner_id],
-            ),
-        )
+            )
+        await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
         await send_log(
             self.bot,
             guild_id,

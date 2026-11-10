@@ -1,0 +1,90 @@
+about:
+  command:
+    name: about
+    description: About Rosemary
+  title: About Rosemary
+  text: Rosemary is a minimal, multilingual Discord bot built with py-cord.
+  version: 'Version: `{version}` (`{channel}`)'
+actions:
+  open_ticket:
+    label: Open ticket
+    description: Opens a support ticket
+  dismiss:
+    label: Dismiss
+    description: Deletes this message
+  unavailable: This action is not available here.
+  ticket_created: 'Ticket opened: {channel}'
+channelinfo:
+  types:
+    text: Text
+    voice: Voice
+    stage_voice: Stage
+    category: Category
+    forum: Forum
+    media: Media
+    news: Announcement
+    public_thread: Public thread
+    private_thread: Private thread
+    announcement_thread: Announcement thread
+emojiinfo:
+  error: '{warning} Invalid emoji. Send a custom emoji, a unicode emoji, a message link or an ID.'
+  not_found: '{error} Could not find this emoji or sticker.'
+  message_no_emoji: '{error} That message has no sticker or custom emoji to inspect.'
+  source_guild: Server emoji
+  source_app: Application emoji
+  source_unknown: Unknown origin
+help:
+  title: '{scroll} Commands'
+  body: Text commands for this server, all typed with the prefix `{prefix}`.
+  group_moderation: Moderation
+  group_info: Information
+  group_general: General
+  group_interactions: Interactions
+  roleplay_description: 'Roleplay interactions with a gif. Use one with a member: `{prefix}hug @member`'
+  self_description: Show this command list
+info:
+  command:
+    name: info
+    description: Show information
+info_channel:
+  command:
+    name: channel
+    description: Show channel information
+    options:
+      channel:
+        description: Channel to inspect
+info_emoji:
+  command:
+    name: emoji
+    description: Show emoji or sticker information
+    options:
+      emoji:
+        description: Custom or unicode emoji, a message link/ID, or a sticker ID
+info_role:
+  command:
+    name: role
+    description: Show role information
+    options:
+      role:
+        description: Role to inspect
+info_server:
+  command:
+    name: server
+    description: Show server information
+info_user:
+  command:
+    name: user
+    description: Show member information
+    options:
+      member:
+        description: Member to inspect
+serverinfo:
+  title: Server Information
+  name: '**Name:** {value}'
+  owner: '**Owner:** {value}'
+  members: '**Members:** {value}'
+  roles: '**Roles:** {value}'
+  channels: '**Channels:** {value}'
+  created: '**Created:** {value}'
+userinfo:
+  timeout_none: none

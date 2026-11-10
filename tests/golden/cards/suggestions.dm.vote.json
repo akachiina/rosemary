@@ -1,0 +1,20 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3066993,
+    "description": "<@0> deu um **upvote** na sua **sugestão #1:**\n> …",
+    "fields": [],
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "suggestions.dm.vote",
+  "pings": [],
+  "view": [
+    {
+      "label": "Ir para a sugestão",
+      "style": "link",
+      "type": "Button",
+      "url": "https://example.com/message"
+    }
+  ]
+}

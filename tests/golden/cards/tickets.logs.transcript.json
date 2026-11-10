@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "Transcrição de #… (pedida por <@0>).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "📜 Transcrição de Ticket",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "tickets.logs.transcript",
+  "pings": [],
+  "view": []
+}

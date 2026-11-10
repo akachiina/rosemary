@@ -1,0 +1,36 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "fields": [
+      {
+        "inline": false,
+        "name": "✏️ Anterior",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "✏️ Novo",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "👥 Por",
+        "value": "<@0>"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "⚙️ Idioma Alterado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "settings.logs.language",
+  "pings": [],
+  "view": []
+}

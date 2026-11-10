@@ -141,7 +141,10 @@ async def test_announce_posts_card_marks_year_and_grants_role(tmp_path):
 
     channel.send.assert_awaited_once()
     _, kwargs = channel.send.call_args
-    assert kwargs["view"] is not None
+    # The announcement is content, not an interactive card: it ships as a
+    # classic embed.
+    assert kwargs["embed"] is not None
+    assert kwargs.get("view") is None
     member.add_roles.assert_awaited_once()
     other.remove_roles.assert_awaited_once()
 
@@ -180,18 +183,10 @@ async def test_announce_honors_override_document(tmp_path):
     await cog.announce_today(guild, channel, datetime(2026, 8, 23).date())
 
     _, kwargs = channel.send.call_args
-    found = []
-
-    def walk(node):
-        content = getattr(node, "content", None)
-        if isinstance(content, str):
-            found.append(content)
-        for child in getattr(node, "items", []) or []:
-            walk(child)
-
-    for child in kwargs["view"].children:
-        walk(child)
-    assert any("PARABÉNS <@10>!" in text for text in found)
+    # The plain override keeps the card's surface: a classic embed.
+    embed = kwargs["embed"]
+    assert embed is not None
+    assert "PARABÉNS <@10>!" in (embed.description or "")
 
 
 #: disabled / missing channel ---------------------------------------------------

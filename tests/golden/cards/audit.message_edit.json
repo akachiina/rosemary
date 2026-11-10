@@ -1,0 +1,24 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "**👥 Autor:** <@0>\n**💬 Canal:** #…\n\n**✏️ Antes:**\n…\n\n**✏️ Depois:**\n…\n\n[arquivo.png](https://example.com/arquivo.png)",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "image": {
+      "url": "attachment://mensagem.png"
+    },
+    "title": "✏️ Mensagem editada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.message_edit",
+  "pings": [],
+  "view": []
+}

@@ -57,6 +57,7 @@ class Theme:
         medals: dict[str, str] | None = None,
         star_tier_emoji: dict[Any, str] | None = None,
         roleplay: dict[str, Any] | None = None,
+        panels: dict[str, Any] | None = None,
     ) -> None:
         self.colors = colors
         self.emojis = emojis
@@ -66,6 +67,10 @@ class Theme:
         self.medals = medals or {}
         self.star_tier_emoji = star_tier_emoji or {}
         self.roleplay = roleplay or {}
+        # The chrome of the interactive panels (``panels.chrome``): the
+        # header, the body, the footer and the navigation every panel
+        # shares. Restyling every panel is one edit here.
+        self.panels = panels or {}
         # Chat snapshot HTML templates (page/bubble/image): subclasses that
         # load theme files fill this; the base defaults to empty and every
         # consumer falls back to core.chat_image's built-in templates.
@@ -311,16 +316,17 @@ def _blend_hex(start: str, end: str, ratio: float) -> str:
 def load_theme(path: Path | None = None) -> Theme:
     """Load the theme YAML, falling back to empty resources on failure.
 
-    Without an explicit path the canonical ``themes/default.yaml`` is loaded
-   : the same file :class:`~rosemary.core.themes.ThemeStore` lists as the
-    selectable "default" theme, so bot fallback and store stay one file.
+    Without an explicit path the canonical ``themes/default/tokens.yaml`` is
+    loaded: the tokens of the built-in package (the same package
+    :class:`~rosemary.core.themes.ThemeStore` lists as the selectable
+    "default" theme, so bot fallback and store stay one package).
     (Lazy import: ``core.themes`` imports this module's ``Theme``.)"""
     if path is not None:
         theme_path = Path(path)
     else:
         from rosemary.core.themes import THEMES_DIR
 
-        theme_path = THEMES_DIR / "default.yaml"
+        theme_path = THEMES_DIR / "default" / "tokens.yaml"
     colors: dict[str, str] = {}
     emojis: dict[str, str] = {}
     markdown: dict[str, str] = {}
@@ -329,6 +335,7 @@ def load_theme(path: Path | None = None) -> Theme:
     medals: dict[str, str] = {}
     star_tier_emoji: dict[Any, str] = {}
     roleplay: dict[str, Any] = {}
+    panels: dict[str, Any] = {}
     snapshot: dict[str, str] = {}
     if theme_path.exists():
         try:
@@ -345,6 +352,7 @@ def load_theme(path: Path | None = None) -> Theme:
             medals = {str(k): str(v) for k, v in (data.get("medals") or {}).items()}
             star_tier_emoji = dict((data.get("star_tier_emoji") or {}).items())
             roleplay = dict((data.get("roleplay") or {}).items())
+            panels = dict((data.get("panels") or {}).items())
             snapshot = {
                 str(k): str(v)
                 for k, v in (data.get("snapshot") or {}).items()
@@ -356,7 +364,7 @@ def load_theme(path: Path | None = None) -> Theme:
         log.warning("Theme file not found: %s", theme_path)
     _validate_theme(theme_path, colors, emojis)
     theme = Theme(
-        colors, emojis, markdown, styles, bump, medals, star_tier_emoji, roleplay
+        colors, emojis, markdown, styles, bump, medals, star_tier_emoji, roleplay, panels
     )
     theme.snapshot = snapshot
     return theme

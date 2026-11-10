@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "<@0> postou o convite de parceria.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "💌 Convite Postado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "partnerships.logs.invite_posted",
+  "pings": [],
+  "view": []
+}

@@ -1,0 +1,14 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "…",
+    "fields": [],
+    "title": "🏆 Maiores Convidadores",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "invites.leaderboard",
+  "pings": [],
+  "view": []
+}

@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "themes.title",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Temas",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "{body}",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

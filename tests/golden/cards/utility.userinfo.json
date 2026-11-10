@@ -1,0 +1,59 @@
+{
+  "content": null,
+  "embed": {
+    "color": 5763719,
+    "description": "👑 …",
+    "fields": [
+      {
+        "inline": true,
+        "name": "📅 Criado em",
+        "value": "<t:1111111111:D> · <t:1111111111:R>"
+      },
+      {
+        "inline": true,
+        "name": "🚪 Entrou",
+        "value": "<t:1111111111:D> · <t:1111111111:R>"
+      },
+      {
+        "inline": true,
+        "name": "✏️ Apelido",
+        "value": "…"
+      },
+      {
+        "inline": true,
+        "name": "🏷️ Cargos",
+        "value": "1"
+      },
+      {
+        "inline": true,
+        "name": "🚀 Boost desde",
+        "value": "…"
+      },
+      {
+        "inline": true,
+        "name": "🔇 Timeout",
+        "value": "…"
+      },
+      {
+        "inline": true,
+        "name": "⚙️ Bot",
+        "value": "Não"
+      }
+    ],
+    "footer": {
+      "text": "`123456789012345678`"
+    },
+    "image": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "@you",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "utility.userinfo",
+  "pings": [],
+  "view": []
+}

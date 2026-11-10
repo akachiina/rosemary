@@ -91,6 +91,17 @@ def texts(view) -> str:
     return "\n".join(found)
 
 
+def embed_text(embed) -> str:
+    """The readable text of an embed card (title, description and fields)."""
+    if embed is None:
+        return ""
+    parts = [embed.title or "", embed.description or ""]
+    for field in embed.fields or []:
+        parts.append(field.name or "")
+        parts.append(field.value or "")
+    return "\n".join(part for part in parts if part)
+
+
 #: join ----------------------------------------------------------------------
 
 
@@ -104,7 +115,9 @@ async def test_join_sends_default_card(tmp_path, welcome):
 
     assert channel.send.await_count == 1
     _, kwargs = channel.send.call_args
-    rendered = texts(kwargs["view"])
+    # The announcement is content: it ships as a classic embed.
+    assert kwargs["embed"] is not None
+    rendered = embed_text(kwargs["embed"])
     assert "events.welcome.title" in rendered
     assert ";count=42" in rendered or "{user}" not in rendered
 
@@ -149,7 +162,8 @@ async def test_join_uses_plain_override(tmp_path):
     cog = WelcomeCog(bot)
     await cog.on_member_join(member)
     _, kwargs = channel.send.call_args
-    assert "BEM-VINDA Ana!" in texts(kwargs["view"])
+    # The plain copy keeps the card's surface: an embed.
+    assert "BEM-VINDA Ana!" in embed_text(kwargs["embed"])
 
 
 #: leave / ban ---------------------------------------------------------------
@@ -205,7 +219,7 @@ async def test_join_pings_receptionist_role_before_card(tmp_path):
     assert ping_args[0] == "<@&999>"
     assert [r.id for r in ping_kwargs["allowed_mentions"].roles] == [999]
     _, card_kwargs = channel.send.call_args_list[1]
-    assert "events.welcome.title" in texts(card_kwargs["view"])
+    assert "events.welcome.title" in embed_text(card_kwargs["embed"])
 
 
 async def test_join_without_alert_role_sends_only_card(tmp_path):

@@ -2,10 +2,8 @@
 
 All are first-class CardSpecs (``utility.userinfo`` and friends): a theme may
 restyle them, and ``debug.card_paths`` traces the path like any other send.
-The builders below are the *default* layouts used when the theme has no
-override, mirroring the ``/serverinfo`` builder shape (header section with a
-thumbnail accessory, ``**label:**`` value stat lines, optional blocks omitted
-when their variable resolves empty, small ID footer).
+The default layout of each card lives in the default package
+(``themes/default/cards/content.yaml``); the code below is only the command.
 
 This file intentionally does NOT import ``from __future__ import
 annotations``: py-cord inspects slash-command annotations with
@@ -42,222 +40,6 @@ def _ts(moment, style: str) -> str:
     if moment is None:
         return "-"
     return f"<t:{int(moment.timestamp())}:{style}>"
-
-
-def _compose(bot, guild_id: int, card_key: str, variables: dict):
-    """Closure bundle for a default builder (serverinfo shape).
-
-    ``raw`` formats one catalog key, ``line`` builds one ``**label:** value``
-    stat line (an optional ``<name>_value`` template wins over the plain
-    variable), ``optional`` renders the line only when its gate variable
-    carries content (defaults to the line's own name), and ``subtitle``
-    resolves the card's optional subtitle.
-    """
-    from rosemary.core.cards import safe_format
-
-    mapping = {
-        **bot.theme.emojis,
-        **{name: f"{{{name}}}" for name in variables},
-    }
-
-    async def raw(key: str) -> str:
-        return safe_format(
-            await bot.translator.raw(guild_id, f"card.{card_key}.{key}"), mapping
-        )
-
-    async def line(name: str) -> str:
-        label = await raw(f"{name}_label")
-        value_key = f"{name}_value"
-        full_key = f"card.{card_key}.{value_key}"
-        template = await bot.translator.raw(guild_id, full_key)
-        value = template if template != full_key else f"{{{name}}}"
-        return f"**{label}:** {value}"
-
-    async def optional(name: str, *, gate: str | None = None):
-        value = variables.get(gate or name)
-        if isinstance(value, str) and value.strip():
-            return await line(name)
-        return None
-
-    async def subtitle():
-        found = await bot.translator.raw(guild_id, f"card.{card_key}.subtitle")
-        if isinstance(found, str) and found.strip() and found != f"card.{card_key}.subtitle":
-            return safe_format(found, mapping)
-        return None
-
-    return raw, line, optional, subtitle
-
-
-def _header_children(card_key: str, variables: dict, header_texts: list[str]) -> list[dict]:
-    """Header section (thumbnail accessory) when the image exists, plain texts
-    otherwise: a thumbnail with an empty url would 400 the whole payload."""
-    image_key = {
-        "utility.userinfo": "user_avatar",
-        "utility.emojiinfo": "emoji_url",
-        "utility.roleinfo": "role_icon",
-    }.get(card_key)
-    image = variables.get(image_key) if image_key else None
-    if image_key and isinstance(image, str) and image.strip():
-        return [
-            {
-                "type": "section",
-                "accessory": {"type": "thumbnail", "url": f"{{{image_key}}}"},
-                "children": [{"type": "text", "body": text} for text in header_texts],
-            }
-        ]
-    return [{"type": "text", "body": text} for text in header_texts]
-
-
-async def default_userinfo_document(bot, guild_id, **variables) -> dict:
-    """Catalog-default ``/userinfo`` card (no theme override)."""
-    _raw, line, optional, subtitle = _compose(bot, guild_id, "utility.userinfo", variables)
-
-    header_texts = ["# {user_name}"]
-    sub = await subtitle()
-    if sub:
-        header_texts.append(sub)
-    children = _header_children("utility.userinfo", variables, header_texts)
-    if isinstance(variables.get("banner_url"), str) and variables["banner_url"].strip():
-        # Banner right after the header: V2 renders in document order, so
-        # appending later would drop the image at the card's bottom.
-        children.append({"type": "gallery", "urls": ["{banner_url}"]})
-    children.append({"type": "divider"})
-    lines = [
-        await line("created"),
-        await line("joined"),
-        await optional("nickname"),
-        await line("roles"),
-        await optional("boosting_since"),
-        await line("timeout"),
-        await line("is_bot"),
-    ]
-    children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
-    children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# `{user_id}`"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": "brand", "children": children}],
-    }
-
-
-async def default_emojiinfo_document(bot, guild_id, **variables) -> dict:
-    """Catalog-default ``/emojiinfo`` card (custom emoji or unicode glyph)."""
-    _raw, line, optional, subtitle = _compose(bot, guild_id, "utility.emojiinfo", variables)
-
-    header_texts = ["# {emoji}"]
-    sub = await subtitle()
-    if sub:
-        header_texts.append(sub)
-    children = _header_children("utility.emojiinfo", variables, header_texts)
-    children.append({"type": "divider"})
-    # Source lives in the subtitle and the id in the footer: the body only
-    # carries the optional created/animated lines (unicode drops both).
-    lines = [
-        await optional("created", gate="created_at"),
-        await optional("animated"),
-    ]
-    body = "\n".join(ln for ln in lines if ln)
-    if body:
-        children.append({"type": "text", "body": body})
-    if variables.get("emoji_id"):
-        children.append({"type": "divider"})
-        children.append({"type": "text", "body": "-# `{emoji_id}`"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": "brand", "children": children}],
-    }
-
-
-async def default_stickerinfo_document(bot, guild_id, **variables) -> dict:
-    """Catalog-default sticker card: the image rides a gallery (a lottie
-    sticker's ``sticker_url`` resolves empty, so the gallery drops itself)."""
-    _raw, line, optional, _subtitle = _compose(bot, guild_id, "utility.stickerinfo", variables)
-
-    children: list[dict] = [{"type": "text", "body": "# {sticker_name}"}]
-    if isinstance(variables.get("sticker_url"), str) and variables["sticker_url"].strip():
-        children.append({"type": "gallery", "urls": ["{sticker_url}"]})
-    children.append({"type": "divider"})
-    lines = [
-        await line("format"),
-        await optional("tags"),
-        await optional("uploader"),
-        await optional("description"),
-        await line("created"),
-    ]
-    children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
-    children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# `{sticker_id}`"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": "brand", "children": children}],
-    }
-
-
-async def default_roleinfo_document(bot, guild_id, **variables) -> dict:
-    """Catalog-default ``/roleinfo`` card (no theme override)."""
-    _raw, line, optional, subtitle = _compose(bot, guild_id, "utility.roleinfo", variables)
-
-    header_texts = ["# {role_name}"]
-    sub = await subtitle()
-    if sub:
-        header_texts.append(sub)
-    children = _header_children("utility.roleinfo", variables, header_texts)
-    children.append({"type": "divider"})
-    lines = [
-        await line("members"),
-        await line("position"),
-        await optional("role_color"),
-        await line("mentionable"),
-        await line("hoist"),
-        await line("created"),
-    ]
-    children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
-    children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# `{role_id}`"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": "brand", "children": children}],
-    }
-
-
-async def default_channelinfo_document(bot, guild_id, **variables) -> dict:
-    """Catalog-default ``/channelinfo`` card (no image; voice-only stats are
-    optional variables that resolve empty on text channels)."""
-    _raw, line, optional, _subtitle = _compose(bot, guild_id, "utility.channelinfo", variables)
-
-    children: list[dict] = [{"type": "text", "body": "# {channel_name}"}]
-    children.append({"type": "divider"})
-    lines = [
-        await line("channel_type"),
-        await optional("category"),
-        await optional("topic"),
-        await optional("slowmode"),
-        await optional("bitrate"),
-        await optional("user_limit"),
-        await line("nsfw"),
-        await line("position"),
-        await line("created"),
-    ]
-    children.append({"type": "text", "body": "\n".join(ln for ln in lines if ln)})
-    children.append({"type": "divider"})
-    children.append({"type": "text", "body": "-# `{channel_id}`"})
-    return {
-        "v": 1,
-        "blocks": [{"type": "container", "color": "brand", "children": children}],
-    }
-
-
-def _register_default_builders() -> None:
-    from rosemary.core.cards import set_default_builder
-
-    set_default_builder("utility.userinfo", default_userinfo_document)
-    set_default_builder("utility.emojiinfo", default_emojiinfo_document)
-    set_default_builder("utility.stickerinfo", default_stickerinfo_document)
-    set_default_builder("utility.roleinfo", default_roleinfo_document)
-    set_default_builder("utility.channelinfo", default_channelinfo_document)
-
-
-_register_default_builders()
 
 
 class InfoCog(commands.Cog):
@@ -316,35 +98,29 @@ class InfoCog(commands.Cog):
             self.bot, ctx.guild_id, "utility.serverinfo", variables
         )
         if payload is None:
-            from rosemary.ui.containers import (
-                DesignerView,
-                TextDisplay,
-                designer_container,
-            )
+            from rosemary.core.card_service import simple_payload
 
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    self.bot.theme.color("brand"),
-                    TextDisplay(self.bot.theme.md("title", title=guild.name)),
-                )
+            payload = simple_payload(
+                self.bot,
+                ctx.guild_id,
+                "utility.serverinfo",
+                title=guild.name,
+                color="brand",
             )
-            payload = CardPayload(view=view)
             allowed = discord.AllowedMentions.none()
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
-    def _fallback_payload(self, title: str) -> CardPayload:
+    def _fallback_payload(self, guild_id: int | None, card_key: str, title: str) -> CardPayload:
         """Defensive plain card when the default builder itself fails."""
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import simple_payload
 
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("brand"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-            )
+        return simple_payload(
+            self.bot,
+            guild_id,
+            card_key,
+            title=title,
+            color="brand",
         )
-        return CardPayload(view=view)
 
     @info_group.command(
         name="user",
@@ -408,7 +184,9 @@ class InfoCog(commands.Cog):
         )
         if payload is None:
             payload = self._fallback_payload(
-                await t(guild_id, "card.utility.userinfo.title")
+                guild_id,
+                "utility.userinfo",
+                await t(guild_id, "card.utility.userinfo.title"),
             )
         await ctx.followup.send(**payload.message_kwargs(), allowed_mentions=allowed)
 
@@ -558,7 +336,9 @@ class InfoCog(commands.Cog):
         )
         if payload is None:
             payload = self._fallback_payload(
-                await t(guild_id, "card.utility.emojiinfo.title")
+                guild_id,
+                "utility.emojiinfo",
+                await t(guild_id, "card.utility.emojiinfo.title"),
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
@@ -671,7 +451,9 @@ class InfoCog(commands.Cog):
         )
         if payload is None:
             payload = self._fallback_payload(
-                await t(guild_id, "card.utility.stickerinfo.title")
+                guild_id,
+                "utility.stickerinfo",
+                await t(guild_id, "card.utility.stickerinfo.title"),
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
@@ -714,7 +496,9 @@ class InfoCog(commands.Cog):
         )
         if payload is None:
             payload = self._fallback_payload(
-                await t(guild_id, "card.utility.roleinfo.title")
+                guild_id,
+                "utility.roleinfo",
+                await t(guild_id, "card.utility.roleinfo.title"),
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
@@ -765,7 +549,9 @@ class InfoCog(commands.Cog):
         )
         if payload is None:
             payload = self._fallback_payload(
-                await t(guild_id, "card.utility.channelinfo.title")
+                guild_id,
+                "utility.channelinfo",
+                await t(guild_id, "card.utility.channelinfo.title"),
             )
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 

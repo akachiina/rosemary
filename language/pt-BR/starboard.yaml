@@ -1,0 +1,18 @@
+starboard:
+  enabled:
+    label: Ativar Starboard
+    description: Destaca mensagens populares num quadro.
+  channel:
+    label: Canal do Starboard
+    description: Onde as mensagens estreladas são postadas.
+  threshold:
+    label: Limite de estrelas
+    description: Estrelas necessárias para entrar no Starboard.
+  self_star_counts:
+    label: Auto-estrela conta
+    description: Se a estrela do próprio autor conta.
+  allow_bots:
+    label: Permitir bots
+    description: Deixa mensagens de bots entrarem no Starboard.
+  jump: Ir para a mensagem
+  no_content: '*[Sem conteúdo de texto]*'

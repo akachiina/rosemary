@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "<@0> ajustou <@0> em 1 (total: 1).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "➕ Bônus Ajustado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "invites.logs.bonus",
+  "pings": [],
+  "view": []
+}

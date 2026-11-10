@@ -126,7 +126,8 @@ async def test_moderation_confirm_defers_first(tmp_path):
 
 
 async def test_moderation_terminal_state_has_no_buttons(tmp_path):
-    """After confirm the dialog keeps the full card, minus the buttons."""
+    """After confirm the dialog keeps the outcome as plain text, minus the
+    buttons."""
     from rosemary.cogs.moderation import ModerationConfirmView
 
     bot = make_bot(tmp_path)
@@ -139,15 +140,15 @@ async def test_moderation_terminal_state_has_no_buttons(tmp_path):
     )
     await view._confirm_notify(OrderInteraction([]))
     items = await view.build_items()
-    assert len(items) == 1
-    assert [type(item).__name__ for item in view.children] == ["Container"]
-    texts = [item.content for item in items[0].items]
-    assert len(texts) == 3  # title + summary + result
-    assert texts[-1] == "done"
+    assert items == []
+    assert [type(item).__name__ for item in view.children] == []
+    # The outcome travels as the message content (a notice line).
+    content = await view.content()
+    assert content.endswith("done"), content
 
 
 async def test_moderation_question_state_is_card_with_buttons(tmp_path):
-    """Before deciding: accent container + heading + one button row."""
+    """Before deciding: the question as plain text + one button row."""
     import discord
 
     from rosemary.cogs.moderation import ModerationConfirmView
@@ -161,13 +162,13 @@ async def test_moderation_question_state_is_card_with_buttons(tmp_path):
         bot, guild_id=1, owner_id=9, action="ban", summary="s", on_confirm=slow
     )
     items = await view.build_items()
-    assert [type(item).__name__ for item in items] == ["Container", "ActionRow"]
-    container = items[0]
-    assert container.color == bot.theme.color("warning")
-    assert container.items[0].content.startswith("# ")
-    row = items[1]
+    assert [type(item).__name__ for item in items] == ["ActionRow"]
+    row = items[0]
     assert isinstance(row, discord.ui.ActionRow)
     assert len(row.children) == 3
+    # The question is the message content, not a card.
+    content = await view.content()
+    assert "s" in content, content
 
 
 async def test_clear_warnings_confirm_defers_first(tmp_path):

@@ -10,7 +10,7 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.debug import send_log
-from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+from rosemary.core.feedback import respond as notice
 
 
 def _language_candidates(ctx: discord.AutocompleteContext):
@@ -77,14 +77,14 @@ class LanguageCog(commands.Cog):
                 author=ctx.author.mention,
             )
 
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("success" if language in available else "danger"),
-                TextDisplay(self.bot.theme.md("title", title=message)),
-            )
+        # The answer is an acknowledgement: one notice line, no card.
+        await notice(
+            ctx,
+            self.bot,
+            ctx.guild_id,
+            message,
+            style="success" if language in available else "error",
         )
-        await ctx.respond(view=view, ephemeral=True)
 
         if language in available:
             # Rename/re-describe the guild's commands in the new language.

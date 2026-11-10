@@ -1,0 +1,22 @@
+{
+  "content": "<@0>",
+  "embed": {
+    "color": 5763719,
+    "description": "<@0> acabou de entrar. Diga oi! Membro #1 do ….",
+    "fields": [],
+    "footer": {
+      "text": "… · #1 · `123456789012345678`"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "🎉 Bem-vindo(a)!",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "events.welcome",
+  "pings": [
+    0
+  ],
+  "view": []
+}

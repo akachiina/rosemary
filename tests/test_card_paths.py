@@ -9,6 +9,8 @@ has its own tests in :mod:`tests.test_debug`).
 
 from __future__ import annotations
 
+from catalog import catalog_files, load_catalog, read_catalog
+
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
 from rosemary.core.settings import SETTINGS, SettingCategory, SettingType
 
@@ -54,11 +56,10 @@ def _make_bot(tmp_path, themes_yaml=None):
 
 def _capture_logs(monkeypatch):
     """Replace ``core.debug.send_log`` (late-imported by the trace hook)."""
-    import rosemary.core.card_service as card_service
     import rosemary.core.debug as debug_mod
 
     calls: list[dict] = []
-    card_service._TRACE_SEEN.clear()
+    debug_mod._TRACE_SEEN.clear()
 
     async def fake_send(bot, guild_id, event, **kwargs):
         calls.append({"event": event, **kwargs})
@@ -131,26 +132,23 @@ async def test_trace_skipped_when_card_has_no_document(tmp_path, monkeypatch):
 def test_no_duplicate_top_level_catalog_keys():
     """PyYAML silently keeps only the LAST duplicate top-level key: a
     second ``debug:`` block once made ``debug.trace.*`` vanish at runtime,
-    so traces rendered raw keys (``debug.trace.title``)."""
+    so traces rendered raw keys (``debug.trace.title``). The modular
+    layout must not declare the same section in two feature files."""
     for lang in ("en-US", "pt-BR"):
-        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-            lines = fh.readlines()
-        tops = [
-            line.strip()[:-1]
-            for line in lines
-            if line and line[0] not in (" #-") and line.rstrip().endswith(":")
-        ]
-        dupes = {name for name in tops if tops.count(name) > 1}
+        seen: dict[str, str] = {}
+        dupes: list[str] = []
+        for path in catalog_files(lang):
+            for key in read_catalog(path):
+                if key in seen:
+                    dupes.append(f"{key} ({seen[key]} + {path.name})")
+                seen[key] = path.name
         assert not dupes, f"{lang}: duplicate top-level keys {sorted(dupes)}"
 
 
 def test_trace_keys_resolve_in_both_catalogs():
     """The trace strings must exist (not fall back to the raw key)."""
-    import yaml
-
     for lang in ("en-US", "pt-BR"):
-        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+        data = load_catalog(lang)
         trace = data["debug"]["trace"]
         for key in ("title", "card_path", "theme", "default"):
             value = trace[key]
@@ -188,14 +186,15 @@ async def test_about_command_traces_card_path(tmp_path, monkeypatch):
 
     class Ctx:
         guild_id = 1
-        respond = None
+        responded: dict | None = None
 
-    async def _respond(view=None, **kwargs):
-        Ctx.respond = view
+    async def _respond(**kwargs):
+        Ctx.responded = kwargs
 
     Ctx.respond = _respond
     # py-cord wraps the coroutine in a SlashCommand; call the raw function.
     await AboutCog.about.callback(cog, Ctx)
-    assert Ctx.respond is not None, "about must respond with a view"
+    assert Ctx.responded is not None, "about must respond with the card"
+    assert Ctx.responded.get("embed") is not None, "the about card is an embed"
     assert len(calls) == 1, f"expected exactly one trace, got {calls}"
     assert calls[0]["path"] == "card.about.card"

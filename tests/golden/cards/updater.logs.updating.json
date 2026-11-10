@@ -1,0 +1,36 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15844367,
+    "fields": [
+      {
+        "inline": false,
+        "name": "⚙️ Moderador(a)",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "👥 Alvo",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "✏️ Anterior",
+        "value": "…"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🔄 Bot Atualizando",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "updater.logs.updating",
+  "pings": [],
+  "view": []
+}

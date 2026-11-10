@@ -1,0 +1,81 @@
+suggest:
+  command:
+    name: suggest
+    description: Send server suggestions
+  modal:
+    title: Send a suggestion
+    label: Your suggestion
+    placeholder: Write your suggestion here...
+    image_label: Image (optional)
+    image_description: Attach one image with your suggestion.
+  card:
+    title: 'Suggestion #{suggestion_number}'
+    hint: Use `/{command}` or the button below to send your suggestion!
+  vote:
+    new: Send suggestion
+  status:
+    approved: '{check} Approved by staff'
+    rejected: '{error} Rejected by staff'
+  dm:
+    up: upvote
+    down: downvote
+    body: 'New **{vote}** on your **suggestion #{suggestion_number}** from {voter}:
+
+      > {body}'
+    jump: Go to suggestion
+    approved: '{check} Your suggestion **#{suggestion_number}** was approved by {moderator}!'
+    rejected: '{error} Your suggestion **#{suggestion_number}** was rejected by {moderator}.'
+    reason: 'Reason: {reason}'
+  sent: '{success} Your suggestion was posted!'
+  voted: '{success} Vote recorded! ({up} up, {down} down)'
+  error_disabled: '{error} Suggestions are disabled on this server.'
+  error_no_channel: '{error} No suggestions channel configured.'
+  error_no_perms: '{error} I cannot post in the suggestions channel.'
+  error_failed: '{error} Could not post your suggestion. Try again.'
+  error_empty: '{error} Your suggestion cannot be empty.'
+  error_too_long: '{error} Your suggestion is too long.'
+  error_bad_image: '{error} Please attach an image file.'
+  error_image_too_large: '{error} The image is too large (limit 8 MB).'
+  error_gone: '{error} That suggestion no longer exists.'
+  error_not_found: '{error} Suggestion #{suggestion_number} not found.'
+  error_decided: '{error} Suggestion #{suggestion_number} was already decided.'
+  decided_approved: '{success} Suggestion #{suggestion_number} approved.'
+  decided_rejected: '{success} Suggestion #{suggestion_number} rejected.'
+  no_reason: No reason given.
+suggest_admin:
+  command:
+    name: suggest_admin
+    description: '[ADMIN] Staff-only suggestion moderation'
+suggest_admin_approve:
+  command:
+    name: approve
+    description: '[ADMIN] Approve a suggestion by number'
+    options:
+      number:
+        description: Suggestion number
+      reason:
+        description: Reason shown to the author
+suggest_admin_reject:
+  command:
+    name: reject
+    description: '[ADMIN] Reject a suggestion by number'
+    options:
+      number:
+        description: Suggestion number
+      reason:
+        description: Reason shown to the author
+suggest_send:
+  command:
+    name: send
+    description: Send a server suggestion
+suggestions:
+  logs:
+    created:
+      title: '{pencil} Suggestion Posted'
+      description: '{user} posted suggestion **#{suggestion_number}** in {channel}.'
+    approved:
+      title: '{check} Suggestion Approved'
+      description: '{moderator} approved suggestion **#{suggestion_number}** by {user} ({reason}).'
+    rejected:
+      title: '{error} Suggestion Rejected'
+      description: '{moderator} rejected suggestion **#{suggestion_number}** by {user} ({reason}).'

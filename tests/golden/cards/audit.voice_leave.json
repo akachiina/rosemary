@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "@you saiu de #….",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "title": "🚪 Saiu de canal de voz",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.voice_leave",
+  "pings": [],
+  "view": []
+}

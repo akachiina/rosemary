@@ -11,9 +11,9 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
+from catalog import flatten, load_catalog
 
 from rosemary.cogs.audit import AUDIT_BAN, AuditCog, _fence
-from rosemary.core.card_specs import AUDIT_CARDS, VARIABLES_BY_KEY
 from rosemary.core.storage import GuildStorage
 from rosemary.ui.theme import load_theme
 
@@ -34,22 +34,8 @@ class RealCatalogTranslator(FakeTranslator):
 
     @classmethod
     def _load(cls) -> None:
-        import yaml
-
         for lang in ("en-US", "pt-BR"):
-            with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-                data = yaml.safe_load(fh)
-            flat: dict = {}
-            stack = [(data, "")]
-            while stack:
-                node, prefix = stack.pop()
-                for name, value in node.items():
-                    dotted = f"{prefix}{name}"
-                    if isinstance(value, dict):
-                        stack.append((value, f"{dotted}."))
-                    else:
-                        flat[dotted] = value
-            cls._catalogs[lang] = flat
+            cls._catalogs[lang] = flatten(load_catalog(lang))
 
     async def raw(self, guild_id, key):
         if not self._catalogs:
@@ -106,97 +92,112 @@ def member(mid=5, name="Ana", nick=None):
 #: card inventory and contracts ----------------------------------------------
 
 
+def _audit_keys() -> tuple[str, ...]:
+    """The audit cards the default package declares."""
+    from rosemary.core.theme_package import default_package
+
+    return tuple(key for key in default_package().card_keys() if key.startswith("audit."))
+
+
+async def _render(bot, key, variables=None):
+    """Render one card through the shared pipeline."""
+    from rosemary.core.card_service import render_card_message
+
+    payload, _allowed = await render_card_message(bot, 1, key, variables or {})
+    return payload
+
+
+def _render_bot(tmp_path):
+    """A bot that renders with the real catalogs (the package is the truth)."""
+    bot, *_rest = make_world(tmp_path)
+    bot.translator = RealCatalogTranslator()
+    return bot
+
+
 def test_audit_cards_registered_with_variables():
     from rosemary.core.cards import get_card
+    from rosemary.core.theme_package import default_package
 
-    names = {name for name, _ in AUDIT_CARDS}
+    names = {key.removeprefix("audit.") for key in _audit_keys()}
     assert names == {
         "ban", "unban", "message_delete", "message_edit", "bulk_delete",
         "nickname", "avatar", "roles", "timeout", "voice_join", "voice_leave",
         "trap",
     }
+    package = default_package()
     for name in names:
-        spec = get_card(f"audit.{name}")
+        key = f"audit.{name}"
+        spec = get_card(key)
         assert spec is not None
-        assert VARIABLES_BY_KEY[f"audit.{name}"] == spec.variables
+        meta = package.metadata(key)
+        assert meta["variables"] == spec.variables
+        assert spec.category == "audit"
 
 
 def test_audit_card_titles_in_both_catalogs():
-    import yaml
-
     for lang in ("en-US", "pt-BR"):
-        with open(f"language/{lang}.yaml", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+        data = load_catalog(lang)
         node = data["card"]["audit"]
-        for name, _ in AUDIT_CARDS:
-            assert isinstance(node[name].get("title"), str), f"{lang}:audit.{name}.title"
+        for key in _audit_keys():
+            name = key.removeprefix("audit.")
+            assert isinstance(node[name].get("title"), str), f"{lang}:{key}.title"
 
 
-async def test_default_builders_render_every_audit_card():
-    from rosemary.core.card_service import default_document
-
-    bot = MagicMock()
-    bot.theme = load_theme()
-    bot.translator = FakeTranslator()
-    for name, _ in AUDIT_CARDS:
-        doc = await default_document(bot, 1, f"audit.{name}")
-        assert doc is not None, name
-        assert doc["blocks"], name
+async def test_the_package_renders_every_audit_card(tmp_path):
+    bot = _render_bot(tmp_path)
+    for key in _audit_keys():
+        payload = await _render(bot, key)
+        assert payload is not None, key
+        assert payload.embed is not None or payload.view is not None, key
 
 
-async def test_default_builders_accept_send_site_variables():
-    """Regression: builders crashed on send-site kwargs (closed signatures).
+async def test_the_package_accepts_send_site_variables(tmp_path):
+    """Regression: the card fell through with the contract variables.
 
-    When a builder rejects the contract variables, ``default_document`` logs a
-    warning and falls through: live sends then showed raw catalog keys.
-    Every audit builder must render a real document WITH the variables the
-    cog actually passes.
+    When the card does not render with the variables the cog actually
+    passes, live sends showed raw catalog keys.
     """
-    from rosemary.core.card_service import default_document
+    from rosemary.core.theme_package import default_package
     from rosemary.core.variables import samples_for
 
-    bot = MagicMock()
-    bot.theme = load_theme()
-    bot.translator = FakeTranslator()
-    for name, _ in AUDIT_CARDS:
-        variables = samples_for(VARIABLES_BY_KEY[f"audit.{name}"])
-        doc = await default_document(bot, 1, f"audit.{name}", variables)
-        assert doc is not None and doc["blocks"], (
-            f"audit.{name} fell through with variables {sorted(variables)}"
+    bot = _render_bot(tmp_path)
+    package = default_package()
+    for key in _audit_keys():
+        variables = samples_for(package.metadata(key)["variables"])
+        payload = await _render(bot, key, variables)
+        assert payload is not None and (payload.embed or payload.view), (
+            f"{key} fell through with variables {sorted(variables)}"
         )
 
 
-def test_all_builders_signatures_accept_variables():
-    """Sweep: no registered builder may have a closed signature again."""
-    import inspect
+async def test_every_card_renders_with_the_variables_of_its_contract(tmp_path):
+    """Sweep: no card may drop the variables the send site delivers.
 
-    import rosemary.cogs.audit  # noqa: F401  (registers builders)
-    import rosemary.cogs.birthdays  # noqa: F401
-    import rosemary.cogs.starboard  # noqa: F401
-    import rosemary.cogs.welcome  # noqa: F401
-    from rosemary.core.cards import _DEFAULT_BUILDERS
+    The old builders had closed signatures and lost the variables they did
+    not declare (the card fell through to the raw catalog key). The
+    documents declare their contract instead, so every card of the package
+    must render with the samples of its own contract.
+    """
+    from rosemary.core.theme_package import default_package
+    from rosemary.core.variables import samples_for
 
-    for key, builder in _DEFAULT_BUILDERS.items():
-        params = inspect.signature(builder).parameters
-        assert any(
-            p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
-        ), f"builder for {key} does not accept **variables"
+    bot = _render_bot(tmp_path)
+    package = default_package()
+    for key in package.card_keys():
+        variables = samples_for(package.metadata(key)["variables"])
+        payload = await _render(bot, key, variables)
+        assert payload is not None, f"{key} fell through with variables {sorted(variables)}"
+        assert payload.embed is not None or payload.view is not None or payload.content, key
 
 
-async def test_audit_fallback_uses_card_prefixed_catalog_keys(tmp_path, caplog):
+async def test_audit_fallback_uses_card_prefixed_catalog_keys(tmp_path, caplog, monkeypatch):
     """Regression: the emergency fallback looked up ``audit.*.title`` (raw)."""
-    from contextlib import contextmanager
+    import rosemary.core.card_service as card_service
 
-    @contextmanager
-    def hide_default_builder(key: str):
-        from rosemary.core import cards
+    async def _no_card(bot, guild_id, key, variables=None, **kwargs):
+        return None, discord.AllowedMentions.none()
 
-        saved = cards._DEFAULT_BUILDERS.pop(key, None)
-        try:
-            yield
-        finally:
-            if saved is not None:
-                cards._DEFAULT_BUILDERS[key] = saved
+    monkeypatch.setattr(card_service, "render_card_message", _no_card)
 
     bot, guild, audit_channel, cog = make_world(tmp_path)
     await cog._arm()
@@ -207,37 +208,63 @@ async def test_audit_fallback_uses_card_prefixed_catalog_keys(tmp_path, caplog):
     msg.content = "oi"
     msg.channel = MagicMock(mention="<#7>")
     msg.jump_url = "https://x"
-    with hide_default_builder("audit.message_delete"), caplog.at_level("WARNING"):
+    with caplog.at_level("WARNING"):
         await cog.on_message_delete(msg)
     audit_channel.send.assert_awaited_once()
-    texts: list[str] = []
-
-    def walk(node) -> None:
-        if hasattr(node, "content") and isinstance(node.content, str):
-            texts.append(node.content)
-        for child in (
-            list(getattr(node, "children", []) or [])
-            + list(getattr(node, "items", []) or [])
-            + list(getattr(node, "walk_children", lambda: [])())
-        ):
-            walk(child)
-
-    view = audit_channel.send.await_args.kwargs["view"]
-    for item in view.children:
-        walk(item)
-    joined = " ".join(texts)
+    joined = " ".join(_payload_texts(audit_channel.send.await_args.kwargs))
     # The catalog keys are ``card.audit.*``: the fallback must find them.
     assert "card.audit.message_delete.title" in joined
     assert "card.audit.message_delete.body" in joined
     assert not any("default builder failed" in r.message for r in caplog.records)
 
 
+def _doc_texts(doc) -> list[str]:
+    """Every text of a default document, whatever its form (V2 or embed)."""
+    if doc.get("kind") == "embed":
+        embed = doc.get("embed") or {}
+        texts = [str(embed.get("title") or ""), str(embed.get("description") or "")]
+        for field in embed.get("fields") or []:
+            texts.append(str(field.get("name") or ""))
+            texts.append(str(field.get("value") or ""))
+        footer = embed.get("footer") or {}
+        texts.append(str(footer.get("text") or ""))
+        author = embed.get("author") or {}
+        texts.append(str(author.get("name") or ""))
+        return [text for text in texts if text]
+    texts: list[str] = []
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "text" and isinstance(node.get("body"), str):
+                texts.append(node["body"])
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(doc.get("blocks") or [])
+    return texts
+
+
 def _footer_texts(doc) -> list[str]:
+    """The footer lines of a default document (the attribution line)."""
+    if doc.get("kind") == "embed":
+        footer = (doc.get("embed") or {}).get("footer") or {}
+        return [footer["text"]] if footer.get("text") else []
     return [
         block["body"]
         for block in doc["blocks"][0]["children"]
         if block.get("type") == "text" and block.get("body", "").startswith("-# ")
     ]
+
+
+def _authors(doc) -> list[str]:
+    """The author line of a default document (the embed author)."""
+    if doc.get("kind") == "embed":
+        author = (doc.get("embed") or {}).get("author") or {}
+        return [author["name"]] if author.get("name") else []
+    return []
 
 
 def _view_texts(view) -> list[str]:
@@ -259,28 +286,60 @@ def _view_texts(view) -> list[str]:
     return texts
 
 
-async def test_every_audit_default_carries_author_footer():
-    """The standard footer: author + relative time for member-driven events.
+def _payload_texts(kwargs) -> list[str]:
+    """Every text of a sent card payload (Components V2 view or embed)."""
+    texts: list[str] = []
+    view = kwargs.get("view")
+    if view is not None:
+        texts.extend(_view_texts(view))
+    embed = kwargs.get("embed")
+    if embed is not None:
+        texts.append(embed.title or "")
+        texts.append(embed.description or "")
+        for field in embed.fields:
+            texts.append(field.name or "")
+            texts.append(field.value or "")
+        if embed.footer and embed.footer.text:
+            texts.append(embed.footer.text)
+        if embed.author and embed.author.name:
+            texts.append(embed.author.name)
+    return [text for text in texts if text]
 
-    Actor events (ban / unban / bulk purge) resolve the attribution at build
-    time from the discovered moderator; without send-site variables they
-    degrade to the system-style timestamp-only line, so the event's *target*
-    never lands as the "por" mention (live that rendered
-    '@usuário-desconhecido' for viewers without the member cached).
+
+def _payload_footer(kwargs) -> str:
+    """The footer text of a sent payload (embed footer, empty otherwise)."""
+    embed = kwargs.get("embed")
+    if embed is not None and embed.footer and embed.footer.text:
+        return embed.footer.text
+    return ""
+
+
+async def test_every_audit_default_carries_author_footer(tmp_path):
+    """The footer carries the time; the member owns the author line.
+
+    Actor events (ban / unban / bulk purge) attribute the moderator in the
+    footer; without send-site variables there is nobody to attribute, so the
+    footer degrades to the timestamp-only line and the event's *target* never
+    lands as the "por" mention (live that rendered '@usuário-desconhecido'
+    for viewers without the member cached).
     """
-    from rosemary.core.card_service import default_document
+    from rosemary.core.theme_package import default_package
+    from rosemary.core.variables import samples_for
 
-    bot = MagicMock()
-    bot.theme = load_theme()
-    bot.translator = FakeTranslator()
-    actor_events = {"ban", "unban", "bulk_delete"}
-    for name, _ in AUDIT_CARDS:
-        doc = await default_document(bot, 1, f"audit.{name}")
-        footers = _footer_texts(doc)
-        if name in actor_events:
-            assert footers == ["-# {timestamp}"], name
-        else:
-            assert footers == ["-# by {user} · {timestamp}"], name
+    bot = _render_bot(tmp_path)
+    package = default_package()
+    for key in _audit_keys():
+        # Without send-site variables there is nothing to attribute: the
+        # footer is the timestamp-only line and nobody owns the author line.
+        payload = await _render(bot, key)
+        assert payload.embed is not None, key
+        assert payload.embed.footer.text == "{timestamp}", key
+        assert payload.embed.author is None, key
+        # With them, the member owns the author line and the footer stays.
+        variables = samples_for(package.metadata(key)["variables"])
+        payload = await _render(bot, key, variables)
+        assert payload.embed.footer.text, key
+        assert payload.embed.author is not None, key
 
 
 def test_fence_wraps_and_neutralizes_backticks():
@@ -683,16 +742,12 @@ async def test_message_delete_snapshot_attaches_png_and_galleries_it(tmp_path):
     assert files[0].fp.read() == png
     assert cog._snapshot_files == []  # drained: no leak into the next card
 
-    # The V2 card must reference the attachment in its gallery.
-    view = audit_channel.send.await_args.kwargs["view"]
-    urls: list[str] = []
-    for item in view.walk_children():
-        gallery_items = getattr(item, "items", None)
-        if gallery_items and type(item).__name__ == "MediaGallery":
-            urls.extend(str(getattr(i.media, "url", "")) for i in gallery_items)
-    assert any(
-        "attachment://mensagem_987654321000000000.png" in u for u in urls
-    ), f"gallery missing the snapshot reference: {urls}"
+    # The card must reference the attachment in its image (embed form).
+    kwargs = audit_channel.send.await_args.kwargs
+    embed = kwargs.get("embed")
+    assert embed is not None, "the audit card must ship as an embed"
+    assert embed.image is not None and embed.image.url, "the embed lost the snapshot"
+    assert "attachment://mensagem_987654321000000000.png" in embed.image.url
 
 
 async def test_message_edit_snapshot_receives_before_for_pair(tmp_path):
@@ -784,22 +839,7 @@ async def test_timeout_until_line_has_no_raw_placeholders(tmp_path):
     after.guild = guild
     await cog.on_member_update(before, after)
     assert audit_channel.send.await_count == 1
-    view = audit_channel.send.await_args.kwargs["view"]
-    texts: list[str] = []
-
-    def walk(node) -> None:
-        if hasattr(node, "content") and isinstance(node.content, str):
-            texts.append(node.content)
-        for child in (
-            list(getattr(node, "children", []) or [])
-            + list(getattr(node, "items", []) or [])
-            + list(getattr(node, "walk_children", lambda: [])())
-        ):
-            walk(child)
-
-    for item in view.children:
-        walk(item)
-    joined = " ".join(texts)
+    joined = " ".join(_payload_texts(audit_channel.send.await_args.kwargs))
     assert "{clock}" not in joined, joined
     assert "{duration}" not in joined, joined
     assert "Válido até:" in joined, joined
@@ -857,7 +897,7 @@ async def test_purge_card_carries_resolved_transcript_link(tmp_path):
     await cog.on_bulk_message_delete(batch(2))
     await asyncio.sleep(3.6)
     assert audit_channel.send.await_count == 1
-    joined = " ".join(_view_texts(audit_channel.send.await_args.kwargs["view"]))
+    joined = " ".join(_payload_texts(audit_channel.send.await_args.kwargs))
     assert "Transcrição completa:" in joined, joined
     assert "(https://cdn.example/purga.txt)" in joined, joined
     assert "{scroll}" not in joined, joined
@@ -874,13 +914,10 @@ async def test_ban_footer_names_the_moderator_not_the_target(tmp_path):
     cog._audit_log_context = AsyncMock(return_value=("<@777>", "raids"))
     await cog.on_member_ban(guild, member())
     assert audit_channel.send.await_count == 1
-    footers = [
-        t for t in _view_texts(audit_channel.send.await_args.kwargs["view"])
-        if t.startswith("-# ")
-    ]
-    assert footers, "the card must keep its author footer"
-    assert any("<@777>" in f for f in footers), footers
-    assert all("<@5>" not in f for f in footers), footers
+    footer = _payload_footer(audit_channel.send.await_args.kwargs)
+    assert footer, "the card must keep its author footer"
+    assert "<@777>" in footer, footer
+    assert "<@5>" not in footer, footer
 
 
 async def test_ban_footer_without_moderator_is_timestamp_only(tmp_path):
@@ -891,12 +928,9 @@ async def test_ban_footer_without_moderator_is_timestamp_only(tmp_path):
     cog._audit_log_context = AsyncMock(return_value=("", ""))
     await cog.on_member_ban(guild, member())
     assert audit_channel.send.await_count == 1
-    footers = [
-        t for t in _view_texts(audit_channel.send.await_args.kwargs["view"])
-        if t.startswith("-# ")
-    ]
-    assert footers, "the card must still go out with a footer"
-    assert all("<@" not in f and "<t:" in f for f in footers), footers
+    footer = _payload_footer(audit_channel.send.await_args.kwargs)
+    assert footer, "the card must still go out with a footer"
+    assert "<@" not in footer and "<t:" in footer, footer
 
 
 async def test_purge_footer_names_the_moderator_not_the_first_author(tmp_path):
@@ -913,13 +947,10 @@ async def test_purge_footer_names_the_moderator_not_the_first_author(tmp_path):
     await cog.on_bulk_message_delete([batch_of(guild, 100)])
     await asyncio.sleep(3.6)
     assert audit_channel.send.await_count == 1
-    footers = [
-        t for t in _view_texts(audit_channel.send.await_args.kwargs["view"])
-        if t.startswith("-# ")
-    ]
-    assert footers, "the card must keep its author footer"
-    assert any("<@777>" in f for f in footers), footers
-    assert all("<@100>" not in f for f in footers), footers
+    footer = _payload_footer(audit_channel.send.await_args.kwargs)
+    assert footer, "the card must keep its author footer"
+    assert "<@777>" in footer, footer
+    assert "<@100>" not in footer, footer
 
 
 def batch_of(guild, author_id):

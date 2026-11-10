@@ -20,10 +20,11 @@ import discord
 from discord.ext import commands
 
 from rosemary.core.cards import text_or
+from rosemary.core.command_surface import Surface, run
 from rosemary.core.debug import send_log
+from rosemary.core.feedback import line as notice_line
 from rosemary.core.settings import get_setting
-from rosemary.ui.containers import ActionRow, TextDisplay, designer_container
-from rosemary.ui.menu import MenuView
+from rosemary.ui.kit import ActionRow, Panel, TextDisplay
 from rosemary.ui.responses import PrefixContext
 
 log = logging.getLogger(__name__)
@@ -44,6 +45,10 @@ CHANNEL_PAUSE_SECONDS = 1.0
 #: Consecutive failed timer edits before the panel freezes (token expiry,
 #: rate limit): after that, stop editing and stop warning on every tick.
 PANEL_EDIT_MAX_FAILURES = 4
+
+#: The surface of the cleaner: the purge panel is the answer (the command
+#: never defers) and a failure answers with the moderation family's copy.
+CLEANER = Surface(card_key="moderation.error_failed", defer=False)
 
 
 @dataclasses.dataclass
@@ -84,13 +89,18 @@ class PurgeResult:
     matched: int = 0
 
 
-class CleanerPurgeView(MenuView):
+class CleanerPurgeView(Panel):
     """Ephemeral purge panel: confirm, live progress with Stop, then summary.
 
     The panel is pure UI: the purge engine lives on the cog (``runner``) and
     reports through the ``progress`` callback; a timer edit refreshes the
-    counters without a component interaction.
+    counters without a component interaction. The chrome (the header and the
+    themed heading) comes from the theme; the screen only declares its lines
+    and its buttons.
     """
+
+    #: The purge panel has no navigation: its own rows are the whole flow.
+    nav_actions: tuple[str, ...] = ()
 
     def __init__(
         self,
@@ -100,9 +110,7 @@ class CleanerPurgeView(MenuView):
         owner_id: int,
         request: PurgeRequest,
     ) -> None:
-        super().__init__(author_id=owner_id)
-        self.bot = bot
-        self.guild_id = guild_id
+        super().__init__(bot, guild_id, author_id=owner_id)
         self.request = request
         self.state = "confirm"  # confirm | running | done
         self.cancel_event = asyncio.Event()
@@ -130,117 +138,94 @@ class CleanerPurgeView(MenuView):
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         """Confirm card, live counters or the final summary, per state."""
-        from rosemary.core.card_service import menu_heading_items
-
-        t = self.bot.translator.t
+        await self.set_screen(
+            "cleaner.panel_title",
+            heading="cleaner.panel",
+            color="warning",
+        )
         gid = self.guild_id
-        heading = await menu_heading_items(self.bot, gid, "cleaner.panel") or [
-            TextDisplay(
-                self.bot.theme.md(
-                    "title", title=await t(gid, "cleaner.panel_title")
-                )
-            )
-        ]
-        parts = list(heading)
+        criterion = await self.t(
+            "cleaner.progress_criterion", criterion=self.request.criterion
+        )
+        actions: list[discord.ui.ViewItem] = []
         if self.state == "confirm":
-            parts.append(
+            self.lines = [
+                TextDisplay(criterion),
                 TextDisplay(
-                    await t(gid, "cleaner.progress_criterion", criterion=self.request.criterion)
+                    await text_or(
+                        self.bot,
+                        gid,
+                        "cleaner.confirm",
+                        await self.t("cleaner.confirm_text"),
+                    )
+                ),
+            ]
+            actions = [
+                ActionRow(
+                    await self.button("cleaner_yes", "cleaner.confirm", style="danger"),
+                    await self.button("cleaner_no", "cleaner.cancel"),
                 )
-            )
-            body = await text_or(
-                self.bot,
-                gid,
-                "cleaner.confirm",
-                await t(gid, "cleaner.confirm_text"),
-            )
-            parts.append(TextDisplay(body))
+            ]
         elif self.state == "running":
-            parts.append(
-                TextDisplay(
-                    await t(gid, "cleaner.progress_criterion", criterion=self.request.criterion)
-                )
-            )
+            self.lines = [TextDisplay(criterion)]
             if self.current_channel:
-                parts.append(
+                self.lines.append(
                     TextDisplay(
-                        await t(gid, "cleaner.progress_current", channel=self.current_channel)
+                        await self.t(
+                            "cleaner.progress_current", channel=self.current_channel
+                        )
                     )
                 )
-            parts.append(
-                TextDisplay(
-                    await t(
-                        gid,
-                        "cleaner.progress_done",
-                        done=self.channels_done,
-                        total=self.channels_total,
+            self.lines.extend(
+                [
+                    TextDisplay(
+                        await self.t(
+                            "cleaner.progress_done",
+                            done=self.channels_done,
+                            total=self.channels_total,
+                        )
+                    ),
+                    TextDisplay(
+                        await self.t("cleaner.progress_scanned", count=self.scanned)
+                    ),
+                    TextDisplay(
+                        await self.t(
+                            "cleaner.progress_counts",
+                            deleted=self.deleted,
+                            matched=self.matched,
+                        )
+                    ),
+                    TextDisplay(
+                        await self.t(
+                            "cleaner.progress_elapsed",
+                            elapsed=_format_elapsed(time.monotonic() - self.started_at),
+                        )
+                    ),
+                ]
+            )
+            actions = [
+                ActionRow(
+                    await self.button(
+                        "cleaner_stop",
+                        "cleaner.stop",
+                        style="danger",
+                        disabled=self.cancel_event.is_set(),
                     )
                 )
-            )
-            parts.append(
-                TextDisplay(await t(gid, "cleaner.progress_scanned", count=self.scanned))
-            )
-            parts.append(
-                TextDisplay(
-                    await t(
-                        gid,
-                        "cleaner.progress_counts",
-                        deleted=self.deleted,
-                        matched=self.matched,
-                    )
-                )
-            )
-            parts.append(
-                TextDisplay(
-                    await t(
-                        gid,
-                        "cleaner.progress_elapsed",
-                        elapsed=_format_elapsed(time.monotonic() - self.started_at),
-                    )
-                )
-            )
+            ]
         else:
-            parts.append(TextDisplay(self.final_text))
+            self.lines = [TextDisplay(self.final_text)]
             # Honest reporting: matches the API could not delete.
             if self.matched != self.deleted:
-                parts.append(
+                self.lines.append(
                     TextDisplay(
-                        await t(
-                            gid,
+                        await self.t(
                             "cleaner.result_gap",
                             gap=self.matched - self.deleted,
                         )
                     )
                 )
-        container = designer_container(self.bot.theme.color("warning"), *parts)
-
-        rows: list[discord.ui.ViewItem] = [container]
-        if self.state == "confirm":
-            rows.append(
-                ActionRow(
-                    self.make_button(
-                        custom_id="cleaner_yes",
-                        label=await t(gid, "cleaner.confirm"),
-                        style=discord.ButtonStyle.danger,
-                    ),
-                    self.make_button(
-                        custom_id="cleaner_no",
-                        label=await t(gid, "cleaner.cancel"),
-                    ),
-                )
-            )
-        elif self.state == "running":
-            rows.append(
-                ActionRow(
-                    self.make_button(
-                        custom_id="cleaner_stop",
-                        label=await t(gid, "cleaner.stop"),
-                        style=discord.ButtonStyle.danger,
-                        disabled=self.cancel_event.is_set(),
-                    )
-                )
-            )
-        return rows
+        return await self.compose([], actions)
 
     #: handlers -------------------------------------------------------------
 
@@ -259,7 +244,12 @@ class CleanerPurgeView(MenuView):
     async def _cancel(self, interaction: discord.Interaction) -> None:
         """Close the panel without deleting anything."""
         self.state = "done"
-        self.final_text = await self.bot.translator.t(self.guild_id, "cleaner.cancelled")
+        self.final_text = notice_line(
+            self.bot,
+            self.guild_id,
+            await self.bot.translator.t(self.guild_id, "cleaner.cancelled"),
+            style="info",
+        )
         await self.rerender(interaction)
         self.stop()
 
@@ -292,28 +282,38 @@ class CleanerPurgeView(MenuView):
         self.matched = result.matched
         self.state = "done"
         if self.cancel_event.is_set():
-            self.final_text = await t(
-                gid,
-                "cleaner.stopped",
-                count=self.deleted,
-                matched=self.matched,
-                criterion=self.request.criterion,
-            )
-        else:
-            self.final_text = await text_or(
+            self.final_text = notice_line(
                 self.bot,
                 gid,
-                "cleaner.result",
                 await t(
                     gid,
-                    "cleaner.result",
+                    "cleaner.stopped",
                     count=self.deleted,
                     matched=self.matched,
                     criterion=self.request.criterion,
                 ),
-                count=self.deleted,
-                matched=self.matched,
-                criterion=self.request.criterion,
+                style="warning",
+            )
+        else:
+            self.final_text = notice_line(
+                self.bot,
+                gid,
+                await text_or(
+                    self.bot,
+                    gid,
+                    "cleaner.result",
+                    await t(
+                        gid,
+                        "cleaner.result",
+                        count=self.deleted,
+                        matched=self.matched,
+                        criterion=self.request.criterion,
+                    ),
+                    count=self.deleted,
+                    matched=self.matched,
+                    criterion=self.request.criterion,
+                ),
+                style="success",
             )
         await self._edit_panel()
         await self._send_log()
@@ -463,6 +463,22 @@ class CleanerCog(commands.Cog):
         ),
     ) -> None:
         """Validate the criteria, confirm, then purge with a live panel."""
+        await run(
+            ctx,
+            CLEANER,
+            lambda: self._limpar(ctx, palavra, regex, last, canal, autor),
+        )
+
+    async def _limpar(
+        self,
+        ctx: discord.ApplicationContext,
+        palavra: str | None,
+        regex: str | None,
+        last: int | None,
+        canal: discord.TextChannel | None,
+        autor: discord.User | None,
+    ) -> None:
+        """Validate the criteria, then open the purge panel."""
         guild_id = ctx.guild_id
         if not await get_setting(self.bot.storage, guild_id, "cleaner.enabled"):
             return await ctx.respond(
@@ -500,7 +516,7 @@ class CleanerCog(commands.Cog):
         view.purge_guild = ctx.guild
         view.moderator = ctx.author
         await view.prepare()
-        from rosemary.core.card_service import trace_card_path
+        from rosemary.core.debug import trace_card_path
 
         # Heading and confirm body are theme-customizable: trace both paths.
         await trace_card_path(self.bot, guild_id, "cleaner.panel")
@@ -528,10 +544,10 @@ class CleanerCog(commands.Cog):
 
     async def _error(self, ctx, guild_id: int, key: str, **fmt) -> None:
         """One ephemeral validation error, translated."""
-        await ctx.respond(
-            await self.bot.translator.t(guild_id, key, **fmt),
-            ephemeral=True,
-        )
+        from rosemary.core.feedback import respond as respond_line
+
+        body = await self.bot.translator.t(guild_id, key, **fmt)
+        await respond_line(ctx, self.bot, guild_id, body, style="error")
 
     async def _compose_criterion(
         self,

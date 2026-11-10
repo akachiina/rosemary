@@ -18,7 +18,9 @@ from rosemary.cogs.bump_leaderboard import bump_group
 from rosemary.core.bump import LOCK_CAMPING, LOCK_SCHEDULE, BumpStore, schedule_open
 from rosemary.core.cards import text_or
 from rosemary.core.debug import send_log
+from rosemary.core.feedback import line as notice_line
 from rosemary.core.settings import get_setting
+from rosemary.core.themes import theme_for
 from rosemary.core.time_parser import TimeParser
 from rosemary.core.timezone import resolve_timezone
 
@@ -281,7 +283,7 @@ class BumpReminderCog(commands.Cog):
                 await self.store.mark_channel_unlocked(guild_id)
 
             ping_role, ping_role_id = await self._ping_role_mention(guild_id)
-            message = await text_or(
+            body = await text_or(
                 self.bot,
                 guild_id,
                 key,
@@ -292,6 +294,12 @@ class BumpReminderCog(commands.Cog):
                     {"ping_role": ping_role},
                 ),
                 ping_role=ping_role,
+            )
+            message = notice_line(
+                self.bot,
+                guild_id,
+                body,
+                style="info" if locked else "success",
             )
             if message:
                 await channel.send(
@@ -443,7 +451,7 @@ class BumpReminderCog(commands.Cog):
 
             from rosemary.core.mentions import allowed_for_ids
 
-            message = await text_or(
+            body = await text_or(
                 self.bot,
                 guild_id,
                 "bump.anti_camping",
@@ -453,6 +461,7 @@ class BumpReminderCog(commands.Cog):
                     "bump.anti_camping.message_default",
                 ),
             )
+            message = notice_line(self.bot, guild_id, body, style="warning")
             if message:
                 lock_message = await channel.send(
                     message,
@@ -544,7 +553,7 @@ class BumpReminderCog(commands.Cog):
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
 
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message
 
         payload, card_allowed = await render_card_message(
             self.bot,
@@ -553,9 +562,7 @@ class BumpReminderCog(commands.Cog):
             {"cooldown": cooldown_display},
         )
         if payload is None:
-            payload = CardPayload(
-                view=await self._build_reminder_view(guild, cooldown_display)
-            )
+            payload = await self._build_reminder_payload(guild, cooldown_display)
 
         try:
             from rosemary.core.mentions import allowed_for_ids
@@ -651,9 +658,12 @@ class BumpReminderCog(commands.Cog):
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
         next_bump_time = datetime.now(UTC) + timedelta(seconds=cooldown)
 
-        from rosemary.core.card_service import CardPayload, render_card_message
+        from rosemary.core.card_service import render_card_message
 
         member = guild.get_member(user_id)
+        # The color token comes from the guild's theme style (the theme owns
+        # what the token means); the document picks it up.
+        state_color = theme_for(self.bot, guild_id).style("bump_reminder").color
         payload, allowed = await render_card_message(
             self.bot,
             guild_id,
@@ -667,18 +677,17 @@ class BumpReminderCog(commands.Cog):
                     if member and member.display_avatar
                     else ""
                 ),
+                "state_color": state_color,
                 "user": f"<@{user_id}>",
                 "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
             },
         )
         if payload is None:
-            payload = CardPayload(
-                view=await self._build_thank_you_view(
-                    guild,
-                    user_id,
-                    cooldown_display,
-                    int(next_bump_time.timestamp()),
-                )
+            payload = await self._build_thank_you_payload(
+                guild,
+                user_id,
+                cooldown_display,
+                int(next_bump_time.timestamp()),
             )
             from rosemary.core.mentions import allowed_for_ids
 
@@ -691,10 +700,11 @@ class BumpReminderCog(commands.Cog):
         except Exception as exc:
             log.error("Failed to send bump thank you in %s: %s", guild_id, exc)
 
-    async def _build_reminder_view(
+    async def _build_reminder_payload(
         self, guild: discord.Guild, cooldown_display: str
-    ) -> discord.ui.DesignerView:
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+    ):
+        """The code-built reminder, in the card's own form (an embed)."""
+        from rosemary.core.card_service import simple_payload
 
         title = await self.bot.translator.t(guild.id, "bump.messages.reminder_title")
         description = await self.bot.translator.t(
@@ -702,25 +712,24 @@ class BumpReminderCog(commands.Cog):
             "bump.messages.reminder_description",
             cooldown=cooldown_display,
         )
-
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color(self.bot.theme.style("bump_reminder").color),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay(description),
-            )
+        return simple_payload(
+            self.bot,
+            guild.id,
+            "bump.reminder",
+            title=title,
+            body=description,
+            color=self.bot.theme.style("bump_reminder").color,
         )
-        return view
 
-    async def _build_thank_you_view(
+    async def _build_thank_you_payload(
         self,
         guild: discord.Guild,
         user_id: int,
         cooldown_display: str,
         next_bump_timestamp: int,
-    ) -> discord.ui.DesignerView:
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+    ):
+        """The code-built thank-you, in the card's own form (an embed)."""
+        from rosemary.core.card_service import simple_payload
 
         title = await self.bot.translator.t(guild.id, "bump.messages.thank_you_title")
         description = await self.bot.translator.t(
@@ -730,28 +739,21 @@ class BumpReminderCog(commands.Cog):
             cooldown=cooldown_display,
             next_bump_timestamp=next_bump_timestamp,
         )
-
-        view = DesignerView(store=False)
         member = guild.get_member(user_id)
-        if member and member.display_avatar:
-            title_section = discord.ui.Section(
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                accessory=discord.ui.Thumbnail(member.display_avatar.url),
-            )
-            items = [title_section, TextDisplay(description)]
-        else:
-            items = [
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay(description),
-            ]
-
-        view.add_item(
-            designer_container(
-                self.bot.theme.color(self.bot.theme.style("bump_reminder").color),
-                *items,
-            )
+        thumbnail = (
+            member.display_avatar.url
+            if member and getattr(member, "display_avatar", None)
+            else None
         )
-        return view
+        return simple_payload(
+            self.bot,
+            guild.id,
+            "bump.thank_you",
+            title=title,
+            body=description,
+            color=self.bot.theme.style("bump_reminder").color,
+            thumbnail=thumbnail,
+        )
 
     #: Listeners -----------------------------------------------------------
 
@@ -978,8 +980,7 @@ class BumpReminderCog(commands.Cog):
                 )
             )
 
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         title = await t(guild_id, "bump.status.card_title")
         body = "\n".join(lines)
@@ -987,14 +988,13 @@ class BumpReminderCog(commands.Cog):
             self.bot, guild_id, "bump.status", {"title": title, "body": body}
         )
         if payload is None:
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    self.bot.theme.color("info"),
-                    TextDisplay(self.bot.theme.md("title", title=title)),
-                    TextDisplay(body),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "bump.status",
+                title=title,
+                body=body,
+                color="info",
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 

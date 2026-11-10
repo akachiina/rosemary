@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15844367,
+    "description": "<@0> foi avisado (1d atrasado).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "⚠️ Aviso de Parceria",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "partnerships.logs.warning_sent",
+  "pings": [],
+  "view": []
+}

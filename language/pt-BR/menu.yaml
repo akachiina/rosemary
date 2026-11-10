@@ -1,0 +1,1251 @@
+broadcast:
+  command:
+    name: broadcast
+    description: Sessões de broadcast ao vivo
+  error_disabled: '{error} Broadcasts estão desativados neste servidor.'
+  error_active: '{error} Já há um broadcast rolando.'
+  error_none: '{error} Nenhum broadcast rolando.'
+  target_all: todos os membros
+  header: '**{title}** (de {server})'
+  started: '{success} Broadcast iniciado em {channel} para {target}. Poste lá para replicar.'
+  ended: '{success} Broadcast encerrado: {relayed} mensagem(ns) ({sent} DMs, {failed} falharam).'
+  logs:
+    started:
+      title: '{envelope} Broadcast Iniciado'
+      description: '{moderator} iniciou "{title}" em {channel}.'
+    ended:
+      title: '{check} Broadcast Encerrado'
+      description: '{moderator} encerrou o broadcast ({relayed} replicadas, {sent} enviadas, {failed} falharam).'
+broadcast_start:
+  command:
+    name: iniciar
+    description: '[ADMIN] Inicia broadcast ao vivo neste canal'
+    options:
+      title:
+        description: Título do anúncio
+      role:
+        description: 'Cargo que recebe esta sessão (padrão: config do servidor)'
+      delay:
+        description: 'Segundos entre DMs (padrão: config do servidor)'
+broadcast_stop:
+  command:
+    name: parar
+    description: '[ADMIN] Para o broadcast ao vivo'
+card:
+  author_footer:
+    text: por {user} · {timestamp}
+  colors:
+    panel:
+      title: Card do painel de cores
+    manager:
+      title: Cabeçalho do gerenciador de cores
+    list:
+      title: Lista de cores
+  help:
+    card:
+      title: Card da lista de comandos
+  starboard:
+    card:
+      title: Post do Starboard
+  suggestions:
+    card:
+      title: Card de sugestão
+    logs:
+      created:
+        title: 'Log: sugestão postada'
+      approved:
+        title: 'Log: sugestão aprovada'
+      rejected:
+        title: 'Log: sugestão recusada'
+    dm:
+      vote:
+        title: DM de voto em sugestão
+      approved:
+        title: DM de sugestão aprovada
+      rejected:
+        title: DM de sugestão recusada
+  confessions:
+    review:
+      title: Card de revisão de confissão
+    card:
+      title: Card de confissão
+    response:
+      title: Card de resposta de confissão
+    logs:
+      approved:
+        title: 'Log: confissão aprovada'
+      denied:
+        title: 'Log: confissão recusada'
+      replied:
+        title: 'Log: resposta de confissão'
+      banned:
+        title: 'Log: ban de confissão'
+    dm:
+      approved:
+        title: DM de confissão aprovada
+      rejected:
+        title: DM de confissão recusada
+      response:
+        title: DM de resposta de confissão
+  utility:
+    ping:
+      title: Card de latência
+    serverinfo:
+      title: Card de info do servidor
+      subtitle: '{crown} {owner} · {people} {members} membros'
+      created_label: '{calendar} Criado em'
+      created_value: '{created_at} · {created_rel}'
+      channels_label: '{speech} Canais'
+      channels_value: '{channels} · {text_channels} texto · {voice_channels} voz'
+      roles_label: '{tag} Cargos'
+      boosts_label: '{rocket} Boosts'
+      emojis_label: '{palette} Emojis'
+      stickers_label: '{love_letter} Stickers'
+      verification_label: '{lock} Verificação'
+      verification:
+        none: Nenhuma
+        low: Baixa
+        medium: Média
+        high: Alta
+        highest: Muito alta
+    userinfo:
+      title: Card de info do membro
+      subtitle: '{crown} {top_role}'
+      nickname_label: '{pencil} Apelido'
+      created_label: '{calendar} Criado em'
+      created_value: '{created_at} · {created_rel}'
+      joined_label: '{door} Entrou'
+      joined_value: '{joined_at} · {joined_rel}'
+      roles_label: '{tag} Cargos'
+      boosting_since_label: '{rocket} Boost desde'
+      timeout_label: '{mute} Timeout'
+      is_bot_label: '{gear} Bot'
+    emojiinfo:
+      title: Card de info do emoji
+      subtitle: '{palette} {source}'
+      created_label: '{calendar} Criado em'
+      created_value: '{created_at} · {created_rel}'
+      animated_label: '{tada} Animado'
+    stickerinfo:
+      title: Card de info do sticker
+      format_label: '{frame} Formato'
+      tags_label: '{tag} Tags'
+      uploader_label: '{user} Enviado por'
+      description_label: '{scroll} Descrição'
+      created_label: '{calendar} Criado em'
+      created_value: '{created_at} · {created_rel}'
+    roleinfo:
+      title: Card de info do cargo
+      subtitle: '{tag} {role_color}'
+      members_label: '{people} Membros'
+      position_label: '{numbers} Posição'
+      role_color_label: '{palette} Cor'
+      mentionable_label: '{speech} Mencionável'
+      hoist_label: '{up} Exibido à parte'
+      created_label: '{calendar} Criado em'
+      created_value: '{created_at} · {created_rel}'
+    channelinfo:
+      title: Card de info do canal
+      channel_type_label: '{speech} Tipo'
+      category_label: '{frame} Categoria'
+      topic_label: '{scroll} Tópico'
+      slowmode_label: '{hourglass} Modo lento'
+      bitrate_label: '{volume} Bitrate'
+      user_limit_label: '{people} Limite de usuários'
+      nsfw_label: '{lock} Restrito por idade'
+      position_label: '{numbers} Posição'
+      created_label: '{calendar} Criado em'
+      created_value: '{created_at} · {created_rel}'
+  themes:
+    title:
+      title: Cabeçalho do menu de temas
+  boost:
+    home:
+      title: Cabeçalho do painel de boost
+    dm:
+      registered:
+        title: 'DM: cargo de boost registrado'
+      transferred:
+        title: 'DM: transferência de dono'
+      auto_transferred:
+        title: 'DM: transferência automática'
+      auto_created:
+        title: 'DM: cargo boost criado automaticamente'
+      auto_restored:
+        title: 'DM: cargo boost restaurado'
+      unboost_deleted:
+        title: 'DM: boost terminou, cargo deletado'
+      unboost_removed:
+        title: 'DM: boost terminou, cargo retirado'
+      unboost_kept:
+        title: 'DM: boost terminou, cargo mantido'
+      invite:
+        title: 'DM: convite de cargo'
+      accepted:
+        title: 'DM: convite aceito'
+      declined:
+        title: 'DM: convite recusado'
+      owner_accepted:
+        title: 'DM: dono notificado da aceitação'
+      owner_declined:
+        title: 'DM: dono notificado da recusa'
+      member_left:
+        title: 'DM: você saiu do cargo'
+      owner_member_left:
+        title: 'DM: dono notificado da saída'
+      error:
+        title: 'DM: erro no convite'
+    preview:
+      title: Card de prévia do cargo
+    logs:
+      register:
+        title: 'Log: cargo registrado'
+      remove:
+        title: 'Log: cargo removido'
+      transfer:
+        title: 'Log: transferência de dono'
+      rename:
+        title: 'Log: cargo renomeado'
+      color_change:
+        title: 'Log: cor alterada'
+      emoji_change:
+        title: 'Log: emoji alterado'
+      icon:
+        title: 'Log: ícone alterado'
+      member_add:
+        title: 'Log: membro adicionado'
+      member_remove:
+        title: 'Log: membro removido'
+      member_left:
+        title: 'Log: membro saiu'
+      invite_sent:
+        title: 'Log: convite enviado'
+      invite_cancelled:
+        title: 'Log: convite cancelado'
+      invite_accepted:
+        title: 'Log: convite aceito'
+      invite_expired:
+        title: 'Log: convite expirado'
+      orphan_remove:
+        title: 'Log: cargo órfão removido'
+      auto_transfer:
+        title: 'Log: transferência automática'
+      auto_create:
+        title: 'Log: cargo boost criado automaticamente'
+      unboost:
+        title: 'Log: boost terminou'
+      invite_declined:
+        title: 'Log: convite recusado'
+  bump:
+    stats:
+      title: Estatísticas de bump
+    status:
+      title: Card de status do bump
+    dm:
+      winner_new:
+        title: 'DM: novo vencedor MVP'
+      winner_again:
+        title: 'DM: MVP repetido'
+      winner_lost:
+        title: 'DM: perdeu o MVP'
+    reminder:
+      title: Card de lembrete de bump
+    thank_you:
+      title: Card de agradecimento do bump
+    leaderboard:
+      title: Post semanal do ranking
+    no_bumps:
+      title: Aviso de semana sem bumps
+    anti_camping:
+      title: Mensagem de canal bloqueado
+    schedule:
+      open:
+        title: Mensagem de abertura agendada
+      close:
+        title: Mensagem de fechamento agendado
+    logs:
+      channel_locked:
+        title: 'Log: canal bloqueado'
+      channel_unlocked:
+        title: 'Log: canal desbloqueado'
+      schedule_opened:
+        title: 'Log: canal aberto pelo horário'
+      schedule_closed:
+        title: 'Log: canal fechado pelo horário'
+      reminder_sent:
+        title: 'Log: lembrete enviado'
+      bump_recorded:
+        title: 'Log: bump registrado'
+      week_reset:
+        title: 'Log: fim de semana, vencedor anunciado'
+      no_winner:
+        title: 'Log: semana terminou sem bumps'
+      no_bumps_posted:
+        title: 'Log: aviso de semana vazia postado'
+      leaderboard_posted:
+        title: 'Log: ranking postado'
+      week_reset_manual:
+        title: 'Log: reset manual da semana'
+      bumps_added:
+        title: 'Log: bumps de teste adicionados'
+      no_role:
+        title: 'Log: cargo do vencedor ausente'
+  warn:
+    dm:
+      title: DM de warn
+  mute:
+    dm:
+      title: DM de silenciamento
+  kick:
+    dm:
+      title: DM de expulsão
+  ban:
+    dm:
+      title: DM de banimento
+  moderation:
+    warnings:
+      title: Lista de warns
+    logs:
+      auto_ban:
+        title: 'Log: auto-ban aplicado'
+      ban:
+        title: 'Log: membro banido'
+      kick:
+        title: 'Log: membro expulso'
+      mute:
+        title: 'Log: membro silenciado'
+      warn:
+        title: 'Log: warn aplicado'
+  roleplay:
+    card:
+      title: Card de roleplay
+    manager:
+      title: Cabeçalho do gerenciador de gifs
+  cleaner:
+    panel:
+      title: Cabeçalho do painel de limpeza
+    confirm:
+      title: Texto de confirmação da limpeza
+    result:
+      title: Texto de resultado da limpeza
+    logs:
+      purged:
+        title: 'Log: mensagens apagadas'
+  anti_invite:
+    warning:
+      title: Texto de aviso do anti-convite
+    logs:
+      blocked:
+        title: 'Log: convite bloqueado'
+  trap:
+    notice:
+      title: Aviso do canal armadilha
+    dm:
+      title: 'DM: caiu na armadilha'
+    logs:
+      failed:
+        title: 'Log: armadilha falhou'
+  broadcast:
+    logs:
+      started:
+        title: 'Log: broadcast iniciado'
+      ended:
+        title: 'Log: broadcast encerrado'
+  updater:
+    confirm:
+      title: Texto de confirmação do update
+    logs:
+      updating:
+        title: 'Log: bot atualizando'
+      updated:
+        title: 'Log: bot atualizado'
+      auto_failed:
+        title: 'Log: auto-update falhou'
+  events:
+    welcome:
+      title: Mensagem de boas-vindas
+    leave:
+      title: Mensagem de saída
+    ban:
+      title: Mensagem de banimento
+  audit:
+    reason_line: '**{scroll} Motivo:** {reason}'
+    moderator_line: '**{gear} Moderador:** {moderator}'
+    ban:
+      title: Membro banido
+      body: '{user_name} (`{user_id}`) foi banido.{reason_line}{moderator_line}'
+    unban:
+      title: Membro desbanido
+      body: '{user_name} (`{user_id}`) foi desbanido.{reason_line}{moderator_line}'
+    message_delete:
+      title: Mensagem deletada
+      body: '**{people} Autor:** {message_author}
+
+        **{speech} Canal:** {channel}
+
+
+        {message}
+
+        '
+      attachments_line: '**{scroll} Anexos:** {attachment_lines}'
+    message_edit:
+      title: Mensagem editada
+      body: '**{people} Autor:** {message_author}
+
+        **{speech} Canal:** {channel}
+
+
+        **{pencil} Antes:**
+
+        {message}
+
+
+        **{pencil} Depois:**
+
+        {new_message}
+
+        '
+      attachments_line: '**{scroll} Anexos:** {attachment_lines}'
+    bulk_delete:
+      title: Purga de mensagens
+      body: '**{numbers} Apagadas:** {count} em {channel}.
+
+        {moderator_line}{file_line}
+
+        '
+      file_line: '**{scroll} Transcrição completa:** [abrir arquivo]({file_url})'
+    nickname:
+      title: Apelido alterado
+      body: '**{pencil} Antes:** {old_name}
+
+        **{pencil} Agora:** {new_name}
+
+        '
+    avatar:
+      title: Avatar alterado
+      body: '**{frame} Antes:** [ver avatar]({old_avatar})
+
+        **{frame} Agora:** [ver avatar]({new_avatar})
+
+        '
+    roles:
+      title: Cargos alterados
+      body: '{role}'
+    timeout:
+      title: Timeout de membro
+      body: '{reason}{duration_line}'
+      until_line: '**{clock} Válido até:** {duration}'
+    voice_join:
+      title: Entrou em canal de voz
+      body: '{user_name} entrou em {channel}.'
+    voice_leave:
+      title: Saiu de canal de voz
+      body: '{user_name} saiu de {channel}.'
+    trap:
+      title: Caiu na armadilha
+      body: '**{volume} Canal:** {channel}
+
+        **{gear} Consequência:** {action}
+
+        **{check} Resultado:** {outcome}
+
+        '
+  birthdays:
+    list:
+      title: Lista de aniversários
+    announce:
+      title: Anúncio de aniversário
+  tickets:
+    panel:
+      title: Card do painel de tickets
+    created:
+      title: Card de abertura de ticket
+    logs:
+      opened:
+        title: 'Log: ticket aberto'
+      closed:
+        title: 'Log: ticket fechado'
+      reopened:
+        title: 'Log: ticket reaberto'
+      deleted:
+        title: 'Log: ticket excluído'
+      transcript:
+        title: 'Log: transcrição de ticket'
+  partnerships:
+    list:
+      title: Lista de parcerias
+    audit:
+      title: Auditoria de parcerias
+    invite:
+      title: Texto de convite de parceria
+    dm:
+      added:
+        title: 'DM: parceria adicionada'
+      removed:
+        title: 'DM: parceria removida'
+      rep_changed:
+        title: 'DM: representante trocado'
+      warning:
+        title: 'DM: aviso de parceria'
+      expired:
+        title: 'DM: parceria expirada'
+      expired_admin:
+        title: 'DM: parceria expirada (para quem adicionou)'
+    logs:
+      added:
+        title: 'Log: parceria adicionada'
+      removed:
+        title: 'Log: parceria removida'
+      edited:
+        title: 'Log: parceria editada'
+      renewed:
+        title: 'Log: parceria renovada'
+      warning_sent:
+        title: 'Log: aviso de parceria'
+      expired:
+        title: 'Log: parceria expirada'
+      invite_posted:
+        title: 'Log: convite postado'
+      orphans_cleaned:
+        title: 'Log: órfãs removidas'
+  invites:
+    leaderboard:
+      title: Ranking de convidadores
+    codes:
+      title: Lista de códigos de convite
+    blacklist:
+      title: Card da blacklist de convites
+    stats:
+      title: Card de stats de convites
+    personal:
+      title: Card de convite pessoal
+    invited_list:
+      title: Lista de convidados
+    server_stats:
+      title: Stats de convites do servidor
+    invited_by:
+      title: Card de quem convidou
+    logs:
+      join:
+        title: 'Log: membro entrou com convite'
+      leave:
+        title: 'Log: convidado saiu'
+      bonus:
+        title: 'Log: bônus ajustado'
+      sync:
+        title: 'Log: convites sincronizados'
+      reset:
+        title: 'Log: convites resetados'
+  about:
+    card:
+      title: Card sobre
+  settings:
+    title:
+      title: Cabeçalho do menu de configurações
+    logs:
+      language:
+        title: 'Log: idioma alterado'
+    log:
+      title: 'Log: configuração alterada'
+  reminders:
+    list:
+      title: Lista de lembretes
+    logs:
+      sent:
+        title: 'Log: lembrete enviado'
+  debug:
+    logs:
+      test:
+        title: 'Log: mensagem de teste'
+    trace:
+      title: 'Log: caminho do card'
+    panel:
+      title: Painel de debug
+debug:
+  command:
+    name: debug
+    description: Painel de debug do bot
+  trace:
+    title: Card rastreado
+    card_path: '`{path}` ← {origin}'
+    theme: tema "{theme}"
+    default: padrão do catálogo
+  guilds: 'Servidores: {guilds}'
+  members: 'Membros: {members}'
+  latency: 'Latência: {latency} ms'
+  uptime: 'Ativo há: {uptime}'
+  close: Fechar
+  test_log: Testar log
+  logs:
+    test:
+      description: Esta mensagem confirma que o canal de log está funcionando.
+      title: '{gear} Teste de log'
+  test_log_sent: '{success} Mensagem de teste enviada ao canal de log.'
+  test_log_not_sent: '{error} Não foi possível enviar a mensagem de teste. Verifique a definição do canal de log.'
+  panel:
+    title: Painel de debug
+    version: 'Versão: {version}'
+    theme: 'Tema: {theme}'
+    logging: 'Logs: {logging}'
+    audit: 'Registro de eventos: {audit}'
+general:
+  unknown_error: '{error} Ocorreu um erro inesperado.'
+  'yes': Sim
+  'no': Não
+  no_permission: '{error} Apenas administradores do servidor podem usar este comando.'
+  bot_no_permission: '{error} O bot não tem permissão para fazer isso.'
+menu:
+  owner_only: '{error} Este menu é privado. Somente o autor pode interagir.'
+  expired: '{warning} Este menu expirou. Abra-o novamente para continuar.'
+# The shared labels of the panels: the navigation of every panel reads them
+# from the theme's chrome (panels.chrome).
+ui:
+  back: Voltar
+  close: Fechar
+  previous: Anterior
+  next: Próxima
+ping:
+  command:
+    name: ping
+    description: Mostra a latência do bot
+  title: Pong!
+  latency: 'Latência: {ms}ms'
+time_parser:
+  seconds:
+  - segundo
+  - segundos
+  minutes:
+  - minuto
+  - minutos
+  hours:
+  - hora
+  - horas
+  days:
+  - dia
+  - dias
+update:
+  command:
+    name: update
+    description: '[ADMIN] Atualiza o bot'
+updater:
+  error_fetch: '{error} Não foi possível buscar atualizações no git.'
+  error_dirty: '{error} Árvore suja ({ahead} commit(s) locais): update recusado.'
+  error_backup: '{error} Backup dos dados falhou: update abortado.'
+  error_reset: '{error} Git reset falhou: veja os logs do bot.'
+  up_to_date: '{success} Já está atualizado.'
+  confirm_title: Atualizar o bot?
+  confirm: Atualizar para **{target}**? Backup, reset e restart?
+  confirm_button: Atualizar e reiniciar
+  cancel_button: Cancelar
+  cancelled: Update cancelado.
+  logs:
+    updating:
+      title: '{refresh} Bot Atualizando'
+      description: '{moderator} iniciou update para **{target}** (de {previous}). Reiniciando.'
+    auto_failed:
+      title: '{error} Auto-update Falhou'
+      description: Checagem automática falhou ({reason}). Tenta de novo no horário.
+    updated:
+      title: '{success} Bot Atualizado'
+      description: 'Update aplicado: {previous} → {current}.'
+variables:
+  user:
+    label: Usuário
+    description: Menção do membro
+  user_name:
+    label: Nome de usuário
+    description: Nome de exibição do membro
+  user_avatar:
+    label: Avatar do usuário
+    description: URL da imagem do avatar do membro
+  user_mention:
+    label: Menção de usuário
+    description: Menção do usuário
+  server:
+    label: Servidor
+    description: Nome do servidor
+  rep:
+    label: Representante
+    description: Mencionado no texto do convite (quem usou o comando por padrão)
+  count:
+    label: Contagem
+    description: Um número deste card
+  matched:
+    label: Total que bateu
+    description: Mensagens que o critério selecionou (antes da exclusão)
+  criterion:
+    label: Critério da limpeza
+    description: Frase que descreve o que a limpeza apaga (modo, autor e escopo)
+  inviter:
+    label: Quem convidou
+    description: Menção de quem convidou
+  inviter_mention:
+    label: Menção de quem convidou
+    description: Menção de quem convidou
+  member:
+    label: Membro
+    description: Menção do membro
+  member_id:
+    label: ID do membro
+    description: ID do Discord do membro
+  member_mention:
+    label: Menção de membro
+    description: Menção do membro
+  member_id_label:
+    label: Rótulo do ID do membro
+    description: Nome do campo de ID nos cards de log da moderação
+  mention:
+    label: Menção
+    description: Ping deste card
+  moderator:
+    label: Moderador
+    description: Menção do moderador atuante
+  target:
+    label: Alvo
+    description: Menção do membro alvo
+  author:
+    label: Autor
+    description: Menção de quem agiu
+  owner:
+    label: Dono
+    description: Menção do dono
+  actor:
+    label: Atuante
+    description: Menção de quem agiu
+  actor_avatar:
+    label: Avatar de quem agiu
+    description: URL do avatar de quem agiu (thumbnail do card de roleplay)
+  winner:
+    label: Vencedor
+    description: Menção do vencedor
+  winner_mention:
+    label: Menção do vencedor
+    description: Menção do vencedor
+  winner_avatar:
+    label: Avatar do vencedor
+    description: URL da imagem do avatar do vencedor
+  invitee:
+    label: Convidado
+    description: Menção do membro convidado
+  reason:
+    label: Motivo
+    description: Texto do motivo
+  duration:
+    label: Duração
+    description: Texto da duração
+  has_warnings:
+    label: Tem warns
+    description: Se o membro tem warns registrados (muda a cor do card)
+  channel:
+    label: Canal
+    description: Menção do canal
+  version:
+    label: Versão
+    description: Versão atual do bot
+  role:
+    label: Cargo
+    description: Menção do cargo
+  role_name:
+    label: Nome do cargo
+    description: Nome do cargo
+  guild:
+    label: Servidor
+    description: Nome do servidor
+  body:
+    label: Corpo
+    description: Texto principal do card
+  title:
+    label: Título
+    description: Título do card
+  ping:
+    label: Ping
+    description: Texto do ping
+  ping_role:
+    label: Cargo do ping
+    description: Menção do cargo do ping
+  tag:
+    label: Etiqueta
+    description: Emoji de etiqueta
+  link:
+    label: Link
+    description: URL do link de convite
+  url:
+    label: URL
+    description: URL do link
+  cooldown:
+    label: Espera
+    description: Texto da duração da espera
+  days:
+    label: Dias
+    description: Número de dias
+  total:
+    label: Total
+    description: Número total
+  bumps:
+    label: Bumps
+    description: Número de bumps
+  bump_count:
+    label: Qtd. de bumps
+    description: Número de bumps
+  winner_count:
+    label: Bumps do vencedor
+    description: Bumps do vencedor
+  total_wins:
+    label: Vitórias totais
+    description: Vitórias totais na semana
+  regular:
+    label: Normais
+    description: Qtd. de convites normais
+  bonus:
+    label: Bônus
+    description: Qtd. de convites bônus
+  fake:
+    label: Fakes
+    description: Qtd. de convites falsos
+  left:
+    label: Saíram
+    description: Qtd. de membros que saíram
+  rank:
+    label: Posição
+    description: Posição no placar
+  stars:
+    label: Estrelas
+    description: Número de estrelas no post do Starboard
+  ms:
+    label: Milissegundos
+    description: Latência em milissegundos
+  image_url:
+    label: URL da imagem
+    description: URL de uma imagem anexada
+  gif_url:
+    label: URL do gif
+    description: URL do gif exibido no card de roleplay
+  roles:
+    label: Cargos
+    description: Número de cargos
+  channels:
+    label: Canais
+    description: Número de canais
+  created_at:
+    label: Criado em
+    description: Data de criação do servidor
+  created_rel:
+    label: Criação (relativa)
+    description: Idade do servidor em tempo relativo do Discord (ex. "há um ano")
+  server_icon:
+    label: Ícone do servidor
+    description: URL da imagem do ícone do servidor
+  banner_url:
+    label: Banner do servidor
+    description: URL da imagem do banner do servidor
+  description:
+    label: Descrição
+    description: Descrição pública do servidor
+  text_channels:
+    label: Canais de texto
+    description: Número de canais de texto
+  voice_channels:
+    label: Canais de voz
+    description: Número de canais de voz
+  boosts:
+    label: Boosts
+    description: Número de boosts do servidor
+  emojis:
+    label: Emojis
+    description: Número de emojis do servidor
+  stickers:
+    label: Stickers
+    description: Número de stickers do servidor
+  verification:
+    label: Verificação
+    description: Nível de verificação do servidor (traduzido)
+  server_id:
+    label: ID do servidor
+    description: ID numérico do servidor
+  timestamp:
+    label: Tempo relativo
+    description: Momento do evento em tempo relativo do Discord (ex. "há 3 horas")
+  message_author:
+    label: Autor da mensagem
+    description: Menção de quem enviou a mensagem
+  message_author_name:
+    label: Nome do autor
+    description: Nome de exibição de quem enviou a mensagem
+  message:
+    label: Mensagem
+    description: Conteúdo original da mensagem (em bloco de texto)
+  new_message:
+    label: Mensagem editada
+    description: Novo conteúdo após a edição (em bloco de texto)
+  message_link:
+    label: Link da mensagem
+    description: Link direto para pular até a mensagem
+  old_avatar:
+    label: Avatar antigo
+    description: URL do avatar anterior
+  new_avatar:
+    label: Avatar novo
+    description: URL do avatar atual
+  nickname:
+    label: Apelido
+    description: Apelido do membro neste servidor
+  joined_at:
+    label: Entrou
+    description: Data de entrada do membro no servidor
+  joined_rel:
+    label: Entrou (relativo)
+    description: Tempo relativo desde a entrada do membro
+  top_role:
+    label: Cargo principal
+    description: Cargo mais alto do membro
+  boosting_since:
+    label: Boost desde
+    description: Desde quando o membro dá boost (vazio quando não dá boost)
+  timeout:
+    label: Timeout
+    description: Situação de timeout do membro
+  is_bot:
+    label: Bot
+    description: Se o membro é um bot
+  user_id:
+    label: ID do usuário
+    description: ID do Discord do usuário
+  emoji_name:
+    label: Nome do emoji
+    description: Nome do emoji ou sticker
+  emoji_id:
+    label: ID do emoji
+    description: ID do Discord do emoji
+  animated:
+    label: Animado
+    description: Se o emoji é animado
+  emoji_url:
+    label: Imagem do emoji
+    description: URL da imagem do emoji
+  source:
+    label: Origem
+    description: De onde vem o emoji (servidor ou aplicação)
+  sticker_name:
+    label: Nome do sticker
+    description: Nome do sticker
+  sticker_id:
+    label: ID do sticker
+    description: ID do Discord do sticker
+  sticker_url:
+    label: Imagem do sticker
+    description: URL da imagem do sticker
+  format:
+    label: Formato
+    description: Formato de imagem do sticker
+  tags:
+    label: Tags
+    description: Tags do sticker
+  uploader:
+    label: Enviado por
+    description: Membro que enviou o sticker
+  role_color:
+    label: Cor do cargo
+    description: Cor do cargo em hexadecimal
+  role_icon:
+    label: Ícone do cargo
+    description: Imagem do ícone do cargo
+  role_id:
+    label: ID do cargo
+    description: ID do Discord do cargo
+  mentionable:
+    label: Mencionável
+    description: Se todos podem mencionar o cargo
+  hoist:
+    label: Exibido à parte
+    description: Se o cargo aparece separado na lista de membros
+  channel_name:
+    label: Nome do canal
+    description: Nome do canal
+  channel_type:
+    label: Tipo do canal
+    description: Tipo do canal
+  topic:
+    label: Tópico
+    description: Tópico definido no canal
+  category:
+    label: Categoria
+    description: Categoria à qual o canal pertence
+  nsfw:
+    label: Restrito por idade
+    description: Se o canal é restrito por idade
+  slowmode:
+    label: Modo lento
+    description: Intervalo do modo lento do canal
+  bitrate:
+    label: Bitrate
+    description: Bitrate do áudio (canais de voz)
+  user_limit:
+    label: Limite de usuários
+    description: Limite de usuários simultâneos (canais de voz)
+  channel_id:
+    label: ID do canal
+    description: ID do Discord do canal
+  invite:
+    label: Convite do servidor
+    description: Link de convite deste servidor
+  action:
+    label: Consequência
+    description: Ação aplicada (apagar, expulsão, softban ou banimento)
+  file_url:
+    label: Arquivo da purga
+    description: Link do .txt com as mensagens apagadas em massa
+  attachment_lines:
+    label: Linhas de anexos
+    description: Links markdown dos anexos da mensagem apagada (uma linha por anexo)
+  chat_image:
+    label: Imagem da mensagem
+    description: Imagem simulando o chat da mensagem apagada (bolha do autor)
+  joins:
+    label: Entradas
+    description: Qtd. de entradas no servidor
+  sent:
+    label: Enviados
+    description: Qtd. de mensagens enviadas
+  failed:
+    label: Falhas
+    description: Qtd. de falhas
+  relayed:
+    label: Retransmitidas
+    description: Qtd. de mensagens retransmitidas
+  codes:
+    label: Códigos
+    description: Qtd. de códigos de convite
+  amount:
+    label: Quantidade
+    description: Quantidade de bônus
+  max_members:
+    label: Limite de membros
+    description: Limite de membros
+  max:
+    label: Máximo
+    description: Limite máximo do recurso
+  members:
+    label: Membros
+    description: Qtd. de membros
+  code:
+    label: Código
+    description: Código de convite
+  flags:
+    label: Flags
+    description: Texto extra de flags
+  label:
+    label: Rótulo
+    description: Texto do rótulo
+  expires:
+    label: Expira em
+    description: Texto de expiração
+  name:
+    label: Nome
+    description: Texto do nome
+  type:
+    label: Tipo
+    description: Rótulo do tipo
+  word:
+    label: Palavra
+    description: Palavra apagada
+  previous:
+    label: Anterior
+    description: Texto da versão anterior
+  current:
+    label: Atual
+    description: Texto da versão atual
+  old:
+    label: Antigo
+    description: Valor antigo
+  new:
+    label: Novo
+    description: Valor novo
+  deleted:
+    label: Apagado
+    description: Nome do item apagado
+  enabled:
+    label: Ativo
+    description: Se está ativo
+  locked:
+    label: Bloqueado
+    description: Se está bloqueado
+  next:
+    label: Próximo
+    description: Texto do próximo valor
+  when:
+    label: Quando
+    description: Texto de data/hora
+  status:
+    label: Estado
+    description: Texto de estado
+  leaderboard_list:
+    label: Placar
+    description: Linhas do placar
+  prefix:
+    label: Prefixo
+    description: O prefixo dos comandos de texto do servidor
+  moderation_list:
+    label: Comandos de moderação
+    description: Entradas renderizadas dos comandos de moderação
+  info_list:
+    label: Comandos de informação
+    description: Entradas renderizadas dos comandos de informação
+  general_list:
+    label: Comandos gerais
+    description: Entradas renderizadas dos comandos gerais
+  interactions_list:
+    label: Bloco de interações
+    description: Entradas renderizadas das interações de roleplay
+  position:
+    label: Posição
+    description: Posição no rank
+  medal:
+    label: Medalha
+    description: Emoji da medalha do rank
+  warned:
+    label: Aviso
+    description: Marcador de aviso
+  member_label:
+    label: Rótulo de membro
+    description: Rótulo do campo "Membro" nos registros
+  moderator_label:
+    label: Rótulo de moderador
+    description: Rótulo do campo "Moderador" nos registros
+  reason_label:
+    label: Rótulo de motivo
+    description: Rótulo do campo "Motivo" nos registros
+  duration_label:
+    label: Rótulo de duração
+    description: Rótulo do campo "Duração" nos registros
+  user_label:
+    label: Rótulo de alvo
+    description: Rótulo do campo "Alvo" nos registros
+  action_label:
+    label: Rótulo de consequência
+    description: Rótulo do campo "Consequência" nos registros
+  old_owner:
+    label: Dono anterior
+    description: Menção do dono anterior
+  new_owner:
+    label: Novo dono
+    description: Menção do novo dono
+  old_name:
+    label: Nome antigo
+    description: Nome anterior
+  new_name:
+    label: Nome novo
+    description: Nome novo
+  new_color:
+    label: Nova cor
+    description: Valor da nova cor
+  emoji:
+    label: Emoji
+    description: Valor do emoji
+  orphans:
+    label: Órfãos
+    description: Qtd. de órfãos
+  expired:
+    label: Expirados
+    description: Qtd. de expirados
+  start_timestamp:
+    label: Início
+    description: Timestamp do início do período
+  end_timestamp:
+    label: Fim
+    description: Timestamp do fim do período
+  next_reset_timestamp:
+    label: Próximo reset
+    description: Timestamp do próximo reset
+  next_bump_timestamp:
+    label: Próximo bump
+    description: Timestamp do próximo bump
+  server_name:
+    label: Nome do servidor
+    description: Nome do servidor
+  suggestion_number:
+    label: Número da sugestão
+    description: Número sequencial da sugestão
+  upvotes:
+    label: Votos positivos
+    description: Votos positivos na sugestão
+  downvotes:
+    label: Votos negativos
+    description: Votos negativos na sugestão
+  score:
+    label: Saldo
+    description: Votos positivos menos negativos
+  voter:
+    label: Quem votou
+    description: Menção de quem votou na sugestão
+  vote:
+    label: Voto
+    description: A palavra do voto (upvote ou downvote)
+  side:
+    label: Lado do voto
+    description: Qual lado foi votado (up ou down)
+  status_line:
+    label: Linha de status
+    description: A linha que a staff escreve na sugestão (aprovada ou recusada)
+  reason_line:
+    label: Linha do motivo
+    description: O motivo da decisão da staff (vazio quando não há)
+  command:
+    label: Comando
+    description: O nome do comando que o card aponta (localizado)
+  confession_number:
+    label: Número da confissão
+    description: Número sequencial da confissão
+  reply_index:
+    label: Número da resposta
+    description: Número sequencial da resposta dentro da confissão
+  color_hex:
+    label: Cor em hex
+    description: Cor de destaque sorteada do card de confissão
+  parent_line:
+    label: Linha de origem
+    description: Linha de referência ao comentário respondido
+  parent_link:
+    label: Link do comentário
+    description: Link para o comentário que está sendo respondido
+  alias_name:
+    label: Nome anônimo
+    description: Nome pseudônimo mostrado como título do card da confissão
+  avatar_url:
+    label: Avatar gerado
+    description: Identicon gerada mostrada ao lado do nome anônimo
+  op_emoji:
+    label: Emoji de autor
+    description: Emoji que marca o autor da confissão
+  author_line:
+    label: Linha de autor
+    description: Linha revelando quem escreveu (só a staff)
+  path:
+    label: Caminho do card
+    description: A chave do card que foi renderizado.
+  origin:
+    label: Origem
+    description: De onde veio a definição ativa do card.
+  setting:
+    label: Configuração
+    description: Nome legível da configuração alterada.
+  guilds:
+    label: Servers
+    description: Número de servidores em que o bot está.
+  flash:
+    label: Retorno do painel
+    description: A mensagem da última ação do painel (o teste de log).
+  latency:
+    label: Latência
+    description: Latência atual do gateway em milissegundos.
+  uptime:
+    label: Tempo no ar
+    description: Há quanto tempo o bot está rodando.
+  theme:
+    label: Tema
+    description: Nome do tema visual ativo.
+  logging:
+    label: Logs
+    description: Se o canal de logs da equipe está ativo.
+  audit:
+    label: Registro de eventos
+    description: Se o canal de registro de eventos está ativo.

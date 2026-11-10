@@ -1,0 +1,208 @@
+partnerships:
+  command:
+    name: partnerships
+    description: Manage server partnerships
+  error_disabled: '{error} Partnerships are disabled on this server.'
+  error_no_channel: '{error} No partnerships channel configured.'
+  modal:
+    title: Partnership ad
+    label: Ad text
+    placeholder: Write the ad. Use {{rep}} and {{ping_role}} anywhere.
+  edit_modal:
+    title: Edit Partnership Ad
+    label: Ad text
+    placeholder: Edit the ad. Use {{rep}} and {{ping_role}} anywhere.
+  error_not_found: '{error} No partnership for {user}.'
+  error_not_rep: '{error} You do not represent any partnership here.'
+  error_rep_has_partnership: '{error} {user} already represents a partnership here.'
+  list_empty: No partnerships yet.
+  list_title: Partnerships
+  list_line: '- {user} ({days}d left){warned}'
+  audit_title: Partnership Audit
+  audit_body: 'Expired: {expired}
+
+    Orphaned: {orphans}'
+  invite_text: Partner with us! Talk to the staff to join.
+  invite_text_default: Partner with us! Talk to {rep} to join.
+  dm:
+    added: 'New Partnership Established!
+
+
+      Hello, {mention}! You have been designated as the **official representative** of the partnership with **{server}**.
+
+
+      ### {scroll} Your responsibilities
+
+      > Keep your server safe, active and welcoming
+
+      > Follow the partnership rules of the corresponding channel
+
+      > Represent both communities with respect
+
+
+      {tada} Thank you for being part of this partnership!
+
+      Leaving the server or breaking the rules may result in losing the partnership. Questions? Talk to the moderation team!'
+    removed: 'Partnership Ended
+
+
+      Hello, {mention}! Your partnership with **{server}** was ended by the staff.
+
+
+      {envelope} If you want to re-establish it, talk to the server staff to start the process again.
+
+
+      This is an automated partnership notification.'
+    rep_changed: 'You Now Represent a Partnership!
+
+
+      Hello, {mention}! The partnership with **{server}** is now represented by you. The ad was updated and the partner role was transferred.
+
+
+      ### {scroll} Your responsibilities
+
+      > Keep your server safe, active and welcoming
+
+      > Follow the partnership rules of the corresponding channel
+
+      > Represent both communities with respect
+
+
+      {tada} Welcome to the partnership!
+
+      Questions? Talk to the moderation team!'
+    warning: 'Partnership Renewal Required!
+
+
+      Hello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.
+
+
+      ### How to renew
+
+      > Use the `/partnerships renew` command on the server before the deadline.
+
+
+      ### {warning} Deadline
+
+      > You have **{days} day(s)** to act.
+
+
+      When it expires, your partnership ad will be deleted and the partner role will be removed.'
+    expired: 'Partnership Expired
+
+
+      Hello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.
+
+
+      ### {refresh} Want to come back?
+
+      > Just talk to the server staff to redo the partnership process.
+
+
+      Your ad was deleted and the partner role was removed.'
+    expired_admin: 'Partnership Expired
+
+
+      Hello, {mention}! The partnership you added with representative {rep} expired without renewal and was removed from **{server}**.
+
+
+      ### {calendar} Details
+
+      > **Representative:** {rep}
+
+      > **Last renewed:** {days} day(s) ago
+
+
+      ### {refresh} Want to re-establish it?
+
+      > Redo the process normally in the partnerships channel.
+
+      > Invite to share with the representative: {invite}
+
+
+      This is an automated notification. No further action was taken beyond removing the partnership.'
+  invite: '{server} 🤝'
+  success:
+    added: '{success} Partnership added for {user}.'
+    removed: '{success} Partnership removed for {user}.'
+    renewed: '{success} Partnership renewed.'
+    invite_posted: '{success} Partnership invite posted.'
+    cleaned: '{success} Removed {count} orphan partnership(s).'
+    edited: '{success} Partnership ad of {user} updated.'
+    edited_rep: '{success} Ad updated and representation transferred from {user} to {rep}.'
+  logs:
+    added:
+      title: '{plus} Partnership Added'
+      description: '{author} added a partnership for {user}.'
+    removed:
+      title: '{minus} Partnership Removed'
+      description: '{author} removed the partnership of {user}.'
+    edited:
+      title: '{pencil} Partnership Edited'
+    renewed:
+      title: '{refresh} Partnership Renewed'
+      description: '{user} renewed their partnership.'
+    warning_sent:
+      title: '{warning} Partnership Warning'
+      description: '{user} was warned ({days}d overdue).'
+    expired:
+      title: '{clock} Partnership Expired'
+      description: Partnership of {user} expired. {ping}
+    invite_posted:
+      title: '{love_letter} Partnership Invite Posted'
+      description: '{author} posted the partnership invite.'
+    orphans_cleaned:
+      title: '{trash} Orphan Partnerships Cleaned'
+      description: '{author} removed {count} orphan partnership(s).'
+partnerships_admin:
+  command:
+    name: partnerships_admin
+    description: '[ADMIN] Admin-only partnership tools'
+partnerships_admin_add:
+  command:
+    name: add
+    description: '[ADMIN] Add a partnership'
+    options:
+      member:
+        description: Partner representative
+partnerships_admin_audit:
+  command:
+    name: audit
+    description: '[ADMIN] Audit partnerships without acting'
+partnerships_admin_clean:
+  command:
+    name: clean
+    description: '[ADMIN] Remove orphan partnerships'
+partnerships_admin_edit:
+  command:
+    name: edit
+    description: '[ADMIN] Edit the ad and/or the representative'
+    options:
+      member:
+        description: Partner representative
+      new_rep:
+        description: New representative (omit to keep the current one)
+partnerships_admin_invite:
+  command:
+    name: invite
+    description: '[ADMIN] Post the partnership invite text'
+    options:
+      channel:
+        description: 'Channel to post the invite (default: current)'
+      representative:
+        description: 'Rep mentioned via {{rep}} (default: you)'
+partnerships_admin_list:
+  command:
+    name: list
+    description: '[ADMIN] List partnerships'
+partnerships_admin_remove:
+  command:
+    name: remove
+    description: '[ADMIN] Remove a partnership'
+    options:
+      member:
+        description: Partner representative
+partnerships_renew:
+  command:
+    name: renew
+    description: Renew your partnership ad

@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15158332,
+    "description": "Checagem automática falhou (…). Tenta de novo no horário.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "❌ Auto-update Falhou",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "updater.logs.auto_failed",
+  "pings": [],
+  "view": []
+}

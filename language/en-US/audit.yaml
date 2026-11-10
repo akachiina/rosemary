@@ -1,0 +1,86 @@
+audit:
+  no_nickname: (no nickname)
+  edited_marker: (edited)
+  roles_gained: '**{plus} Gained:** {role}'
+  roles_lost: '**{minus} Lost:** {role}'
+  timeout_applied: Timed out until {duration}.
+  timeout_removed: The timeout was removed.
+  bulk_multiple_channels: '{count} different channels'
+errors:
+  generic: '{error} Something went wrong.'
+log:
+  field:
+    target:
+      label: '{people} Target'
+    member_id:
+      label: '{numbers} Member ID'
+    moderator:
+      label: '{gear} Moderator'
+    reason:
+      label: '{scroll} Reason'
+    duration:
+      label: '{clock} Duration'
+    role:
+      label: '{tag} Role'
+    owner:
+      label: '{crown} Owner'
+    actor:
+      label: '{people} By'
+    deleted:
+      label: '{trash} Deleted'
+    old_owner:
+      label: '{crown} Previous owner'
+    new_owner:
+      label: '{crown} New owner'
+    old_name:
+      label: '{pencil} Previous name'
+    new_name:
+      label: '{pencil} New name'
+    new_color:
+      label: '{palette} New color'
+    emoji:
+      label: '{palette} Emoji'
+    member:
+      label: '{people} Member'
+    new_rep:
+      label: '{people} New representative'
+    invitee:
+      label: '{user} Invitee'
+    inviter:
+      label: '{user} Inviter'
+    expires:
+      label: '{hourglass} Expires'
+    consequence:
+      label: '{gear} Consequence'
+    matched:
+      label: '{search} Matched'
+    criterion:
+      label: '{search} Criterion'
+    title:
+      label: '{pencil} Title'
+    channel:
+      label: '{speech} Channel'
+    relayed:
+      label: '{envelope} Relayed'
+    sent:
+      label: '{check} Sent'
+    failed:
+      label: '{error} Failed'
+    setting:
+      label: '{gear} Setting'
+    category:
+      label: '{frame} Category'
+    old:
+      label: '{pencil} Previous'
+    new:
+      label: '{pencil} New'
+    winner:
+      label: '{trophy} Winner'
+    bumps:
+      label: '{bar_chart} Bumps'
+    previous:
+      label: '{pencil} Previous'
+    action:
+      label: '{gear} Action'
+  actor_footer: by {actor} · {timestamp}
+  system_footer: '{timestamp}'

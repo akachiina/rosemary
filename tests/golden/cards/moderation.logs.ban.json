@@ -1,0 +1,44 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15158332,
+    "fields": [
+      {
+        "inline": false,
+        "name": "👥 Alvo",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "🔢 ID do membro",
+        "value": "`123456789012345678`"
+      },
+      {
+        "inline": false,
+        "name": "⚙️ Moderador(a)",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "📜 Motivo",
+        "value": "…"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "timestamp": "<iso>",
+    "title": "🚫 Banimento",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "moderation.logs.ban",
+  "pings": [],
+  "view": []
+}

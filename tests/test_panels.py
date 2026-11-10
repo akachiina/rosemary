@@ -101,13 +101,11 @@ async def test_render_card_message_uses_active_theme_emojis(tmp_path):
     await preload_themes(bot)
     payload, _allowed = await render_card_message(bot, 1, "about.card", {})
     assert payload is not None
-    texts = [
-        item.content
-        for item in _walk(payload.view.children)
-        if isinstance(item, discord.ui.TextDisplay)
-    ]
-    assert any("\U0001f921" in t for t in texts), texts
-    assert not any("{clown}" in t for t in texts), texts
+    # A copy-only override keeps the card's surface: a classic embed.
+    assert payload.embed is not None
+    description = payload.embed.description or ""
+    assert "\U0001f921" in description, description
+    assert "{clown}" not in description, description
 
 
 async def test_container_nested_action_buttons_match_dispatch(tmp_path):

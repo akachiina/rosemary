@@ -1,0 +1,28 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3066993,
+    "fields": [
+      {
+        "inline": false,
+        "name": "🏷️ Cargo",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "👑 Dono(a)",
+        "value": "<@0>"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "👑 Cargo Boost Criado Automaticamente",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "boost.logs.auto_create",
+  "pings": [],
+  "view": []
+}

@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 15158332,
+    "description": "<@0> baniu <@0> das confissões (…).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🚫 Ban de confissão",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "confessions.logs.banned",
+  "pings": [],
+  "view": []
+}

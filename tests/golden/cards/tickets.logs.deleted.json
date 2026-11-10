@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15844367,
+    "description": "Ticket #… foi excluído.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🗑️ Ticket Excluído",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "tickets.logs.deleted",
+  "pings": [],
+  "view": []
+}

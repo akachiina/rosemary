@@ -7,28 +7,20 @@ from datetime import UTC, datetime
 import discord
 from discord.ext import commands
 
-import rosemary.core.debug_cards  # noqa: F401  (registers the panel builder)
 from rosemary import __version__
 from rosemary.core.card_service import (
-    default_document,
-    get_effective_document,
+    render_card_message,
+    simple_payload,
+)
+from rosemary.core.debug import (
+    bot_state_summary,
+    format_uptime,
+    send_log,
     trace_card_path,
 )
-from rosemary.core.cards import (
-    CardsError,
-    is_embed_document,
-)
-from rosemary.core.cards import (
-    build_items as build_card_items,
-)
-from rosemary.core.debug import bot_state_summary, format_uptime, send_log
 from rosemary.core.settings import get_setting
 from rosemary.core.themes import theme_for
-from rosemary.ui.containers import (
-    ActionRow,
-    TextDisplay,
-    designer_container,
-)
+from rosemary.ui.containers import ActionRow
 from rosemary.ui.menu import MenuView
 
 
@@ -45,13 +37,13 @@ class DebugMenuView(MenuView):
         self.register("debug_test_log", self._test_log)
 
     async def _close(self, interaction: discord.Interaction) -> None:
-        self.disable_all_items()
-        await interaction.edit(view=self)
-        self.stop()
+        from rosemary.ui.runtime import close
+
+        await close(self, interaction)
 
     async def _test_log(self, interaction: discord.Interaction) -> None:
-        if not interaction.response.is_done():
-            await interaction.response.defer(ephemeral=True)
+        if not await self._ack(interaction):
+            return
         sent = await send_log(self.bot, self.guild_id, "debug.logs.test")
         t = self.bot.translator.t
         self.flash = await t(
@@ -80,36 +72,44 @@ class DebugMenuView(MenuView):
             "logging": await self._on_off("logging.enabled"),
             "audit": await self._on_off("audit.enabled"),
             "timestamp": discord.utils.format_dt(datetime.now(UTC), "R"),
-            "flash": self.flash,
-            "flash_color": self.flash_color,
+            # The flash is the feedback of the last action: an empty string
+            # means "nothing to say", so the document drops the paragraph.
+            "flash": self.flash or "",
+            # The color token the state chooses (the theme owns its meaning).
+            "flash_color": self.flash_color or "",
         }
 
     async def build_items(self) -> list[discord.ui.ViewItem]:
         variables = await self._variables()
-        doc = await get_effective_document(
+        # The panel is a card: the document (the packaged one, or the theme's
+        # own) owns the frame, and the code owns the buttons.
+        payload, _allowed = await render_card_message(
             self.bot, self.guild_id, "debug.panel", variables
         )
-        if doc is None or is_embed_document(doc):
-            # Interactive menus need V2 components; an embed override cannot
-            # carry the buttons, so keep the built-in card.
-            doc = await default_document(
-                self.bot, self.guild_id, "debug.panel", variables
-            )
-        try:
-            items = build_card_items(
-                theme_for(self.bot, self.guild_id),
-                doc or {"v": 1, "blocks": []},
-                variables,
-                card_key="debug.panel",
-            )
-        except CardsError:
-            items = []
+        items: list[discord.ui.ViewItem] = []
+        if payload is not None and payload.view is not None:
+            items = list(payload.view.children)
         if not items:
+            # No document at all (the catalog has no copy): the card fallback
+            # answers in the card's own shape, never as a hand-built frame.
             t = self.bot.translator.t
-            parts = [TextDisplay(await t(self.guild_id, "debug.panel.title"))]
-            for key, values in bot_state_summary(self.bot):
-                parts.append(TextDisplay(await t(self.guild_id, key, **values)))
-            items = [designer_container(self.bot.theme.color("info"), *parts)]
+            title = await t(self.guild_id, "debug.panel.title")
+            body = "\n".join(
+                [
+                    await t(self.guild_id, key, **values)
+                    for key, values in bot_state_summary(self.bot)
+                ]
+            )
+            fallback = simple_payload(
+                self.bot,
+                self.guild_id,
+                "debug.panel",
+                title=title,
+                body=body,
+                color="info",
+            )
+            if fallback.view is not None:
+                items = list(fallback.view.children)
 
         t = self.bot.translator.t
         close = self.make_button(

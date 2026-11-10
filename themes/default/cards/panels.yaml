@@ -1,0 +1,155 @@
+# The panels: the interactive cards (the menus, the managers, the posted
+# panels).
+#
+# A panel is a card whose components live in code: Discord needs registered
+# callbacks, so a theme cannot generate the selects and the buttons. What the
+# document owns is the frame: the heading, the color and the body the panel
+# shows. A guild restyles a panel by writing its own document under
+# ``cards.<key>``: the themed document replaces the heading in place.
+#
+# The body of a panel is the copy the code assembles: the send site sends it
+# as the ``body`` variable, so the preview (and the editor) keep the shape
+# of a real panel.
+
+# The settings menu: the heading names the menu, the body is the page.
+settings.title:
+  archetype: panel
+  title: '{settings.title}'
+  description: '{body}'
+
+# The themes menu: the heading names the menu, the body is the page.
+themes.title:
+  archetype: panel
+  title: '{themes.title}'
+  description: '{body}'
+
+# The cleaner panel: the heading names the panel, the body is the report.
+cleaner.panel:
+  archetype: panel
+  color: warning
+  title: '{cleaner.panel_title}'
+  description: '{body}'
+
+# The boost panel: the heading names the panel, the body is its invitation.
+boost.home:
+  archetype: panel
+  title: '{boost.titles.home}'
+  description: '{boost.descriptions.user_panel}'
+
+# The gif manager: the heading names the manager, the body is the list.
+roleplay.manager:
+  archetype: panel
+  title: '{roleplay.manager.title}'
+  description: '{body}'
+  rich: false
+  variables:
+  - action
+  category: roleplay
+
+# The ticket panel: the heading asks for a ticket, the body explains how.
+tickets.panel:
+  archetype: panel
+  title: '{tickets.panel.title}'
+  description: '{tickets.panel.text}'
+
+# The color manager: the heading names the manager, the body is the hint.
+colors.manager:
+  archetype: panel
+  title: '{colors.manager.title}'
+  description: '{colors.manager.hint}'
+  rich: false
+  variables:
+  - count
+  - max
+  category: colors
+
+# The posted color panel: the heading names the panel and the body invites
+# the pick. The chunk cards (one gallery image plus its numbered buttons)
+# are code-built and ride after this frame, because they carry Discord-bound
+# callbacks the document cannot own.
+colors.panel:
+  archetype: panel
+  color: brand
+  title: '{colors.panel.title}'
+  description: '{colors.panel.text}'
+  variables:
+  - count
+  category: colors
+
+# The boost preview (the DM a member gets before joining): the heading names
+# the role, the body tells who owns it and how many members it has.
+boost.preview:
+  archetype: panel
+  color: success
+  title: '@{role_name}'
+  paragraphs:
+  - "**{boost.emoji.owner}:**\n{owner}"
+  - "**{boost.emoji.members}:**\n{boost.descriptions.members_count}"
+  variables:
+  - role_name
+  - owner
+  - count
+  - max_members
+  category: boost
+
+# The confession review (the staff panel): the heading names the confession,
+# the body is the text and the reveal line rides as a paragraph of its own
+# (it disappears when the guild keeps the author anonymous). The picture
+# rides the gallery and the timestamp closes the card.
+#
+# Deliberately no avatar: with the reveal off, the author's avatar image
+# would unmask them to the staff.
+confessions.review:
+  archetype: panel
+  color: info
+  title: '{title}'
+  paragraphs:
+  - '{body}'
+  - '{author_line}'
+  image: '{image_url}'
+  footer: '{timestamp}'
+  variables:
+  - confession_number
+  - title
+  - body
+  - image_url
+  - author_line
+  - timestamp
+  category: confessions
+
+# The debug panel: the heading names the panel, the body is the state of the
+# bot (one line per metric). The color follows the state: the panel turns
+# green when the log test works and red when it fails, and stays blue while
+# nothing happened (the alternatives: the first one whose variable arrived
+# wins). The flash is the feedback of the last action: it is a paragraph of
+# its own, so it disappears when there is nothing to say.
+debug.panel:
+  archetype: panel
+  color:
+  - '{flash_color}'
+  - 'info'
+  title: '{debug.panel.title}'
+  paragraphs:
+  - |-
+    {debug.guilds}
+    {debug.members}
+    {debug.latency}
+    {debug.uptime}
+    {debug.panel.version}
+    {debug.panel.theme}
+    {debug.panel.logging}
+    {debug.panel.audit}
+  - '{flash}'
+  footer: '{timestamp}'
+  variables:
+  - guilds
+  - members
+  - latency
+  - uptime
+  - version
+  - theme
+  - logging
+  - audit
+  - flash
+  - timestamp
+  category: general

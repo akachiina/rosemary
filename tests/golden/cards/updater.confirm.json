@@ -1,0 +1,8 @@
+{
+  "content": "⚠️ **|** Atualizar para **<@0>**? Backup, reset e restart?",
+  "embed": null,
+  "form": "text",
+  "key": "updater.confirm",
+  "pings": [],
+  "view": []
+}

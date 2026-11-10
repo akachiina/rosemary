@@ -1,0 +1,30 @@
+{
+  "content": null,
+  "embed": {
+    "color": 16248744,
+    "description": "…",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "image": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "…",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "starboard.card",
+  "pings": [],
+  "view": [
+    {
+      "label": "Ir para a mensagem",
+      "style": "link",
+      "type": "Button",
+      "url": "https://example.com/message"
+    }
+  ]
+}

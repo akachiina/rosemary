@@ -1,0 +1,478 @@
+settings:
+  title: Bot Settings
+  command:
+    name: settings
+    description: Configure the bot settings
+  hint: Pick a category to browse its settings.
+  category_label: Category
+  category:
+    placeholder: Select a category
+    general: General
+    moderation: Moderation
+    logging: Logging
+    boost: Boost Roles
+    bump: Disboard Bump
+    events: Announcements
+    audit: Event Log
+    starboard: Starboard
+    suggestions: Suggestions
+    birthdays: Birthdays
+    invites: Invites
+    tickets: Tickets
+    partnerships: Partnerships
+    broadcast_reminders: Broadcast & Reminders
+    colors: Color Panel
+    roleplay: Roleplay
+    confessions: Confessions
+  colors.enabled:
+    label: Color Panel Enabled
+    description: Enables the color panel (colored roles any member can pick).
+  colors.panel_channel:
+    label: Panel Channel
+    description: Channel where the color panel is posted and repainted on change.
+  colors.picker:
+    label: Panel Picker
+    description: How members pick a color on the panel.
+    choices:
+      buttons: Numbered buttons
+      select: Select menu
+  colors.per_container:
+    label: Colors per Card
+    description: How many colors per panel card (each card gets its own image and buttons).
+  colors.manage: Manage colors
+  roleplay.enabled:
+    label: Roleplay enabled
+    description: Gif roleplay cards (hug, kiss and friends).
+  roleplay.manage: Manage gifs
+  roleplay.no_repeat_gifs:
+    label: Avoid repeated gifs
+    description: Never repeats the most recently used gifs of each action.
+  bump.enabled:
+    label: Disboard Bump Enabled
+    description: Enables or disables the Disboard Bump reminder and leaderboard system.
+  bump.channel:
+    label: Bump Channel
+    description: The channel where the Disboard bot posts and where reminders are sent.
+  bump.ping_role:
+    label: Ping Role
+    description: Role to mention when the bump reminder is sent.
+  bump.cooldown:
+    label: Bump Cooldown
+    description: Cooldown required by Disboard between bumps (e.g. 2h, 90m).
+  bump.anti_camping.enabled:
+    label: Anti-camping Enabled
+    description: Lock the channel shortly before the bump becomes available to prevent camping.
+  bump.anti_camping.lock_delay:
+    label: Lock Advance Time
+    description: How long before the bump is available to lock the channel (e.g. 15m).
+  bump.anti_camping.unlock_delay:
+    label: Unlock Delay
+    description: Time after cooldown to unlock the channel (e.g. 15s).
+  bump.anti_camping.message:
+    label: Anti-camping Message
+    description: The message shown when the channel is locked by anti-camping.
+  bump.detection_text:
+    label: Bump Detection Text
+    description: Text Disboard posts on a successful bump (e.g. "Bump done"). Matching is case-insensitive.
+  bump.detection_bot_id:
+    label: Bump Bot ID
+    description: Discord user ID of the bump bot (default Disboard).
+  bump.schedule.enabled:
+    label: Scheduled Open/Close Enabled
+    description: Lock the bump channel on a fixed daily schedule.
+  bump.schedule.open_time:
+    label: Daily Open Time
+    description: Time the channel opens every day (HH:MM, e.g. 06:00).
+  bump.schedule.open_message:
+    label: Opening Message
+    description: Message posted when the channel opens. Supports {{ping_role}}.
+  bump.schedule.close_time:
+    label: Daily Close Time
+    description: Time the channel closes every day (HH:MM, e.g. 23:00).
+  bump.schedule.close_message:
+    label: Closing Message
+    description: Message posted when the channel closes. Supports {{ping_role}}.
+  bump.leaderboard.enabled:
+    label: Weekly Leaderboard Enabled
+    description: Enables the weekly ranking and Bump-MVP role.
+  bump.leaderboard.winner_role:
+    label: Winner Role
+    description: Temporary role granted to the weekly Bump-MVP.
+  bump.leaderboard.reset_day:
+    label: Weekly Reset Day
+    description: The day of the week when the leaderboard resets.
+    choices:
+      Monday: Monday
+      Tuesday: Tuesday
+      Wednesday: Wednesday
+      Thursday: Thursday
+      Friday: Friday
+      Saturday: Saturday
+      Sunday: Sunday
+  bump.leaderboard.reset_hour:
+    label: Reset Hour (0-23)
+    description: The exact hour of the day to reset the leaderboard (e.g. 20).
+  invites.enabled:
+    label: Invite Tracking Enabled
+    description: Tracks which invite each member joined with.
+  invites.show_inviter:
+    label: Show Inviter
+    description: Show who invited each member in the welcome card.
+  invites.track_leaves:
+    label: Track Leaves
+    description: Subtract from the inviter when an invited member leaves.
+  invites.count_rejoins:
+    label: Count Rejoins
+    description: Count members who leave and rejoin again.
+  invites.fake_delay_days:
+    label: Fake Delay (days)
+    description: Accounts younger than this count as fake (0 disables).
+  invites.anti_cheat_days:
+    label: Anti-cheat Window (days)
+    description: Rejoins via another inviter in this window earn nothing (0 disables).
+  invites.leaderboard_enabled:
+    label: Invites Leaderboard Enabled
+    description: Enables the top inviters ranking.
+  invites.leaderboard_size:
+    label: Leaderboard Size (5-25)
+    description: How many inviters the ranking shows.
+  edit: Edit
+  back: Back
+  close: Close
+  prev: Previous
+  next: Next
+  edit_title: 'Edit: {setting}'
+  select_value: Choose a new value.
+  saved: '{success} Value set for {setting}.'
+  invalid_value: '{error} Invalid value for {setting}.'
+  default_value: 'Default: {value}'
+  preview_value: 'Preview: {value}…'
+  test:
+    title: '{rocket} Test Bump System'
+    hint: Trigger real bump system actions to validate without waiting for the cooldown.
+    thank_you: Bump Message
+    reminder: Send Reminder
+    leaderboard: Post Leaderboard
+    lock: Lock Channel
+    unlock: Unlock Channel
+    reset: Reset Week
+    thank_you_done: '{success} Thank-you message sent in the bump channel.'
+    reminder_done: '{success} Reminder sent in the bump channel.'
+    lock_done: '{success} Bump channel locked.'
+    unlock_done: '{success} Bump channel unlocked.'
+    leaderboard_done: '{success} Weekly leaderboard posted in the bump channel.'
+    no_data: '{error} No bump data this week to post.'
+    reset_done: '{success} Bump week reset.'
+    error: '{error} The bump system is not loaded.'
+    open: Test actions
+  none: Not set
+  page_indicator: Page {page} of {pages}
+  log:
+    title: '{gear} Setting Changed'
+    description: '**{pencil} {setting}** ({category}): {old} → {new}
+
+      **{people} By:** {author}'
+  logs:
+    language:
+      description: '**From:** {old}
+
+        **To:** {new}
+
+        **By:** {author}'
+      title: '{gear} Language Changed'
+  bool:
+    'true': 'On'
+    'false': 'Off'
+  general.timezone:
+    label: Timezone
+    description: Timezone used for timestamps.
+  general.prefix:
+    label: Bot prefix
+    description: Prefix for text commands (e.g. !warn).
+  general.menu_timeout:
+    label: Menu timeout
+    description: Seconds until an interactive menu expires (60-900).
+  moderation.enabled:
+    label: Moderation enabled
+    description: Whether moderation commands work in this server.
+  moderation.warn_limit:
+    label: Warning limit
+    description: Warnings before the limit is reached (1-10).
+  moderation.auto_ban_enabled:
+    label: Auto-ban at limit
+    description: Ban members reaching the warning limit.
+  cleaner.enabled:
+    label: Message cleaner enabled
+    description: Whether the keyword purge command works.
+  anti_invite.enabled:
+    label: Anti-invite enabled
+    description: Delete external invite links on sight.
+  anti_invite.warn_on_delete:
+    label: Warn on delete
+    description: Post a warning when an invite is deleted.
+  anti_invite.exempt_places:
+    label: Anti-invite exempt places
+    description: Channels and categories where invite links are allowed.
+  trap.enabled:
+    label: Trap channel enabled
+    description: Posting in the trap channel triggers the configured consequence.
+  trap.channel:
+    label: Trap channel
+    description: Channel nobody should post in (members get punished for it).
+  trap.action:
+    label: Trap consequence
+    description: What happens to anyone posting in the trap channel.
+    choices:
+      none: Only delete the message
+      kick: Kick from the server
+      softban: Softban (kick and purge messages)
+      ban: Ban from the server
+  trap.delete_window:
+    label: Message purge window
+    description: Ban and softban purge the member's recent messages (Discord-native).
+    choices:
+      none: Keep message history
+      1h: Last hour
+      24h: Last 24 hours
+      7d: Last 7 days
+  trap.dm_enabled:
+    label: DM the victim
+    description: Sends a DM explaining the consequence (silent in the channel).
+  list.empty: No exempt places yet. Use Add to pick channels or categories.
+  list.remove: Remove
+  list.add: Add
+  list.clear: Clear all
+  list.add_hint: Tap the picker to choose several places. Categories cover every channel inside them.
+  list.confirm: Done
+  list.pending: 'Selected ({count}): {places}'
+  list.pick_placeholder: Channels and categories…
+  cancel: Cancel
+  reminders.enabled:
+    label: Reminders enabled
+    description: Whether saved DM reminders can be used.
+  reminders.target_role:
+    label: Reminder target role
+    description: Only members with this role receive reminders. Empty means everyone.
+  reminders.delay_seconds:
+    label: Reminder DM delay (0-30s)
+    description: Pause between reminder DMs.
+  broadcast.enabled:
+    label: Broadcast enabled
+    description: Whether live broadcast relay can be used.
+  broadcast.target_role:
+    label: Broadcast target role
+    description: Only members with this role receive broadcasts. Empty means everyone.
+  broadcast.delay_seconds:
+    label: Broadcast DM delay (0-30s)
+    description: Pause between broadcast DMs.
+  updater.enabled:
+    label: Auto-update enabled
+    description: Check and apply updates automatically.
+  updater.check_interval_hours:
+    label: Auto-check every (hours)
+    description: Hours between automatic checks (1-168).
+  updater.channel:
+    label: Update channel
+    description: Stable releases or every git push.
+    choices:
+      stable: Stable releases
+      git: Git pushes
+  updater.branch:
+    label: Update branch
+    description: Git branch to update from.
+  tickets.enabled:
+    label: Tickets enabled
+    description: Whether the ticket panel works.
+  tickets.panel_channel:
+    label: Ticket panel channel
+    description: Channel where the ticket panel is posted.
+  tickets.category:
+    label: Ticket category
+    description: Category for opened ticket channels.
+  tickets.max_open_per_user:
+    label: Max open tickets (1-10)
+    description: Open tickets allowed per member.
+  partnerships.enabled:
+    label: Partnerships enabled
+    description: Whether partnership ads work.
+  partnerships.channel:
+    label: Partnerships channel
+    description: Channel where partnership ads are posted.
+  partnerships.role:
+    label: Partner role
+    description: Role granted to partnership representatives.
+  partnerships.ping_role:
+    label: Partnerships ping role
+    description: Role pinged on partnership expiry.
+  partnerships.invite_text:
+    label: Partnership invite text
+    description: 'Text posted by /partnerships invite. Placeholders: {{rep}} and {{ping_role}}.'
+  partnerships.renewal_days:
+    label: Renewal period (days)
+    description: Days before a partnership ad expires (1-90).
+  partnerships.grace_days:
+    label: Grace period (days)
+    description: Days after expiry before removal (0-30).
+  moderation.mute_seconds:
+    label: Default mute duration
+    description: Default mute duration in seconds (60-604800).
+  logging.enabled:
+    label: Logging enabled
+    description: Whether bot events are posted to a log channel.
+  logging.channel:
+    label: Log channel
+    description: Channel where staff logs and event cards are posted.
+  debug.card_paths:
+    label: Card path tracing
+    description: Post each card send's path and origin (theme or default) to the log channel.
+  boost.enabled:
+    label: Boost roles enabled
+    description: Defines whether the boost roles system works in this server.
+  boost.max_members:
+    label: Boost role member limit
+    description: Maximum members per boost role (1-25).
+  boost.invite_seconds:
+    label: Boost invite duration
+    description: How long boost invites stay valid.
+  boost.max_pending_invites:
+    label: Pending invites limit
+    description: Maximum pending invites per boost role (1-20).
+  boost.auto_create.enabled:
+    label: Auto-create boost role
+    description: Automatically create a boost role for members who boost the server.
+  boost.auto_create.below_role:
+    label: Create below role
+    description: New auto-created roles are placed right below this role. My role must be above it.
+  boost.auto_create.unboost_action:
+    label: Action when the boost ends
+    description: What happens to the auto-created role when the member's boost ends.
+    choices:
+      delete: Delete (back on the next boost)
+      remove: Remove from members
+      keep: Keep
+  events.enabled:
+    label: Announcements enabled
+    description: Send welcome, leave and ban messages.
+  events.welcome_channel:
+    label: Welcome channel
+    description: Channel for member join messages.
+  events.leave_channel:
+    label: Leave channel
+    description: Channel for member leave messages.
+  events.ban_channel:
+    label: Ban channel
+    description: Channel for ban announcements.
+  events.raid_protection:
+    label: Raid protection
+    description: Delay welcomes when many members join at once.
+  events.welcome_ping_role:
+    label: Receptionist role
+    description: Role pinged with every welcome message.
+  events.leave_ping_role:
+    label: Leave alert role
+    description: Role pinged with every leave message.
+  events.ban_ping_role:
+    label: Ban alert role
+    description: Role pinged with every ban announcement.
+  audit.enabled:
+    label: Event Log enabled
+    description: Enables the server event log (bans, messages, roles, voice).
+  audit.channel:
+    label: Event log channel
+    description: The channel where all logged events are announced.
+  audit.ban_enabled:
+    label: Notify when someone is banned
+    description: Logs bans, with moderator and reason when available.
+  audit.unban_enabled:
+    label: Notify when someone is unbanned
+    description: Logs ban removals.
+  audit.message_delete_enabled:
+    label: Notify when a message is deleted
+    description: Logs deleted messages with their original content.
+  audit.message_edit_enabled:
+    label: Notify when a message is edited
+    description: Logs edits with before and after in ```text``` blocks.
+  audit.nickname_enabled:
+    label: Notify when someone changes their nickname
+    description: Shows the old and new nickname.
+  audit.avatar_enabled:
+    label: Notify when someone changes their avatar
+    description: Shows the old and new avatar (may not catch every change).
+  audit.roles_enabled:
+    label: Notify when someone gains or loses a role
+    description: Lists the roles added and removed.
+  audit.timeout_enabled:
+    label: Notify when someone is timed out
+    description: Logs timeout application and removal, with the expiry date.
+  audit.voice_enabled:
+    label: Notify voice channel join and leave
+    description: Logs when someone joins or leaves a voice channel.
+  audit.bulk_delete_enabled:
+    label: Notify bulk message purge
+    description: One summary with the total deleted and who ran it, instead of one card per message.
+  audit.bulk_file_enabled:
+    label: Attach a file of the deleted messages
+    description: Sends a .txt with the purged messages alongside the summary.
+  audit.snapshot_enabled:
+    label: Message snapshot in logs
+    description: Renders an image simulating the chat (author bubble) in message delete/edit logs.
+  audit.trap_enabled:
+    label: Report trap channel punishments
+    description: Logs who fell into the trap and the applied consequence.
+  starboard.enabled:
+    label: Starboard enabled
+    description: Highlight popular messages in the starboard channel.
+  starboard.channel:
+    label: Starboard channel
+    description: Channel where highlighted messages are posted.
+  starboard.threshold:
+    label: Star threshold (1-25)
+    description: Reactions needed to highlight a message.
+  starboard.self_star_counts:
+    label: Self-star counts
+    description: Whether the author's own star counts.
+  starboard.allow_bots:
+    label: Allow bot messages
+    description: Whether bot messages can be highlighted.
+  suggestions.enabled:
+    label: Suggestions enabled
+    description: Collect member suggestions with button voting.
+  suggestions.channel:
+    label: Suggestions channel
+    description: Channel where suggestions are posted.
+  suggestions.dm_votes:
+    label: Vote DMs
+    description: DM the author on every vote.
+  confessions.enabled:
+    label: Confessions enabled
+    description: Collect anonymous confessions from members.
+  confessions.public_channel:
+    label: Confessions channel
+    description: Channel where approved confessions are posted.
+  confessions.review_channel:
+    label: Review channel
+    description: Channel where staff reviews confessions.
+  confessions.review_required:
+    label: Staff review
+    description: Hold confessions for staff review before posting.
+  confessions.reveal_author:
+    label: Reveal author
+    description: Show who wrote each confession to staff.
+  confessions.mark_op:
+    label: Mark the confession author
+    description: Tag the replies written by the confession's own author.
+  birthdays.enabled:
+    label: Birthdays enabled
+    description: Track birthdays and post announcements.
+  birthdays.channel:
+    label: Birthday channel
+    description: Channel for birthday announcements.
+  birthdays.role:
+    label: Birthday role
+    description: Role granted to celebrants for the day.
+  birthdays.announce_time:
+    label: Announce time
+    description: Daily announce time (HH:MM, e.g. 12:00).
+  birthdays.change_cooldown_days:
+    label: Change cooldown (days)
+    description: Days before a birthday can be changed (0-365).

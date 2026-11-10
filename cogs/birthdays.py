@@ -15,7 +15,6 @@ import discord.ext.tasks as tasks
 from discord.ext import commands
 
 from rosemary.core.birthdays import BirthdaysStore, validate_date
-from rosemary.core.cards import ECHO_VARIABLES, maybe_text, set_default_builder
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.timezone import resolve_timezone
@@ -116,16 +115,13 @@ class BirthdayCog(commands.Cog):
                 ),
                 "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
             }
-            from rosemary.core.card_service import CardPayload, render_card_message
+            from rosemary.core.card_service import render_card_message
 
             payload, _allowed = await render_card_message(
                 self.bot, guild.id, "birthdays.announce", variables
             )
             if payload is None:
-                text = await maybe_text(self.bot, guild.id, "birthdays.announce", **variables)
-                payload = CardPayload(
-                    view=await self._default_card(guild.id, text, variables)
-                )
+                payload = await self._default_card(guild.id, variables)
             from rosemary.core.mentions import allowed_for_ids
 
             await channel.send(
@@ -140,27 +136,23 @@ class BirthdayCog(commands.Cog):
                     await member.add_roles(role, reason="Happy birthday!")
             await self.store.mark_announced(guild.id, user_id, year)
 
-    async def _default_card(self, guild_id: int, override_text: str | None, variables: dict):
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+    async def _default_card(self, guild_id: int, variables: dict):
+        """The announcement fallback, in the card's own form (an embed)."""
+        from rosemary.core.card_service import simple_payload
 
-        theme = self.bot.theme
-        view = DesignerView(store=False)
-        body = (
-            override_text
-            if override_text is not None
-            else await self.bot.translator.t(
-                guild_id, "birthdays.announce.body", **variables
-            )
+        body = await self.bot.translator.t(
+            guild_id, "birthdays.announce.body", **variables
         )
         title = await self.bot.translator.t(guild_id, "birthdays.announce.title")
-        view.add_item(
-            designer_container(
-                theme.color("warning"),
-                TextDisplay(theme.md("title", title=title)),
-                TextDisplay(body),
-            )
+        return simple_payload(
+            self.bot,
+            guild_id,
+            "birthdays.announce",
+            title=title,
+            body=body,
+            color="warning",
+            thumbnail=variables.get("user_avatar") or None,
         )
-        return view
 
     #: slash commands ------------------------------------------------------
 
@@ -255,25 +247,20 @@ class BirthdayCog(commands.Cog):
             blocks.append("\n".join(lines))
 
         body = "\n\n".join(blocks) or await t(ctx.guild_id, "birthdays.list_empty")
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, ctx.guild_id, "birthdays.list", {"body": body}
         )
         if payload is None:
-            theme = self.bot.theme
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    theme.color("info"),
-                    TextDisplay(
-                        theme.md("title", title=await t(ctx.guild_id, "birthdays.list_title"))
-                    ),
-                    TextDisplay(body),
-                )
+            payload = simple_payload(
+                self.bot,
+                ctx.guild_id,
+                "birthdays.list",
+                title=await t(ctx.guild_id, "birthdays.list_title"),
+                body=body,
+                color="info",
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @birthday_group.command(name="clear")
@@ -291,41 +278,4 @@ def asyncio_exception_guard(what: str):
     import contextlib
 
     return contextlib.suppress(discord.Forbidden, discord.HTTPException)
-
-
-
-async def default_announce_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default birthday announcement as an editable block document.
-
-    The celebrant's avatar rides the title section (``{user_avatar}``,
-    self-dropping when empty) and the standard author footer attributes the
-    card to them (``{user}`` + ``{timestamp}``, resolved at render)."""
-    from rosemary.core.cards import author_footer_blocks, safe_format
-
-    mapping = {**bot.theme.emojis, **ECHO_VARIABLES}
-    title = safe_format(
-        await bot.translator.raw(guild_id, "birthdays.announce.title"), mapping
-    )
-    body = safe_format(
-        await bot.translator.raw(guild_id, "birthdays.announce.body"), mapping
-    )
-    avatar = str(variables.get("user_avatar") or "")
-    children: list[dict] = [
-        {
-            "type": "section",
-            **({"accessory": {"type": "thumbnail", "url": avatar}} if avatar else {}),
-            "children": [{"type": "text", "body": f"# {title}"}],
-        },
-        {"type": "text", "body": body},
-    ]
-    children.extend(await author_footer_blocks(bot, guild_id))
-    return {
-        "v": 1,
-        "blocks": [
-            {"type": "container", "color": "warning", "children": children}
-        ],
-    }
-
-
-set_default_builder("birthdays.announce", default_announce_document)
 

@@ -1,16 +1,14 @@
 """Variable contract enforcement for customizable cards.
 
-Every CardSpec declares the placeholder names its send site provides
-(``CardSpec.variables``). These tests lock the triangle shut: specs only use
-registered variables, hints only document contracted names or theme emojis,
-and previews cover every contracted name.
+Every card declares the placeholder names its send site provides (the
+document's ``variables``). These tests lock the triangle shut: the specs
+only use registered variables, the contracts only name registered names and
+the previews cover every contracted name.
 """
 
 from __future__ import annotations
 
-import re
-
-import yaml
+from catalog import load_catalog
 
 import rosemary.core.card_specs  # noqa: F401  (fills the registry)
 from rosemary.core.cards import all_cards
@@ -19,17 +17,7 @@ from rosemary.ui.theme import load_theme
 
 
 def _catalog(code: str) -> dict:
-    with open(f"language/{code}.yaml", encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
-
-
-def _nested(catalog: dict, key: str) -> dict:
-    node = catalog.get("card") or {}
-    for part in key.split("."):
-        if not isinstance(node, dict):
-            return {}
-        node = node.get(part) or {}
-    return node if isinstance(node, dict) else {}
+    return load_catalog(code)
 
 
 def test_every_spec_variable_is_registered():
@@ -51,21 +39,34 @@ def test_preview_covers_every_contract():
     assert gaps == []
 
 
-def test_hint_placeholders_match_contract_or_theme():
-    """catalog hints may only name contracted vars, aliases or theme emojis."""
-    theme = load_theme()
-    allowed_extra = set(theme.emojis) | set(ALIASES) | set(ALIASES.values())
+def test_the_document_contracts_only_name_registered_variables():
+    """The contract of a card is its document's ``variables``.
+
+    Every name it declares must be a registered variable (or an alias), so
+    the send site can provide it and the catalogs can label it. The old
+    per-card ``placeholders`` hints are gone: they duplicated the contract.
+    """
+    from rosemary.core.theme_package import default_package
+
+    package = default_package()
     bad = []
-    for code in ("en-US", "pt-BR"):
-        catalog = _catalog(code)
-        for spec in all_cards():
-            entry = _nested(catalog, spec.key)
-            hint = entry.get("placeholders") or ""
-            names = set(re.findall(r"\{(\w+)\}", hint))
-            for name in names:
-                if name not in spec.variables and name not in allowed_extra:
-                    bad.append(f"{code}:{spec.key}:{{{name}}}")
+    for key in package.card_keys():
+        contract = package.metadata(key).get("variables") or ()
+        for name in contract:
+            if name not in VARIABLES and name not in ALIASES:
+                bad.append(f"{key}:{name}")
     assert bad == []
+
+
+def test_the_catalogs_carry_no_contract_hints():
+    """The hints are gone: the contract lives in the document, not the copy."""
+    from catalog import load_catalog
+
+    for code in ("en-US", "pt-BR"):
+        catalog = load_catalog(code)
+        for key, entry in (catalog.get("card") or {}).items():
+            if isinstance(entry, dict):
+                assert "placeholders" not in entry, f"{code}:card.{key}.placeholders"
 
 
 def test_variables_have_labels_in_both_catalogs():

@@ -1,0 +1,189 @@
+invited:
+  command:
+    name: convidados
+    description: Lista membros convidados por alguém
+    options:
+      member:
+        description: Convidador a inspecionar
+invites:
+  command:
+    name: invites
+    description: Mostra stats de convites seus ou de outro membro
+  error_disabled: '{error} O rastreamento de convites está desativado neste servidor.'
+  error_leaderboard_disabled: '{error} O ranking de convites está desativado.'
+  stats:
+    title: '{bar_chart} Convites de {user}'
+    breakdown: '{regular} válidos · {bonus} bônus · {fake} fakes · {left} saíram'
+    total: '**Total:** {total} (#{rank})'
+    retention: 'Retenção: {percent}% ({stayed} de {total_real} ainda aqui)'
+    latest: 'Último convidado: {user} {when}'
+    unknown: '{user} ainda não tem convites.'
+  leaderboard:
+    title: '{trophy} Maiores Convidadores'
+    line: '{medal} **{position}.** {user}: **{total}**'
+    empty: Nenhum convite rastreado ainda. Compartilhe seu link!
+  inviter:
+    title: Convidado por
+    body: 'Membro: {user}
+
+      Convidado por: {inviter}
+
+      Código: `{code}`
+
+      Entrou: {when}
+
+      Status: {status}'
+    unknown: Sem registro para {user} (entrou antes do rastreamento).
+  invited:
+    title: Membros convidados por {user}
+    line: '- {user} ({when}, {status})'
+    empty: '{user} ainda não convidou ninguém.'
+  personal:
+    title: Seu link de convite
+    body: 'Compartilhe este link: {link}
+
+      Total: **{total}** ({regular} válidos · {bonus} bônus)'
+    no_channel: '{error} Nenhum canal disponível para criar um convite.'
+  server:
+    title: '{bar_chart} Stats de Convites do Servidor'
+    joins: 'Entradas rastreadas: **{count}**'
+    top: 'Maior convidador: {user} (**{total}**)'
+  unknown: Desconhecido
+  status:
+    ok: válido
+    fake: fake
+    flagged: retorno sinalizado
+    rejoin: retorno (não contado)
+    excluded: excluído
+    unknown: desconhecido
+  flags:
+    fake: ' ⚠️ fake'
+    flagged: ' 🚩 retorno sinalizado'
+  bonus:
+    added: '{success} {amount} bônus adicionado(s) para {user} (total: {total}).'
+    removed: '{success} {amount} bônus removido(s) de {user} (total: {total}).'
+    invalid: '{error} O valor deve estar entre -100 e 100, excluindo 0.'
+  sync:
+    success: '{success} {codes} código(s) recontados.'
+  codes:
+    title: Códigos de convite
+    line: '`{code}`: {uses} uso(s) de {inviter}{label}'
+    empty: Nenhum código de convite encontrado.
+  blacklist:
+    added: '{success} {target} adicionado à lista {kind}.'
+    removed: '{success} {target} removido da lista {kind}.'
+    already: '{error} {target} já está na lista {kind}.'
+    missing: '{error} {target} não está na lista {kind}.'
+    missing_role: '{error} Escolha um cargo para a lista de cargos.'
+    missing_member: '{error} Escolha um membro para esta lista.'
+    title: Blacklist de convites
+    empty: Todas as listas estão vazias.
+    users: Usuários
+    roles: Cargos
+    hidden: Ocultos
+    nobody: nenhum
+  reset:
+    confirm_title: Resetar todos os stats de convites?
+    confirm_text: Isso apaga todos os joins e contadores. Não pode ser desfeito.
+    confirm: Confirmar reset
+    cancel: Cancelar
+    success: '{success} Todos os stats de convites foram resetados.'
+    cancelled: Reset cancelado.
+  label:
+    set: '{success} Código `{code}` rotulado como “{label}”.'
+    cleared: '{success} Rótulo removido de `{code}`.'
+  logs:
+    join:
+      title: '{rocket} Membro Entrou Com Convite'
+      description: '**Convidado:** {user}
+
+        **Código:** `{code}`
+
+        **Convidador:** {inviter}{label}{flags}'
+    leave:
+      title: '{door} Membro Saiu'
+      description: '**Membro:** {user}
+
+        **Convidador:** {inviter}'
+    bonus:
+      title: '{plus} Bônus Ajustado'
+      description: '{moderator} ajustou {user} em {amount} (total: {total}).'
+    sync:
+      title: '{refresh} Convites Sincronizados'
+      description: '{codes} código(s) recontados (pedido por {moderator}).'
+    reset:
+      title: '{warning} Convites Resetados'
+      description: Stats de convites resetados por {moderator}.
+invites_admin:
+  command:
+    name: invites_admin
+    description: '[ADMIN] Ferramentas de convites para administradores'
+invites_admin_blacklist:
+  command:
+    name: bloqueados
+    description: '[ADMIN] Gerencia a blacklist de convites'
+    options:
+      action:
+        description: adicionar, remover ou listar
+      kind:
+        description: usuários, cargos ou ocultos
+      member:
+        description: Usuário
+      role:
+        description: Cargo (para cargos)
+invites_admin_bonus:
+  command:
+    name: bonus
+    description: '[ADMIN] Adiciona ou remove bônus de convites'
+    options:
+      member:
+        description: Membro a ajustar
+      amount:
+        description: Entre -100 e 100, excluindo 0
+invites_admin_codes:
+  command:
+    name: codigos
+    description: '[ADMIN] Lista códigos e usos'
+invites_admin_label:
+  command:
+    name: rotular
+    description: '[ADMIN] Rotula um código de convite'
+    options:
+      code:
+        description: Código do convite
+      label:
+        description: Rótulo (omita para limpar)
+invites_admin_reset:
+  command:
+    name: resetar
+    description: '[ADMIN] Reseta todos os stats de convites'
+invites_admin_sync:
+  command:
+    name: sincronizar
+    description: '[ADMIN] Reconta usos de convites no Discord'
+invites_leaderboard:
+  command:
+    name: ranking
+    description: Mostra o ranking de maiores convidadores
+invites_stats:
+  command:
+    name: stats
+    description: Mostra stats de convites seus ou de outro membro
+    options:
+      member:
+        description: Membro a inspecionar
+my_invite:
+  command:
+    name: convite
+    description: Pega seu link pessoal e seus stats
+server_invites:
+  command:
+    name: servidor
+    description: Mostra stats de convites do servidor
+who_invited:
+  command:
+    name: autor
+    description: Mostra quem convidou um membro
+    options:
+      member:
+        description: Membro a inspecionar

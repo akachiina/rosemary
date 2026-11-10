@@ -1,0 +1,40 @@
+# The invites settings.
+settings:
+  invites.enabled:
+    category: invites
+    type: boolean
+    default: true
+  invites.show_inviter:
+    category: invites
+    type: boolean
+    default: true
+  invites.track_leaves:
+    category: invites
+    type: boolean
+    default: true
+  invites.count_rejoins:
+    category: invites
+    type: boolean
+    default: false
+  invites.fake_delay_days:
+    category: invites
+    type: integer
+    default: 0
+    min: 0
+    max: 30
+  invites.anti_cheat_days:
+    category: invites
+    type: integer
+    default: 0
+    min: 0
+    max: 90
+  invites.leaderboard_enabled:
+    category: invites
+    type: boolean
+    default: true
+  invites.leaderboard_size:
+    category: invites
+    type: integer
+    default: 10
+    min: 5
+    max: 25

@@ -1,0 +1,93 @@
+# The bump settings.
+settings:
+  bump.enabled:
+    category: bump
+    type: boolean
+    default: true
+  bump.channel:
+    category: bump
+    type: channel
+    default: null
+  bump.ping_role:
+    category: bump
+    type: role
+    default: null
+  bump.cooldown:
+    category: bump
+    type: integer
+    default: 7200
+    min: 60
+    max: 86400
+    duration: true
+  bump.schedule.enabled:
+    category: bump
+    type: boolean
+    default: false
+  bump.schedule.open_time:
+    category: bump
+    type: string
+    default: "06:00"
+  bump.schedule.close_time:
+    category: bump
+    type: string
+    default: "23:00"
+  bump.schedule.open_message:
+    category: bump
+    type: string
+    default: "🔓 The bump channel is open! Use `/bump` to help the server!"
+    default_catalog_key: bump.schedule.open_message_default
+  bump.schedule.close_message:
+    category: bump
+    type: string
+    default: "🔒 The bump channel is closed. Back at 06:00!"
+    default_catalog_key: bump.schedule.close_message_default
+  bump.anti_camping.enabled:
+    category: bump
+    type: boolean
+    default: true
+  bump.anti_camping.lock_delay:
+    category: bump
+    type: integer
+    default: 900
+    min: 60
+    max: 3600
+    duration: true
+  bump.anti_camping.unlock_delay:
+    category: bump
+    type: integer
+    default: 15
+    min: 0
+    max: 120
+    duration: true
+  bump.anti_camping.message:
+    category: bump
+    type: string
+    default: "🔒 The channel is temporarily locked. Bump will be available shortly!"
+    default_catalog_key: bump.anti_camping.message_default
+  bump.detection_text:
+    category: bump
+    type: string
+    default: "Bump done"
+  bump.detection_bot_id:
+    category: bump
+    type: string
+    default: "302050872383242240"
+  bump.leaderboard.enabled:
+    category: bump
+    type: boolean
+    default: true
+  bump.leaderboard.winner_role:
+    category: bump
+    type: role
+    default: null
+  bump.leaderboard.reset_day:
+    category: bump
+    type: choice
+    default: "Sunday"
+    choices: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+  bump.leaderboard.reset_hour:
+    category: bump
+    type: integer
+    default: 20
+    min: 0
+    max: 23

@@ -1,0 +1,91 @@
+# The audit events: one document per event.
+#
+# The audit card is the registry entry of a moderation-relevant event: the
+# member owns the author line, the event owns the title and the body, and
+# the footer names the actor (the moderator) when there is one.
+#
+# The body keeps the composed lines the send site prepares (the reason, the
+# moderator, the transcript, the attachments): they arrive as variables, so
+# the card never shows a half-written line.
+
+audit.ban:
+  archetype: audit_event
+  color: danger
+  title: '{ban} {card.audit.ban.title}'
+  description: '{card.audit.ban.body}'
+  actor: '{moderator}'
+
+audit.unban:
+  archetype: audit_event
+  color: success
+  title: '{check} {card.audit.unban.title}'
+  description: '{card.audit.unban.body}'
+  actor: '{moderator}'
+
+audit.bulk_delete:
+  archetype: audit_event
+  color: warning
+  title: '{trash} {card.audit.bulk_delete.title}'
+  description: '{card.audit.bulk_delete.body}'
+  actor: '{moderator}'
+  rich: false
+
+audit.nickname:
+  archetype: audit_event
+  color: info
+  title: '{swap} {card.audit.nickname.title}'
+  description: '{card.audit.nickname.body}'
+
+audit.avatar:
+  archetype: audit_event
+  color: info
+  title: '{frame} {card.audit.avatar.title}'
+  description: '{card.audit.avatar.body}'
+
+audit.roles:
+  archetype: audit_event
+  color: info
+  title: '{tag} {card.audit.roles.title}'
+  description: '{card.audit.roles.body}'
+
+audit.timeout:
+  archetype: audit_event
+  color: danger
+  title: '{mute} {card.audit.timeout.title}'
+  description: '{card.audit.timeout.body}'
+
+audit.voice_join:
+  archetype: audit_event
+  color: success
+  title: '{door} {card.audit.voice_join.title}'
+  description: '{card.audit.voice_join.body}'
+
+audit.voice_leave:
+  archetype: audit_event
+  color: info
+  title: '{door} {card.audit.voice_leave.title}'
+  description: '{card.audit.voice_leave.body}'
+
+audit.trap:
+  archetype: audit_event
+  color: danger
+  title: '{lock} {card.audit.trap.title}'
+  description: '{card.audit.trap.body}'
+
+audit.message_delete:
+  archetype: audit_event
+  color: warning
+  title: '{trash} {card.audit.message_delete.title}'
+  description: '{card.audit.message_delete.body}{attachments_line}'
+  image:
+    - '{chat_image}'
+    - '{image_url}'
+
+audit.message_edit:
+  archetype: audit_event
+  color: info
+  title: '{pencil} {card.audit.message_edit.title}'
+  description: '{card.audit.message_edit.body}{attachments_line}'
+  image:
+    - '{chat_image}'
+    - '{image_url}'

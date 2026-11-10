@@ -1,0 +1,41 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "fields": [
+      {
+        "inline": false,
+        "name": "⚙️ Moderador(a)",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "✉️ Repassadas",
+        "value": "1"
+      },
+      {
+        "inline": false,
+        "name": "✅ Enviadas",
+        "value": "1"
+      },
+      {
+        "inline": false,
+        "name": "❌ Falhas",
+        "value": "1"
+      }
+    ],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "✅ Broadcast Encerrado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "broadcast.logs.ended",
+  "pings": [],
+  "view": []
+}

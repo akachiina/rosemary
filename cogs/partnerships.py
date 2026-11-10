@@ -620,22 +620,20 @@ class PartnershipsCog(commands.Cog):
             )
         title = await self.bot.translator.t(guild.id, "partnerships.list_title")
         body = "\n".join(lines)
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, guild.id, "partnerships.list", {"title": title, "body": body}
         )
         if payload is None:
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    self.bot.theme.color("info"),
-                    TextDisplay(self.bot.theme.md("title", title=title)),
-                    TextDisplay(body),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild.id,
+                "partnerships.list",
+                title=title,
+                body=body,
+                color="info",
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @partnerships_admin_group.command(
@@ -672,8 +670,7 @@ class PartnershipsCog(commands.Cog):
             orphans=orphan_ids or unknown,
         )
         title = await self.bot.translator.t(guild.id, "partnerships.audit_title")
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot,
@@ -687,15 +684,14 @@ class PartnershipsCog(commands.Cog):
             },
         )
         if payload is None:
-            view = DesignerView(store=False)
-            view.add_item(
-                designer_container(
-                    self.bot.theme.color("warning"),
-                    TextDisplay(self.bot.theme.md("title", title=title)),
-                    TextDisplay(body),
-                )
+            payload = simple_payload(
+                self.bot,
+                guild.id,
+                "partnerships.audit",
+                title=title,
+                body=body,
+                color="warning",
             )
-            payload = CardPayload(view=view)
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 
     @partnerships_admin_group.command(

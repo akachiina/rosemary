@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "tickets.panel",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Precisa de ajuda? Abra um ticket",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Escolha um tipo abaixo e vamos te atender.",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "<@0> enviou `…` (1 enviados, 1 falharam).",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "✉️ Lembrete Enviado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "reminders.logs.sent",
+  "pings": [],
+  "view": []
+}

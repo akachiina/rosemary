@@ -111,7 +111,7 @@ async def test_settings_menu_bump_test_screen_shows_all_actions(tmp_path):
         "settings_test:lock",
         "settings_test:unlock",
         "settings_test:reset",
-        "settings_test_close",
+        "settings_back",
     } <= custom_ids
 
 

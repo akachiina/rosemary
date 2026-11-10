@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 15158332,
+    "description": "…\n**⏰ Válido até:** …",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "title": "🔇 Timeout de membro",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.timeout",
+  "pings": [],
+  "view": []
+}

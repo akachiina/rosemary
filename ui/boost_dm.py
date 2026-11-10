@@ -12,9 +12,7 @@ from typing import Any
 
 import discord
 
-from rosemary.core.cards import maybe_text, maybe_view
 from rosemary.core.settings import get_setting
-from rosemary.ui.containers import TextDisplay, designer_container
 
 
 async def send(
@@ -26,72 +24,27 @@ async def send(
     default_key: str | None = None,
     **variables: Any,
 ) -> discord.Message:
-    """Send a translated plain-text DM, honoring a card override when set.
+    """Send a translated DM, honoring the card's form and the theme.
 
-    Plain documents stay plain messages; rich compositions go out as V2.
+    The card pipeline resolves the copy (the guild's override first, then the
+    catalog default) and the shape: a text card goes out as one notice line
+    (the theme prefix plus the copy), an embed card as a classic embed and a
+    Components V2 override as a view. A card with no default at all falls
+    back to the raw catalog copy.
+
     ``default_key`` translates the fallback copy when the card key itself is
     a catalog section (``trap.dm`` -> ``trap.dm.text``); without it the card
     key is translated directly.
     """
-    # Plain documents stay plain messages; rich compositions go out as V2.
-    override = await maybe_text(bot, guild_id, key, **variables)
-    if override is not None:
-        return await destination.send(override)
-    override_view = await maybe_view(bot, guild_id, key, variables)
-    if override_view is not None:
-        return await destination.send(view=override_view)
+    from rosemary.core.card_service import render_card_message
+
+    payload, _allowed = await render_card_message(bot, guild_id, key, variables)
+    if payload is not None:
+        # A DM never pings: the mention policy belongs to the guild
+        # messages, so the allowed-mentions bundle stays out.
+        return await destination.send(**payload.message_kwargs())
     content = await bot.translator.t(guild_id, default_key or key, **variables)
     return await destination.send(content)
-
-
-async def preview_view(
-    bot,
-    guild_id: int,
-    role: discord.Role,
-    data: dict[str, Any],
-) -> discord.ui.DesignerView:
-    """Card with the role icon, name, owner and member count."""
-    t = bot.translator.t
-    theme = bot.theme
-    style = theme.style("boost_preview")
-    max_members = await get_setting(bot.storage, guild_id, "boost.max_members")
-    items: list[discord.ui.ViewItem] = []
-    role_name = TextDisplay(theme.md("title", title=f"@{role.name}"))
-    if role.icon is not None:
-        items.append(
-            discord.ui.Section(
-                role_name,
-                accessory=discord.ui.Thumbnail(role.icon.url),
-            )
-        )
-    else:
-        items.append(role_name)
-    items.append(
-        TextDisplay(
-            theme.md(
-                "entry",
-                label=await t(guild_id, "boost.emoji.owner"),
-                value=f"<@{data.get('owner_id', 0)}>",
-            )
-        )
-    )
-    items.append(
-        TextDisplay(
-            theme.md(
-                "entry",
-                label=await t(guild_id, "boost.emoji.members"),
-                value=await t(
-                    guild_id,
-                    "boost.descriptions.members_count",
-                    count=len(data.get("members", [])),
-                    max_members=max_members,
-                ),
-            )
-        )
-    )
-    view = discord.ui.DesignerView(store=False)
-    view.add_item(designer_container(theme.color(style.color), *items))
-    return view
 
 
 async def send_preview(
@@ -101,19 +54,33 @@ async def send_preview(
     role: discord.Role,
     data: dict[str, Any],
 ) -> None:
-    """Send the role-preview card as its own message."""
-    from rosemary.core.cards import maybe_view
+    """Send the role-preview card as its own message (in the card's form)."""
+    from rosemary.core.card_service import render_card_message, simple_payload
 
     max_members = await get_setting(bot.storage, guild_id, "boost.max_members")
-    view = await maybe_view(
-        bot,
-        guild_id,
-        "boost.preview",
-        {
-            "role_name": role.name,
-            "owner": f"<@{data.get('owner_id', 0)}>",
-            "count": len(data.get("members", [])),
-            "max_members": max_members,
-        },
+    variables = {
+        "role_name": role.name,
+        "owner": f"<@{data.get('owner_id', 0)}>",
+        "count": len(data.get("members", [])),
+        "max_members": max_members,
+    }
+    payload, _allowed = await render_card_message(
+        bot, guild_id, "boost.preview", variables
     )
-    await destination.send(view=view or await preview_view(bot, guild_id, role, data))
+    if payload is None:
+        # No document resolved: the fallback follows the card's own form.
+        payload = simple_payload(
+            bot,
+            guild_id,
+            "boost.preview",
+            title=f"@{role.name}",
+            body=(
+                f"**{await bot.translator.t(guild_id, 'boost.emoji.owner')}:** "
+                f"<@{data.get('owner_id', 0)}>\n"
+                f"**{await bot.translator.t(guild_id, 'boost.emoji.members')}:** "
+                f"{len(data.get('members', []))}/{max_members}"
+            ),
+            color="success",
+            thumbnail=role.icon.url if role.icon is not None else None,
+        )
+    await destination.send(**payload.message_kwargs())

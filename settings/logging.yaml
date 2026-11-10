@@ -1,0 +1,14 @@
+# The logging settings.
+settings:
+  logging.enabled:
+    category: logging
+    type: boolean
+    default: false
+  logging.channel:
+    category: logging
+    type: channel
+    default: null
+  debug.card_paths:
+    category: logging
+    type: boolean
+    default: false

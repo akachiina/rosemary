@@ -1,0 +1,277 @@
+anti_invite:
+  warning: '{user}, external invite links are not allowed here.'
+  logs:
+    blocked:
+      title: '{ban} Invite Blocked'
+      description: '{user} posted `{code}` in {channel} (deleted).'
+ban:
+  command:
+    name: ban
+    description: Ban a member
+    options:
+      member:
+        description: Member to ban
+      reason:
+        description: Reason
+  confirm_title: Ban this member?
+  success: '{success} {member} was banned.'
+  dm: 'You were banned from **{guild}** by {moderator}!
+
+    **{scroll} Reason:** {reason}'
+cleaner:
+  error_disabled: '{error} The message cleaner is disabled on this server.'
+  error_no_mode: '{error} Give me a word, a regex or how many messages to purge (last N).'
+  error_conflict: '{error} Use a word OR a regex, not both.'
+  error_bad_regex: '{error} Invalid regex: {reason}'
+  error_last_range: '{error} The last-N limit must be between 1 and 1000.'
+  confirm_text: This deletes messages permanently. It cannot be undone.
+  confirm: Delete everything
+  cancel: Cancel
+  stop: Stop
+  panel_title: Message purge
+  progress_criterion: '**{search} Criterion:** {criterion}'
+  progress_current: '**{speech} Current channel:** {channel}'
+  progress_done: '**{numbers} Channels:** {done}/{total}'
+  progress_scanned: '**{search} Scanned:** {count}'
+  progress_counts: '**{trash} Deleted:** {deleted} of {matched} matched'
+  progress_elapsed: '**{clock} Elapsed:** {elapsed}'
+  result: Deleted {count} of {matched} matched message(s). {criterion}
+  result_gap: '{warning} {gap} matched message(s) could not be deleted.'
+  stopped: 'Purge stopped: {count} of {matched} matched message(s) deleted. {criterion}'
+  cancelled: Purge cancelled.
+  criterion_word: with the word “{word}”
+  criterion_regex: matching regex `{regex}`
+  criterion_last: the last {count} message(s)
+  criterion_last_word: the last {count} message(s) with the word “{word}”
+  criterion_last_regex: the last {count} message(s) matching `{regex}`
+  criterion_author: from author {author}
+  criterion_channel: in {channel}
+  criterion_all: in every channel
+  logs:
+    purged:
+      title: '{trash} Messages Purged'
+      description: '{moderator} purged {deleted} of {count} matched message(s). {criterion}.'
+confirm:
+  confirm: Confirm
+  cancel: Cancel
+  failed: '{error} The action failed. Check the bot logs.'
+  cancelled: Action cancelled.
+kick:
+  command:
+    name: kick
+    description: Kick a member
+    options:
+      member:
+        description: Member to kick
+      reason:
+        description: Reason
+  confirm_title: Kick this member?
+  success: '{success} {member} was kicked.'
+  dm: 'You were kicked from **{guild}** by {moderator}!
+
+    **{scroll} Reason:** {reason}'
+limpar:
+  command:
+    name: limpar
+    description: Delete messages by word, regex or amount
+    options:
+      palavra:
+        description: Word or phrase to purge
+      regex:
+        description: Regex pattern (Python) to purge
+      last:
+        description: Limit to the N most recent matches
+      canal:
+        description: Restrict to a channel
+      autor:
+        description: Only messages from this author
+moderation:
+  confirm_notify: Confirm and notify
+  confirm_silent: Confirm without notifying
+  confirm_clear: Clear all warnings
+  cancel: Cancel
+  cancelled: Action cancelled.
+  error_failed: '{error} The action failed. Check the bot logs.'
+  auto_ban_applied: Auto-ban applied (limit of {limit} warnings).
+  auto_ban_failed: '{warning} Warning recorded but auto-ban failed (check permissions).'
+  no_reason: No reason provided
+  summary: '{member}
+
+    **{scroll} Reason:** {reason}'
+  multi_summary: '{targets}
+
+    **{scroll} Reason:** {reason}'
+  error_disabled: '{error} Moderation commands are disabled in this server.'
+  error_no_members: '{error} Mention at least one member.'
+  error_self: '{error} You cannot use moderation commands on yourself.'
+  error_self_bot: '{error} The bot cannot moderate itself.'
+  error_author_permissions: '{error} You do not have permission to do that.'
+  error_bot_permissions: '{error} The bot does not have permission to do that.'
+  error_hierarchy: '{error} This member''s role is equal to or higher than yours.'
+  error_bot_hierarchy: '{error} This member''s role is equal to or higher than the bot''s.'
+  logs:
+    auto_ban:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{ban} Auto-ban applied'
+    ban:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{ban} Ban'
+    kick:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{kick} Kick'
+    mute:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{duration_label}:** {duration}
+
+        **{reason_label}:** {reason}'
+      title: '{mute} Mute'
+    warn:
+      description: '**{member_label}:** {member}
+
+        **{member_id_label}:** `{member_id}`
+
+        **{moderator_label}:** {moderator}
+
+        **{reason_label}:** {reason}'
+      title: '{warning} Warn'
+mute:
+  command:
+    name: mute
+    description: Mute a member for a duration
+    options:
+      member:
+        description: Member to mute
+      duration:
+        description: Duration (e.g. 10m, 2h, 3d)
+      reason:
+        description: Reason
+  confirm_title: Mute this member?
+  success: '{success} {member} was muted for {duration}.'
+  dm: 'You were muted in **{guild}** by {moderator}!
+
+    **{clock} Duration:** {duration}
+
+    **{scroll} Reason:** {reason}'
+  invalid_duration: '{error} Invalid duration. Use formats like 10m, 2h or 3d.'
+  summary: '{member}
+
+    **{clock} Duration:** {duration}
+
+    **{scroll} Reason:** {reason}'
+trap:
+  reason: Fell into the trap channel
+  notice:
+    text: 'This channel is a **moderation trap** on {server}.
+
+
+      ### {ban} Do not send messages here
+
+      > This is a moderation trap channel to catch spam, bot and RAID accounts. Anyone posting here loses the message instantly and faces a consequence.
+
+
+      **{gear} Configured consequence:** {action}
+
+
+      {envelope} Fell here by mistake? Talk to the moderation team.'
+    action:
+      none: The message is deleted.
+      kick: Kick from the server.
+      softban: Kick with a purge of recent messages.
+      ban: Ban from the server.
+  failure:
+    no_ban: The bot lacks the ban permission (or the victim role is above its own).
+    no_kick: The bot lacks the kick permission.
+    no_hierarchy: The victim role is above the bot role.
+    no_unban: 'The ban worked but the softban unban failed: the victim stays banned.'
+  logs:
+    failed:
+      title: '{error} Trap Failed'
+      description: '**{people} Target:** {user}\n**{gear} Consequence:** {action}\n**{scroll} Reason:** {reason}'
+  dm:
+    text: 'You posted in the trap channel of **{server}** and the message was removed.
+
+
+      {action}
+
+
+      This is an automated notification. Questions? Talk to the moderation team.'
+    action:
+      none: Your message was deleted.
+      kick: You were kicked from the server.
+      softban: You were kicked and your recent messages were purged. You can come back with a new invite.
+      ban: You were banned from the server and your recent messages were purged.
+  audit:
+    applied: Consequence applied
+    skipped: Failed to apply (permission or hierarchy)
+    action:
+      none: Delete message only
+      kick: Kick
+      softban: Softban
+      ban: Ban
+    user_label: Target
+    action_label: Consequence
+    reason_label: Reason
+unwarn:
+  command:
+    name: unwarn
+    description: Remove a warning
+    options:
+      member:
+        description: Member to un-warn
+      index:
+        description: Warning number (omit to clear all)
+  clear_all_title: Clear all warnings?
+  clear_all_summary: Remove every warning from {member}?
+  cleared: '{success} Removed {count} warning(s) from {member}.'
+  removed: '{success} Warning #{index} removed from {member}.'
+  invalid_index: '{error} No warning with that number.'
+  none_for: '{success} This member has no warnings to clear.'
+warn:
+  command:
+    name: warn
+    description: Warn a member
+    options:
+      member:
+        description: Member to warn
+      reason:
+        description: Reason
+  confirm_title: Warn this member?
+  success: '{success} Warning recorded for {member} ({count}/{limit}).'
+  dm: 'You received a warning in **{guild}** from {moderator}!
+
+    **{scroll} Reason:** {reason}'
+warnings:
+  command:
+    name: warnings
+    description: List a member's warnings
+    options:
+      member:
+        description: Member to inspect
+  title: Warnings for {member}
+  none: '{success} This member has no warnings.'
+  entry: '{reason}
+
+    by {moderator} · {date}'

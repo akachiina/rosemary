@@ -1,0 +1,16 @@
+language:
+  command:
+    name: idioma
+    description: Define o idioma do servidor
+    options:
+      language:
+        description: 'Código do idioma (ex.: en-US, pt-BR)'
+  title: Idioma
+  text: Escolha o idioma usado pelo bot neste servidor.
+  updated: '{success} Idioma definido para **{language}**.'
+  invalid: '{error} Idioma desconhecido ''{language}''.
+
+    Disponíveis:
+
+    {available}'
+  current: 'Idioma atual: {language}.'

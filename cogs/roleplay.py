@@ -131,48 +131,6 @@ def _sentence_key(action: str) -> str:
     return f"roleplay.actions.{action}"
 
 
-async def default_interaction_document(bot, guild_id: int, **variables) -> dict:
-    """Catalog-default roleplay card (``roleplay.card``).
-
-    Layout: no heading, the action sentence itself is the opening body
-    line. Both members ping through ``{@actor}``/``{@target}``
-    content mentions. No avatar: the card shows no user image. The gif
-    gallery self-drops when ``{gif_url}`` resolves empty; a divider and
-    the relative-timestamp footer close the card. Placeholders stay
-    literal: this is a template resolved at render.
-    """
-    from rosemary.core.cards import safe_format
-
-    theme = getattr(bot, "theme", None)
-    emojis = getattr(theme, "emojis", {}) if theme else {}
-    mapping = {**emojis, **variables}
-
-    def raw(key: str) -> str:
-        return safe_format(key, mapping)
-
-    sentence = raw("{love_letter} {@actor} {action} {@target}")
-    return {
-        "v": 1,
-        "blocks": [
-            {"type": "container", "color": "brand", "children": [
-                {"type": "text", "body": sentence},
-                {"type": "gallery", "urls": ["{gif_url}"]},
-                {"type": "divider"},
-                {"type": "text", "body": "-# {timestamp}"},
-            ]}
-        ],
-    }
-
-
-def _register_default_builder() -> None:
-    from rosemary.core.cards import set_default_builder
-
-    set_default_builder("roleplay.card", default_interaction_document)
-
-
-_register_default_builder()
-
-
 class RegiveView(MenuView):
     """One persistent dispatcher row for every interaction card.
 
@@ -371,7 +329,11 @@ class RoleplayCog(commands.Cog):
             embed_view = payload.view or discord.ui.View(timeout=None)
             for item in row.children:
                 embed_view.add_item(item)
-            payload = CardPayload(embed=payload.embed, view=embed_view)
+            # The content (the ping carrier) rides along: an embed card may
+            # carry the essential ping in its content.
+            payload = CardPayload(
+                embed=payload.embed, view=embed_view, content=payload.content
+            )
         else:
             payload.view.add_item(row)
         try:
@@ -389,10 +351,9 @@ class RoleplayCog(commands.Cog):
 
     async def _fallback_card(self, guild_id: int, variables: dict[str, str]) -> CardPayload:
         """Code-built card when even the default builder failed."""
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import simple_payload
 
         theme = self.bot.theme
-        view = DesignerView(store=False)
         emoji_map = getattr(theme, "emojis", {}) if theme else {}
         mapping = {**emoji_map, **variables}
         # Plain placeholders here (the fallback pings via allowed_for_ids):
@@ -401,13 +362,13 @@ class RoleplayCog(commands.Cog):
             "{love_letter} {actor} {action} {target}",
             mapping,
         )
-        view.add_item(
-            designer_container(
-                theme.color("brand") if theme else discord.Colour.blurple(),
-                TextDisplay(sentence),
-            )
+        return simple_payload(
+            self.bot,
+            guild_id,
+            "roleplay.card",
+            body=sentence,
+            color="brand",
         )
-        return CardPayload(view=view)
 
     #: prefix trigger ----------------------------------------------------------
 

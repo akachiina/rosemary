@@ -1,0 +1,30 @@
+# The broadcast_reminders settings.
+settings:
+  reminders.enabled:
+    category: broadcast_reminders
+    type: boolean
+    default: false
+  reminders.target_role:
+    category: broadcast_reminders
+    type: role
+    default: null
+  reminders.delay_seconds:
+    category: broadcast_reminders
+    type: integer
+    default: 2
+    min: 0
+    max: 30
+  broadcast.enabled:
+    category: broadcast_reminders
+    type: boolean
+    default: false
+  broadcast.target_role:
+    category: broadcast_reminders
+    type: role
+    default: null
+  broadcast.delay_seconds:
+    category: broadcast_reminders
+    type: integer
+    default: 2
+    min: 0
+    max: 30

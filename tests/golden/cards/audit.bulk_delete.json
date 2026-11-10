@@ -1,0 +1,21 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 15844367,
+    "description": "**🔢 Apagadas:** 1 em #….\n\n**⚙️ Moderador:** <@0>\n**📜 Transcrição completa:** [abrir arquivo](https://example.com/purge.txt)\n",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "title": "🗑️ Purga de mensagens",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "audit.bulk_delete",
+  "pings": [],
+  "view": []
+}

@@ -1,353 +1,128 @@
-"""Card resolution and rendering: theme override -> catalog default.
+"""The card pipeline: theme override -> packaged document -> serializer.
 
-This is the single pipeline every card send goes through:
+One pipeline, one model:
 
-1. the guild's active theme file may override the card (raw Discord Components
-   V2 in the theme, converted at load: see :mod:`rosemary.core.v2_convert`);
-2. otherwise the feature's own default applies: a registered builder, the seed
-   map (:data:`SEED_PARTS_BY_KEY`) or plain ``card.<key>``/``<key>`` scalars.
+1. the guild's theme may override the card: a semantic **delta** over the
+   packaged document (the fields it does not declare are inherited) or a
+   legacy full card (the raw Components V2 of the old themes);
+2. the packaged document is the source of truth (the default package, see
+   :mod:`rosemary.core.theme_package`);
+3. the card is compiled (every placeholder resolved **once**) and written in
+   the shape it ships in (Components V2, classic embed or plain text).
 
-Rendering validates first and raises :class:`CardsError` on invalid content --
-send sites treat that as "use the default message", so a bad theme can never
-break a send.
+The result is a :class:`rosemary.core.card_payload.CardPayload`: the send
+sites never branch on the form, they hand ``payload.message_kwargs()`` to
+Discord.
 """
 
 from __future__ import annotations
 
-import copy
-import dataclasses
-import inspect
 import logging
-import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import discord
 
+from rosemary.core.card_payload import (
+    CardPayload,
+    is_v2_message,
+    is_v2_payload,
+    send_card,
+)
+from rosemary.core.card_resolution import get_effective_card, reserve_contract
 from rosemary.core.cards import (
-    DOCUMENT_VERSION,
     ECHO_VARIABLES,
+    FORM_CARD,
+    FORM_EMBED,
+    FORM_TEXT,
     CardsError,
     build_embed_view,
-    build_items,
-    get_default_builder,
-    is_embed_document,
+    default_form,
+    render_document,
     resolve_embed,
-    safe_format,
+    validate_document,
 )
-from rosemary.core.themes import card_origin, theme_for
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
+from rosemary.core.design.compile import compile_card
+from rosemary.core.design.ir import Action, Card, Field
+from rosemary.core.design.serialize import card_to_embed, card_to_text, card_to_v2
+from rosemary.core.forms import embed_content_for_pings
+from rosemary.core.themes import theme_for
 
 log = logging.getLogger(__name__)
 
-#: Where each card's default copy lives outside ``card.<key>``. Most features
-#: render catalog text from their own section (``about.title``,
-#: ``bump.messages.thank_you_description``, ...), while ``card.<key>`` only
-#: carries labels: so the map points at the keys the send site really
-#: resolves. Entry: ``(container_color | None, heading_key | None, parts)``.
-#: A part is a catalog key, a literal template, or a ``(label_key, value_key)``
-#: tuple. Used when a theme overrides a card but the feature has no builder:
-#: the themed document replaces the whole message, while this map only powers
-#: test-sends and previews of *default* content (see :func:`default_document`).
-SEED_PARTS_BY_KEY: dict[str, tuple[str | None, str | None, tuple[Any, ...]]] = {
-    "about.card": ("brand", "about.title", ("about.text", "about.version")),
-    "bump.reminder": (
-        "brand",
-        "bump.messages.reminder_title",
-        ("bump.messages.reminder_description",),
-    ),
-    # bump.leaderboard and bump.thank_you own a registered default builder
-    # (core/bump_cards.py: winner/user avatar + author footer). No seed here:
-    # a seed would shadow the builder and strip the avatar (the exact bug
-    # that once stripped the starboard card's gallery).
-    "bump.no_bumps": (
-        "info",
-        "bump.messages.no_bumps_title",
-        ("bump.messages.no_bumps_description",),
-    ),
-    "bump.anti_camping": (None, None, ("bump.messages.anti_camping",)),
-    "bump.schedule.open": (None, None, ("bump.schedule.open_message_default",)),
-    "bump.schedule.close": (None, None, ("bump.schedule.close_message_default",)),
-    # List cards: the send site builds the body and passes it as {body}.
-    "invites.leaderboard": ("info", "invites.leaderboard.title", ("{body}",)),
-    "invites.stats": ("info", "invites.stats.title", ("{body}",)),
-    "invites.personal": ("info", "invites.personal.title", ("{body}",)),
-    "invites.invited_list": ("info", "invites.invited.title", ("{body}",)),
-    "invites.server_stats": ("info", "invites.server.title", ("{body}",)),
-    "invites.invited_by": ("info", "invites.inviter.title", ("invites.inviter.body",)),
-    "tickets.panel": ("brand", "tickets.panel.title", ("tickets.panel.text",)),
-    "tickets.created": ("brand", "tickets.created.title", ("tickets.created.text",)),
-    "partnerships.invite": (None, None, ("partnerships.invite_text",)),
-    "cleaner.confirm": (None, None, ("cleaner.confirm_text",)),
-    "boost.preview": (
-        "success",
-        None,
-        (
-            "# @{role_name}",
-            ("boost.emoji.owner", "{owner}"),
-            ("boost.emoji.members", "boost.descriptions.members_count"),
-        ),
-    ),
-    # Code-built cards promoted to CardSpecs: the send site passes the rendered
-    # title/body plus card-specific variables; {title}/{body} keep the seed
-    # identical to what the code fallback shows.
-    # starboard.card and utility.serverinfo are intentionally absent: a
-    # registered default builder owns their full rich layout (starboard:
-    # avatar, gallery, author footer; serverinfo: icon thumbnail, columns,
-    # banner). A seed here would shadow the builder: the exact bug that
-    # made live posts bare.
-    # moderation.warnings is absent for the same reason: its builder
-    # (core/moderation_cards.py) picks the state-driven color and adds the
-    # member avatar thumbnail + author footer.
-    "utility.ping": ("info", "ping.title", ("ping.latency",)),
-    "birthdays.list": ("info", "birthdays.list_title", ("{body}",)),
-    "partnerships.list": ("info", "partnerships.list_title", ("{body}",)),
-    "partnerships.audit": ("warning", "partnerships.audit_title", ("{body}",)),
-    # The container color must match the code fallback (style bump_leaderboard)
-    # so both render paths of the same card agree.
-    "bump.stats": ("warning", None, ("{title}", "{body}")),
-    "bump.status": ("info", None, ("{title}", "{body}")),
-    "colors.list": ("info", None, ("{title}", "{body}")),
-    "invites.codes": ("info", None, ("{title}", "{body}")),
-    "invites.blacklist": ("info", None, ("{title}", "{body}")),
-    "reminders.list": ("info", None, ("{title}", "{body}")),
-    # Interactive menus: only the heading block is theme-customizable --
-    # selects/buttons are code (Discord needs registered callbacks).
-    "settings.title": ("brand", "settings.title", ("{body}",)),
-    "themes.title": ("brand", "themes.title", ("{body}",)),
-    "cleaner.panel": ("warning", "cleaner.panel_title", ("{body}",)),
-    "boost.home": ("brand", "boost.titles.home", ("boost.descriptions.user_panel",)),
-    "roleplay.manager": (
-        "brand",
-        "roleplay.manager.title",
-        ("{body}",),
-    ),
-}
+
+#: the fallback ---------------------------------------------------------------
 
 
-@dataclasses.dataclass(frozen=True)
-class CardPayload:
-    """One rendered card, ready to send: V2 view **or** classic embed.
+def _resolve_color(theme, color: str | discord.Colour | None) -> discord.Colour:
+    """The accent of a fallback card (a theme token or a ready colour).
 
-    A theme may write any card as Components V2 (default) or as an embed
-    (``cards.<key>.embed``). This bundle makes the two shapes interchangeable
-    at every send site: ``embed`` is set only for embed cards, and ``view``
-    carries the V2 items: or the classic ActionRow holding an embed card's
-    buttons. Send through :func:`send_card` instead of touching the fields.
+    A theme without the requested token (or without the usual ones) still
+    gets an accent: a fallback never raises.
     """
-
-    view: discord.ui.DesignerView | discord.ui.View | None = None
-    embed: discord.Embed | None = None
-    #: Files uploaded with the message; galleries/thumbnails in the card
-    #: reference them via ``attachment://<filename>`` (color panel image).
-    files: list[discord.File] = dataclasses.field(default_factory=list)
-
-    def message_kwargs(self) -> dict[str, Any]:
-        """Keyword arguments for ``send``/``respond``/``edit`` with this card."""
-        if self.embed is not None:
-            kwargs: dict[str, Any] = {"embed": self.embed}
-            if self.view is not None:
-                kwargs["view"] = self.view
-        else:
-            kwargs = {"view": self.view}
-        if self.files:
-            kwargs["files"] = self.files
-        return kwargs
-
-
-async def send_card(
-    target,
-    payload: CardPayload | None,
-    allowed: discord.AllowedMentions | None = None,
-    **kwargs: Any,
-):
-    """Send a rendered card payload through ``target.send``.
-
-    Dispatches the right keyword for the payload shape: ``view=`` for V2,
-    ``embed=`` (+ classic button view) for embed cards: so call sites never
-    branch on the card form. Interaction responses use
-    ``ctx.respond(**payload.message_kwargs(), ...)`` instead.
-    """
-    if payload is None:
-        return None
-    if allowed is None:
-        allowed = discord.AllowedMentions.none()
-    return await target.send(**payload.message_kwargs(), allowed_mentions=allowed, **kwargs)
-
-
-async def _resolve_parts(raw, guild_id: int, parts: tuple[Any, ...]):
-    """Yield each seed part resolved (see :func:`_resolve_seed_part`)."""
-    for part in parts:
-        yield await _resolve_seed_part(raw, guild_id, part)
-
-
-async def _resolve_seed_part(raw, guild_id: int, part: Any) -> str:
-    """One seed part: catalog key, ``(label_key, value)`` entry, or literal."""
-    if isinstance(part, tuple):
-        label_key, value_key = part
-        label = await raw(guild_id, label_key)
-        if not isinstance(label, str) or label == label_key or not label.strip():
-            label = label_key.rsplit(".", 1)[-1].replace("_", " ")
-        value = await raw(guild_id, value_key)
-        if not isinstance(value, str) or value == value_key:
-            value = value_key
-        return f"**{label}:**\n{value}"
-    found = await raw(guild_id, part)
-    if isinstance(found, str) and found != part:
-        return found
-    return part
-
-
-def _seed_document(bot, guild_id: int | None, blocks: list[dict[str, Any]]) -> dict[str, Any]:
-    """Validate-free seed doc: theme emojis resolve, placeholders stay literal."""
-    from rosemary.core.themes import theme_for
-
-    mapping = {
-        **(getattr(theme_for(bot, guild_id), "emojis", {}) or {}),
-        **ECHO_VARIABLES,
-    }
-
-    def walk(items: list[dict[str, Any]]) -> None:
-        for block in items:
-            if block.get("type") == "text":
-                block["body"] = safe_format(str(block["body"]), mapping)
-            walk(block.get("children") or [])
-
-    walk(blocks)
-    return {"v": DOCUMENT_VERSION, "blocks": blocks}
-
-
-def _bind_builder_kwargs(builder: Callable[..., Any], variables: dict[str, Any]) -> dict[str, Any]:
-    """Send-site variables the builder's signature actually accepts.
-
-    Builders own the full layout, so most ignore per-send content; those that
-    react to it (starboard gallery, ramp color) declare ``**variables`` or the
-    named params. Filtering instead of forwarding everything means an old
-    closed-signature builder degrades to its static default instead of
-    crashing ``default_document`` (which would silently drop the card to the
-    raw-key fallback).
-    """
-    try:
-        params = inspect.signature(builder).parameters
-    except (TypeError, ValueError):  # builtins / exotic callables
-        return dict(variables)
-    accepts_kwargs = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
-    if accepts_kwargs:
-        return dict(variables)
-    known = {name for name in params if name not in ("bot", "guild_id")}
-    return {name: value for name, value in variables.items() if name in known}
-
-
-async def default_document(
-    bot,
-    guild_id: int,
-    key: str,
-    variables: dict[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    """The feature's default document for ``key`` (no theme override).
-
-    Resolution order:
-    1. a feature-registered default builder (rich cards with custom layouts);
-    2. the declared seed map (:data:`SEED_PARTS_BY_KEY`);
-    3. plain ``card.<key>`` / ``<key>`` scalars (DM and log cards);
-    4. ``None`` when the feature resolves no catalog copy at all.
-
-    ``variables`` (the send-site contract values) pass through to feature
-    builders, so defaults can react to real content (e.g. the starboard card
-    skips its gallery when the starred message has no image). Builders must
-    accept them as ``**kwargs``: seeded previews (no variables) still work.
-    """
-    builder = get_default_builder(key)
-    if builder is not None:
+    if isinstance(color, discord.Colour):
+        return color
+    for token in (color, "info", "brand"):
+        if not token:
+            continue
         try:
-            doc = await builder(bot, guild_id, **_bind_builder_kwargs(builder, variables or {}))
-        except Exception as exc:
-            log.warning("default builder failed for card %s: %s", key, exc)
-        else:
-            if isinstance(doc, dict) and isinstance(doc.get("blocks"), list):
-                return copy.deepcopy(doc)
-    raw = getattr(bot.translator, "raw", None)
-    if not callable(raw):
-        return None
-    plan = SEED_PARTS_BY_KEY.get(key)
-    if plan is not None:
-        color, heading_key, parts = plan
-        bodies = [body async for body in _resolve_parts(raw, guild_id, parts) if body.strip()]
-        heading = None
-        if heading_key is not None:
-            found = await raw(guild_id, heading_key)
-            if isinstance(found, str) and found.strip() and found != heading_key:
-                heading = f"# {found}"
-        if heading is None and not bodies:
-            return None
-        blocks: list[dict[str, Any]] = []
-        if heading is not None:
-            blocks.append({"type": "text", "body": heading})
-        blocks.extend({"type": "text", "body": body} for body in bodies)
-        if color is not None:
-            blocks = [{"type": "container", "color": color, "children": blocks}]
-        return _seed_document(bot, guild_id, blocks)
-    lines: list[str] = []
-    for candidate_key in (f"card.{key}", key):
-        candidate = await raw(guild_id, candidate_key)
-        if isinstance(candidate, str) and candidate.strip() and candidate != candidate_key:
-            lines.append(candidate)
-    if not lines:
-        return None
-    blocks = [{"type": "text", "body": line} for line in lines]
-    return _seed_document(bot, guild_id, blocks)
+            return theme.color(token)
+        except KeyError:
+            continue
+    return discord.Colour(0x5865F2)
 
 
-async def get_effective_document(
+def simple_payload(
     bot,
-    guild_id: int,
+    guild_id: int | None,
     key: str,
-    variables: dict[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    """Themed override, else the feature's default document (or ``None``)."""
-    # Local import on purpose (same as core.cards._override_document):
-    # ``rosemary.core.themes.card_document`` stays the single canonical
-    # symbol, so tests (and plugins) can patch that one target.
-    from rosemary.core.themes import card_document
-
-    themed = await card_document(bot, guild_id, key)
-    if themed is not None:
-        return copy.deepcopy(themed)
-    return await default_document(bot, guild_id, key, variables)
-
-
-async def render_document(
-    bot,
-    doc: dict[str, Any],
-    variables: dict[str, Any] | None = None,
     *,
-    guild_id: int | None = None,
-    card_key: str | None = None,
-    draft: bool = False,
-) -> discord.ui.DesignerView:
-    """Render one validated document into a Components V2 view.
+    title: str = "",
+    body: str = "",
+    color: str | discord.Colour | None = None,
+    style: str | None = None,
+    thumbnail: str | None = None,
+    image: str | None = None,
+    footer: str | None = None,
+    fields: tuple[tuple[str, str, bool], ...] = (),
+    buttons: tuple[tuple[str, str], ...] = (),
+) -> CardPayload:
+    """The last-resort card, in the shape the card ships in.
 
-    ``guild_id`` selects the theme used for emoji tokens and color names --
-    the guild's active theme when known, the built-in one otherwise.
-    ``CardsError`` is intentionally allowed to propagate so callers can show
-    the structured issue instead of silently substituting another message.
+    The card pipeline resolves every customizable message; this is the
+    fallback for the rare case where it resolves nothing (a missing catalog
+    copy). It follows the card's own form, so the surface never changes
+    under the member: a text card answers with one notice line, an embed
+    card with a classic embed, a Components V2 card with a container.
+
+    The fallback is a card of the same model as every other one: the
+    serializer writes it in the shape the card ships in.
     """
-    from rosemary.core.card_actions import bind_action_callbacks
-    from rosemary.core.themes import theme_for
-
-    items = build_items(
-        theme_for(bot, guild_id),
-        doc,
-        variables or {},
-        draft=draft,
-        card_key=card_key,
+    theme = theme_for(bot, guild_id)
+    accent = _resolve_color(theme, color)
+    card = Card(
+        key=key,
+        form=default_form(key),
+        color=f"#{accent.value:06x}",
+        title=str(title or "").strip(),
+        paragraphs=(str(body or "").strip(),) if str(body or "").strip() else (),
+        thumbnail=str(thumbnail or ""),
+        image=str(image or ""),
+        footer=str(footer or ""),
+        fields=tuple(
+            Field(name=str(name), value=str(value), inline=bool(inline))
+            for name, value, inline in fields
+        ),
+        actions=tuple(
+            Action(label=str(label), url=str(url)) for label, url in buttons if url
+        ),
+        style=style or "info",
     )
-    bind_action_callbacks(items)
-    view = discord.ui.DesignerView(store=False)
-    for item in items:
-        view.add_item(item)
-    return view
+    compiled = compile_card(card, {})
+    payload, _content = _payload_for_card(bot, guild_id, key, compiled.card, theme, {})
+    return payload
+
+
+#: the pipeline ---------------------------------------------------------------
 
 
 async def render_card_message(
@@ -357,149 +132,220 @@ async def render_card_message(
     variables: dict[str, Any] | None = None,
     *,
     silent: bool = False,
+    form: str | None = None,
 ) -> tuple[CardPayload | None, discord.AllowedMentions]:
     """Render a card for a real send: ``(payload, allowed_mentions)``.
 
-    ``payload`` is a :class:`CardPayload`: a Components V2 ``DesignerView``
-    **or** an ``embed=``-ready bundle when the active theme writes the card
-    in embed form. ``None`` only when the card resolves no document at all,
-    in which case the caller falls back to its own default view. Otherwise
+    ``payload`` is a :class:`rosemary.core.card_payload.CardPayload`: a
+    Components V2 ``DesignerView``, an ``embed=``-ready bundle when the card
+    ships in the embed form, or a plain ``content=`` line when it ships as
+    text. ``None`` only when the card resolves no document at all, in which
+    case the caller falls back to its own default view. Otherwise
     ``allowed_mentions`` derives from the document itself: only mention
     tokens the resolved text actually contains may ping, and only when the
     theme's pings toggle for the card is on (or the caller forces
     ``silent``). An invalid document renders ``None`` so the caller's default
     path takes over: sends never break on themed content.
-    """
-    from rosemary.core.mentions import allowed_for_document
-    from rosemary.core.themes import theme_for
 
-    doc = await get_effective_document(bot, guild_id, key, variables)
-    if doc is None:
+    ``form`` forces the shape (a repaint keeps the shape of the message it
+    edits: a V2 message gets the V2 form, a classic message the classic
+    one).
+    """
+    from rosemary.core.debug import trace_card_path
+
+    card = await get_effective_card(bot, guild_id, key, variables, form=form)
+    if card is None:
         return None, discord.AllowedMentions.none()
+    theme = theme_for(bot, guild_id)
     mapping = {
-        **(getattr(theme_for(bot, guild_id), "emojis", {}) or {}),
+        **(getattr(theme, "emojis", {}) or {}),
         **(dict(ECHO_VARIABLES) if variables is None else variables),
     }
-    if is_embed_document(doc):
-        try:
-            embed, buttons = resolve_embed(doc, theme_for(bot, guild_id), mapping)
-            view = build_embed_view(buttons, mapping, key)
-        except CardsError as exc:
-            log.warning(
-                "embed card %s for guild %s is invalid, using default: %s", key, guild_id, exc
-            )
-            return None, discord.AllowedMentions.none()
-        allowed = await allowed_for_document(bot, guild_id, key, doc, mapping, silent=silent)
-        await trace_card_path(bot, guild_id, key)
-        return CardPayload(embed=embed, view=view), allowed
+    mapping = reserve_contract(card, mapping, variables)
     try:
-        view = await render_document(bot, doc, mapping, guild_id=guild_id, card_key=key)
+        if card.blocks:
+            # A blocks-native card (the theme's own layout): the legacy
+            # validator still guards the document it draws, so an invalid
+            # one falls back to the default message.
+            issues = validate_document(card_to_v2(card), theme=theme, variables=mapping)
+            if issues:
+                raise CardsError(issues)
+        compiled = compile_card(card, mapping)
     except CardsError as exc:
         log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
         return None, discord.AllowedMentions.none()
-    allowed = await allowed_for_document(bot, guild_id, key, doc, mapping, silent=silent)
-    await trace_card_path(bot, guild_id, key)
-    return CardPayload(view=view), allowed
 
+    if not _says_something(compiled.card):
+        # The card has no copy (the catalog has none for it): there is
+        # nothing to say, so the call site keeps its own fallback.
+        return None, discord.AllowedMentions.none()
 
-_TRACE_TTL = 30.0
-_TRACE_SEEN: dict[tuple[int, str], float] = {}
-
-
-async def trace_card_path(bot, guild_id: int, key: str) -> None:
-    """Post ``card.<key>`` + origin to the log channel when ``debug.card_paths``
-    is on. The default trace body carries no mention tokens and the trace card
-    never traces itself.
-
-    Repeats are deduplicated per ``(guild, key)`` for :data:`_TRACE_TTL`
-    seconds: one menu repaint or one log burst should not flood the log
-    channel with the same path. Public so call sites that build themed views
-    outside this module (ephemeral confirm cards) can trace their own sends.
-    """
-    from rosemary.core.debug import send_log
-    from rosemary.core.settings import get_setting
-    from rosemary.core.themes import card_origin
-
-    if key == "debug.trace":
-        return
     try:
-        enabled = await get_setting(bot.storage, guild_id, "debug.card_paths")
-    except (KeyError, AttributeError):
-        return
-    if not enabled:
-        return
-    token = (guild_id, key)
-    now = time.monotonic()
-    if now - _TRACE_SEEN.get(token, 0.0) < _TRACE_TTL:
-        return
-    _TRACE_SEEN[token] = now
-    theme_name, _ = card_origin(bot, guild_id, key)
-    origin = (
-        await bot.translator.t(guild_id, "debug.trace.theme", theme=theme_name)
-        if theme_name
-        else await bot.translator.t(guild_id, "debug.trace.default")
-    )
-    await send_log(
-        bot,
-        guild_id,
-        "debug.trace",
-        path=f"card.{key}",
-        origin=origin,
-    )
+        payload, content = _payload_for_card(
+            bot, guild_id, key, compiled.card, theme, mapping
+        )
+    except CardsError as exc:
+        log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
+        return None, discord.AllowedMentions.none()
+    allowed = await _allowed_for_card(bot, guild_id, key, compiled, content, silent)
+    await trace_card_path(bot, guild_id, key)
+    return payload, allowed
 
 
-def log_default_failure(key: str, exc: Exception) -> None:
-    """Warn that a card's default builder crashed (seed falls through)."""
-    log.warning("default builder failed for card %s: %s", key, exc)
+def _payload_for_card(
+    bot,
+    guild_id: int,
+    key: str,
+    card: Card,
+    theme: Any,
+    mapping: dict[str, Any],
+) -> tuple[CardPayload, str]:
+    """The payload of a compiled card, in the shape it ships in.
 
-
-async def menu_heading_items(
-    bot, guild_id: int, key: str
-) -> list[discord.ui.ViewItem]:
-    """Themed heading items for an interactive menu (empty = code default).
-
-    Menus are interactive: their selects and buttons live in code: Discord
-    needs registered callbacks, so a theme file cannot generate them. What a
-    theme *can* restyle is the heading card (``settings.title``,
-    ``themes.title``, ``debug.panel``, ``boost.home``/``boost.admin``). The
-    themed document is rendered and spliced in place of the code heading; a
-    container in the theme document is rejected (the menu already provides
-    one, and nesting containers 400s the payload) so the menu falls back to
-    its built-in heading instead of failing the send.
+    Returns the payload and the line that carries the mentions: the classic
+    forms ping through the content (an embed never notifies, so its ping
+    travels in the message content), the Components V2 form pings through
+    the ids the compiler collected.
     """
-    from rosemary.core.cards import is_embed_document, maybe_view
-    from rosemary.core.themes import card_document
-    from rosemary.ui.containers import Container
+    from rosemary.core.mentions import theme_pings
 
-    doc = await card_document(bot, guild_id, key)
-    if doc is not None and is_embed_document(doc):
-        log.warning(
-            "theme heading %s is an embed; menu headings must be V2 text", key
+    if card.form == FORM_TEXT:
+        text = card_to_text(card)
+        if not text:
+            return CardPayload(), ""
+        content = f"{_feedback_prefix(bot, guild_id, key, card.style)}{text}".strip()
+        return CardPayload(content=content), content
+    if card.form == FORM_EMBED:
+        document = card_to_embed(card)
+        embed, buttons = resolve_embed(document, theme, mapping, resolved=True)
+        view = build_embed_view(buttons, mapping, key, resolved=True)
+        content = str(document.get("content") or "")
+        if not content and theme_pings(bot, guild_id, key):
+            content = embed_content_for_pings(embed)
+        return CardPayload(embed=embed, view=view, content=content or None), content
+    document = card_to_v2(card, theme)
+    view = render_document(
+        bot, document, mapping, guild_id=guild_id, card_key=key, resolved=True
+    )
+    return CardPayload(view=view), ""
+
+
+async def _allowed_for_card(
+    bot,
+    guild_id: int,
+    key: str,
+    compiled: Any,
+    content: str,
+    silent: bool,
+) -> discord.AllowedMentions:
+    """The mention policy of a rendered card.
+
+    The Components V2 form pings the ids its mention fields resolved to; the
+    classic forms ping through their content line.
+    """
+    from rosemary.core.mentions import allowed_for_ids, allowed_for_text
+
+    if compiled.card.form == FORM_CARD:
+        return await allowed_for_ids(
+            bot,
+            guild_id,
+            key,
+            user_ids=compiled.users,
+            role_ids=compiled.roles,
+            silent=silent,
         )
-        return []
-    view = await maybe_view(bot, guild_id, key)
-    if view is None:
-        return []
-    items = list(view.children)
-    if any(isinstance(item, Container) for item in items):
-        log.warning(
-            "theme heading %s must not contain a container; using default", key
+    return await allowed_for_text(bot, guild_id, key, content, silent=silent)
+
+
+def _feedback_prefix(bot, guild_id: int | None, key: str, style: str = "info") -> str:
+    """The theme prefix of a one-line message ("{emoji} **|** ").
+
+    The prefix belongs to the theme (the ``feedback_*`` style family), so a
+    guild restyles every notice at once.
+    """
+    from rosemary.core.feedback import prefix_for
+
+    return prefix_for(bot, guild_id, style or "info")
+
+
+def _says_something(card: Card) -> bool:
+    """Whether a card carries any copy at all.
+
+    The copy is what the member reads: the title, the body, the fields, the
+    blocks or the line of a text card. The frame (the footer, the thumbnail,
+    the image) is not copy: a card whose copy the catalog does not have (a
+    missing key, a translator without the catalog) says nothing, so the call
+    site keeps its own fallback instead of shipping an empty frame.
+    """
+    if card.content or card.blocks or card.title or card.paragraphs or card.fields:
+        return True
+    return card.author is not None and bool(card.author.name)
+
+
+#: the repaint ----------------------------------------------------------------
+
+
+async def align_to_message(
+    bot,
+    guild_id: int,
+    key: str,
+    variables: dict[str, Any] | None,
+    payload: CardPayload | None,
+    allowed: discord.AllowedMentions,
+    message: Any,
+    *,
+    silent: bool = False,
+) -> tuple[CardPayload | None, discord.AllowedMentions]:
+    """Fit a rendered card to the shape of the message it will edit.
+
+    Discord's ``IS_COMPONENTS_V2`` flag is immutable: a V2 message can
+    never carry an embed or content, and a classic message never becomes
+    V2. A repaint that ignores this ends in a 400 (error 50035), so the
+    card follows the message:
+
+    * V2 message, classic card: the card is rendered again in the V2 form;
+    * classic message, V2 card: the repaint is skipped (the old content
+      stays: the flag cannot be added).
+
+    Returns ``(payload, allowed)``; a ``None`` payload means "skip this
+    repaint" (the caller keeps the message as it is).
+    """
+    if payload is None:
+        return None, allowed
+    message_v2 = is_v2_message(message)
+    payload_v2 = is_v2_payload(payload)
+    if message_v2 == payload_v2:
+        return payload, allowed
+    if message_v2:
+        # The message is Components V2: it cannot carry an embed or content.
+        rendered, rendered_allowed = await render_card_message(
+            bot, guild_id, key, variables, form=FORM_CARD, silent=silent
         )
-        return []
-    return items
+        if rendered is None or not is_v2_payload(rendered):
+            log.warning(
+                "card %s has no Components V2 form for guild %s: repaint skipped",
+                key,
+                guild_id,
+            )
+            return None, rendered_allowed
+        return rendered, rendered_allowed
+    # A classic message cannot become Components V2: the flag is immutable.
+    log.warning(
+        "card %s is Components V2 but message %s is classic: repaint skipped",
+        key,
+        getattr(message, "id", "?"),
+    )
+    return None, allowed
 
 
 __all__ = [
-    "SEED_PARTS_BY_KEY",
     "CardPayload",
-    "card_origin",
-    "default_document",
-    "get_effective_document",
-    "log_default_failure",
-    "menu_heading_items",
+    "align_to_message",
+    "get_effective_card",
+    "is_v2_message",
+    "is_v2_payload",
     "render_card_message",
     "render_document",
     "send_card",
-    "theme_for",
-    "trace_card_path",
+    "simple_payload",
 ]

@@ -1,0 +1,37 @@
+{
+  "buttons": [
+    {
+      "custom_id": "boost_my_roles",
+      "disabled": false,
+      "emoji": "👑",
+      "label": "Meus cargos",
+      "style": "primary"
+    },
+    {
+      "custom_id": "boost_pending",
+      "disabled": false,
+      "emoji": "💌",
+      "label": "Convites",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "boost_leave",
+      "disabled": false,
+      "emoji": "🚪",
+      "label": "Sair",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "boost_close",
+      "disabled": false,
+      "emoji": "❌",
+      "label": "Fechar",
+      "style": "secondary"
+    }
+  ],
+  "selects": [],
+  "texts": [
+    "# Cargos Boost",
+    "Aqui estão os cargos boost do servidor. Gerencie os seus, participe ou saia."
+  ]
+}

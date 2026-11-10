@@ -118,7 +118,7 @@ def real_cog_factory(tmp_path, monkeypatch, quiet_logs):
         cog._recovery_task = None
         cog._schedule_reminder = MagicMock()
         cog._schedule_unlock = MagicMock()
-        cog._build_reminder_view = AsyncMock(return_value=MagicMock())
+        cog._build_reminder_payload = AsyncMock(return_value=MagicMock())
         return cog, mod
 
     return factory

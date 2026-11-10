@@ -1,0 +1,38 @@
+# The boost settings.
+settings:
+  boost.enabled:
+    category: boost
+    type: boolean
+    default: true
+  boost.max_members:
+    category: boost
+    type: integer
+    default: 10
+    min: 1
+    max: 25
+  boost.invite_seconds:
+    category: boost
+    type: integer
+    default: 86400
+    min: 3600
+    max: 604800
+    duration: true
+  boost.max_pending_invites:
+    category: boost
+    type: integer
+    default: 5
+    min: 1
+    max: 20
+  boost.auto_create.enabled:
+    category: boost
+    type: boolean
+    default: true
+  boost.auto_create.below_role:
+    category: boost
+    type: role
+    default: null
+  boost.auto_create.unboost_action:
+    category: boost
+    type: choice
+    default: "delete"
+    choices: ["delete", "remove", "keep"]

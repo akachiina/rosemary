@@ -1,10 +1,11 @@
-"""Standard ephemeral responses as a colored container.
+"""Standard ephemeral responses as one plain line.
 
 Every user-facing ephemeral notice (errors, warnings, plain confirmations)
 renders through one builder so a theme can restyle the surface and every
-cog speaks the same visual language: one container in the semantic color,
-the message text inside. Plain ``ctx.respond(text, ephemeral=True)`` at call
-sites predating this helper is the deviation this module exists to retire.
+cog speaks the same visual language: one line, the theme's prefix
+(``{emoji} **|** ``) plus the message. The notice layer lives in
+:mod:`rosemary.core.feedback`: the prefix is a theme style, so a guild
+restyles every notice at once.
 
 Prefix aliases reuse the slash handlers verbatim through
 :class:`PrefixContext`, the slash-shaped facade declared below.
@@ -12,36 +13,9 @@ Prefix aliases reuse the slash handlers verbatim through
 
 from __future__ import annotations
 
-import discord
 from discord.ext import commands
 
-from rosemary.ui.containers import TextDisplay, designer_container
-
-
-async def notice_view(
-    bot,
-    guild_id: int | None,
-    text: str,
-    *,
-    color: str = "danger",
-) -> discord.ui.DesignerView:
-    """One themed container carrying ``text`` (already translated).
-
-    ``color`` is a theme color token: ``danger`` for errors, ``warning`` for
-    warnings, ``success`` for confirmations, ``info`` for notices. The text
-    keeps its own ``{success}``/``{error}`` emoji tokens (the catalog injected
-    them already); the container color is the only thing added here.
-    """
-    from rosemary.core.themes import theme_for
-
-    theme = theme_for(bot, guild_id)
-    view = discord.ui.DesignerView(store=False)
-    try:
-        accent = theme.color(color)
-    except KeyError:
-        accent = theme.color("brand")
-    view.add_item(designer_container(accent, TextDisplay(text)))
-    return view
+from rosemary.core.feedback import respond as _respond_notice_line
 
 
 async def respond_notice(
@@ -52,13 +26,15 @@ async def respond_notice(
     *,
     color: str = "danger",
 ) -> None:
-    """Respond ephemerally with :func:`notice_view` (ACKs when needed)."""
-    view = await notice_view(bot, guild_id, text, color=color)
-    response = interaction_or_ctx.response
-    if response is not None and not response.is_done():
-        await response.send_message(view=view, ephemeral=True)
-        return
-    await interaction_or_ctx.respond(view=view, ephemeral=True)
+    """Respond ephemerally with one notice line (ACKs when needed).
+
+    ``color`` is a theme color token: ``danger`` for errors, ``warning`` for
+    warnings, ``success`` for confirmations, ``info`` for notices. It picks
+    the prefix emoji; the message keeps its own catalog copy.
+    """
+    await _respond_notice_line(
+        interaction_or_ctx, bot, guild_id, text, style=color, ephemeral=True
+    )
 
 
 class PrefixContext:
@@ -74,6 +50,10 @@ class PrefixContext:
     interaction-only 3s window does not exist, so ``defer`` is a no-op and
     ``followup.send`` is a regular channel send.
     """
+
+    #: The command surface tells a prefix context from a slash one: the ACK
+    #: window and the ephemeral flag only exist on the interaction side.
+    is_prefix = True
 
     def __init__(self, ctx: commands.Context) -> None:
         self._ctx = ctx

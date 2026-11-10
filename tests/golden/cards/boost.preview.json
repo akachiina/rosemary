@@ -1,0 +1,27 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "boost.preview",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#2ecc71",
+      "children": [
+        {
+          "content": "# @…",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "**Dono:**\n<@0>",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "**Membros:**\n1/10 membros",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

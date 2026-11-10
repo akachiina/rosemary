@@ -434,23 +434,22 @@ class InvitesCog(commands.Cog):
         Routes through :func:`render_card_message` so ``debug.card_paths``
         traces these ephemeral cards too: they are theme-customizable, so
         admins need their paths."""
-        from rosemary.core.card_service import CardPayload, render_card_message
-        from rosemary.ui.containers import DesignerView, TextDisplay, designer_container
+        from rosemary.core.card_service import render_card_message, simple_payload
 
         payload, _allowed = await render_card_message(
             self.bot, guild_id, key, {"title": title, "body": body, **variables}
         )
         if payload is not None:
             return payload
-        view = DesignerView(store=False)
-        view.add_item(
-            designer_container(
-                self.bot.theme.color("info"),
-                TextDisplay(self.bot.theme.md("title", title=title)),
-                TextDisplay(body),
-            )
+        # The fallback follows the card's own form (an embed).
+        return simple_payload(
+            self.bot,
+            guild_id,
+            key,
+            title=title,
+            body=body,
+            color="info",
         )
-        return CardPayload(view=view)
 
     @invites_group.command(
         name="who_invited",
@@ -963,7 +962,7 @@ class InvitesCog(commands.Cog):
             on_confirm=reset_all,
         )
         await view.prepare()
-        await ctx.respond(view=view, ephemeral=True)
+        await ctx.respond(**await view.message_kwargs(), ephemeral=True)
 
     @invites_admin_group.command(
         name="label",

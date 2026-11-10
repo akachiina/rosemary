@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "colors.panel",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Escolha sua Cor",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Clique no número da cor desejada (1 disponíveis). Clicar de novo remove a cor.",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

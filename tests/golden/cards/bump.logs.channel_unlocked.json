@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3066993,
+    "description": "Canal #… desbloqueado.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🔓 Canal Desbloqueado",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.channel_unlocked",
+  "pings": [],
+  "view": []
+}

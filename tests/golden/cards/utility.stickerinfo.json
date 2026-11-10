@@ -1,0 +1,45 @@
+{
+  "content": null,
+  "embed": {
+    "color": 5763719,
+    "fields": [
+      {
+        "inline": true,
+        "name": "🖼️ Formato",
+        "value": "…"
+      },
+      {
+        "inline": true,
+        "name": "🏷️ Tags",
+        "value": "…"
+      },
+      {
+        "inline": true,
+        "name": "👤 Enviado por",
+        "value": "…"
+      },
+      {
+        "inline": true,
+        "name": "📜 Descrição",
+        "value": "…"
+      },
+      {
+        "inline": true,
+        "name": "📅 Criado em",
+        "value": "<t:1111111111:D> · <t:1111111111:R>"
+      }
+    ],
+    "footer": {
+      "text": "`123456789012345678`"
+    },
+    "image": {
+      "url": "https://cdn.discordapp.com/stickers/1.png"
+    },
+    "title": "…",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "utility.stickerinfo",
+  "pings": [],
+  "view": []
+}

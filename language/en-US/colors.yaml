@@ -1,0 +1,79 @@
+colors:
+  command:
+    name: colors
+    description: Color panel
+  defaults:
+    rose_light: Light Rose
+    rose_dark: Dark Rose
+    peach_light: Light Peach
+    peach_dark: Dark Peach
+    butter_light: Light Butter
+    butter_dark: Dark Butter
+    mint_light: Light Mint
+    mint_dark: Dark Mint
+    sky_light: Light Sky
+    sky_dark: Dark Sky
+    lavender_light: Light Lavender
+    lavender_dark: Dark Lavender
+    periwinkle_light: Light Periwinkle
+    periwinkle_dark: Dark Periwinkle
+    cotton_light: Light Cotton Candy
+    cotton_dark: Dark Cotton Candy
+    sand_light: Light Sand
+    sand_dark: Dark Sand
+    sage_light: Light Sage
+    sage_dark: Dark Sage
+  error_disabled: '{error} The color panel is disabled in this server.'
+  error_no_panel: '{warning} Set the panel channel in /settings before posting it.'
+  error_no_perms: '{error} I need the **Manage Roles** permission for that.'
+  error_full: '{warning} Limit of {max} colors reached. Remove one before adding another.'
+  error_bad_hex: '{error} Invalid color. Use the hexadecimal format, e.g. `#FFB7C5`.'
+  error_not_found: '{warning} That color no longer exists. The panel may be outdated.'
+  error_no_role: '{warning} The color **{name}** has no attached role. Ask an admin to link one.'
+  error_role_gone: '{warning} The role for color **{name}** was deleted. Ask an admin to link another.'
+  error_hierarchy: '{error} I cannot manage that role: it is above my highest role.'
+  panel_posted: '{check} Color panel posted!'
+  list_title: Available Colors
+  list_current: ' (your current color)'
+  list_empty: '{warning} No colors configured yet. An admin can set them up in /settings.'
+  manager:
+    title: Manage Colors
+    hint: 'Colors: {count}/{max}. Up/Down reorders (affects the image and buttons); edit changes name and hex.'
+    no_role: no role
+    move_up: Up
+    move_down: Down
+    edit: Edit
+    remove: Remove
+    add: Create
+    role_add: Create role
+    attach: Attach roles
+    pending: 'Selected ({count}): {roles}'
+    attach_title: Attach Roles
+    attach_hint: Pick the roles that become colors. Each role's current color is inherited; edit later to adjust name or hex.
+    attach_placeholder: Choose the roles...
+    attached: '{check} {count} role(s) attached.'
+    saved: '{check} Color updated.'
+    added: '{check} Color **{name}** created.'
+    removed: '{check} Color **{name}** removed.'
+    role_created: '{check} Role **{role}** created and attached.'
+    role_modal_title: Create Color Role
+    edit_modal_title: Edit Color
+    field_name: Name (shown in the image)
+    field_hex: Hex color (e.g. FFB7C5)
+    delete_title: Remove Color
+    delete_text: Color **{name}** leaves the panel. The Discord role is **not** deleted.
+    delete_confirm: Remove
+  panel:
+    title: Pick your Color
+    text: Click the number of the color you want ({count} available). Clicking again removes it.
+    placeholder: Pick your color...
+    applied: '{check} Color **{name}** applied!'
+    removed: '{check} Color **{name}** removed.'
+colors_my:
+  command:
+    name: my
+    description: List the available panel colors
+colors_panel:
+  command:
+    name: panel
+    description: '[ADMIN] Post the color panel'

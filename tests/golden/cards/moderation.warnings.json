@@ -1,0 +1,20 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15844367,
+    "description": "…",
+    "fields": [],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "…",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "moderation.warnings",
+  "pings": [],
+  "view": []
+}

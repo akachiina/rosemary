@@ -1,0 +1,22 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
+      "name": "<@0>"
+    },
+    "color": 3447003,
+    "description": "**Membro:** <@0>\n**Convidador:** <@0>",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🚪 Membro Saiu",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "invites.logs.leave",
+  "pings": [],
+  "view": []
+}

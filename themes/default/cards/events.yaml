@@ -1,0 +1,73 @@
+# The event announcements: a member joined, left or got banned, and the
+# birthday of the day.
+#
+# The frame is shared: the member's avatar rides the title, the body tells
+# the story and the footer names the server, the member count and the id.
+# The color tells the tone (brand for a welcome, warning for a leave,
+# danger for a ban).
+
+events.welcome:
+  archetype: event
+  color: brand
+  title: '{events.welcome.title}'
+  description: '{events.welcome.body}'
+  variables:
+  - user
+  - user_name
+  - user_id
+  - server
+  - count
+  - user_avatar
+  - inviter
+  mention: single
+  category: events
+
+events.leave:
+  archetype: event
+  color: warning
+  title: '{events.leave.title}'
+  description: '{events.leave.body}'
+  variables:
+  - user
+  - user_name
+  - user_id
+  - server
+  - count
+  - inviter
+  - user_avatar
+  mention: single
+  category: events
+
+events.ban:
+  archetype: event
+  color: danger
+  title: '{events.ban.title}'
+  description: '{events.ban.body}'
+  variables:
+  - user
+  - user_name
+  - user_id
+  - server
+  - count
+  - inviter
+  - user_avatar
+  mention: single
+  category: events
+
+# The birthday announcement: the celebrant's avatar rides the title and
+# the standard author footer attributes the card to them.
+birthdays.announce:
+  form: embed
+  color: warning
+  title: '{birthdays.announce.title}'
+  description: '{birthdays.announce.body}'
+  thumbnail: '{user_avatar}'
+  footer: '{card.author_footer.text}'
+  variables:
+  - user
+  - server
+  - count
+  - user_avatar
+  - timestamp
+  mention: single
+  category: birthdays

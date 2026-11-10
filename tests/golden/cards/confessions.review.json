@@ -1,0 +1,39 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "confessions.review",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "content": "# …",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        },
+        {
+          "children": [
+            {
+              "type": "MediaGalleryItem",
+              "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+            }
+          ],
+          "type": "MediaGallery"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# <t:1767225600:R>",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}

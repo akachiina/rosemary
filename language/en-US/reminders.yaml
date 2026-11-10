@@ -1,0 +1,42 @@
+reminders:
+  command:
+    name: reminders
+    description: Manage reminders
+  error_disabled: '{error} Reminders are disabled on this server.'
+  saved: '{success} Reminder `{name}` saved.'
+  deleted: '{success} Reminder `{name}` deleted.'
+  not_found: '{error} No reminder named `{name}`.'
+  list_title: Saved reminders
+  list_empty: No reminders saved yet.
+  done: '{success} Reminder sent to {sent} member(s) ({failed} failed).'
+  logs:
+    sent:
+      title: '{envelope} Reminder Sent'
+      description: '{moderator} sent reminder `{name}` ({sent} sent, {failed} failed).'
+reminders_delete:
+  command:
+    name: delete
+    description: '[ADMIN] Delete a reminder message'
+    options:
+      name:
+        description: Short name
+reminders_list:
+  command:
+    name: list
+    description: '[ADMIN] List reminder messages'
+reminders_save:
+  command:
+    name: save
+    description: '[ADMIN] Save a reminder message'
+    options:
+      name:
+        description: Short name
+      message:
+        description: Message text
+reminders_send:
+  command:
+    name: send
+    description: '[ADMIN] DM a reminder to every member'
+    options:
+      name:
+        description: Short name

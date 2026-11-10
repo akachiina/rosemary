@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "Ticket #… foi reaberto.",
+    "fields": [],
+    "footer": {
+      "text": "<t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🔓 Ticket Reaberto",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "tickets.logs.reopened",
+  "pings": [],
+  "view": []
+}

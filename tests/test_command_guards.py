@@ -83,8 +83,16 @@ async def test_administrator_denied_responds_ephemeral() -> None:
     ctx = _Ctx(administrator=False, manage_messages=False)
     assert await require_admin(ctx) is False
     assert ctx.responded is not None
-    assert ctx.responded["kwargs"] == {"ephemeral": True}
-    assert ctx.responded["args"] == ("DENIED_TEXT",)
+    assert ctx.responded["kwargs"]["ephemeral"] is True
+    # The denial is a plain notice line: the theme prefix plus the copy.
+    (content,) = ctx.responded["args"]
+    assert content.endswith("DENIED_TEXT")
+    assert content.startswith("⚠️ **|**")
+    # The notice never notifies (it is plain content now, not a component).
+    mentions = ctx.responded["kwargs"]["allowed_mentions"]
+    assert mentions.everyone is False
+    assert not mentions.users
+    assert not mentions.roles
     assert ctx.bot.translator.calls == [(ctx.guild_id, "general.no_permission")]
 
 
@@ -105,7 +113,12 @@ async def test_denial_uses_followup_when_already_acked() -> None:
     assert await require_admin(ctx) is False
     assert ctx.responded is None
     assert ctx.followup.sent is not None
-    assert ctx.followup.sent["kwargs"] == {"ephemeral": True}
+    assert ctx.followup.sent["kwargs"]["ephemeral"] is True
+    # The follow-up carries the same closed mention policy.
+    mentions = ctx.followup.sent["kwargs"]["allowed_mentions"]
+    assert mentions.everyone is False
+    assert not mentions.users
+    assert not mentions.roles
 
 
 async def test_missing_permissions_attribute_denies(caplog) -> None:

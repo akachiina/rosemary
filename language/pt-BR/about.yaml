@@ -1,0 +1,90 @@
+about:
+  command:
+    name: sobre
+    description: Sobre a Rosemary
+  title: Sobre a Rosemary
+  text: A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.
+  version: 'Versão: `{version}` (`{channel}`)'
+actions:
+  open_ticket:
+    label: Abrir ticket
+    description: Abre um ticket de suporte
+  dismiss:
+    label: Dispensar
+    description: Apaga esta mensagem
+  unavailable: Esta ação não está disponível aqui.
+  ticket_created: 'Ticket aberto: {channel}'
+channelinfo:
+  types:
+    text: Texto
+    voice: Voz
+    stage_voice: Palco
+    category: Categoria
+    forum: Fórum
+    media: Mídia
+    news: Novidades
+    public_thread: Thread pública
+    private_thread: Thread privada
+    announcement_thread: Thread de novidades
+emojiinfo:
+  error: '{warning} Emoji inválido. Envie um emoji customizado, um emoji unicode, o link de uma mensagem ou um ID.'
+  not_found: '{error} Não encontrei este emoji ou sticker.'
+  message_no_emoji: '{error} Essa mensagem não tem sticker nem emoji customizado para inspecionar.'
+  source_guild: Emoji do servidor
+  source_app: Emoji da aplicação
+  source_unknown: Origem desconhecida
+help:
+  title: '{scroll} Comandos'
+  body: Comandos de texto deste servidor, todos digitados com o prefixo `{prefix}`.
+  group_moderation: Moderação
+  group_info: Informações
+  group_general: Geral
+  group_interactions: Interações
+  roleplay_description: 'Interações de roleplay com gif. Use uma com um membro: `{prefix}hug @membro`'
+  self_description: Mostra esta lista de comandos
+info:
+  command:
+    name: info
+    description: Mostra informações
+info_channel:
+  command:
+    name: canal
+    description: Mostra informações de um canal
+    options:
+      channel:
+        description: Canal a inspecionar
+info_emoji:
+  command:
+    name: emoji
+    description: Mostra informações de um emoji, sticker ou mensagem
+    options:
+      emoji:
+        description: Emoji customizado ou unicode, link/ID de mensagem ou ID de sticker
+info_role:
+  command:
+    name: cargo
+    description: Mostra informações de um cargo
+    options:
+      role:
+        description: Cargo a inspecionar
+info_server:
+  command:
+    name: servidor
+    description: Mostra informações do servidor
+info_user:
+  command:
+    name: usuario
+    description: Mostra informações de um membro
+    options:
+      member:
+        description: Membro a inspecionar
+serverinfo:
+  title: Informações do Servidor
+  name: '**Nome:** {value}'
+  owner: '**Dono:** {value}'
+  members: '**Membros:** {value}'
+  roles: '**Cargos:** {value}'
+  channels: '**Canais:** {value}'
+  created: '**Criado em:** {value}'
+userinfo:
+  timeout_none: nenhuma

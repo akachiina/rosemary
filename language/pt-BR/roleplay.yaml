@@ -1,0 +1,132 @@
+roleplay:
+  command:
+    name: roleplay
+    description: Manda um card de roleplay com gif para alguém
+  error_disabled: O roleplay está desativado neste servidor.
+  error_self: Você não pode interagir consigo mesmo... ou pode? Tente mencionar outra pessoa!
+  error_bot: Bots não participam do roleplay.
+  error_not_target: Só quem recebeu o roleplay pode retribuir.
+  error_gone: Quem participou deste roleplay não está mais no servidor.
+  error_no_gif: '{error} Nenhuma fonte de gif disponível para este roleplay (API fora do ar e nada configurado).'
+  regive: Retribuir
+  actions:
+    hug: abraçou
+    kiss: beijou
+    pat: fez cafuné em
+    slap: deu um tapa em
+    bite: mordeu
+    punch: socou
+    attack: atacou
+    poke: cutucou
+    dance: dançou com
+    highfive: tocou as mãos de
+    stare: encarou
+    cuddle: dormiu abraçado com
+  card:
+    title: Card de roleplay
+  source: Fonte da imagem
+  manager:
+    title: Gerenciar gifs
+    body: 'Ação: **{action}**. `api` = gif aleatório da categoria (nekos.best); `url` = gif fixo.'
+    empty: Nenhum gif configurado para esta ação (a API padrão é usada como fallback).
+    add: Adicionar gif
+    add_hint: Cole a URL do gif (deixe a categoria vazia para usar só a URL).
+    add_api_hint: Categoria da API (ex. hug, kiss). Deixe vazio se preencheu a URL.
+    add_modal_title: Novo gif
+    edit_hint: Remover um gif...
+    remove_hint: Remover um gif...
+    restore: Restaurar do tema
+    restored: Lista restaurada a partir do tema.
+    removed: Gif removido.
+    added: Gif adicionado.
+    invalid: '{error} Preencha uma URL válida (http) OU uma categoria da API (letras e números).'
+    api_offline: '{warning} A API nekos.best não respondeu; confira mais tarde ou use uma URL fixa.'
+    save: Salvar
+    cancel: Cancelar
+    list_title: Gifs configurados
+    mode_api: aleatório (API)
+    mode_url: fixo
+roleplay_attack:
+  command:
+    name: atacar
+    description: Manda um card de ataque com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_bite:
+  command:
+    name: morder
+    description: Manda um card de mordida com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_cuddle:
+  command:
+    name: dormir_junto
+    description: Manda um card de dormir abraçado com gif
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_dance:
+  command:
+    name: dancar
+    description: Manda um card de dança com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_highfive:
+  command:
+    name: toque_aqui
+    description: Manda um card de toque aqui (high five) com gif
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_hug:
+  command:
+    name: abracar
+    description: Manda um card de abraço com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_kiss:
+  command:
+    name: beijar
+    description: Manda um card de beijo com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_pat:
+  command:
+    name: cafune
+    description: Manda um card de cafuné com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_poke:
+  command:
+    name: cutucar
+    description: Manda um card de cutucada com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_punch:
+  command:
+    name: socar
+    description: Manda um card de soco com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_slap:
+  command:
+    name: bofetada
+    description: Manda um card de tapa com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação
+roleplay_stare:
+  command:
+    name: encarar
+    description: Manda um card de encarada com gif para alguém
+    options:
+      member:
+        description: Quem recebe a ação

@@ -1,0 +1,14 @@
+{
+  "content": null,
+  "embed": {
+    "color": 5763719,
+    "description": "<@0>, descreva seu problema. A staff vai te atender (…).",
+    "fields": [],
+    "title": "Ticket aberto",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "tickets.created",
+  "pings": [],
+  "view": []
+}

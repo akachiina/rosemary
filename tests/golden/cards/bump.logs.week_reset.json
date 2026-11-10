@@ -1,0 +1,31 @@
+{
+  "content": null,
+  "embed": {
+    "author": {
+      "name": "<@0>"
+    },
+    "color": 3066993,
+    "fields": [
+      {
+        "inline": false,
+        "name": "🏆 Vencedor(a)",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "📊 Bumps",
+        "value": "1"
+      }
+    ],
+    "footer": {
+      "text": "por <@0> · <t:1767225600:R>"
+    },
+    "timestamp": "<iso>",
+    "title": "🔄 Semana de Bump Resetada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "bump.logs.week_reset",
+  "pings": [],
+  "view": []
+}
