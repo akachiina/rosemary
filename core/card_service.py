@@ -43,12 +43,12 @@ from rosemary.core.cards import (
     build_embed_view,
     default_form,
     render_document,
-    resolve_embed,
+    resolve_embeds,
     validate_document,
 )
 from rosemary.core.design.compile import compile_card
 from rosemary.core.design.ir import Action, Author, Card, Field
-from rosemary.core.design.serialize import card_to_embed, card_to_text, card_to_v2
+from rosemary.core.design.serialize import card_to_embeds, card_to_text, card_to_v2
 from rosemary.core.identity import event_time, inject_identities
 from rosemary.core.themes import theme_for
 
@@ -307,8 +307,11 @@ def _payload_for_card(
         # copy, verbatim.
         return CardPayload(content=text), text
     if card.form == FORM_EMBED:
-        document = card_to_embed(card)
-        embed, buttons = resolve_embed(document, theme, mapping, resolved=True)
+        # A box that says nothing does not ship: an empty frame is not a
+        # card (and Discord would reject it).
+        boxes = tuple(box for box in card.embeds if _says_something(box))
+        documents = card_to_embeds(card, boxes)
+        embeds, buttons = resolve_embeds(documents, theme, mapping, resolved=True)
         view = build_embed_view(buttons, mapping, key, resolved=True)
         # The content of an embed is the phrase its document declares: the
         # content line (the event sentence, which always ships) or the ping
@@ -318,7 +321,10 @@ def _payload_for_card(
         content = card.content_line
         if not content and theme_pings(bot, guild_id, key):
             content = card.ping_line
-        return CardPayload(embed=embed, view=view, content=content or None), content
+        return (
+            CardPayload(embeds=tuple(embeds), view=view, content=content or None),
+            content,
+        )
     document = card_to_v2(card, theme)
     view = render_document(
         bot, document, mapping, guild_id=guild_id, card_key=key, resolved=True
@@ -371,6 +377,9 @@ def _says_something(card: Card) -> bool:
         or card.paragraphs
         or card.fields
     ):
+        return True
+    # A stack of embeds: the copy may live in the boxes alone.
+    if any(_says_something(embed) for embed in card.embeds):
         return True
     return card.author is not None and bool(card.author.name)
 

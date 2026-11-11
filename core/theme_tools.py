@@ -150,6 +150,7 @@ async def _validate_delta(
         resolved = resolve_layers(doc, archetypes, fragments)
     except DocumentError as exc:
         return [ThemeIssue(exc.code, key, str(exc))]
+    issues.extend(await _validate_document(bot, guild_id, theme, key, resolved))
     color = resolved.get("color")
     for token in color if isinstance(color, list) else [color]:
         if not isinstance(token, str):
@@ -189,6 +190,36 @@ async def _validate_delta(
                 )
             )
     return issues
+
+
+async def _validate_document(
+    bot, guild_id: int, theme: Any, key: str, resolved: dict[str, Any]
+) -> list[ThemeIssue]:
+    """The delta read into the model: a broken slot is reported here.
+
+    The document is merged over the packaged one (the same merge the send
+    path does) and read into the card model: a slot the reader refuses (a
+    message slot inside a box of the ``embeds`` list, a stack of eleven
+    boxes, a stack in a shape that has no place for it) is a hole in the
+    theme, and the panel says so instead of the send silently falling back.
+    """
+    from rosemary.core.card_resolution import _merge_delta
+    from rosemary.core.documents.semantic import build_cards
+    from rosemary.core.documents.templates import Resolver
+
+    base = default_package().document(key) or {}
+    try:
+        merged = _merge_delta(base, resolved)
+    except DocumentError as exc:
+        return [ThemeIssue(exc.code, key, str(exc))]
+    resolver = Resolver(
+        bot, guild_id, {}, emojis=getattr(theme, "emojis", {}) or {}
+    )
+    try:
+        await build_cards(merged, key, resolver)
+    except DocumentError as exc:
+        return [ThemeIssue(exc.code, key, str(exc))]
+    return []
 
 
 async def _catalog_copy(bot, guild_id: int, key: str) -> str:

@@ -40,7 +40,9 @@ Components V2 (the interactive UI only).
   and the test both use it). The fixture shows what a member really receives:
   the composed lines (`EXTRA_LINES`, `EXTRA_LINES_BY_KEY`) and the state the
   send site computes (`STATE_BY_KEY`) are filled the same way the live send
-  fills them.
+  fills them. A message that carries a stack of embeds records the boxes in
+  the `embeds` field (the `embed` field keeps the first one); the field only
+  appears when there is more than one box.
 - **Golden panels**: `tests/golden/panels/<name>.json` pins what every
   representative panel shows (the texts, the buttons and the selects, with the
   label, the description, the icon and the current default). After a
@@ -67,6 +69,8 @@ Components V2 (the interactive UI only).
   text card disguises a field as `> **Label:**`, the category picker marks the
   current category, every action button of the five panels has an icon, no
   golden leaks `{emojis/`, and slash command descriptions stay emoji-free.
+  The embed rules read **every** box of a message (the stack of the
+  `embeds:` slot) and every message of a sequence.
 - **Icons and settings UX**: `tests/test_icon_system.py` requires a
   `category_*`/`type_*` token per registry value and pins `Theme.icon` (an
   asset reference resolves to the mention, an unknown asset to empty).
@@ -271,7 +275,8 @@ the opposite: the theme asked for a rich layout, so it ships as Components V2.
 - `CardPayload` carries the three shapes (`content`, `embed`, `view`); it
   lives in `core/card_payload.py` (with `send_card`, `is_v2_message` and
   `is_v2_payload`). Send sites use `payload.message_kwargs()` and never
-  branch on the form.
+  branch on the form. A message that carries a stack of embeds also has
+  `embeds` (the whole stack), the first box being `embed`.
 - The pipeline is three modules: `core/card_resolution.py` (which document
   answers: the theme's delta, the theme's legacy card, else the package),
   `core/design/compile.py` (the placeholders resolved once) and
@@ -308,8 +313,47 @@ the card, inherited by every message that does not declare its own.
   `messages:` replaces the topology whole.
 - The sequences are **one-shot** (the DMs and the announcements): the
   repaint never rebuilds them, it edits the first message.
-- `embeds:` (two embeds in the same message) does not exist yet: v1 sends N
-  messages, each one with its own embed.
+
+### The boxes of a message (`embeds:`)
+
+A message may carry **several** classic embeds, stacked. The `embeds:` slot
+is the plural of the embed: each entry is a whole card of its own (its own
+title, body, fields and accent), so a theme writes the boxes a message
+carries without touching Python.
+
+```yaml
+boost.dm.invite:
+  form: embed
+  content_line: '{boost.dm.invite}'   # the message, not a box
+  actions: [...]                      # the message, not a box
+  embeds:                             # the boxes of the message
+  - title: '{boost.dm.invite_role}'
+    description: '{boost.dm.invite_body}'
+  - title: '{boost.dm.invite_terms}'
+    description: '{...}'
+```
+
+- The list **decides**: when a document declares `embeds:`, the top slots
+  (`title`, `description`, `fields`, `color`...) are ignored. The top slots
+  are the short form of a list of one box, so every card that never declared
+  the slot keeps shipping exactly what it shipped before.
+- The stack only lives in the classic embed form (`card_bad_embeds`
+  otherwise): Discord's Components V2 carries no embed at all.
+- The slots of the **message** (`actions`, `content_line`, `ping_line`,
+  `variables`, `actor`, `form`, `messages`, `embeds`...) may not live inside
+  a box (`card_bad_embed`): the buttons and the content line belong to the
+  message that carries the boxes.
+- Discord carries **ten** embeds at most: a longer list is a document error
+  (`card_too_many_embeds`), caught by the reader (and by the theme lint).
+- A box that says nothing does not ship (an empty frame is not a card).
+- The buttons of the message ride the **first** box; the mention policy is
+  one per message: every box collects into the same policy.
+- `CardPayload` carries the stack (`embeds`) and its first box (`embed`),
+  both in sync; `message_kwargs()` sends `embed=` for one box and
+  `embeds=[...]` for many.
+- The stack lives in the model as `Card.embeds` (a tuple of cards), it is
+  compiled with the parent (`core/design/compile.py`) and drawn by
+  `card_to_embeds` / `resolve_embeds`.
 
 ### Repaint follows the message
 

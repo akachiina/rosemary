@@ -22,7 +22,9 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+from rosemary.core.cards import FORM_EMBED
 from rosemary.core.design.ir import (
+    MAX_EMBEDS,
     Action,
     Author,
     Card,
@@ -37,6 +39,30 @@ from rosemary.core.design.ir import (
 from rosemary.core.documents.merge import DocumentError
 from rosemary.core.documents.templates import TOKEN_RE, Resolver
 
+#: The slots that belong to the **message**, not to one of its embeds. An
+#: entry of the ``embeds`` slot may not declare them: the buttons, the
+#: content line and the contract belong to the message that carries the
+#: boxes.
+MESSAGE_SLOTS = frozenset(
+    {
+        "actions",
+        "actor",
+        "blocks",
+        "category",
+        "content_line",
+        "embeds",
+        "form",
+        "form_override",
+        "legacy_body",
+        "mention",
+        "messages",
+        "ping_line",
+        "rich",
+        "style",
+        "variables",
+    }
+)
+
 #: The keys a document may carry. Anything else is an error.
 SLOT_KEYS = frozenset(
     {
@@ -49,6 +75,7 @@ SLOT_KEYS = frozenset(
         "color",
         "content_line",
         "description",
+        "embeds",
         "fields",
         "footer",
         "footer_icon",
@@ -134,6 +161,11 @@ async def build_card(
     fields = await _fields(doc.get("fields"), resolver)
     blocks = await _blocks(doc.get("blocks"), resolver)
     actions = await _actions(doc.get("actions"), resolver)
+    embeds = await _embeds(doc.get("embeds"), key, resolver)
+    if embeds and form != FORM_EMBED:
+        # Only a classic embed message carries embeds: the other two shapes
+        # have no place for them (Discord's rule).
+        raise DocumentError("card_bad_embeds", form)
     author_name = await _text(doc.get("author"), resolver)
     author_icon = await _text(doc.get("author_icon"), resolver)
     author = Author(name=author_name, icon_url=author_icon) if author_name else None
@@ -164,6 +196,7 @@ async def build_card(
         fields=tuple(fields),
         blocks=tuple(blocks),
         actions=tuple(actions),
+        embeds=embeds,
         variables=tuple(str(name) for name in (doc.get("variables") or ())),
     )
 
@@ -422,6 +455,47 @@ async def _actions(raw: Any, resolver: Resolver) -> list[Action]:
             )
         )
     return actions
+
+
+async def _embeds(raw: Any, key: str, resolver: Resolver) -> tuple[Card, ...]:
+    """The ``embeds`` slot: the boxes the message carries.
+
+    Each entry is a whole card of its own (its own title, body, fields and
+    accent), so a theme can stack several boxes in one message. The slots
+    that belong to the message (the buttons, the content line, the contract)
+    may not be declared here: they would describe the message, not one of
+    its boxes.
+    """
+    if raw is None:
+        return ()
+    if not isinstance(raw, list) or not raw:
+        raise DocumentError("card_bad_embeds")
+    if len(raw) > MAX_EMBEDS:
+        raise DocumentError("card_too_many_embeds", str(len(raw)))
+    cards: list[Card] = []
+    for entry in raw:
+        if not isinstance(entry, dict) or not entry:
+            raise DocumentError("card_bad_embeds")
+        validate_keys(entry)
+        forbidden = MESSAGE_SLOTS.intersection(entry)
+        if forbidden:
+            raise DocumentError("card_bad_embed", sorted(forbidden)[0])
+        card = await build_card(entry, key, resolver)
+        cards.append(
+            dataclasses.replace(
+                card,
+                form=FORM_EMBED,
+                actions=(),
+                blocks=(),
+                content="",
+                content_line="",
+                ping_line="",
+                variables=(),
+                actor="",
+                style="info",
+            )
+        )
+    return tuple(cards)
 
 
 async def _blocks(raw: Any, resolver: Resolver) -> list[Any]:

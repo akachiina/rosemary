@@ -37,6 +37,7 @@ import copy
 import dataclasses
 import logging
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -1168,6 +1169,30 @@ def resolve_embed(
             ]
         )
     return embed, list(doc.get("buttons") or [])
+
+
+def resolve_embeds(
+    documents: list[dict[str, Any]] | tuple[dict[str, Any], ...],
+    theme: Any,
+    mapping: Mapping[str, Any],
+    *,
+    resolved: bool = False,
+) -> tuple[list[discord.Embed], list[dict[str, Any]]]:
+    """Resolve the embed documents of a message: ``(embeds, buttons)``.
+
+    A message carries one embed or a stack of them (the ``embeds`` slot of
+    the document). The buttons belong to the message, so every document
+    contributes its own and they all ride the same row.
+    """
+    embeds: list[discord.Embed] = []
+    buttons: list[dict[str, Any]] = []
+    for document in documents:
+        embed, document_buttons = resolve_embed(
+            document, theme, mapping, resolved=resolved
+        )
+        embeds.append(embed)
+        buttons.extend(document_buttons)
+    return embeds, buttons
 
 
 def _build_embed_button(

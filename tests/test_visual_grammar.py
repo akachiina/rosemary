@@ -41,6 +41,28 @@ def _cards() -> list[tuple[str, dict[str, Any]]]:
     ]
 
 
+def _messages(card: dict[str, Any]) -> list[dict[str, Any]]:
+    """The messages of a card (one, or the sequence it declares)."""
+    messages = card.get("messages")
+    if isinstance(messages, list):
+        return [message for message in messages if isinstance(message, dict)]
+    return [card]
+
+
+def _embeds(message: dict[str, Any]) -> list[dict[str, Any]]:
+    """The embeds of one message: its stack, or its single embed.
+
+    A message carries one embed (the shape every card had) or a stack of
+    them (the ``embeds`` slot of the document). The rules below read every
+    box of the stack: a second embed is not a second-class frame.
+    """
+    stack = message.get("embeds")
+    if isinstance(stack, list) and stack:
+        return [embed for embed in stack if isinstance(embed, dict)]
+    embed = message.get("embed")
+    return [embed] if isinstance(embed, dict) else []
+
+
 def _frame_text(frame: dict[str, Any] | None) -> str:
     if not frame:
         return ""
@@ -51,36 +73,34 @@ def test_the_frame_never_carries_a_token():
     """The author and the footer show names and dates, never the raw token."""
     broken: list[str] = []
     for key, card in _cards():
-        embed = card.get("embed")
-        if not embed:
-            continue
-        for field in ("author", "footer"):
-            text = _frame_text(embed.get(field))
-            if MENTION.search(text) or TIMESTAMP.search(text):
-                broken.append(f"{key}: {field} carries {text!r}")
+        for message in _messages(card):
+            for index, embed in enumerate(_embeds(message)):
+                for field in ("author", "footer"):
+                    text = _frame_text(embed.get(field))
+                    if MENTION.search(text) or TIMESTAMP.search(text):
+                        broken.append(f"{key} [{index}]: {field} carries {text!r}")
     assert broken == []
 
 
 def test_the_image_is_never_the_thumbnail():
     """The thumbnail identifies the subject; the image shows the content."""
-    broken = [
-        key
-        for key, card in _cards()
-        if (embed := card.get("embed"))
-        and embed.get("image")
-        and embed.get("image") == embed.get("thumbnail")
-    ]
+    broken: list[str] = []
+    for key, card in _cards():
+        for message in _messages(card):
+            for index, embed in enumerate(_embeds(message)):
+                if embed.get("image") and embed.get("image") == embed.get("thumbnail"):
+                    broken.append(f"{key} [{index}]")
     assert broken == []
 
 
 def test_every_embed_has_title_or_description():
     """An embed with neither is an empty frame, not a card."""
-    broken = [
-        key
-        for key, card in _cards()
-        if (embed := card.get("embed"))
-        and not (embed.get("title") or embed.get("description"))
-    ]
+    broken: list[str] = []
+    for key, card in _cards():
+        for message in _messages(card):
+            for index, embed in enumerate(_embeds(message)):
+                if not (embed.get("title") or embed.get("description")):
+                    broken.append(f"{key} [{index}]")
     assert broken == []
 
 
@@ -88,12 +108,13 @@ def test_an_embed_with_a_ping_carries_a_sentence():
     """An embed never notifies: the ping travels as a sentence in the content."""
     broken: list[str] = []
     for key, card in _cards():
-        if not card.get("pings") or not card.get("embed"):
-            continue
-        content = card.get("content") or ""
-        sentence = MENTION.sub("", content).strip()
-        if not sentence:
-            broken.append(f"{key}: content is {content!r}, not a sentence")
+        for message in _messages(card):
+            if not message.get("pings") or not _embeds(message):
+                continue
+            content = message.get("content") or ""
+            sentence = MENTION.sub("", content).strip()
+            if not sentence:
+                broken.append(f"{key}: content is {content!r}, not a sentence")
     assert broken == []
 
 
@@ -101,24 +122,26 @@ def test_a_multiline_text_card_opens_with_a_bold_title():
     """One thing per line starts with the title, in bold."""
     broken: list[str] = []
     for key, card in _cards():
-        if card.get("embed") is not None:
-            continue
-        content = card.get("content") or ""
-        if "\n" not in content:
-            continue
-        first = content.splitlines()[0]
-        if not BOLD.search(first):
-            broken.append(f"{key}: {first!r}")
+        for message in _messages(card):
+            if _embeds(message):
+                continue
+            content = message.get("content") or ""
+            if "\n" not in content:
+                continue
+            first = content.splitlines()[0]
+            if not BOLD.search(first):
+                broken.append(f"{key}: {first!r}")
     assert broken == []
 
 
 def test_a_text_card_never_disguises_a_field_as_a_blockquote():
-    broken = [
-        key
-        for key, card in _cards()
-        if card.get("embed") is None
-        and FAKE_FIELD.search(card.get("content") or "")
-    ]
+    broken: list[str] = []
+    for key, card in _cards():
+        for message in _messages(card):
+            if _embeds(message):
+                continue
+            if FAKE_FIELD.search(message.get("content") or ""):
+                broken.append(key)
     assert broken == []
 
 

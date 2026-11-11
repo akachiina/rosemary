@@ -190,15 +190,34 @@ def _view_snapshot(payload: Any) -> list[dict[str, Any]]:
     return [_item_snapshot(item) for item in getattr(view, "children", []) or []]
 
 
+def _embed_data(embed: Any) -> dict[str, Any]:
+    """One embed of a rendered payload, with a frozen timestamp."""
+    data = embed.to_dict()
+    if data.get("timestamp"):
+        data["timestamp"] = "<iso>"
+    return data
+
+
 def _embed_snapshot(payload: Any) -> dict[str, Any] | None:
     """The classic embed of a rendered payload, with a frozen timestamp."""
     embed = getattr(payload, "embed", None)
     if embed is None:
         return None
-    data = embed.to_dict()
-    if data.get("timestamp"):
-        data["timestamp"] = "<iso>"
-    return data
+    return _embed_data(embed)
+
+
+def _embeds_snapshot(payload: Any) -> list[dict[str, Any]] | None:
+    """The stack of embeds of a rendered payload.
+
+    A message carries one embed (the shape every card had) or a stack of
+    them (the ``embeds`` slot of the document). The stack is only recorded
+    when there is more than one box: the single embed stays in the
+    ``embed`` field, so the fixture of a plain card does not change.
+    """
+    embeds = list(getattr(payload, "embeds", ()) or ())
+    if len(embeds) <= 1:
+        return None
+    return [_embed_data(embed) for embed in embeds]
 
 
 async def render_card(bot: GoldenBot, key: str) -> dict[str, Any]:
@@ -237,9 +256,11 @@ def _message_snapshot(message: Any) -> dict[str, Any]:
     pings: list[int] = []
     if allowed is not None:
         pings = sorted(allowed.to_dict().get("users") or [])
+    stack = _embeds_snapshot(payload)
     return {
         "content": getattr(payload, "content", None),
         "embed": _embed_snapshot(payload),
+        **({"embeds": stack} if stack else {}),
         "view": _view_snapshot(payload),
         "pings": pings,
     }

@@ -35,23 +35,47 @@ class CardPayload:
     buttons) and ``content`` carries a plain-text message (or the line that
     holds an embed card's essential ping). Send through :func:`send_card`
     instead of touching the fields.
+
+    A message may carry a **stack** of embeds (the ``embeds`` slot of the
+    document): ``embeds`` holds them all and ``embed`` is the first one, so
+    every reader that knows a single embed keeps working.
     """
 
     view: discord.ui.DesignerView | discord.ui.View | None = None
     embed: discord.Embed | None = None
+    #: The stack of embeds of the message (one, or the list the card
+    #: declares).
+    embeds: tuple[discord.Embed, ...] = ()
     #: Files uploaded with the message; galleries/thumbnails in the card
     #: reference them via ``attachment://<filename>`` (color panel image).
     files: list[discord.File] = dataclasses.field(default_factory=list)
     #: Plain text of the message (text form, or the ping line of an embed).
     content: str | None = None
 
+    def __post_init__(self) -> None:
+        """Keep the two views of the stack in sync.
+
+        ``embed`` is the first box and ``embeds`` is the whole stack: a
+        payload built with one of them fills the other.
+        """
+        if self.embeds:
+            if self.embed is None:
+                object.__setattr__(self, "embed", self.embeds[0])
+        elif self.embed is not None:
+            object.__setattr__(self, "embeds", (self.embed,))
+
     def message_kwargs(self) -> dict[str, Any]:
         """Keyword arguments for ``send``/``respond``/``edit`` with this card."""
         kwargs: dict[str, Any] = {}
         if self.content is not None:
             kwargs["content"] = self.content
-        if self.embed is not None:
-            kwargs["embed"] = self.embed
+        if self.embeds:
+            if len(self.embeds) == 1:
+                kwargs["embed"] = self.embeds[0]
+            else:
+                # Discord carries a stack of embeds in one message (ten, at
+                # most): the list is the keyword.
+                kwargs["embeds"] = list(self.embeds)
             if self.view is not None:
                 kwargs["view"] = self.view
         elif self.view is not None:

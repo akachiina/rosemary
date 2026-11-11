@@ -190,6 +190,26 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     return blocks_to_document(tuple(children))
 
 
+def card_to_embeds(card: Card, boxes: tuple[Card, ...] | None = None) -> list[dict[str, Any]]:
+    """The embed documents of a message: one, or the list the card declares.
+
+    A card that declares no ``embeds`` keeps its own slots as its single
+    embed (the shape every card had). A card that declares the list stacks
+    its boxes: the buttons of the message ride the first one, because the
+    buttons belong to the message, not to a box.
+
+    ``boxes`` names the boxes that actually ship (the caller drops the ones
+    that say nothing): it defaults to the card's own list.
+    """
+    stack = card.embeds if boxes is None else boxes
+    if not card.embeds:
+        return [card_to_embed(card)]
+    documents = [card_to_embed(sub) for sub in stack]
+    if documents and card.actions and not documents[0].get("buttons"):
+        documents[0]["buttons"] = [action_to_document(action) for action in card.actions]
+    return documents
+
+
 def card_to_embed(card: Card) -> dict[str, Any]:
     """The internal embed document of a card.
 
@@ -300,6 +320,7 @@ def card_to_text(card: Card) -> str:
 __all__ = [
     "action_to_document",
     "card_to_embed",
+    "card_to_embeds",
     "card_to_text",
     "card_to_v2",
 ]

@@ -88,11 +88,16 @@ class Package:
         """
         doc = self.documents.get(key) or {}
         first = _first_message(doc)
+        form = str(first.get("form") or doc.get("form") or "embed")
+        if first.get("embeds"):
+            # A stack of embeds only lives in the classic embed form: the
+            # list decides the shape too.
+            form = "embed"
         return {
             "variables": tuple(doc.get("variables") or ()),
             "mention": str(doc.get("mention") or "none"),
             "category": str(doc.get("category") or "general"),
-            "form": str(first.get("form") or doc.get("form") or "embed"),
+            "form": form,
             "actor": str(first.get("actor") or doc.get("actor") or ""),
             "rich": bool(doc.get("rich", True)),
             "style": str(first.get("style") or doc.get("style") or "info"),

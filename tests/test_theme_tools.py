@@ -30,6 +30,17 @@ audit.ban:
   title: '{card.audit.ban.title}'
 """
 
+#: A theme whose stack of embeds carries a slot of the message.
+BROKEN_STACK_CARD = """
+audit.ban:
+  form: embed
+  embeds:
+  - title: 'Uma caixa'
+    actions:
+    - label: 'Abrir'
+      url: 'https://example.com'
+"""
+
 #: A theme whose delta is sound.
 SOUND_CARD = """
 audit.ban:
@@ -129,6 +140,16 @@ async def test_the_validation_reports_an_unknown_card(tmp_path):
     theme = store.load("fancy")
     issues = await validate_theme(bot, 1, theme)
     assert [issue.code for issue in issues] == ["theme_unknown_card"]
+
+
+async def test_the_validation_reads_the_stack_of_embeds(tmp_path):
+    """A box that carries a slot of the message is a broken document."""
+    store = _store(tmp_path, cards=BROKEN_STACK_CARD)
+    bot = FakeBot(tmp_path, store)
+    theme = store.load("fancy")
+    issues = await validate_theme(bot, 1, theme)
+    assert [issue.code for issue in issues] == ["card_bad_embed"]
+    assert issues[0].where == "audit.ban"
 
 
 #: the diff -------------------------------------------------------------------

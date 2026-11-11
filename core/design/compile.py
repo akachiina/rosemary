@@ -65,7 +65,11 @@ class _Mentions:
         )
 
 
-def compile_card(card: Card, mapping: Mapping[str, Any]) -> Compiled:
+def compile_card(
+    card: Card,
+    mapping: Mapping[str, Any],
+    mentions: _Mentions | None = None,
+) -> Compiled:
     """Resolve every placeholder of ``card`` and collect its mentions.
 
     The card's native shape decides what is resolved: a blocks card resolves
@@ -75,8 +79,12 @@ def compile_card(card: Card, mapping: Mapping[str, Any]) -> Compiled:
 
     The ``actor`` slot resolves first: it answers the ``{actor}``
     placeholder everywhere in the card (the log footers use it).
+
+    ``mentions`` is shared by the embeds of a message: every box of the
+    message collects into the same policy, because Discord applies it per
+    message, not per embed.
     """
-    mentions = _Mentions()
+    mentions = _Mentions() if mentions is None else mentions
     mapping = dict(mapping)
     if card.actor:
         actor, found = _resolve(card.actor, mapping)
@@ -267,6 +275,9 @@ def _compile_slots(card: Card, mapping: Mapping[str, Any], mentions: _Mentions) 
         compiled = _compile_action(action, mapping, mentions, collect=False)
         if _keeps_its_purpose(action, compiled.url):
             actions.append(compiled)
+    # The boxes of the message: each one is a card of its own, resolved with
+    # the same mapping and the same mention policy.
+    embeds = tuple(compile_card(sub, mapping, mentions).card for sub in card.embeds)
     return replace(
         card,
         title=title,
@@ -280,6 +291,7 @@ def _compile_slots(card: Card, mapping: Mapping[str, Any], mentions: _Mentions) 
         footer_icon=_url(_resolve(card.footer_icon, mapping)[0]),
         fields=tuple(fields),
         actions=tuple(actions),
+        embeds=embeds,
         ping_line=_resolve(card.ping_line, mapping)[0],
         content_line=_resolve(card.content_line, mapping)[0],
     )

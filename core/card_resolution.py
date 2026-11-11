@@ -25,6 +25,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from rosemary.core.cards import FORM_EMBED
 from rosemary.core.design.ir import Card
 
 log = logging.getLogger(__name__)
@@ -137,6 +138,10 @@ async def _packaged_cards(
         # the fields) of the packaged document, keeping its frame.
         cards[0] = dataclasses.replace(cards[0], paragraphs=(legacy,), fields=())
     shape = form or card_form(bot, guild_id, key)
+    if cards[0].embeds:
+        # A stack of embeds only lives in the classic embed form: the list
+        # decides the shape too, so a form override never empties the card.
+        shape = FORM_EMBED
     if shape and shape != cards[0].form:
         cards[0] = dataclasses.replace(cards[0], form=shape)
     return tuple(cards)
@@ -198,6 +203,10 @@ async def _delta_cards(
             # the fields) of the packaged document, keeping its frame.
             cards[0] = dataclasses.replace(cards[0], paragraphs=(legacy,), fields=())
     shape = form or resolved.get("form") or card_form(bot, guild_id, key)
+    if cards[0].embeds:
+        # A stack of embeds only lives in the classic embed form: the list
+        # decides the shape too, so a form override never empties the card.
+        shape = FORM_EMBED
     if shape and shape != cards[0].form:
         cards[0] = dataclasses.replace(cards[0], form=shape)
     return tuple(cards)

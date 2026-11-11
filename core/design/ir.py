@@ -134,6 +134,9 @@ class Container:
 
 Block = Text | Divider | Gallery | Row | Section | Container
 
+#: Discord's limit: a message carries at most ten embeds.
+MAX_EMBEDS = 10
+
 
 @dataclass(frozen=True)
 class Card:
@@ -178,6 +181,11 @@ class Card:
     #: pings toggle: a DM line is content, not a notification, so it ships
     #: whatever the toggle says.
     content_line: str = ""
+    #: The embeds of the message, when the card declares more than one. Each
+    #: one is a card of its own (its own title, body, fields and accent), so
+    #: a theme can stack several boxes in a single message. An empty tuple
+    #: means the card's own slots describe its single embed.
+    embeds: tuple[Card, ...] = ()
     #: The names the card receives (its contract). A name of the contract is
     #: reserved: when the send site does not provide it, the placeholder
     #: stays literal instead of falling back to a theme emoji with the same
