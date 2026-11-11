@@ -77,15 +77,8 @@ class LanguageCog(commands.Cog):
                 author=ctx.author.mention,
             )
 
-        # The answer is an acknowledgement: one notice line, no card.
-        await notice(
-            ctx,
-            self.bot,
-            ctx.guild_id,
-            message,
-            style="success" if language in available else "error",
-            icon="speech" if language in available else "error",
-        )
+        # The answer is an acknowledgement: one notice, no card.
+        await notice(ctx, message)
 
         if language in available:
             # Rename/re-describe the guild's commands in the new language.

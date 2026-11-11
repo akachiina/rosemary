@@ -1,13 +1,13 @@
-"""The plain-text layer: one notice line, one emoji, the theme's prefix.
+"""The plain-text layer: one notice line, one icon, the copy's own.
 
 Rosemary speaks three shapes: plain text (acknowledgements and notices),
 classic embeds (logs and content) and Components V2 (the interactive UI).
 This file pins the text layer:
 
-* the line opens with the theme prefix and the copy follows (the title of a
-  multi-line notice is bold), and the prefix comes from the theme
-  (``feedback_*`` styles), so a guild restyles every notice at once;
-* the prefix owns the only emoji of the line: the copy never opens with one;
+* the copy is the notice: it opens with the icon of the action (a theme
+  emoji token), and the title of a multi-line notice is bold;
+* the catalog chooses the token and the theme gives it the art, so a guild
+  restyles every notice at once without touching a line of code;
 * the placeholders of the card contract resolve (no raw ``{ms}``);
 * an embed never notifies: an essential ping travels in the message content
   and the allowed-mentions bundle carries it.
@@ -69,7 +69,7 @@ async def _activate(bot) -> None:
 
 
 async def test_text_card_is_one_notice_line(tmp_path):
-    """``/ping`` ships as plain text: the prefix, the bold title and the body."""
+    """``/ping`` ships as plain text: the icon, the bold title and the body."""
     bot = _make_bot(tmp_path)
     payload, _allowed = await render_card_message(
         bot, 1, "utility.ping", {"ms": 42}
@@ -104,26 +104,28 @@ async def test_text_card_resolves_the_mention_fields(tmp_path):
     assert [user.id for user in (allowed.users or [])] == [55]
 
 
-async def test_theme_owns_the_notice_prefix(tmp_path):
-    """The prefix is a theme style: a guild restyles every notice at once."""
+async def test_the_theme_gives_the_icon_its_art(tmp_path):
+    """The catalog names the token, the theme gives it the art.
+
+    A guild restyles every notice at once by editing the theme's ``emojis:``
+    section: no style, no prefix, no code.
+    """
     bot = _make_bot(
         tmp_path,
         "name: t\n"
         "emojis:\n"
-        '  star: "⭐"\n'
-        "styles:\n"
-        '  feedback_info: { prefix: "{star} >> " }\n',
+        '  info: "🧭"\n',
     )
     await _activate(bot)
     payload, _allowed = await render_card_message(
         bot, 1, "utility.ping", {"ms": 42}
     )
     assert payload is not None and payload.content
-    assert payload.content.startswith("⭐ >> ")
+    assert payload.content.startswith("🧭 ")
 
 
-async def test_the_prefix_owns_the_only_emoji(tmp_path):
-    """The copy never opens with an emoji: the prefix marks the line."""
+async def test_the_copy_owns_the_only_emoji(tmp_path):
+    """The copy carries the icon: the line shows exactly one mark."""
     bot = _make_bot(tmp_path)
     payload, _allowed = await render_card_message(
         bot, 1, "cleaner.result", {"count": 3, "matched": 3, "criterion": "spam"}
@@ -132,7 +134,7 @@ async def test_the_prefix_owns_the_only_emoji(tmp_path):
     head = payload.content.splitlines()[0]
     assert head.startswith("✅ ")
     assert "**|**" not in head
-    # One emoji on the line: the prefix owns it.
+    # One emoji on the line: the copy owns it.
     assert head.count("✅") == 1
 
 
@@ -251,7 +253,8 @@ async def test_a_themed_copy_keeps_the_text_surface(tmp_path):
     )
     assert payload is not None
     assert payload.view is None
-    assert payload.content == "ℹ️ Pong 42"
+    # The themed copy is the notice: the layer adds nothing to it.
+    assert payload.content == "Pong 42"
 
 
 async def test_a_themed_copy_keeps_the_embed_surface(tmp_path):
@@ -344,7 +347,7 @@ async def test_the_fallback_follows_the_card_form(tmp_path):
 
     bot = _make_bot(tmp_path)
     text_card = simple_payload(bot, 1, "utility.ping", title="Pong", body="42ms")
-    assert text_card.content == "ℹ️ **Pong**\n42ms"
+    assert text_card.content == "**Pong**\n42ms"
     assert text_card.embed is None
     assert text_card.view is None
 
@@ -379,9 +382,8 @@ async def test_a_notice_never_notifies(tmp_path):
         async def respond(self, *args, **kwargs):
             self.calls.append({"args": args, "kwargs": kwargs})
 
-    bot = _make_bot(tmp_path)
     ctx = Ctx()
-    await respond(ctx, bot, 1, "Banned <@7> for spam.", style="success")
+    await respond(ctx, "Banned <@7> for spam.")
     (content,) = ctx.calls[0]["args"]
     assert "<@7>" in content
     mentions = ctx.calls[0]["kwargs"]["allowed_mentions"]
@@ -425,22 +427,17 @@ async def test_the_confirmation_never_notifies(tmp_path):
     assert payload["allowed_mentions"].users is False
 
 
-#: the copy never opens with an emoji ---------------------------------------
+#: the copy opens with the icon ---------------------------------------------
 
-async def test_the_text_copies_never_open_with_an_emoji(tmp_path):
-    """The prefix owns the only emoji of the line: the copy never opens with one.
+async def test_the_text_copies_open_with_one_icon(tmp_path):
+    """The copy owns the icon: exactly one, and it is the theme's.
 
-    Swept over every text card in both catalogs: a copy that brings its own
-    mark would show two emojis on the line.
+    Swept over every text card in both catalogs: the line opens with the
+    icon of the action (a theme emoji) and the code never adds a second mark.
     """
-    import re
-
     from rosemary.core.theme_package import default_package
     from rosemary.core.variables import samples_for
 
-    emoji = re.compile(
-        "[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\u2B00-\u2BFF\u2190-\u21FF]"
-    )
     package = default_package()
     keys = [
         key
@@ -450,6 +447,11 @@ async def test_the_text_copies_never_open_with_an_emoji(tmp_path):
     assert keys, "the package carries no text card"
     for language in ("en-US", "pt-BR"):
         bot = _make_bot_in(language, tmp_path)
+        icons = sorted(
+            {value for value in bot.theme.emojis.values() if value},
+            key=len,
+            reverse=True,
+        )
         for key in keys:
             spec = get_card(key)
             variables = samples_for(spec.variables) if spec else {}
@@ -457,10 +459,11 @@ async def test_the_text_copies_never_open_with_an_emoji(tmp_path):
             assert payload is not None, key
             content = payload.content or ""
             assert content, key
-            assert "**|**" not in content, key
-            # The prefix owns the mark: what follows it is plain prose (the
-            # serializer may bold the first line as the title).
+            assert "|**" not in content, key
             head_line = content.splitlines()[0]
-            body = head_line.split(" ", 1)[1] if " " in head_line else head_line
-            head = body.lstrip("*")
-            assert not emoji.match(head), f"{language} {key}: {head!r}"
+            leading = next((icon for icon in icons if head_line.startswith(icon)), None)
+            assert leading is not None, f"{language} {key}: no icon: {head_line!r}"
+            rest = head_line[len(leading) :].lstrip()
+            assert not any(rest.startswith(icon) for icon in icons), (
+                f"{language} {key}: two icons: {head_line!r}"
+            )

@@ -114,7 +114,7 @@ async def test_on_check_failure_responds_ephemeral(bot):
     response = FakeResponse()
     await view.on_check_failure(FakeInteraction(response))
     (content, ephemeral) = response.sent[0]
-    assert content == "🔒 menu.owner_only"
+    assert content == "menu.owner_only"
     assert ephemeral is True
 
 

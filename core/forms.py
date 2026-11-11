@@ -252,14 +252,45 @@ def _text_block_lines(body: str) -> list[str]:
 #: again.
 _STRUCTURED_HEAD = ("**", "•", "- ", "* ", ">", "```")
 
+#: The mark a line may open with: one Unicode emoji (with its modifiers and
+#: joiners) or one custom emoji mention. The icon opens the line; the title
+#: is what follows it.
+_LEADING_MARK = re.compile(
+    r"^(?:"
+    r"<a?:[A-Za-z0-9_]+:\d+>"
+    r"|[\U0001F000-\U0001FAFF\u2139\u2190-\u21FF\u2300-\u23FF"
+    r"\u2600-\u27BF\u2B00-\u2BFF]"
+    r"[\uFE0F\u200D\U0001F3FB-\U0001F3FF]*"
+    r")"
+)
+
+
+def bold_title(text: str) -> str:
+    """One title in bold, with its icon outside the emphasis.
+
+    The icon opens the line and the title follows it: ``{emoji} **Title**``.
+    The whole line becomes the title, so the emphasis it carried inside is
+    dropped (a bold marker inside a bold line breaks the markdown).
+    """
+    title = str(text).strip()
+    if not title:
+        return ""
+    mark = _LEADING_MARK.match(title)
+    icon = mark.group(0) if mark else ""
+    body = title[len(icon) :].lstrip()
+    if not body:
+        return title
+    body = body.replace("**", "")
+    return f"{icon} **{body}**" if icon else f"**{body}**"
+
 
 def plain_text(lines: list[str]) -> str:
     """Join text lines in the plain-text grammar.
 
     One thing per line. The first line of a multi-line text is its title, in
-    bold, so the notice prefix opens a titled line as ``{emoji} **Title**``;
-    a line that already carries a structure (a bold label, a bullet, a quote)
-    is kept as it is.
+    bold, so the notice opens a titled line as ``{emoji} **Title**``; a line
+    that already carries a structure (a bold label, a bullet, a quote) is kept
+    as it is.
     """
     text = "\n".join(str(line) for line in lines).strip()
     if not text or "\n" not in text:
@@ -268,10 +299,12 @@ def plain_text(lines: list[str]) -> str:
     first = first.strip()
     if not first or first.startswith(_STRUCTURED_HEAD):
         return text
-    # The whole line becomes the title: the emphasis it carried inside is
-    # dropped (a bold marker inside a bold line breaks the markdown).
-    first = first.replace("**", "")
-    return f"**{first}**\n{rest}"
+    # The icon opens the line and stays outside the bold: the title is the
+    # text that follows it.
+    title = bold_title(first)
+    if not title:
+        return text
+    return f"{title}\n{rest}"
 
 
 __all__ = [
@@ -282,6 +315,7 @@ __all__ = [
     "FOOTER_TEXT_MAX",
     "TITLE_MAX",
     "TOTAL_MAX",
+    "bold_title",
     "plain_text",
     "to_embed_document",
     "to_text_content",

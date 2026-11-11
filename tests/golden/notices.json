@@ -1,7 +1,7 @@
 {
   "en-US": {
     "ban": "🚫 @Salada was **banned**.",
-    "boost_error_legacy_token": "❌ This role is already registered.",
+    "boost_error": "❌ This role is already registered.",
     "boost_member_removed": "➖ @Salada was removed from the role.",
     "boost_role_registered": "📝 The role @Boost was registered!",
     "bot_no_permission": "🔒 The bot **does not have permission** to do that.",
@@ -17,7 +17,7 @@
     "moderation_no_members": "❌ Mention **at least one member**.",
     "mute": "🔇 @Salada was **muted** for **1h**.",
     "no_permission": "🔒 Only **server administrators** can use this command.",
-    "settings_saved_legacy_token": "✅ Value set for **Idioma**.",
+    "settings_saved": "✅ Value set for **Idioma**.",
     "themes_not_found": "❌ Theme not found.",
     "themes_removed": "🗑️ Theme **neon** removed.",
     "themes_selected": "🎨 Theme **neon** is now active.",
@@ -29,7 +29,7 @@
   },
   "pt-BR": {
     "ban": "🚫 @Salada foi **banido**.",
-    "boost_error_legacy_token": "❌ Este cargo já está registrado.",
+    "boost_error": "❌ Este cargo já está registrado.",
     "boost_member_removed": "➖ @Salada foi removido do cargo.",
     "boost_role_registered": "📝 O cargo @Boost foi registrado!",
     "bot_no_permission": "🔒 O bot **não tem permissão** para fazer isso.",
@@ -45,7 +45,7 @@
     "moderation_no_members": "❌ Mencione **pelo menos um membro**.",
     "mute": "🔇 @Salada foi **silenciado** por **1h**.",
     "no_permission": "🔒 Apenas **administradores do servidor** podem usar este comando.",
-    "settings_saved_legacy_token": "✅ Valor definido para **Idioma**.",
+    "settings_saved": "✅ Valor definido para **Idioma**.",
     "themes_not_found": "❌ Tema não encontrado.",
     "themes_removed": "🗑️ Tema **neon** removido.",
     "themes_selected": "🎨 O tema **neon** agora está ativo.",

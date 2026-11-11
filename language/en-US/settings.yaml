@@ -53,7 +53,7 @@ settings:
     empty: 'No setting found for **{query}**.'
     pick: Pick a setting
   reset: Restore default
-  reset_done: '{success} **{setting}** is back to its default.'
+  reset_done: '{reset} **{setting}** is back to its default.'
   colors.enabled:
     label: Color Panel Enabled
     description: Enables the color panel (colored roles any member can pick).
@@ -186,13 +186,13 @@ settings:
     lock: Lock Channel
     unlock: Unlock Channel
     reset: Reset Week
-    thank_you_done: '{success} Thank-you message sent in the bump channel.'
-    reminder_done: '{success} Reminder sent in the bump channel.'
-    lock_done: '{success} Bump channel locked.'
-    unlock_done: '{success} Bump channel unlocked.'
-    leaderboard_done: '{success} Weekly leaderboard posted in the bump channel.'
-    no_data: '{error} No bump data this week to post.'
-    reset_done: '{success} Bump week reset.'
+    thank_you_done: '{speech} Thank-you message sent in the bump channel.'
+    reminder_done: '{clock} Reminder sent in the bump channel.'
+    lock_done: '{lock} Bump channel locked.'
+    unlock_done: '{unlock} Bump channel unlocked.'
+    leaderboard_done: '{chart} Weekly leaderboard posted in the bump channel.'
+    no_data: '{warning} No bump data this week to post.'
+    reset_done: '{reset} Bump week reset.'
     error: '{error} The bump system is not loaded.'
     open: Test actions
   none: Not set

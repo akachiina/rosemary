@@ -12,18 +12,18 @@ themes:
   import_title: Import theme
   import_label: Theme file (.yaml or .zip)
   import_description: A theme YAML (or a package .zip) previously exported from Rosemary or written by hand.
-  imported: '{success} Theme **{theme}** imported and validated.'
+  imported: '{register} Theme **{theme}** imported and validated.'
   select_placeholder: Choose the active theme...
-  selected: '{success} Theme **{theme}** is now active.'
+  selected: '{palette} Theme **{theme}** is now active.'
   export_placeholder: Choose a theme to download...
   export_failed: '{error} Could not send that theme file.'
-  reset_done: '{success} Back to the built-in default theme.'
+  reset_done: '{reset} Back to the built-in default theme.'
   reset_button: Default theme
   reload_button: Reload files
-  reloaded: '{success} Theme files re-read from disk; panels refreshed.'
+  reloaded: '{refresh} Theme files re-read from disk; panels refreshed.'
   remove_placeholder: Choose an imported theme to remove...
-  removed: '{success} Theme **{theme}** removed.'
-  removed_active: '{success} Theme **{theme}** removed: back to the built-in default.'
+  removed: '{trash} Theme **{theme}** removed.'
+  removed_active: '{trash} Theme **{theme}** removed: back to the built-in default.'
   not_found: '{error} Theme not found.'
   rejected: '{error} Theme rejected: {reason}'
   none_yet: '*No themes imported yet: attach a ``.yaml`` file to /themes to add one.*'
@@ -35,7 +35,7 @@ themes:
   preview_button: Preview
   preview_card_placeholder: Choose a card to preview...
   preview_form_placeholder: Choose a shape...
-  validate_ok: '{success} Theme **{theme}** is sound: no problem found.'
+  validate_ok: '{check} Theme **{theme}** is sound: no problem found.'
   validate_failed: '{error} Theme **{theme}** has **{count}** problem(s).'
   validate_issue: '`{code}` at **{where}**: {detail}'
   validate_title: 'Validation of **{theme}**'

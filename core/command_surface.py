@@ -7,9 +7,9 @@ that policy once, and :func:`run` applies it::
 
     await run(ctx, Surface(card_key="moderation.error_failed"), handler)
 
-The notice is always the translated catalog copy, rendered by
-:mod:`rosemary.core.feedback` (the theme owns the prefix) and it never pings:
-the copy names the member the bot is about to ban.
+The notice is always the translated catalog copy (it carries its own icon, a
+theme emoji) and it never pings: the copy names the member the bot is about
+to ban.
 
 ``card_key`` keeps the name of the plan (a "card" was any message the bot
 sent): it is the key of the copy the surface answers with when the command
@@ -117,21 +117,17 @@ async def notice(
     guild_id: int | None,
     key: str,
     *,
-    style: str = "info",
-    icon: str | None = None,
     ephemeral: bool = True,
     **variables: Any,
 ) -> None:
-    """One translated notice line (the theme's prefix, never a ping).
+    """One translated notice (the catalog copy, never a ping).
 
-    The copy comes from the catalog (``key``); the tone picks the theme's
-    prefix and ``icon`` names the verb of the action. The notice never
-    notifies: the copy may name the member the bot is about to ban.
+    The copy comes from the catalog (``key``) and carries its own icon (the
+    verb of the action, a theme emoji). The notice never notifies: the copy
+    may name the member the bot is about to ban.
     """
     text = await bot.translator.t(guild_id, key, **variables)
-    await respond_notice(
-        ctx, bot, guild_id, text, style=style, icon=icon, ephemeral=ephemeral
-    )
+    await respond_notice(ctx, text, ephemeral=ephemeral)
 
 
 async def _safe_notice(
@@ -139,16 +135,11 @@ async def _safe_notice(
     bot: Any,
     guild_id: int | None,
     key: str,
-    style: str,
     ephemeral: bool,
-    *,
-    icon: str | None = None,
 ) -> None:
     """Answer the failure, but never fail while answering it."""
     try:
-        await notice(
-            ctx, bot, guild_id, key, style=style, icon=icon, ephemeral=ephemeral
-        )
+        await notice(ctx, bot, guild_id, key, ephemeral=ephemeral)
     except Exception:  # noqa: BLE001
         log.warning("Could not answer the failed command", exc_info=True)
 
@@ -165,29 +156,21 @@ async def run(ctx: Any, surface: Surface, handler: Handler) -> None:
     ephemeral = ephemeral_for(ctx, surface)
     try:
         if surface.permission and not has_permission(ctx, surface.permission):
-            await _safe_notice(
-                ctx, bot, guild_id, NO_PERMISSION, "warning", ephemeral, icon="lock"
-            )
+            await _safe_notice(ctx, bot, guild_id, NO_PERMISSION, ephemeral)
             return
         if surface.defer and is_application(ctx):
             await ctx.defer(ephemeral=ephemeral)
         await handler()
     except commands.CheckFailure:
-        await _safe_notice(
-            ctx, bot, guild_id, NO_PERMISSION, "warning", ephemeral, icon="lock"
-        )
+        await _safe_notice(ctx, bot, guild_id, NO_PERMISSION, ephemeral)
     except discord.Forbidden:
         log.warning(
             "The bot lacks the permission for %s (guild %s)", surface.card_key, guild_id
         )
-        await _safe_notice(
-            ctx, bot, guild_id, BOT_NO_PERMISSION, "danger", ephemeral, icon="lock"
-        )
+        await _safe_notice(ctx, bot, guild_id, BOT_NO_PERMISSION, ephemeral)
     except Exception:
         log.exception("Command %s failed (guild %s)", surface.card_key, guild_id)
-        await _safe_notice(
-            ctx, bot, guild_id, surface.card_key, "danger", ephemeral, icon="error"
-        )
+        await _safe_notice(ctx, bot, guild_id, surface.card_key, ephemeral)
 
 
 __all__ = [

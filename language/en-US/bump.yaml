@@ -5,7 +5,7 @@ bump:
   messages:
     ping_thank_you: 'Thank you for the bump, {mention}!'
     ping_leaderboard: 'Congratulations, {winner_mention}!'
-    anti_camping: The channel is temporarily locked. Bump will be available shortly!
+    anti_camping: '{warning} The channel is temporarily locked. Bump will be available shortly!'
     thank_you_title: '{tada} Bump Recorded!'
     thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining. {cup}
 
@@ -55,7 +55,7 @@ bump:
     no_bumps_you: '{bar_chart} You haven''t bumped this week yet! Use `/bump` in the bump channel.'
   dm:
     winner_new: |
-      You are the Bump-MVP of the Week!
+      {success} You are the Bump-MVP of the Week!
 
       Hello, {mention}! Your dedication kept the server shining. Thank you!
 
@@ -72,7 +72,7 @@ bump:
 
       Enjoy it until the next reset.
     winner_again: |
-      Bump-MVP once again!
+      {success} Bump-MVP once again!
 
       Hello, {mention}! You've reclaimed the title. Your dedication is admirable!
 
@@ -83,7 +83,7 @@ bump:
 
       Keep being awesome.
     winner_lost: |
-      Your time as Bump-MVP has ended
+      {info} Your time as Bump-MVP has ended
 
       Hello, {mention}! This week another member claimed the title. Don't be discouraged!
 
@@ -136,10 +136,10 @@ bump:
       description: '{author} added {count} test bump(s) for {user} (weekly total: {total}).'
   error_disabled: '{error} The bump system is disabled in this server.'
   schedule:
-    open_message_default: The bump channel is open! {ping_role} Use `/bump` to help the server!
-    close_message_default: The bump channel is closed. Back at 06:00!
+    open_message_default: '{success} The bump channel is open! {ping_role} Use `/bump` to help the server!'
+    close_message_default: '{info} The bump channel is closed. Back at 06:00!'
   anti_camping:
-    message_default: The channel is temporarily locked. Bump will be available shortly!
+    message_default: '{warning} The channel is temporarily locked. Bump will be available shortly!'
   error_no_channel: '{error} The bump channel is not configured. Set it in `/settings`.'
   error_no_role: '{error} The Bump-MVP role is not configured.'
   error_role_not_found: '{error} The configured winner role was not found in the server.'

@@ -115,8 +115,8 @@ class CardSpec:
     the lint derive from it.
     ``form`` is the shape the default content ships in (Components V2, embed
     or plain text); a guild theme may pick another form for the same content.
-    ``style`` names the theme style used by the text form (the
-    ``feedback_*`` prefix family).
+    ``style`` names the tone of the card (the copy carries the matching icon
+    in the text form).
     """
 
     key: str

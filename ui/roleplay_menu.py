@@ -110,7 +110,6 @@ class RoleplayManagerView(Panel):
         await self.store.set_gifs(self.guild_id, self.action, gifs)
         self.flash = await self.t("roleplay.manager.added")
         self.flash_color = "brand"
-        self.flash_icon = "plus"
         await self._ack(interaction)
         await self.rerender(interaction)
 
@@ -127,7 +126,6 @@ class RoleplayManagerView(Panel):
             await self.store.set_gifs(self.guild_id, self.action, gifs)
             self.flash = await self.t("roleplay.manager.removed")
             self.flash_color = "danger"
-            self.flash_icon = "trash"
         await self.rerender(interaction)
 
     async def _restore(self, interaction: discord.Interaction) -> None:
@@ -139,7 +137,6 @@ class RoleplayManagerView(Panel):
         await self.store.set_gifs(self.guild_id, self.action, gifs)
         self.flash = await self.t("roleplay.manager.restored")
         self.flash_color = "brand"
-        self.flash_icon = "refresh"
         await self.rerender(interaction)
 
     #: rendering --------------------------------------------------------------

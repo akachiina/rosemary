@@ -51,11 +51,11 @@ colors:
     attach_title: Attach Roles
     attach_hint: Pick the roles that become colors. Each role's current color is inherited; edit later to adjust name or hex.
     attach_placeholder: Choose the roles...
-    attached: '{check} {count} role(s) attached.'
-    saved: '{check} Color updated.'
-    added: '{check} Color **{name}** created.'
-    removed: '{check} Color **{name}** removed.'
-    role_created: '{check} Role **{role}** created and attached.'
+    attached: '{palette} {count} role(s) attached.'
+    saved: '{palette} Color updated.'
+    added: '{plus} Color **{name}** created.'
+    removed: '{trash} Color **{name}** removed.'
+    role_created: '{plus} Role **{role}** created and attached.'
     role_modal_title: Create Color Role
     edit_modal_title: Edit Color
     field_name: Name (shown in the image)

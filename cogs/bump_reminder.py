@@ -18,7 +18,6 @@ from rosemary.cogs.bump_leaderboard import bump_group
 from rosemary.core.bump import LOCK_CAMPING, LOCK_SCHEDULE, BumpStore, schedule_open
 from rosemary.core.cards import text_or
 from rosemary.core.debug import send_log
-from rosemary.core.feedback import line as notice_line
 from rosemary.core.settings import get_setting
 from rosemary.core.themes import theme_for
 from rosemary.core.time_parser import TimeParser
@@ -295,12 +294,7 @@ class BumpReminderCog(commands.Cog):
                 ),
                 ping_role=ping_role,
             )
-            message = notice_line(
-                self.bot,
-                guild_id,
-                body,
-                style="info" if locked else "success",
-            )
+            message = body.strip()
             if message:
                 await channel.send(
                     message,
@@ -461,7 +455,7 @@ class BumpReminderCog(commands.Cog):
                     "bump.anti_camping.message_default",
                 ),
             )
-            message = notice_line(self.bot, guild_id, body, style="warning")
+            message = body.strip()
             if message:
                 lock_message = await channel.send(
                     message,

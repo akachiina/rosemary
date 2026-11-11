@@ -1,8 +1,9 @@
 """Every representative notice renders exactly what the golden fixture froze.
 
 The card and panel fixtures pin the other two shapes. These pin the plain-text
-notice: the icon the decorator chooses (the verb of the action or the theme
-tone) and the copy the member reads. ``scripts/snapshot_notices.py`` writes
+notice: the copy the member reads, with the icon the copy itself carries (a
+theme emoji token). The code never decides the icon: the catalog chooses the
+token and the theme gives it the art. ``scripts/snapshot_notices.py`` writes
 the fixture; when a change is deliberate, re-run it and review the diff::
 
     ../.venv/bin/python scripts/snapshot_notices.py
@@ -11,6 +12,7 @@ the fixture; when a change is deliberate, re-run it and review the diff::
 from __future__ import annotations
 
 import json
+import re
 
 from golden_notices import (
     GOLDEN_PATH,
@@ -19,47 +21,11 @@ from golden_notices import (
     NOTICE_CASES,
     make_bot,
     render_all,
+    render_raw,
 )
 
-#: The copies the send sites own without a legacy tone token. A new notice
-#: key joins this list when its copy is cleaned; the decorator still strips a
-#: token from the keys outside it (the theme may keep an old catalog).
-CLEAN_COPY_KEYS = (
-    "ban.success",
-    "kick.success",
-    "mute.success",
-    "warn.success",
-    "unwarn.cleared",
-    "unwarn.removed",
-    "unwarn.none_for",
-    "unwarn.invalid_index",
-    "moderation.error_failed",
-    "moderation.error_disabled",
-    "moderation.error_no_members",
-    "moderation.error_self",
-    "moderation.error_self_bot",
-    "moderation.error_author_permissions",
-    "moderation.error_bot_permissions",
-    "moderation.error_hierarchy",
-    "moderation.error_bot_hierarchy",
-    "moderation.auto_ban_failed",
-    "mute.invalid_duration",
-    "cleaner.error_disabled",
-    "cleaner.error_no_mode",
-    "cleaner.error_conflict",
-    "cleaner.error_bad_regex",
-    "cleaner.error_last_range",
-    "confirm.failed",
-    "general.unknown_error",
-    "general.no_permission",
-    "general.bot_no_permission",
-    "menu.owner_only",
-    "menu.expired",
-    "language.updated",
-    "language.invalid",
-)
-
-_TONE_TOKENS = ("{success}", "{error}", "{warning}", "{info}")
+#: The icon of a notice: one theme emoji token at the head of the copy.
+_TOKEN = re.compile(r"^\{([A-Za-z0-9_]+)\}\s")
 
 
 def test_every_case_has_a_fixture():
@@ -78,68 +44,67 @@ async def test_notices_match_the_golden():
     )
 
 
-async def test_no_notice_opens_with_two_icons():
-    """The decorator owns the icon: the copy never brings a second mark."""
+async def test_every_copy_carries_its_icon_token():
+    """The catalog owns the icon: the copy opens with a theme emoji token."""
     bot = make_bot()
-    icons = sorted({value for value in bot.theme.emojis.values() if value}, key=len, reverse=True)
-    for lines in (await render_all(bot)).values():
-        for name, line in lines.items():
-            leading = next((icon for icon in icons if line.startswith(icon)), None)
-            assert leading, f"{name}: no icon: {line!r}"
-            rest = line[len(leading) :].lstrip()
-            assert not any(rest.startswith(icon) for icon in icons), (
-                f"{name}: two icons: {line!r}"
+    tokens = set(bot.theme.emojis)
+    for language, copies in (await render_raw(bot)).items():
+        for name, copy in copies.items():
+            match = _TOKEN.match(copy)
+            assert match is not None, f"{language}/{name}: no icon token: {copy!r}"
+            assert match.group(1) in tokens, (
+                f"{language}/{name}: unknown icon token "
+                f"{{{match.group(1)}}}: {copy!r}"
             )
 
 
-async def test_a_legacy_copy_keeps_one_tone_icon():
-    """A copy that still opens with ``{success}`` loses its own mark."""
-    lines = (await render_all(make_bot()))["pt-BR"]
-    line = lines["settings_saved_legacy_token"]
-    assert line.startswith("✅ ")
-    assert line.count("✅") == 1
-
-    error = lines["boost_error_legacy_token"]
-    assert error.startswith("❌ ")
-    assert error.count("❌") == 1
-
-
-async def test_the_verb_icon_replaces_the_tone():
-    """A muted member reads the mute icon, never a second success check."""
-    lines = (await render_all(make_bot()))["pt-BR"]
-    assert lines["mute"].startswith("🔇 ")
-    assert "✅" not in lines["mute"]
-    assert lines["ban"].startswith("🚫 ")
-    assert lines["kick"].startswith("👢 ")
-
-
-async def test_the_clean_copies_carry_no_tone_token():
-    """The moderation family speaks in words: the icon is the decorator's."""
+async def test_every_notice_opens_with_one_icon():
+    """The member reads exactly one icon: the one the copy carries."""
     bot = make_bot()
-    for language in LANGUAGES:
-        for key in CLEAN_COPY_KEYS:
-            raw = await bot.translator.raw(GUILD_ID, key)
-            assert isinstance(raw, str), (language, key)
-            head = raw.lstrip()
-            assert not head.startswith(_TONE_TOKENS), (language, key, raw[:40])
+    icons = sorted({value for value in bot.theme.emojis.values() if value}, key=len, reverse=True)
+    for language, lines in (await render_all(bot)).items():
+        for name, line in lines.items():
+            leading = next((icon for icon in icons if line.startswith(icon)), None)
+            assert leading, f"{language}/{name}: no icon: {line!r}"
+            rest = line[len(leading) :].lstrip()
+            assert not any(rest.startswith(icon) for icon in icons), (
+                f"{language}/{name}: two icons: {line!r}"
+            )
 
 
-async def test_the_verb_icon_keeps_the_themed_decoration():
-    """A themed prefix may decorate the line; the verb replaces only the mark."""
-    from rosemary.core.feedback import notice_line
+async def test_the_icon_comes_from_the_theme():
+    """The catalog names the token, the theme gives it the art."""
+    bot = make_bot()
+    lines = (await render_all(bot))["pt-BR"]
+    assert lines["ban"].startswith(bot.theme.emojis["ban"])
+    assert lines["kick"].startswith(bot.theme.emojis["kick"])
+    assert lines["mute"].startswith(bot.theme.emojis["mute"])
+    assert lines["warn"].startswith(bot.theme.emojis["warning"])
+    assert lines["unwarn_cleared"].startswith(bot.theme.emojis["minus"])
 
-    class Style:
-        prefix = "⭐ >> "
 
-    class Theme:
-        def style(self, name: str) -> Style:
-            return Style()
+async def test_a_missing_token_ships_the_copy_verbatim():
+    """The notice layer adds nothing: the copy is the answer."""
+    bot = make_bot()
+    lines = (await render_all(bot))["pt-BR"]
+    assert lines["moderation_disabled"].startswith("❌ ")
+    assert lines["moderation_disabled"].count("❌") == 1
+    assert "🔒" not in lines["moderation_disabled"]
 
-        def icon(self, name: str) -> str:
-            return {"success": "✅", "mute": "🔇"}.get(name, "")
 
-    class Bot:
-        theme = Theme()
+async def test_the_theme_gives_the_token_its_art():
+    """A guild theme may change the art: the token resolves to the glyph."""
+    from golden_notices import LANG_DIR
 
-    line = notice_line(Bot(), 1, "✅ copy", style="success", icon="mute")
-    assert line == "🔇 >> copy"
+    from rosemary.core.i18n import Translator
+
+    theme = make_bot().theme
+    art = {**theme.emojis, "ban": "🚷"}
+    translator = Translator(
+        LANG_DIR,
+        resolver=lambda guild_id: "pt-BR",
+        default_placeholders=art,
+    )
+    text = await translator.t(GUILD_ID, "ban.success", member="@Salada")
+    assert text.startswith("🚷 ")
+    assert theme.emojis["ban"] == "🚫"

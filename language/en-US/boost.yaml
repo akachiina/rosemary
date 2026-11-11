@@ -129,7 +129,7 @@ boost:
       placeholder: User ID
   dm:
     registered: |
-      You received a Boost Role!
+      {success} You received a Boost Role!
 
       Hello, {mention}! The boost role @{role_name} was registered for you on **{server_name}**.
 
@@ -140,7 +140,7 @@ boost:
 
       Use the boost roles panel to manage everything.
     transferred: |
-      Ownership Transferred!
+      {success} Ownership Transferred!
 
       Hello, {mention}! Ownership of the boost role @{role_name} was transferred to you on **{server_name}**.
 
@@ -151,13 +151,13 @@ boost:
 
       Use the boost roles panel to manage everything.
     auto_transferred: |
-      Ownership Transferred Automatically!
+      {success} Ownership Transferred Automatically!
 
       Hello, {mention}! Since the previous owner left the server, ownership of the boost role @{role_name} was transferred to you on **{server_name}**.
 
       Use the boost roles panel to manage your role.
     auto_created: |
-      You received a Boost Role!
+      {success} You received a Boost Role!
 
       Hello, {mention}! The boost role @{role_name} was created for you on **{server_name}** because you boosted the server.
 
@@ -168,31 +168,31 @@ boost:
 
       Use the boost roles panel to manage everything.
     auto_restored: |
-      Your Boost Role is Back!
+      {success} Your Boost Role is Back!
 
       Hello, {mention}! Your boost role @{role_name} is active again on **{server_name}**, including its previous members.
 
       Use the boost roles panel to manage everything.
     unboost_deleted: |
-      Your boost role was removed
+      {error} Your boost role was removed
 
       Hello, {mention}! Your boost ended, so the boost role @{role_name} was removed from **{server_name}**.
 
       Boost the server again and the role comes back automatically, with its members.
     unboost_removed: |
-      Your boost role was taken away
+      {error} Your boost role was taken away
 
       Hello, {mention}! Your boost ended, so the boost role @{role_name} was taken away from you and its members on **{server_name}**. The role still exists.
 
       Boost the server again to receive it back.
     unboost_kept: |
-      Your boost ended
+      {info} Your boost ended
 
       Hello, {mention}! Your boost ended, but the boost role @{role_name} stays with you on **{server_name}**.
 
       Only the server staff can remove it.
     invite: |
-      Boost Role Invite!
+      {info} Boost Role Invite!
 
       Hello, {mention}! You have been invited to join a boost role on **{server_name}**.
 
@@ -202,41 +202,41 @@ boost:
 
       By accepting, you will receive the role and can use it on the server. Use the buttons below to reply!
     accepted: |
-      Invite Accepted!
+      {success} Invite Accepted!
 
       The role @{role_name} was added to you successfully.
 
       To leave the role at any time, use `/boost panel`.
     declined: |
-      Invite Declined
+      {info} Invite Declined
 
       You declined the invite for the role @{role_name}.
 
       The role owner was notified about your decision.
     owner_accepted: |
-      Invite Accepted!
+      {success} Invite Accepted!
 
       {member_mention} accepted your invite and was added to the role @{role_name}!
     owner_declined: |
-      Invite Declined
+      {info} Invite Declined
 
       {member_mention} declined your invite for the role @{role_name}.
 
       You can invite someone else if you wish.
     member_left: |
-      You Left the Role
+      {info} You Left the Role
 
       You left the role @{role_name} successfully.
 
       The role owner was notified.
     owner_member_left: |
-      Member Left the Role
+      {info} Member Left the Role
 
       {member_mention} left the role @{role_name}.
 
       You can add another member if you wish.
     error: |
-      Oops!
+      {error} Oops!
 
       {body}
   emoji:
@@ -245,18 +245,18 @@ boost:
     user: User
     roles: Roles
   success:
-    role_registered: '{success} The role {role} was registered!'
-    role_removed: '{success} The boost role was removed from the system.'
-    ownership_transferred: '{success} Ownership of {role} was transferred!'
-    role_renamed: '{success} Role renamed from **{old}** to **{new}**.'
-    color_changed: '{success} Role color updated!'
-    emoji_set: '{success} Role emoji set to {emoji}.'
-    icon_set: '{success} Role icon updated!'
-    member_added: '{success} {member} joined {role}.'
-    member_removed: '{success} {member} was removed from the role.'
-    invite_sent: '{success} Invite sent to {member}.'
-    invite_cancelled: '{success} Invite cancelled.'
-    left_role: '{success} You left {role}.'
+    role_registered: '{register} The role {role} was registered!'
+    role_removed: '{trash} The boost role was removed from the system.'
+    ownership_transferred: '{swap} Ownership of {role} was transferred!'
+    role_renamed: '{pencil} Role renamed from **{old}** to **{new}**.'
+    color_changed: '{palette} Role color updated!'
+    emoji_set: '{tag} Role emoji set to {emoji}.'
+    icon_set: '{frame} Role icon updated!'
+    member_added: '{plus} {member} joined {role}.'
+    member_removed: '{minus} {member} was removed from the role.'
+    invite_sent: '{love_letter} Invite sent to {member}.'
+    invite_cancelled: '{lock} Invite cancelled.'
+    left_role: '{door} You left {role}.'
   errors:
     role_already_registered: '{error} This role is already registered.'
     role_not_found: '{error} Role not found.'

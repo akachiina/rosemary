@@ -37,9 +37,9 @@ roleplay:
     edit_hint: Remove a gif...
     remove_hint: Remove a gif...
     restore: Restore from theme
-    restored: List restored from the theme.
-    removed: Gif removed.
-    added: Gif added.
+    restored: '{refresh} List restored from the theme.'
+    removed: '{trash} Gif removed.'
+    added: '{plus} Gif added.'
     invalid: '{error} Fill a valid URL (http) OR an API category (letters and numbers).'
     api_offline: '{warning} The nekos.best API did not answer; check back later or use a fixed URL.'
     save: Save

@@ -33,19 +33,6 @@ _PREVIEW_FORMS = ("text", "embed", "card")
 #: How many cards the preview select offers (Discord's select cap).
 _MAX_PREVIEW_CARDS = 25
 
-#: The icon of the verb each flash reports (the notice layer owns the icon:
-#: the copy never brings one of its own). A failure has no verb, so it keeps
-#: the icon of its tone.
-_FLASH_ICONS: dict[str, str] = {
-    "themes.imported": "register",
-    "themes.selected": "palette",
-    "themes.removed": "trash",
-    "themes.removed_active": "trash",
-    "themes.reset_done": "reset",
-    "themes.reloaded": "refresh",
-    "themes.validate_ok": "check",
-}
-
 
 def _file(data: bytes, filename: str) -> discord.File:
     return discord.File(io.BytesIO(data), filename=filename)
@@ -128,14 +115,13 @@ class ThemesMenuView(Panel):
             return None
 
     async def set_flash(self, key: str, color: str = "success", **variables) -> None:
-        """Set the one-shot flash: the copy, the tone and the verb's icon.
+        """Set the one-shot flash: the copy and the tone.
 
-        The notice layer owns the icon (the copy never brings one of its own),
-        so the panel names the verb of the action here.
+        The copy carries its own icon (a theme emoji), so the panel never
+        decides what the member reads.
         """
         self.flash = await self.bot.translator.t(self.guild_id, key, **variables)
         self.flash_color = color
-        self.flash_icon = _FLASH_ICONS.get(key)
 
     async def _rerender_with_snapshot(self, interaction: discord.Interaction) -> None:
         """Apply + snapshot + redraw: selection changes never need a restart."""
@@ -576,12 +562,9 @@ class ThemesCog(commands.Cog):
 
                 await respond_line(
                     ctx,
-                    self.bot,
-                    ctx.guild_id,
                     await self.bot.translator.t(
                         ctx.guild_id, "themes.rejected", reason=reason
                     ),
-                    style="danger",
                     ephemeral=True,
                 )
                 return

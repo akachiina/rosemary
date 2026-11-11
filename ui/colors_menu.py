@@ -357,7 +357,6 @@ class ColorsManagerView(Panel):
         if hex_value and not _HEX_OK(hex_value):
             self.flash = await self._t("colors.error_bad_hex")
             self.flash_color = "danger"
-            self.flash_icon = "error"
         else:
             if name:
                 updates["name"] = name
@@ -370,7 +369,6 @@ class ColorsManagerView(Panel):
             await self._panel_repaint()
             self.flash = await self._t("colors.manager.saved")
             self.flash_color = "brand"
-            self.flash_icon = "palette"
         await self._ack(interaction)
         await self.rerender(interaction)
 
@@ -411,7 +409,6 @@ class ColorsManagerView(Panel):
             return
         await self._panel_repaint()
         self.flash = await self._t("colors.manager.added", name=created.name)
-        self.flash_icon = "plus"
         await self._ack(interaction)
         await self.rerender(interaction)
 
@@ -466,7 +463,6 @@ class ColorsManagerView(Panel):
             return
         await self._panel_repaint()
         self.flash = await self._t("colors.manager.role_created", role=role.name)
-        self.flash_icon = "plus"
         await self._ack(interaction)
         self.mode = "list"
         await self.rerender(interaction)
@@ -521,7 +517,6 @@ class ColorsManagerView(Panel):
             await self.store.set_colors(self.guild_id, entries)
             await self._panel_repaint()
             self.flash = await self._t("colors.manager.attached", count=attached)
-            self.flash_icon = "palette"
         await self._back(interaction)
 
     async def _open_delete(self, interaction: discord.Interaction) -> None:
@@ -538,7 +533,6 @@ class ColorsManagerView(Panel):
         if removed is not None:
             await self._panel_repaint()
             self.flash = await self._t("colors.manager.removed", name=removed.name)
-            self.flash_icon = "trash"
         self.mode = "list"
         self.deleting_id = None
         await self.rerender(interaction)

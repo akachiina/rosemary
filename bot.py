@@ -575,18 +575,16 @@ class RosemaryBot(commands.Bot):
         if getattr(self, "storage", None) is None or getattr(self, "translator", None) is None:
             return
         guild_id = context.guild.id if context.guild is not None else None
-        if isinstance(exception, commands.CheckFailure):
-            key, color, icon = "general.no_permission", "warning", "lock"
-        else:
-            key, color, icon = "general.unknown_error", "danger", "error"
+        key = (
+            "general.no_permission"
+            if isinstance(exception, commands.CheckFailure)
+            else "general.unknown_error"
+        )
         try:
-            from rosemary.core.feedback import line as notice_line
-
             text = await self.translator.t(guild_id, key)
-            content = notice_line(self, guild_id, text, style=color, icon=icon)
             with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                 await context.reply(
-                    content,
+                    text,
                     mention_author=False,
                     allowed_mentions=discord.AllowedMentions.none(),
                 )
@@ -606,23 +604,16 @@ class RosemaryBot(commands.Bot):
         if getattr(self, "translator", None) is None:
             return
         guild_id = context.guild.id if context.guild is not None else None
-        if isinstance(exception, commands.CheckFailure):
-            key, color, icon = "general.no_permission", "warning", "lock"
-        else:
-            key, color, icon = "general.unknown_error", "danger", "error"
+        key = (
+            "general.no_permission"
+            if isinstance(exception, commands.CheckFailure)
+            else "general.unknown_error"
+        )
         try:
             from rosemary.core.feedback import respond as respond_line
 
             text = await self.translator.t(guild_id, key)
-            await respond_line(
-                context,
-                self,
-                guild_id,
-                text,
-                style=color,
-                icon=icon,
-                ephemeral=True,
-            )
+            await respond_line(context, text, ephemeral=True)
         except Exception:  # noqa: BLE001
             log.warning("Could not answer the failed application command", exc_info=True)
 
@@ -671,15 +662,7 @@ class RosemaryBot(commands.Bot):
             from rosemary.core.feedback import respond as respond_line
 
             text = await self.translator.t(guild_id, "general.unknown_error")
-            await respond_line(
-                interaction,
-                self,
-                guild_id,
-                text,
-                style="danger",
-                icon="error",
-                ephemeral=True,
-            )
+            await respond_line(interaction, text, ephemeral=True)
         except Exception:
             log.debug("view_error ACK fallback also failed", exc_info=True)
 
@@ -724,15 +707,7 @@ class RosemaryBot(commands.Bot):
             from rosemary.core.feedback import respond as respond_line
 
             text = await self.translator.t(guild_id, "general.unknown_error")
-            await respond_line(
-                interaction,
-                self,
-                guild_id,
-                text,
-                style="danger",
-                icon="error",
-                ephemeral=True,
-            )
+            await respond_line(interaction, text, ephemeral=True)
         except Exception:
             log.debug("modal_error ACK fallback also failed", exc_info=True)
 

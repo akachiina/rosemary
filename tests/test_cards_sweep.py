@@ -62,9 +62,10 @@ async def test_dm_send_uses_plain_override(tmp_path):
     )
     dest = FakeDestination()
     await boost_dm.send(bot, dest, 1, "boost.dm.transferred", role_name="Rosas")
-    # A text card keeps its surface: the theme customized the copy, the
-    # notice prefix still marks the line.
-    assert dest.last.get("content") == "✅ CUSTOM Rosas"
+    # A text card keeps its surface: the theme customized the copy, and the
+    # copy is the answer (the icon is the copy's own, so an override that
+    # wants one names the token).
+    assert dest.last.get("content") == "CUSTOM Rosas"
     assert "view" not in dest.last
 
 

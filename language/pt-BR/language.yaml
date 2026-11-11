@@ -7,8 +7,8 @@ language:
         description: 'Código do idioma (ex.: en-US, pt-BR)'
   title: Idioma
   text: Escolha o idioma usado pelo bot neste servidor.
-  updated: 'Idioma definido para **{language}**.'
-  invalid: 'Idioma **desconhecido** ''{language}''.
+  updated: '{speech} Idioma definido para **{language}**.'
+  invalid: '{error} Idioma **desconhecido** ''{language}''.
 
     Disponíveis:
 

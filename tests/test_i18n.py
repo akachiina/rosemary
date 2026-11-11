@@ -341,7 +341,7 @@ async def test_invalid_message_multiline_available():
     )
     assert "Disponíveis:" in message
     assert "\n- 🇺🇸 English\n- 🇧🇷 Português do Brasil" in message
-    assert message.startswith("Idioma **desconhecido**")
+    assert message.startswith(f"{theme.emojis['error']} Idioma **desconhecido**")
 
 
 def _document_label_keys(document: dict) -> list[str]:

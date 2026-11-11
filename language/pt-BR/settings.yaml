@@ -53,7 +53,7 @@ settings:
     empty: 'Nenhuma definição encontrada para **{query}**.'
     pick: Escolha uma definição
   reset: Restaurar padrão
-  reset_done: '{success} **{setting}** voltou ao padrão.'
+  reset_done: '{reset} **{setting}** voltou ao padrão.'
   colors.enabled:
     label: Painel de Cores Ativado
     description: Ativa o painel de cores (cargos coloridos que qualquer membro pode escolher).
@@ -188,13 +188,13 @@ settings:
     lock: Travar Canal
     unlock: Destravar Canal
     reset: Resetar Semana
-    thank_you_done: '{success} Mensagem de agradecimento enviada no canal de bump.'
-    reminder_done: '{success} Lembrete enviado no canal de bump.'
-    lock_done: '{success} Canal de bump travado.'
-    unlock_done: '{success} Canal de bump destravado.'
-    leaderboard_done: '{success} Placar semanal postado no canal de bump.'
-    no_data: '{error} Não há dados de bump nesta semana para postar.'
-    reset_done: '{success} Semana de bumps resetada.'
+    thank_you_done: '{speech} Mensagem de agradecimento enviada no canal de bump.'
+    reminder_done: '{clock} Lembrete enviado no canal de bump.'
+    lock_done: '{lock} Canal de bump travado.'
+    unlock_done: '{unlock} Canal de bump destravado.'
+    leaderboard_done: '{chart} Placar semanal postado no canal de bump.'
+    no_data: '{warning} Não há dados de bump nesta semana para postar.'
+    reset_done: '{reset} Semana de bumps resetada.'
     error: '{error} O sistema de bump não está carregado.'
     open: Ações de teste
   log:

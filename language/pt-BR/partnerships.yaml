@@ -22,11 +22,11 @@ partnerships:
   audit_body: 'Expiradas: {expired}
 
     Órfãs: {orphans}'
-  invite_text: Faça parceria com a gente! Fale com a staff para participar.
+  invite_text: '{info} Faça parceria com a gente! Fale com a staff para participar.'
   invite_text_default: Faça parceria com a gente! Fale com {rep} para participar.
   dm:
     added: |
-      Nova Parceria Estabelecida!
+      {success} Nova Parceria Estabelecida!
 
       Olá, {mention}! Você foi designado(a) como **representante oficial** da parceria com **{server}**.
 
@@ -39,7 +39,7 @@ partnerships:
 
       Sair do servidor ou descumprir as regras pode resultar na perda da parceria. Dúvidas? Fale com a equipe de moderação!
     removed: |
-      Parceria Encerrada
+      {info} Parceria Encerrada
 
       Olá, {mention}! Sua parceria com **{server}** foi encerrada pela equipe.
 
@@ -47,7 +47,7 @@ partnerships:
 
       Esta é uma notificação automática da parceria.
     rep_changed: |
-      Você Agora Representa uma Parceria!
+      {info} Você Agora Representa uma Parceria!
 
       Olá, {mention}! A parceria com **{server}** agora é representada por você. O anúncio foi atualizado e o cargo de parceiro foi transferido.
 
@@ -60,7 +60,7 @@ partnerships:
 
       Dúvidas? Fale com a equipe de moderação!
     warning: |
-      Renovação de Parceria Necessária!
+      {warning} Renovação de Parceria Necessária!
 
       Olá, {mention}! Sua parceria com **{server}** está chegando ao fim e precisa ser renovada.
 
@@ -72,7 +72,7 @@ partnerships:
 
       Ao expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido.
     expired: |
-      Parceria Expirada
+      {info} Parceria Expirada
 
       Olá, {mention}! A parceria com **{server}** expirou por falta de renovação e foi removida automaticamente.
 
@@ -81,7 +81,7 @@ partnerships:
 
       Seu anúncio foi deletado e o cargo de parceiro foi removido.
     expired_admin: |
-      Parceria Expirada
+      {info} Parceria Expirada
 
       Olá, {mention}! A parceria que você adicionou com o representante {rep} expirou por falta de renovação e foi removida de **{server}**.
 

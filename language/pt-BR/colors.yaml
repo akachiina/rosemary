@@ -51,11 +51,11 @@ colors:
     attach_title: Anexar Cargos
     attach_hint: Selecione os cargos que viram cores. A cor atual de cada cargo é herdada; edite depois para ajustar nome ou hex.
     attach_placeholder: Escolha os cargos...
-    attached: '{check} {count} cargo(s) anexado(s).'
-    saved: '{check} Cor atualizada.'
-    added: '{check} Cor **{name}** criada.'
-    removed: '{check} Cor **{name}** removida.'
-    role_created: '{check} Cargo **{role}** criado e anexado.'
+    attached: '{palette} {count} cargo(s) anexado(s).'
+    saved: '{palette} Cor atualizada.'
+    added: '{plus} Cor **{name}** criada.'
+    removed: '{trash} Cor **{name}** removida.'
+    role_created: '{plus} Cargo **{role}** criado e anexado.'
     role_modal_title: Criar Cargo de Cor
     edit_modal_title: Editar Cor
     field_name: Nome (aparece na imagem)

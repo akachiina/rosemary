@@ -254,10 +254,9 @@ def _payload_for_card(
         text = card_to_text(card)
         if not text:
             return CardPayload(), ""
-        from rosemary.core.feedback import notice_line
-
-        content = notice_line(bot, guild_id, text, style=card.style)
-        return CardPayload(content=content), content
+        # The copy carries its own icon (a theme emoji): the text form is the
+        # copy, verbatim.
+        return CardPayload(content=text), text
     if card.form == FORM_EMBED:
         document = card_to_embed(card)
         embed, buttons = resolve_embed(document, theme, mapping, resolved=True)

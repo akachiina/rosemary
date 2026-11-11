@@ -1,5 +1,5 @@
 anti_invite:
-  warning: '{user}, links de convite externos não são permitidos aqui.'
+  warning: '{warning} {user}, links de convite externos não são permitidos aqui.'
   logs:
     blocked:
       title: '{ban} Convite Bloqueado'
@@ -14,17 +14,17 @@ ban:
       reason:
         description: Motivo
   confirm_title: Banir este membro?
-  success: '{member} foi **banido**.'
-  dm: 'Você foi banido de **{guild}** por {moderator}!
+  success: '{ban} {member} foi **banido**.'
+  dm: '{error} Você foi banido de **{guild}** por {moderator}!
 
     • **{scroll} Motivo:** {reason}'
 cleaner:
-  error_disabled: 'A limpeza de mensagens está **desativada** neste servidor.'
-  error_no_mode: 'Diga **uma palavra, um regex ou quantas mensagens apagar** (últimas N).'
-  error_conflict: 'Use **palavra OU regex**, não os dois.'
-  error_bad_regex: '**Regex inválida:** {reason}'
-  error_last_range: 'O limite de últimas mensagens deve ser de **1 a 1000**.'
-  confirm_text: Isso apaga mensagens de forma permanente. Não pode ser desfeito.
+  error_disabled: '{error} A limpeza de mensagens está **desativada** neste servidor.'
+  error_no_mode: '{error} Diga **uma palavra, um regex ou quantas mensagens apagar** (últimas N).'
+  error_conflict: '{error} Use **palavra OU regex**, não os dois.'
+  error_bad_regex: '{error} **Regex inválida:** {reason}'
+  error_last_range: '{error} O limite de últimas mensagens deve ser de **1 a 1000**.'
+  confirm_text: '{warning} Isso apaga mensagens de forma permanente. Não pode ser desfeito.'
   confirm: Apagar tudo
   cancel: Cancelar
   stop: Parar
@@ -35,10 +35,10 @@ cleaner:
   progress_scanned: '**{search} Varridas:** {count}'
   progress_counts: '**{trash} Apagadas:** {deleted} de {matched}'
   progress_elapsed: '**{clock} Decorrido:** {elapsed}'
-  result: '{count} mensagem(ns) apagadas de {matched} que bateram no critério. {criterion}'
+  result: '{success} {count} mensagem(ns) apagadas de {matched} que bateram no critério. {criterion}'
   result_gap: '{warning} {gap} mensagem(ns) que bateram não puderam ser apagadas.'
-  stopped: 'Limpeza interrompida: {count} mensagem(ns) apagadas de {matched} que bateram. {criterion}'
-  cancelled: Limpeza cancelada.
+  stopped: '{stop} Limpeza interrompida: {count} mensagem(ns) apagadas de {matched} que bateram. {criterion}'
+  cancelled: '{info} Limpeza cancelada.'
   criterion_word: com a palavra “{word}”
   criterion_regex: casa com o regex `{regex}`
   criterion_last: as últimas {count} mensagem(ns)
@@ -54,8 +54,8 @@ cleaner:
 confirm:
   confirm: Confirmar
   cancel: Cancelar
-  failed: 'A ação **falhou**. Verifique os logs do bot.'
-  cancelled: Ação cancelada.
+  failed: '{error} A ação **falhou**. Verifique os logs do bot.'
+  cancelled: '{info} Ação cancelada.'
 kick:
   command:
     name: expulsar
@@ -66,8 +66,8 @@ kick:
       reason:
         description: Motivo
   confirm_title: Expulsar este membro?
-  success: '{member} foi **expulso**.'
-  dm: 'Você foi expulso de **{guild}** por {moderator}!
+  success: '{kick} {member} foi **expulso**.'
+  dm: '{warning} Você foi expulso de **{guild}** por {moderator}!
 
     • **{scroll} Motivo:** {reason}'
 limpar:
@@ -90,10 +90,10 @@ moderation:
   confirm_silent: Confirmar sem notificar
   confirm_clear: Limpar todos os warns
   cancel: Cancelar
-  cancelled: Ação cancelada.
-  error_failed: 'A ação **falhou**. Verifique os logs do bot.'
+  cancelled: '{info} Ação cancelada.'
+  error_failed: '{error} A ação **falhou**. Verifique os logs do bot.'
   auto_ban_applied: '**Auto-ban** aplicado (limite de {limit} warns).'
-  auto_ban_failed: '**Warn** registrado, mas o **auto-ban falhou** (verifique permissões).'
+  auto_ban_failed: '{error} **Warn** registrado, mas o **auto-ban falhou** (verifique permissões).'
   no_reason: Nenhum motivo informado
   summary: '{member}
 
@@ -101,14 +101,14 @@ moderation:
   multi_summary: '{targets}
 
     • **{scroll} Motivo:** {reason}'
-  error_disabled: 'Os comandos de moderação estão **desativados** neste servidor.'
-  error_no_members: 'Mencione **pelo menos um membro**.'
-  error_self: 'Você **não pode** usar comandos de moderação em si mesmo.'
-  error_self_bot: 'O bot **não pode** moderar a si mesmo.'
-  error_author_permissions: 'Você **não tem permissão** para fazer isso.'
-  error_bot_permissions: 'O bot **não tem permissão** para fazer isso.'
-  error_hierarchy: 'Este membro tem um cargo **igual ou superior** ao meu.'
-  error_bot_hierarchy: 'O cargo deste membro é **igual ou superior** ao do bot.'
+  error_disabled: '{error} Os comandos de moderação estão **desativados** neste servidor.'
+  error_no_members: '{error} Mencione **pelo menos um membro**.'
+  error_self: '{error} Você **não pode** usar comandos de moderação em si mesmo.'
+  error_self_bot: '{error} O bot **não pode** moderar a si mesmo.'
+  error_author_permissions: '{error} Você **não tem permissão** para fazer isso.'
+  error_bot_permissions: '{error} O bot **não tem permissão** para fazer isso.'
+  error_hierarchy: '{error} Este membro tem um cargo **igual ou superior** ao meu.'
+  error_bot_hierarchy: '{error} O cargo deste membro é **igual ou superior** ao do bot.'
   logs:
     auto_ban:
       description: '**{member_label}:** {member}
@@ -169,13 +169,13 @@ mute:
       reason:
         description: Motivo
   confirm_title: Silenciar este membro?
-  success: '{member} foi **silenciado** por **{duration}**.'
-  dm: 'Você foi silenciado em **{guild}** por {moderator}!
+  success: '{mute} {member} foi **silenciado** por **{duration}**.'
+  dm: '{warning} Você foi silenciado em **{guild}** por {moderator}!
 
     • **{clock} Duração:** {duration}
 
     • **{scroll} Motivo:** {reason}'
-  invalid_duration: '**Duração inválida.** Use formatos como 10m, 2h ou 3d.'
+  invalid_duration: '{clock} **Duração inválida.** Use formatos como 10m, 2h ou 3d.'
   summary: '{member}
 
     • **{clock} Duração:** {duration}
@@ -211,7 +211,7 @@ trap:
       title: '{error} Armadilha Falhou'
       description: '**{people} Alvo:** {user}\n**{gear} Consequência:** {action}\n**{scroll} Motivo:** {reason}'
   dm:
-    text: 'Você postou no canal armadilha de **{server}** e a mensagem foi removida.
+    text: '{warning} Você postou no canal armadilha de **{server}** e a mensagem foi removida.
 
 
       {action}
@@ -245,10 +245,10 @@ unwarn:
         description: Número da advertência (omita para limpar todas)
   clear_all_title: Limpar todos os warns?
   clear_all_summary: Remover todos os warns de {member}?
-  cleared: 'Removidos **{count}** warn(s) de {member}.'
-  removed: '**Warn #{index}** removido de {member}.'
-  invalid_index: 'Não há **warn** com esse número.'
-  none_for: 'Este membro **não tem warns** para limpar.'
+  cleared: '{minus} Removidos **{count}** warn(s) de {member}.'
+  removed: '{minus} **Warn #{index}** removido de {member}.'
+  invalid_index: '{minus} Não há **warn** com esse número.'
+  none_for: '{info} Este membro **não tem warns** para limpar.'
 warn:
   command:
     name: warn
@@ -259,8 +259,8 @@ warn:
       reason:
         description: Motivo
   confirm_title: Aplicar warn a este membro?
-  success: '**Warn** registrado para {member} ({count}/{limit}).'
-  dm: 'Você recebeu um warn em **{guild}** de {moderator}!
+  success: '{warning} **Warn** registrado para {member} ({count}/{limit}).'
+  dm: '{warning} Você recebeu um warn em **{guild}** de {moderator}!
 
     • **{scroll} Motivo:** {reason}'
 warnings:

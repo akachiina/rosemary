@@ -22,11 +22,11 @@ partnerships:
   audit_body: 'Expired: {expired}
 
     Orphaned: {orphans}'
-  invite_text: Partner with us! Talk to the staff to join.
+  invite_text: '{info} Partner with us! Talk to the staff to join.'
   invite_text_default: Partner with us! Talk to {rep} to join.
   dm:
     added: |
-      New Partnership Established!
+      {success} New Partnership Established!
 
       Hello, {mention}! You have been designated as the **official representative** of the partnership with **{server}**.
 
@@ -39,7 +39,7 @@ partnerships:
 
       Leaving the server or breaking the rules may result in losing the partnership. Questions? Talk to the moderation team!
     removed: |
-      Partnership Ended
+      {info} Partnership Ended
 
       Hello, {mention}! Your partnership with **{server}** was ended by the staff.
 
@@ -47,7 +47,7 @@ partnerships:
 
       This is an automated partnership notification.
     rep_changed: |
-      You Now Represent a Partnership!
+      {info} You Now Represent a Partnership!
 
       Hello, {mention}! The partnership with **{server}** is now represented by you. The ad was updated and the partner role was transferred.
 
@@ -60,7 +60,7 @@ partnerships:
 
       Questions? Talk to the moderation team!
     warning: |
-      Partnership Renewal Required!
+      {warning} Partnership Renewal Required!
 
       Hello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.
 
@@ -72,7 +72,7 @@ partnerships:
 
       When it expires, your partnership ad will be deleted and the partner role will be removed.
     expired: |
-      Partnership Expired
+      {info} Partnership Expired
 
       Hello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.
 
@@ -81,7 +81,7 @@ partnerships:
 
       Your ad was deleted and the partner role was removed.
     expired_admin: |
-      Partnership Expired
+      {info} Partnership Expired
 
       Hello, {mention}! The partnership you added with representative {rep} expired without renewal and was removed from **{server}**.
 

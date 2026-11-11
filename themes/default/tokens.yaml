@@ -23,6 +23,10 @@
 #             template, prefix, suffix and footer; styles inherit through
 #             "extends" and unknown names fall back to "base". Edit this file
 #             to re-theme the whole bot without touching code.
+#
+# The plain-text notices (the one-line answers) are not a style: their copy
+# opens with an emoji token of the list above, so the art of every notice
+# changes with one edit here.
 
 colors:
   brand: "#57F287"
@@ -168,14 +172,8 @@ styles:
   warning: { extends: base, color: "warning" }
   danger: { extends: base, color: "danger" }
   info: { extends: base, color: "info" }
-  # Plain-text notices ("{emoji} message"): the prefix is the whole style,
-  # the color is unused (a text line has no accent bar). A titled line keeps
-  # the same prefix and the serializer writes the title in bold.
-  feedback: { extends: base, prefix: "{info} " }
-  feedback_info: { extends: feedback }
-  feedback_success: { extends: feedback, prefix: "{success} " }
-  feedback_warning: { extends: feedback, prefix: "{warning} " }
-  feedback_error: { extends: feedback, prefix: "{error} " }
+  # Plain-text notices carry no style: the copy opens with the icon (a token
+  # of the list above) and the tone is only the meaning of that token.
   boost_log: { extends: log }
   boost_preview: { extends: base, color: "success" }
   bump_reminder: { extends: base, color: "brand" }

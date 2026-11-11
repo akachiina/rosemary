@@ -5,7 +5,7 @@ bump:
   messages:
     ping_thank_you: 'Obrigado pelo bump, {mention}!'
     ping_leaderboard: 'Parabéns, {winner_mention}!'
-    anti_camping: O canal foi bloqueado temporariamente. O bump estará disponível em instantes!
+    anti_camping: '{warning} O canal foi bloqueado temporariamente. O bump estará disponível em instantes!'
     thank_you_title: '{tada} Bump Registrado!'
     thank_you_description: 'Muito obrigada pelo bump, {mention}! Sua dedicação mantém o servidor brilhando. {cup}
 
@@ -55,7 +55,7 @@ bump:
     no_bumps_you: '{bar_chart} Você ainda não deu nenhum bump esta semana! Use `/bump` no canal de bump.'
   dm:
     winner_new: |
-      Você é o Bump-MVP da Semana!
+      {success} Você é o Bump-MVP da Semana!
 
       Olá, {mention}! Sua dedicação manteve o servidor brilhando. Muito obrigada!
 
@@ -72,7 +72,7 @@ bump:
 
       Aproveite até o próximo reset.
     winner_again: |
-      Bump-MVP mais uma vez!
+      {success} Bump-MVP mais uma vez!
 
       Olá, {mention}! Você reconquistou o título. Sua dedicação é admirável!
 
@@ -83,7 +83,7 @@ bump:
 
       Continue sendo incrível.
     winner_lost: |
-      Seu período como Bump-MVP terminou
+      {info} Seu período como Bump-MVP terminou
 
       Olá, {mention}! Esta semana outro membro conquistou o título. Não desanime!
 
@@ -136,10 +136,10 @@ bump:
       description: '{author} adicionou {count} bump(s) de teste para {user} (total na semana: {total}).'
   error_disabled: '{error} O sistema de bump está desativado neste servidor.'
   schedule:
-    open_message_default: O canal de bump está aberto! {ping_role} Use `/bump` para ajudar o servidor!
-    close_message_default: O canal de bump está fechado. Voltamos às 06:00!
+    open_message_default: '{success} O canal de bump está aberto! {ping_role} Use `/bump` para ajudar o servidor!'
+    close_message_default: '{info} O canal de bump está fechado. Voltamos às 06:00!'
   anti_camping:
-    message_default: O canal foi bloqueado temporariamente. O bump estará disponível em instantes!
+    message_default: '{warning} O canal foi bloqueado temporariamente. O bump estará disponível em instantes!'
   error_no_channel: '{error} O canal de bump não está configurado. Configure-o em `/configuracoes`.'
   error_no_role: '{error} O cargo de Bump-MVP não está configurado.'
   error_role_not_found: '{error} O cargo de vencedor configurado não foi encontrado no servidor.'

@@ -255,15 +255,7 @@ class SuggestionVoteView(MenuView):
 
             text = await self.bot.translator.t(guild.id, "general.unknown_error")
             with contextlib.suppress(discord.HTTPException):
-                await respond_line(
-                    interaction,
-                    self.bot,
-                    guild.id,
-                    text,
-                    style="danger",
-                    icon="error",
-                    ephemeral=True,
-                )
+                await respond_line(interaction, text, ephemeral=True)
             return
         if not ok:
             with contextlib.suppress(discord.HTTPException):
@@ -894,11 +886,7 @@ class SuggestionsCog(commands.Cog):
 
             return await respond_line(
                 interaction,
-                self.bot,
-                guild.id,
                 await t(guild.id, "general.unknown_error"),
-                style="danger",
-                icon="error",
                 ephemeral=True,
             )
         try:
@@ -961,11 +949,7 @@ class SuggestionsCog(commands.Cog):
 
             return await respond_line(
                 ctx,
-                self.bot,
-                guild.id,
                 await t(guild.id, "general.unknown_error"),
-                style="danger",
-                icon="error",
                 ephemeral=True,
             )
         await ctx.defer(ephemeral=True)

@@ -12,18 +12,18 @@ themes:
   import_title: Importar tema
   import_label: Arquivo de tema (.yaml ou .zip)
   import_description: Um YAML de tema (ou um pacote .zip) exportado antes do Rosemary ou escrito à mão.
-  imported: '{success} Tema **{theme}** importado e validado.'
+  imported: '{register} Tema **{theme}** importado e validado.'
   select_placeholder: Escolha o tema ativo...
-  selected: '{success} O tema **{theme}** agora está ativo.'
+  selected: '{palette} O tema **{theme}** agora está ativo.'
   export_placeholder: Escolha um tema para baixar...
   export_failed: '{error} Não foi possível enviar esse arquivo de tema.'
-  reset_done: '{success} De volta ao tema padrão embutido.'
+  reset_done: '{reset} De volta ao tema padrão embutido.'
   reset_button: Tema padrão
   reload_button: Recarregar arquivos
-  reloaded: '{success} Arquivos de tema relidos do disco; painéis atualizados.'
+  reloaded: '{refresh} Arquivos de tema relidos do disco; painéis atualizados.'
   remove_placeholder: Escolha um tema importado para remover...
-  removed: '{success} Tema **{theme}** removido.'
-  removed_active: '{success} Tema **{theme}** removido: de volta ao padrão embutido.'
+  removed: '{trash} Tema **{theme}** removido.'
+  removed_active: '{trash} Tema **{theme}** removido: de volta ao padrão embutido.'
   not_found: '{error} Tema não encontrado.'
   rejected: '{error} Tema rejeitado: {reason}'
   none_yet: '*Nenhum tema importado ainda: anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
@@ -35,7 +35,7 @@ themes:
   preview_button: Prévia
   preview_card_placeholder: Escolha um card para pré-visualizar...
   preview_form_placeholder: Escolha o formato...
-  validate_ok: '{success} O tema **{theme}** está correto: nenhum problema encontrado.'
+  validate_ok: '{check} O tema **{theme}** está correto: nenhum problema encontrado.'
   validate_failed: '{error} O tema **{theme}** tem **{count}** problema(s).'
   validate_issue: '`{code}` em **{where}**: {detail}'
   validate_title: 'Validação de **{theme}**'

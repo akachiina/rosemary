@@ -255,8 +255,8 @@ def card_to_text(card: Card) -> str:
 
     A content-native card keeps its text. A blocks-native card is reduced by
     the legacy converter. A slots-native card writes its slots: the title is
-    the bold first line (the notice prefix still opens it), each paragraph
-    rides its own lines, a field is a bullet (``• **Label:** value``) and the
+    the bold first line (the copy's own icon opens it), each paragraph rides
+    its own lines, a field is a bullet (``• **Label:** value``) and the
     footer closes the text on its own line.
     """
     if card.content:
@@ -266,13 +266,13 @@ def card_to_text(card: Card) -> str:
 
         return to_text_content(blocks_to_document(card.blocks))
 
-    from rosemary.core.forms import plain_text
+    from rosemary.core.forms import bold_title, plain_text
 
     lines: list[str] = []
     if card.title:
-        title = str(card.title).strip()
+        title = bold_title(card.title)
         if title:
-            lines.append(f"**{title}**")
+            lines.append(title)
     for paragraph in card.paragraphs:
         text = str(paragraph).strip()
         if text:

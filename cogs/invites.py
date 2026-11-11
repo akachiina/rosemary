@@ -286,7 +286,7 @@ class InvitesCog(commands.Cog):
             from rosemary.ui.responses import respond_notice
 
             return await respond_notice(
-                ctx, self.bot, guild_id,
+                ctx,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
             )
         target = member or ctx.author
@@ -381,7 +381,7 @@ class InvitesCog(commands.Cog):
             from rosemary.ui.responses import respond_notice
 
             return await respond_notice(
-                ctx, self.bot, guild_id,
+                ctx,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
             )
         if not await get_setting(self.bot.storage, guild_id, "invites.leaderboard_enabled"):
@@ -468,7 +468,7 @@ class InvitesCog(commands.Cog):
             from rosemary.ui.responses import respond_notice
 
             return await respond_notice(
-                ctx, self.bot, guild_id,
+                ctx,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
             )
         record = await self.store.invited_by(guild_id, member.id)
@@ -535,7 +535,7 @@ class InvitesCog(commands.Cog):
             from rosemary.ui.responses import respond_notice
 
             return await respond_notice(
-                ctx, self.bot, guild_id,
+                ctx,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
             )
         target = member or ctx.author
@@ -593,7 +593,7 @@ class InvitesCog(commands.Cog):
             from rosemary.ui.responses import respond_notice
 
             return await respond_notice(
-                ctx, self.bot, guild_id,
+                ctx,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
             )
         channel = None
@@ -669,7 +669,7 @@ class InvitesCog(commands.Cog):
             from rosemary.ui.responses import respond_notice
 
             return await respond_notice(
-                ctx, self.bot, guild_id,
+                ctx,
                 await self.bot.translator.t(guild_id, "invites.error_disabled"),
             )
         totals = await self.store.server_totals(guild_id)

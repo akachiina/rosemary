@@ -52,24 +52,6 @@ _ACTION_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "warn": ("moderate_members",),
 }
 
-#: The verb icon of each success notice (the notice layer owns the icon).
-_SUCCESS_ICONS: dict[str, str] = {
-    "ban.success": "ban",
-    "kick.success": "kick",
-    "mute.success": "mute",
-    "warn.success": "warning",
-    "unwarn.cleared": "minus",
-    "unwarn.removed": "minus",
-    "unwarn.none_for": "info",
-}
-
-#: The icon of an error whose subject is clearer than the generic tone.
-_ERROR_ICONS: dict[str, str] = {
-    "mute.invalid_duration": "clock",
-    "unwarn.invalid_index": "minus",
-}
-
-
 class WarningsStore:
     """Warnings persistence in its own ``warnings.json`` (per-guild).
 
@@ -174,8 +156,7 @@ class ModerationConfirmView(ConfirmView):
 
     async def _run(self, interaction: discord.Interaction) -> ConfirmResult:
         text = await self._execute(self._notify)
-        icon = _SUCCESS_ICONS.get(f"{self.action}.success", "success")
-        return ConfirmResult(text=text, state="success", icon=icon)
+        return ConfirmResult(text=text, state="success")
 
     async def _confirm_notify(self, interaction: discord.Interaction) -> None:
         self._notify = True
@@ -251,7 +232,7 @@ class ClearWarningsView(ConfirmView):
         text = await self.bot.translator.t(
             self.guild_id, "unwarn.cleared", member=self.member_mention, count=count
         )
-        return ConfirmResult(text=text, state="success", icon="minus")
+        return ConfirmResult(text=text, state="success")
 
     async def question_items(self) -> list[discord.ui.ViewItem]:
         t = self.bot.translator.t
@@ -303,15 +284,9 @@ class ModerationCog(commands.Cog):
             guild_id = ctx.guild.id
         return guild_id
 
-    async def _respond(
-        self, ctx, *, title: str, color: str, icon: str | None = None
-    ) -> None:
-        """Send one plain notice line on a slash or prefix context."""
-        from rosemary.core.feedback import line as notice_line
-
-        content = notice_line(
-            self.bot, self._ctx_guild_id(ctx), title, style=color, icon=icon
-        )
+    async def _respond(self, ctx, *, title: str) -> None:
+        """Send one plain notice on a slash or prefix context."""
+        content = title.strip()
         # The notice never notifies: the copy names the target of the action.
         mentions = discord.AllowedMentions.none()
         if isinstance(ctx, discord.ApplicationContext):
@@ -320,27 +295,23 @@ class ModerationCog(commands.Cog):
             await ctx.reply(content, allowed_mentions=mentions)
 
     async def _respond_error(self, ctx, key: str, **variables) -> None:
-        """One error notice (the theme's prefix, never a ping)."""
+        """One error notice (the catalog copy, never a ping)."""
         await notice(
             ctx,
             self.bot,
             self._ctx_guild_id(ctx),
             key,
-            style="danger",
-            icon=_ERROR_ICONS.get(key, "error"),
             ephemeral=isinstance(ctx, discord.ApplicationContext),
             **variables,
         )
 
     async def _respond_success(self, ctx, key: str, **variables) -> None:
-        """One success notice (the theme's prefix, never a ping)."""
+        """One success notice (the catalog copy, never a ping)."""
         await notice(
             ctx,
             self.bot,
             self._ctx_guild_id(ctx),
             key,
-            style="success",
-            icon=_SUCCESS_ICONS.get(key),
             ephemeral=isinstance(ctx, discord.ApplicationContext),
             **variables,
         )
@@ -911,8 +882,6 @@ class ModerationCog(commands.Cog):
             return await self._respond(
                 ctx,
                 title=await t(self._ctx_guild_id(ctx), "moderation.error_no_members"),
-                color="danger",
-                icon="error",
             )
         parsed = None
         if action == "mute":
@@ -923,8 +892,6 @@ class ModerationCog(commands.Cog):
                     return await self._respond(
                         ctx,
                         title=await t(self._ctx_guild_id(ctx), "mute.invalid_duration"),
-                        color="danger",
-                        icon="clock",
                     )
             else:
                 # Same default as /mute: the moderation.mute_seconds setting.
@@ -941,9 +908,7 @@ class ModerationCog(commands.Cog):
             else:
                 blocked.append(await t(self._ctx_guild_id(ctx), error_key))
         if blocked:
-            return await self._respond(
-                ctx, title="\n".join(blocked), color="danger", icon="error"
-            )
+            return await self._respond(ctx, title="\n".join(blocked))
         await self._confirm_and_execute(ctx, action, valid, reason, parsed)
 
 

@@ -26,7 +26,6 @@ from typing import Any
 
 import discord
 
-from rosemary.core.feedback import line as notice_line
 from rosemary.core.settings import MENU_TIMEOUT
 from rosemary.ui.containers import (
     ActionRow,
@@ -277,7 +276,6 @@ class Panel(MenuView):
         self.accent: discord.ui.ViewItem | None = None
         self.flash: str | None = None
         self.flash_color: str | None = None
-        self.flash_icon: str | None = None
         self.expired = False
         self._register_navigation()
 
@@ -438,24 +436,14 @@ class Panel(MenuView):
         parts.extend(await self.header_lines())
         color = self.color
         if self.flash:
-            parts.append(
-                TextDisplay(
-                    notice_line(
-                        self.bot,
-                        self.guild_id,
-                        self.flash,
-                        style=self.flash_color or "info",
-                        icon=self.flash_icon,
-                    )
-                )
-            )
+            # The flash is the catalog copy: it carries its own icon.
+            parts.append(TextDisplay(self.flash))
             color = self.flash_color or color
         footer = self._fill(chrome.footer, footer=self.footer)
         if _has_text(footer):
             parts.append(TextDisplay(footer))
         self.flash = None
         self.flash_color = None
-        self.flash_icon = None
         if not parts:
             # A row-only surface (a review card, a ticket panel) carries no
             # chrome of its own: the card it rides already owns the frame.
@@ -517,9 +505,7 @@ class Panel(MenuView):
 
     async def expired_items(self) -> list[discord.ui.ViewItem]:
         """The terminal state of an expired panel (no buttons left)."""
-        text = notice_line(
-            self.bot, self.guild_id, await self.t("menu.expired"), style="warning"
-        )
+        text = await self.t("menu.expired")
         theme = self.theme
         return [
             Container(
@@ -595,37 +581,16 @@ class EmptyState:
 class Notice:
     """The one-line notice: the plain-text layer of an ephemeral answer.
 
-    The prefix is a theme style, so a guild restyles every notice at once.
+    The copy carries its own icon (a theme emoji), so a guild restyles the art
+    of every notice at once.
     """
 
     @staticmethod
-    async def send(
-        target: Any,
-        bot: Any,
-        guild_id: int | None,
-        text: str,
-        *,
-        style: str = "info",
-        icon: str | None = None,
-    ) -> None:
-        """Answer with one notice line (ACKs when needed)."""
+    async def send(target: Any, text: str) -> None:
+        """Answer with one notice (ACKs when needed)."""
         from rosemary.core.feedback import respond
 
-        await respond(
-            target, bot, guild_id, text, style=style, icon=icon, ephemeral=True
-        )
-
-    @staticmethod
-    def line(
-        bot: Any,
-        guild_id: int | None,
-        text: str,
-        *,
-        style: str = "info",
-        icon: str | None = None,
-    ) -> str:
-        """The notice line, as text (the plain-text layer)."""
-        return notice_line(bot, guild_id, text, style=style, icon=icon)
+        await respond(target, text, ephemeral=True)
 
 
 @dataclass(frozen=True)
@@ -634,13 +599,11 @@ class ConfirmResult:
 
     ``on_confirm`` may return a plain string (rendered with the default
     ``success`` color) or a :class:`ConfirmResult` to steer the terminal
-    state's color (e.g. ``warning`` for a cancelled-by-feature flow) and the
-    icon of the outcome (``ban``, ``minus``...).
+    state's color (e.g. ``warning`` for a cancelled-by-feature flow).
     """
 
     text: str
     state: str = "success"
-    icon: str | None = None
 
     @classmethod
     def wrap(cls, value: Any, *, default_state: str = "success") -> ConfirmResult:
@@ -653,7 +616,7 @@ class Confirm(Panel):
     """The standard confirmation dialog: ask, act, show the outcome.
 
     A confirmation is a conversation, not a dashboard: the question travels
-    as plain text (the message content, with the theme's notice prefix) and
+    as plain text (the message content, the copy as the catalog writes it) and
     the choices as a classic button row. The terminal state replaces the
     content with the outcome and drops the buttons.
     """
@@ -685,7 +648,6 @@ class Confirm(Panel):
         self.question_color = "warning"
         self.result: str | None = None
         self.result_state: str | None = None
-        self.result_icon: str | None = None
         self.nav_actions = ()
         self.register("confirm_yes", self._confirm)
         self.register("confirm_no", self._cancel)
@@ -731,12 +693,10 @@ class Confirm(Panel):
             outcome = ConfirmResult.wrap(await self.on_confirm(interaction))
             self.result = outcome.text
             self.result_state = outcome.state
-            self.result_icon = outcome.icon
         except Exception as exc:
             log.error("Confirmed action failed: %s", exc)
             self.result = await self.t(self.failure_key)
             self.result_state = "danger"
-            self.result_icon = "error"
         await self.rerender(interaction)
         self.stop()
 
@@ -748,21 +708,14 @@ class Confirm(Panel):
             return
         self.result = await self.t(self.cancelled_key)
         self.result_state = "warning"
-        self.result_icon = "info"
         await self.rerender(interaction)
         self.stop()
 
     async def content(self) -> str:
         """The message content of the current state (one notice line)."""
         if self.result is not None:
-            body = self.result
-            style = self.result_state or "info"
-            icon = self.result_icon
-        else:
-            body = await self.question_text()
-            style = self.question_color
-            icon = None
-        return notice_line(self.bot, self.guild_id, body, style=style, icon=icon)
+            return self.result
+        return await self.question_text()
 
     async def message_kwargs(self) -> dict[str, Any]:
         """The keyword arguments of the confirm message (content + view).

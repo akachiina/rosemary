@@ -1,11 +1,11 @@
 """Standard ephemeral responses as one plain line.
 
 Every user-facing ephemeral notice (errors, warnings, plain confirmations)
-renders through one builder so a theme can restyle the surface and every
-cog speaks the same visual language: the theme's prefix (``{emoji} ``) plus
-the message, one thing per line. The notice layer lives in
-:mod:`rosemary.core.feedback`: the prefix is a theme style, so a guild
-restyles every notice at once.
+renders through one builder so every cog speaks the same visual language: the
+copy as the catalog writes it, one thing per line. The copy opens with the
+icon of the action (``{ban}``, ``{error}``...), a theme emoji, so a guild
+restyles the art of every notice at once. The notice layer lives in
+:mod:`rosemary.core.feedback`.
 
 Prefix aliases reuse the slash handlers verbatim through
 :class:`PrefixContext`, the slash-shaped facade declared below.
@@ -15,34 +15,15 @@ from __future__ import annotations
 
 from discord.ext import commands
 
-from rosemary.core.feedback import respond as _respond_notice_line
+from rosemary.core.feedback import respond
 
 
-async def respond_notice(
-    interaction_or_ctx,
-    bot,
-    guild_id: int | None,
-    text: str,
-    *,
-    color: str = "danger",
-    icon: str | None = None,
-) -> None:
-    """Respond ephemerally with one notice line (ACKs when needed).
+async def respond_notice(interaction_or_ctx, text: str) -> None:
+    """Respond ephemerally with one notice (ACKs when needed).
 
-    ``color`` is a theme color token: ``danger`` for errors, ``warning`` for
-    warnings, ``success`` for confirmations, ``info`` for notices. It picks
-    the prefix emoji; ``icon`` names the verb of the action and replaces that
-    tone icon. The message keeps its own catalog copy.
+    The copy carries its own icon; the builder only sends it.
     """
-    await _respond_notice_line(
-        interaction_or_ctx,
-        bot,
-        guild_id,
-        text,
-        style=color,
-        icon=icon,
-        ephemeral=True,
-    )
+    await respond(interaction_or_ctx, text, ephemeral=True)
 
 
 class PrefixContext:

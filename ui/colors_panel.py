@@ -244,11 +244,7 @@ class ColorPickerView(MenuView):
 
             return await respond_line(
                 interaction,
-                self.bot,
-                self.guild_id,
                 await self._t("general.unknown_error"),
-                style="danger",
-                icon="error",
                 ephemeral=True,
             )
         color_entries = await cog.store.list_colors(self.guild_id)
@@ -292,11 +288,7 @@ class ColorPickerView(MenuView):
 
             return await respond_line(
                 interaction,
-                self.bot,
-                self.guild_id,
                 await self._t("general.unknown_error"),
-                style="danger",
-                icon="error",
                 ephemeral=True,
             )
         key = "colors.panel.removed" if wearing else "colors.panel.applied"

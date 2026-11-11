@@ -22,7 +22,6 @@ from discord.ext import commands
 from rosemary.core.cards import text_or
 from rosemary.core.command_surface import Surface, run
 from rosemary.core.debug import send_log
-from rosemary.core.feedback import line as notice_line
 from rosemary.core.settings import get_setting
 from rosemary.ui.kit import ActionRow, Panel, TextDisplay
 from rosemary.ui.responses import PrefixContext
@@ -250,11 +249,8 @@ class CleanerPurgeView(Panel):
     async def _cancel(self, interaction: discord.Interaction) -> None:
         """Close the panel without deleting anything."""
         self.state = "done"
-        self.final_text = notice_line(
-            self.bot,
-            self.guild_id,
-            await self.bot.translator.t(self.guild_id, "cleaner.cancelled"),
-            style="info",
+        self.final_text = await self.bot.translator.t(
+            self.guild_id, "cleaner.cancelled"
         )
         await self.rerender(interaction)
         self.stop()
@@ -288,40 +284,28 @@ class CleanerPurgeView(Panel):
         self.matched = result.matched
         self.state = "done"
         if self.cancel_event.is_set():
-            self.final_text = notice_line(
-                self.bot,
+            self.final_text = await t(
                 gid,
-                await t(
-                    gid,
-                    "cleaner.stopped",
-                    count=self.deleted,
-                    matched=self.matched,
-                    criterion=self.request.criterion,
-                ),
-                style="warning",
-                icon="stop",
+                "cleaner.stopped",
+                count=self.deleted,
+                matched=self.matched,
+                criterion=self.request.criterion,
             )
         else:
-            self.final_text = notice_line(
+            self.final_text = await text_or(
                 self.bot,
                 gid,
-                await text_or(
-                    self.bot,
+                "cleaner.result",
+                await t(
                     gid,
                     "cleaner.result",
-                    await t(
-                        gid,
-                        "cleaner.result",
-                        count=self.deleted,
-                        matched=self.matched,
-                        criterion=self.request.criterion,
-                    ),
                     count=self.deleted,
                     matched=self.matched,
                     criterion=self.request.criterion,
                 ),
-                style="success",
-                icon="trash",
+                count=self.deleted,
+                matched=self.matched,
+                criterion=self.request.criterion,
             )
         await self._edit_panel()
         await self._send_log()
@@ -555,7 +539,7 @@ class CleanerCog(commands.Cog):
         from rosemary.core.feedback import respond as respond_line
 
         body = await self.bot.translator.t(guild_id, key, **fmt)
-        await respond_line(ctx, self.bot, guild_id, body, style="error")
+        await respond_line(ctx, body)
 
     async def _compose_criterion(
         self,
