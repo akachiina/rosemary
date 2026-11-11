@@ -164,7 +164,10 @@ async def test_the_notices_are_documents():
         for key in package.card_keys()
         if package.metadata(key)["form"] == "text"
     ]
-    assert len(notices) == 39
+    # The plain-text layer shrank when the event DMs became embeds (the
+    # boost invite, the bump winners and the partnership notices), and it
+    # grew with the confession ban DM.
+    assert len(notices) == 30
     for key in notices:
         assert package.document(key) is not None, key
 

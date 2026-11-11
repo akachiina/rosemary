@@ -525,45 +525,6 @@ class ConfessionsCog(commands.Cog):
         except (discord.NotFound, discord.HTTPException):
             return None
 
-    async def _dm_card(
-        self, guild: discord.Guild, key: str, color_token: str, variables: dict
-    ):
-        """Themed DM card (or code fallback) for confession notices."""
-        from rosemary.core.card_service import render_card_message, simple_payload
-
-        payload, _allowed = await render_card_message(
-            self.bot, guild.id, key, variables
-        )
-        if payload is not None:
-            return payload
-        t = self.bot.translator.t
-        buttons = ()
-        if variables.get("message_link"):
-            jump_label = await t(guild.id, "confess.dm.jump")
-            buttons = ((jump_label, variables["message_link"]),)
-        # The fallback follows the card's own form: the DM keeps its shape.
-        return simple_payload(
-            self.bot,
-            guild.id,
-            key,
-            body=await t(guild.id, key, **variables),
-            color=color_token,
-            buttons=buttons,
-        )
-
-    async def _send_dm(self, guild: discord.Guild, user_id: int, payload) -> bool:
-        """DM one user a card payload (best effort, never pings)."""
-        target = await self._dm_target(guild, user_id)
-        if target is None:
-            return False
-        with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-            await target.send(
-                **payload.message_kwargs(),
-                allowed_mentions=discord.AllowedMentions.none(),
-            )
-            return True
-        return False
-
     async def _log(
         self,
         guild_id: int,
@@ -1247,10 +1208,7 @@ class ConfessionsCog(commands.Cog):
             reason_text = (reason or "").strip() or await t(
                 guild.id, "confess.no_reason"
             )
-            text = await self.bot.translator.t(
-                guild.id, "confess.dm.banned", reason=reason_text
-            )
-            await self._send_text_dm(guild, author_id, text)
+            await self._send_ban_dm(guild, author_id, reason_text)
             await self._log(
                 guild.id, "banned", "danger", [author_id],
                 moderator=moderator.mention, user=f"<@{author_id}>",
@@ -1258,13 +1216,26 @@ class ConfessionsCog(commands.Cog):
             )
         return "ok", author_id
 
-    async def _send_text_dm(self, guild: discord.Guild, user_id: int, text: str) -> bool:
-        """Plain-text DM (ban notices carry no card)."""
+    async def _send_ban_dm(self, guild: discord.Guild, user_id: int, reason: str) -> bool:
+        """The ban notice DM: a themed text card, never a ping.
+
+        The card owns the shape (the copy and its icon come from the catalog
+        and the theme), so the send site only hands it the motive.
+        """
+        from rosemary.ui.boost_dm import send as send_dm
+
         target = await self._dm_target(guild, user_id)
         if target is None:
             return False
         with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-            await target.send(text, allowed_mentions=discord.AllowedMentions.none())
+            await send_dm(
+                self.bot,
+                target,
+                guild.id,
+                "confessions.dm.banned",
+                default_key="confess.dm.banned",
+                reason=reason,
+            )
             return True
         return False
 
@@ -1303,11 +1274,19 @@ class ConfessionsCog(commands.Cog):
             jump_label = await t(guild_id, "confess.dm.jump")
             buttons = ((jump_label, variables["message_link"]),)
         # The fallback follows the card's own form: the DM keeps its shape.
+        # The content line names the event, the embed carries the subject
+        # (the confession or the reply) and the motive.
+        body = "\n".join(
+            part
+            for part in (variables.get("body"), variables.get("reason_line"))
+            if part
+        )
         return simple_payload(
             self.bot,
             guild_id,
             key,
-            body=await t(guild_id, body_key, **variables),
+            content_line=await t(guild_id, body_key, **variables),
+            body=body,
             color=color_token,
             buttons=buttons,
         )
@@ -1520,6 +1499,11 @@ class ConfessionsCog(commands.Cog):
                 return "gone", None
         # The author of the confession hears about every reply but their own:
         # a DM about your own comment is noise.
+        # The content line names the answer and, when the answer answers
+        # another one, the answer it answers.
+        reply_line_key = (
+            "confess.dm.response_parent" if parent_line else "confess.dm.response"
+        )
         if author_id and author.id != author_id:
             await self._dm_card_send(
                 guild, author_id,
@@ -1529,8 +1513,9 @@ class ConfessionsCog(commands.Cog):
                     "reply_index": index,
                     "body": body,
                     "message_link": sent.jump_url,
+                    "parent_line": parent_line,
                 },
-                "confess.dm.response",
+                reply_line_key,
             )
         if parent_index:
             parent = await self.store.get_reply(guild.id, parent_id)
@@ -1547,8 +1532,9 @@ class ConfessionsCog(commands.Cog):
                         "reply_index": index,
                         "body": body,
                         "message_link": sent.jump_url,
+                        "parent_line": parent_line,
                     },
-                    "confess.dm.response",
+                    reply_line_key,
                 )
         await self._log(
             guild.id, "replied", "info", (),
@@ -1663,8 +1649,7 @@ class ConfessionsCog(commands.Cog):
                 guild.id, "banned", "danger", [member.id],
                 moderator=staff.mention, user=member.mention, reason=reason_text,
             )
-        text = await t(guild.id, "confess.dm.banned", reason=reason_text)
-        await self._send_text_dm(guild, member.id, text)
+        await self._send_ban_dm(guild, member.id, reason_text)
         key = "confess.banned_confirm" if newly else "confess.already_banned"
         await ctx.respond(
             await t(guild.id, key, user=member.mention), ephemeral=True

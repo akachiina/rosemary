@@ -100,7 +100,6 @@ boost.dm.registered:
   - role_name
   - server_name
   - max_members
-  mention: single
   category: boost
 
 boost.dm.transferred:
@@ -112,7 +111,6 @@ boost.dm.transferred:
   - role_name
   - server_name
   - max_members
-  mention: single
   category: boost
 
 boost.dm.auto_transferred:
@@ -123,7 +121,6 @@ boost.dm.auto_transferred:
   - mention
   - role_name
   - server_name
-  mention: single
   category: boost
 
 boost.dm.auto_created:
@@ -135,7 +132,6 @@ boost.dm.auto_created:
   - role_name
   - server_name
   - max_members
-  mention: single
   category: boost
 
 boost.dm.auto_restored:
@@ -147,7 +143,6 @@ boost.dm.auto_restored:
   - role_name
   - server_name
   - max_members
-  mention: single
   category: boost
 
 boost.dm.unboost_deleted:
@@ -158,7 +153,6 @@ boost.dm.unboost_deleted:
   - mention
   - role_name
   - server_name
-  mention: single
   category: boost
 
 boost.dm.unboost_removed:
@@ -169,7 +163,6 @@ boost.dm.unboost_removed:
   - mention
   - role_name
   - server_name
-  mention: single
   category: boost
 
 boost.dm.unboost_kept:
@@ -179,19 +172,6 @@ boost.dm.unboost_kept:
   - mention
   - role_name
   - server_name
-  mention: single
-  category: boost
-
-boost.dm.invite:
-  archetype: notice
-  description: '{boost.dm.invite}'
-  variables:
-  - mention
-  - role_name
-  - server_name
-  - inviter_mention
-  - expires
-  mention: single
   category: boost
 
 boost.dm.accepted:
@@ -200,7 +180,6 @@ boost.dm.accepted:
   description: '{boost.dm.accepted}'
   variables:
   - role_name
-  mention: single
   category: boost
 
 boost.dm.declined:
@@ -208,7 +187,6 @@ boost.dm.declined:
   description: '{boost.dm.declined}'
   variables:
   - role_name
-  mention: single
   category: boost
 
 boost.dm.owner_accepted:
@@ -218,7 +196,6 @@ boost.dm.owner_accepted:
   variables:
   - member_mention
   - role_name
-  mention: single
   category: boost
 
 boost.dm.owner_declined:
@@ -227,7 +204,6 @@ boost.dm.owner_declined:
   variables:
   - member_mention
   - role_name
-  mention: single
   category: boost
 
 boost.dm.member_left:
@@ -235,7 +211,6 @@ boost.dm.member_left:
   description: '{boost.dm.member_left}'
   variables:
   - role_name
-  mention: single
   category: boost
 
 boost.dm.owner_member_left:
@@ -244,7 +219,6 @@ boost.dm.owner_member_left:
   variables:
   - member_mention
   - role_name
-  mention: single
   category: boost
 
 boost.dm.error:
@@ -253,43 +227,7 @@ boost.dm.error:
   description: '{boost.dm.error}'
   variables:
   - body
-  mention: single
   category: boost
-
-# The Bump-MVP notices.
-bump.dm.winner_new:
-  archetype: notice
-  style: success
-  description: '{bump.dm.winner_new}'
-  variables:
-  - mention
-  - bump_count
-  - role_name
-  - max_members
-  mention: single
-  category: bump
-
-bump.dm.winner_again:
-  archetype: notice
-  style: success
-  description: '{bump.dm.winner_again}'
-  variables:
-  - mention
-  - bump_count
-  - role_name
-  - total_wins
-  mention: single
-  category: bump
-
-bump.dm.winner_lost:
-  archetype: notice
-  description: '{bump.dm.winner_lost}'
-  variables:
-  - mention
-  - bump_count
-  - winner_mention
-  mention: single
-  category: bump
 
 # The moderation notices: the action told to the member.
 warn.dm:
@@ -300,7 +238,6 @@ warn.dm:
   - guild
   - moderator
   - reason
-  mention: single
   category: moderation
 
 mute.dm:
@@ -312,7 +249,6 @@ mute.dm:
   - moderator
   - reason
   - duration
-  mention: single
   category: moderation
 
 kick.dm:
@@ -323,7 +259,6 @@ kick.dm:
   - guild
   - moderator
   - reason
-  mention: single
   category: moderation
 
 ban.dm:
@@ -334,66 +269,16 @@ ban.dm:
   - guild
   - moderator
   - reason
-  mention: single
   category: moderation
 
-# The partnership notices.
-partnerships.dm.added:
+# The confession ban DM: the member is told the action and the motive, in
+# the same plain-text grammar as the moderation notices.
+confessions.dm.banned:
   archetype: notice
-  style: success
-  description: '{partnerships.dm.added}'
+  style: error
+  description: '{confess.dm.banned}'
   variables:
-  - server
-  - mention
-  mention: single
-  category: partnerships
+  - reason
+  category: confessions
 
-partnerships.dm.removed:
-  archetype: notice
-  description: '{partnerships.dm.removed}'
-  variables:
-  - server
-  - mention
-  mention: single
-  category: partnerships
-
-partnerships.dm.rep_changed:
-  archetype: notice
-  description: '{partnerships.dm.rep_changed}'
-  variables:
-  - server
-  - mention
-  mention: single
-  category: partnerships
-
-partnerships.dm.warning:
-  archetype: notice
-  style: warning
-  description: '{partnerships.dm.warning}'
-  variables:
-  - days
-  - server
-  - mention
-  mention: single
-  category: partnerships
-
-partnerships.dm.expired:
-  archetype: notice
-  description: '{partnerships.dm.expired}'
-  variables:
-  - server
-  - mention
-  mention: single
-  category: partnerships
-
-partnerships.dm.expired_admin:
-  archetype: notice
-  description: '{partnerships.dm.expired_admin}'
-  variables:
-  - rep
-  - server
-  - days
-  - invite
-  - mention
-  mention: single
-  category: partnerships
+# The partnership notices are embeds now: see themes/default/cards/content.yaml.

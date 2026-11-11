@@ -19,9 +19,7 @@ suggest:
   dm:
     up: upvote
     down: downvote
-    body: 'New **{vote}** on your **suggestion #{suggestion_number}** from {voter}:
-
-      > {body}'
+    body: 'New **{vote}** on your **suggestion #{suggestion_number}** from {voter}:'
     jump: Go to suggestion
     approved: '{check} Your suggestion **#{suggestion_number}** was approved by {moderator}!'
     rejected: '{error} Your suggestion **#{suggestion_number}** was rejected by {moderator}.'

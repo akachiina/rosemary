@@ -628,11 +628,14 @@ class SuggestionsCog(commands.Cog):
         )
         if payload is None:
             t = self.bot.translator.t
+            # The fallback follows the card's own shape: the content line
+            # names the vote, the embed carries the suggestion itself.
             payload = simple_payload(
                 self.bot,
                 guild.id,
                 "suggestions.dm.vote",
-                body=await t(guild.id, "suggest.dm.body", **variables),
+                content_line=await t(guild.id, "suggest.dm.body", **variables),
+                body=variables["body"],
                 color=_side_color(side),
                 buttons=((await t(guild.id, "suggest.dm.jump"), message_link),),
             )
@@ -729,11 +732,17 @@ class SuggestionsCog(commands.Cog):
         )
         if payload is None:
             t = self.bot.translator.t
+            # The fallback follows the card's own shape: the content line
+            # names the decision, the embed carries the suggestion and the
+            # motive.
             payload = simple_payload(
                 self.bot,
                 guild.id,
                 f"suggestions.dm.{decision}",
-                body=await t(guild.id, f"suggest.dm.{decision}", **variables),
+                content_line=await t(guild.id, f"suggest.dm.{decision}", **variables),
+                body="\n".join(
+                    part for part in (variables["body"], reason_line) if part
+                ),
                 color="gold" if decision == "approved" else "danger",
                 buttons=(
                     (await t(guild.id, "suggest.dm.jump"), variables["message_link"]),

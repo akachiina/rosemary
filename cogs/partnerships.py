@@ -13,7 +13,6 @@ import discord
 import discord.ext.tasks as tasks
 from discord.ext import commands
 
-from rosemary.core.cards import text_or
 from rosemary.core.command_guards import require_admin
 from rosemary.core.debug import send_log
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
@@ -137,19 +136,34 @@ class PartnershipsCog(commands.Cog):
     async def _dm(
         self, guild: discord.Guild, user_id: int, key: str, **variables
     ) -> None:
+        """Send a partnership DM through the card pipeline.
+
+        The card owns the shape (an embed, a plain line or a themed sequence),
+        so the send site never builds the message by hand. A card with no
+        copy falls back to the catalog line, exactly like the other DMs.
+        """
         member = guild.get_member(user_id)
         if member is None:
             return
+        from rosemary.core.card_service import render_card_messages
+
         variables["mention"] = f"<@{user_id}>"
-        text = await text_or(
-            self.bot,
-            guild.id,
-            f"partnerships.dm.{key}",
-            await self.bot.translator.t(guild.id, f"partnerships.dm.{key}", **variables),
-            **variables,
+        messages = await render_card_messages(
+            self.bot, guild.id, f"partnerships.dm.{key}", variables
+        )
+        if messages:
+            for message in messages:
+                with contextlib.suppress(discord.Forbidden, discord.HTTPException):
+                    await member.send(
+                        **message.payload.message_kwargs(),
+                        allowed_mentions=discord.AllowedMentions.none(),
+                    )
+            return
+        text = await self.bot.translator.t(
+            guild.id, f"partnerships.dm.{key}", **variables
         )
         with contextlib.suppress(discord.Forbidden, discord.HTTPException):
-            await member.send(text)
+            await member.send(text, allowed_mentions=discord.AllowedMentions.none())
 
     async def _log(self, guild_id: int, key: str, color: str, ids=(), **variables) -> None:
         """Log a partnership event; ``color``/``ids`` are legacy arguments."""

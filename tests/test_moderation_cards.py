@@ -196,6 +196,63 @@ async def test_warnings_card_v2_form_is_valid(tmp_path):
 #: DM pipeline ----------------------------------------------------------------
 
 
+#: The plain-text DM notices: the card key and the variables it renders with.
+DM_NOTICES = {
+    "ban.dm": {"guild": "Serv", "moderator": "<@2>", "reason": "spam"},
+    "kick.dm": {"guild": "Serv", "moderator": "<@2>", "reason": "spam"},
+    "mute.dm": {
+        "guild": "Serv",
+        "moderator": "<@2>",
+        "reason": "spam",
+        "duration": "1h",
+    },
+    "warn.dm": {"guild": "Serv", "moderator": "<@2>", "reason": "spam"},
+    "trap.dm": {"server": "Serv", "action": "A mensagem foi apagada."},
+    "confessions.dm.banned": {"reason": "spam"},
+}
+
+
+@pytest.mark.parametrize("key", sorted(DM_NOTICES))
+async def test_the_dm_notices_keep_the_plain_text_grammar(key, tmp_path):
+    """A notice that says more than one thing opens with a bold title (the
+    icon outside the bold) and lists its fields as bullets."""
+    from rosemary.core.card_service import render_card_message
+
+    bot = _card_bot(tmp_path)
+    payload, _allowed = await render_card_message(bot, 1, key, DM_NOTICES[key])
+    assert payload is not None
+    assert payload.embed is None, key
+    content = payload.content
+    lines = content.splitlines()
+    # The title: the icon opens the line and stays outside the bold.
+    assert not lines[0].startswith("**"), content
+    assert "**" in lines[0], content
+    # The fields: one item per line, as bullets.
+    fields = [line for line in lines[1:] if line.startswith("• ")]
+    assert fields, content
+    for field in fields:
+        assert field.startswith("• **"), field
+        assert ":** " in field, field
+    # No field disguised as a blockquote.
+    assert not any(line.startswith("> ") for line in lines), content
+
+
+@pytest.mark.parametrize("key", sorted(DM_NOTICES))
+async def test_the_dm_notices_carry_their_own_data(key, tmp_path):
+    """The notice says what happened: the values the send site hands it
+    reach the member."""
+    from rosemary.core.card_service import render_card_message
+
+    bot = _card_bot(tmp_path)
+    payload, _allowed = await render_card_message(bot, 1, key, DM_NOTICES[key])
+    content = payload.content
+    for name, value in DM_NOTICES[key].items():
+        if name == "action":
+            assert value in content, content
+            continue
+        assert str(value) in content, f"{key}: {name} missing from {content!r}"
+
+
 class _FakeTranslator:
     async def t(self, guild_id, key, **variables):
         return f"{key}:{variables.get('reason', '')}"
@@ -268,7 +325,9 @@ async def test_moderation_dm_rich_override_renders_as_view(tmp_path):
     await bot.activate("d")
     await boost_dm.send(bot, dest, 1, "warn.dm", guild="S", moderator="<@2>", reason="r")
     assert len(dest.calls) == 2
-    assert dest.calls[1] == {"content": "warn.dm:r"}
+    assert dest.calls[1]["content"] == "warn.dm:r"
+    # A DM never pings: the copy ships silent.
+    assert dest.calls[1]["allowed_mentions"].none()
 
 
 async def test_trap_dm_resolves_override_by_card_key(tmp_path):

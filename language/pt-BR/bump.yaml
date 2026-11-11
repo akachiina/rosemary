@@ -54,45 +54,33 @@ bump:
       '
     no_bumps_you: '{bar_chart} Você ainda não deu nenhum bump esta semana! Use `/bump` no canal de bump.'
   dm:
-    winner_new: |
-      {success} Você é o Bump-MVP da Semana!
-
+    winner_new: '{success} Você é o Bump-MVP da Semana!'
+    winner_new_body: |
       Olá, {mention}! Sua dedicação manteve o servidor brilhando. Muito obrigada!
-
-      • **{bar_chart} Bumps na semana:** {bump_count}
-      • **{trophy} Cargo:** {role_name}
 
       {palette} **Personalize seu cargo**
       Use `/boost painel` para customizar:
       • {pencil} Nome e emoji
       • {palette} Cor
       • {members} Convidar até **{max_members}** membros
-
-      Suas customizações são salvas e voltam caso você ganhe novamente!
-
-      Aproveite até o próximo reset.
-    winner_again: |
-      {success} Bump-MVP mais uma vez!
-
+    winner_new_footer: Aproveite até o próximo reset.
+    winner_again: '{success} Bump-MVP mais uma vez!'
+    winner_again_body: |
       Olá, {mention}! Você reconquistou o título. Sua dedicação é admirável!
 
-      • **{bar_chart} Bumps na semana:** {bump_count}
-      • **{trophy} Total de vitórias:** {total_wins}
-
       Seu cargo **{role_name}** foi restaurado com suas customizações anteriores!
-
-      Continue sendo incrível.
-    winner_lost: |
-      {info} Seu período como Bump-MVP terminou
-
+    winner_again_footer: Continue sendo incrível.
+    winner_lost: '{info} Seu período como Bump-MVP terminou'
+    winner_lost_body: |
       Olá, {mention}! Esta semana outro membro conquistou o título. Não desanime!
 
-      • **{bar_chart} Seus bumps:** {bump_count}
-      • **{crown} Novo vencedor:** {winner_mention}
-
       Suas customizações foram salvas e voltam se você ganhar novamente!
-
-      Continue dando bumps e reconquiste o trono!
+    winner_lost_footer: Continue dando bumps e reconquiste o trono!
+    bumps_week: '{bar_chart} Bumps na semana'
+    total_wins: '{trophy} Total de vitórias'
+    your_bumps: '{bar_chart} Seus bumps'
+    new_winner: '{crown} Novo vencedor'
+    members: '{members} Membros'
   logs:
     bump_recorded:
       title: '{rocket} Bump Detectado'

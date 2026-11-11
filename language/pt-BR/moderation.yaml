@@ -15,7 +15,9 @@ ban:
         description: Motivo
   confirm_title: Banir este membro?
   success: '{ban} {member} foi **banido**.'
-  dm: '{error} Você foi banido de **{guild}** por {moderator}!
+  dm: '{error} **Você foi banido de {guild}**
+
+    • **{shield} Moderador:** {moderator}
 
     • **{scroll} Motivo:** {reason}'
 cleaner:
@@ -67,7 +69,9 @@ kick:
         description: Motivo
   confirm_title: Expulsar este membro?
   success: '{kick} {member} foi **expulso**.'
-  dm: '{warning} Você foi expulso de **{guild}** por {moderator}!
+  dm: '{warning} **Você foi expulso de {guild}**
+
+    • **{shield} Moderador:** {moderator}
 
     • **{scroll} Motivo:** {reason}'
 limpar:
@@ -170,9 +174,11 @@ mute:
         description: Motivo
   confirm_title: Silenciar este membro?
   success: '{mute} {member} foi **silenciado** por **{duration}**.'
-  dm: '{warning} Você foi silenciado em **{guild}** por {moderator}!
+  dm: '{warning} **Você foi silenciado em {guild}**
 
     • **{clock} Duração:** {duration}
+
+    • **{shield} Moderador:** {moderator}
 
     • **{scroll} Motivo:** {reason}'
   invalid_duration: '{clock} **Duração inválida.** Use formatos como 10m, 2h ou 3d.'
@@ -211,11 +217,9 @@ trap:
       title: '{error} Armadilha Falhou'
       description: '**{people} Alvo:** {user}\n**{gear} Consequência:** {action}\n**{scroll} Motivo:** {reason}'
   dm:
-    text: '{warning} Você postou no canal armadilha de **{server}** e a mensagem foi removida.
+    text: '{warning} **Você postou no canal armadilha de {server}**
 
-
-      {action}
-
+      • **{gear} Consequência:** {action}
 
       Esta é uma notificação automática. Dúvidas? Fale com a equipe de moderação.'
     action:
@@ -260,7 +264,9 @@ warn:
         description: Motivo
   confirm_title: Aplicar warn a este membro?
   success: '{warning} **Warn** registrado para {member} ({count}/{limit}).'
-  dm: '{warning} Você recebeu um warn em **{guild}** de {moderator}!
+  dm: '{warning} **Você recebeu um warn em {guild}**
+
+    • **{shield} Moderador:** {moderator}
 
     • **{scroll} Motivo:** {reason}'
 warnings:

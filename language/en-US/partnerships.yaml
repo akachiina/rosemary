@@ -25,75 +25,45 @@ partnerships:
   invite_text: '{info} Partner with us! Talk to the staff to join.'
   invite_text_default: Partner with us! Talk to {rep} to join.
   dm:
-    added: |
-      {success} New Partnership Established!
-
-      Hello, {mention}! You have been designated as the **official representative** of the partnership with **{server}**.
-
+    added: '{success} New Partnership Established!'
+    added_greeting: 'Hello, {mention}! You have been designated as the **official representative** of the partnership with **{server}**.'
+    added_responsibilities: |
       {scroll} **Your responsibilities**
       • Keep your server safe, active and welcoming
       • Follow the partnership rules of the corresponding channel
       • Represent both communities with respect
-
-      {tada} Thank you for being part of this partnership!
-
-      Leaving the server or breaking the rules may result in losing the partnership. Questions? Talk to the moderation team!
-    removed: |
-      {info} Partnership Ended
-
-      Hello, {mention}! Your partnership with **{server}** was ended by the staff.
-
-      {envelope} If you want to re-establish it, talk to the server staff to start the process again.
-
-      This is an automated partnership notification.
-    rep_changed: |
-      {info} You Now Represent a Partnership!
-
-      Hello, {mention}! The partnership with **{server}** is now represented by you. The ad was updated and the partner role was transferred.
-
-      {scroll} **Your responsibilities**
-      • Keep your server safe, active and welcoming
-      • Follow the partnership rules of the corresponding channel
-      • Represent both communities with respect
-
-      {tada} Welcome to the partnership!
-
-      Questions? Talk to the moderation team!
-    warning: |
-      {warning} Partnership Renewal Required!
-
-      Hello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.
-
+    added_closing: '{tada} Thank you for being part of this partnership!'
+    added_footer: Leaving the server or breaking the rules may result in losing the partnership. Questions? Talk to the moderation team!
+    removed: '{info} Partnership Ended'
+    removed_greeting: 'Hello, {mention}! Your partnership with **{server}** was ended by the staff.'
+    removed_hint: '{envelope} If you want to re-establish it, talk to the server staff to start the process again.'
+    removed_footer: This is an automated partnership notification.
+    rep_changed: '{info} You Now Represent a Partnership!'
+    rep_changed_greeting: 'Hello, {mention}! The partnership with **{server}** is now represented by you. The ad was updated and the partner role was transferred.'
+    rep_changed_closing: '{tada} Welcome to the partnership!'
+    rep_changed_footer: Questions? Talk to the moderation team!
+    warning: '{warning} Partnership Renewal Required!'
+    warning_greeting: 'Hello, {mention}! Your partnership with **{server}** is coming to an end and needs to be renewed.'
+    warning_how: |
       **How to renew**
       Use the `/partnerships renew` command on the server before the deadline.
-
+    warning_deadline: |
       {warning} **Deadline**
       You have **{days} day(s)** to act.
-
-      When it expires, your partnership ad will be deleted and the partner role will be removed.
-    expired: |
-      {info} Partnership Expired
-
-      Hello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.
-
+    warning_footer: When it expires, your partnership ad will be deleted and the partner role will be removed.
+    expired: '{info} Partnership Expired'
+    expired_greeting: 'Hello, {mention}! The partnership with **{server}** expired without renewal and was removed automatically.'
+    expired_hint: |
       {refresh} **Want to come back?**
       Just talk to the server staff to redo the partnership process.
-
-      Your ad was deleted and the partner role was removed.
-    expired_admin: |
-      {info} Partnership Expired
-
-      Hello, {mention}! The partnership you added with representative {rep} expired without renewal and was removed from **{server}**.
-
-      {calendar} **Details**
-      • **Representative:** {rep}
-      • **Last renewed:** {days} day(s) ago
-
-      {refresh} **Want to re-establish it?**
-      Redo the process normally in the partnerships channel.
-      • Invite to share with the representative: {invite}
-
-      This is an automated notification. No further action was taken beyond removing the partnership.
+    expired_footer: Your ad was deleted and the partner role was removed.
+    expired_admin: '{info} Partnership Expired'
+    expired_admin_greeting: 'Hello, {mention}! The partnership you added with representative {rep} expired without renewal and was removed from **{server}**.'
+    expired_admin_days: '{days} day(s) ago'
+    expired_admin_invite: '{love_letter} Invite for the representative'
+    expired_admin_footer: This is an automated notification. No further action was taken beyond removing the partnership.
+    representative: '{calendar} Representative'
+    last_renewed: '{refresh} Last renewed'
   invite: '{server} 🤝'
   success:
     added: '{success} Partnership added for {user}.'

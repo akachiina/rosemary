@@ -1,8 +1,8 @@
 {
-  "content": null,
+  "content": "❌ Sua sugestão **#1** foi recusada por <@0>.",
   "embed": {
     "color": 15158332,
-    "description": "❌ Sua sugestão **#1** foi recusada por <@0>.\nMotivo: …",
+    "description": "…\nMotivo: …",
     "fields": [],
     "type": "rich"
   },

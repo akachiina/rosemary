@@ -281,6 +281,7 @@ def _compile_slots(card: Card, mapping: Mapping[str, Any], mentions: _Mentions) 
         fields=tuple(fields),
         actions=tuple(actions),
         ping_line=_resolve(card.ping_line, mapping)[0],
+        content_line=_resolve(card.content_line, mapping)[0],
     )
 
 

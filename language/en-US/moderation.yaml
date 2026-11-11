@@ -15,7 +15,9 @@ ban:
         description: Reason
   confirm_title: Ban this member?
   success: '{ban} {member} was **banned**.'
-  dm: '{error} You were banned from **{guild}** by {moderator}!
+  dm: '{error} **You were banned from {guild}**
+
+    • **{shield} Moderator:** {moderator}
 
     • **{scroll} Reason:** {reason}'
 cleaner:
@@ -67,7 +69,9 @@ kick:
         description: Reason
   confirm_title: Kick this member?
   success: '{kick} {member} was **kicked**.'
-  dm: '{warning} You were kicked from **{guild}** by {moderator}!
+  dm: '{warning} **You were kicked from {guild}**
+
+    • **{shield} Moderator:** {moderator}
 
     • **{scroll} Reason:** {reason}'
 limpar:
@@ -170,9 +174,11 @@ mute:
         description: Reason
   confirm_title: Mute this member?
   success: '{mute} {member} was **muted** for **{duration}**.'
-  dm: '{warning} You were muted in **{guild}** by {moderator}!
+  dm: '{warning} **You were muted in {guild}**
 
     • **{clock} Duration:** {duration}
+
+    • **{shield} Moderator:** {moderator}
 
     • **{scroll} Reason:** {reason}'
   invalid_duration: '{clock} **Invalid duration.** Use formats like 10m, 2h or 3d.'
@@ -211,11 +217,9 @@ trap:
       title: '{error} Trap Failed'
       description: '**{people} Target:** {user}\n**{gear} Consequence:** {action}\n**{scroll} Reason:** {reason}'
   dm:
-    text: '{warning} You posted in the trap channel of **{server}** and the message was removed.
+    text: '{warning} **You posted in the trap channel of {server}**
 
-
-      {action}
-
+      • **{gear} Consequence:** {action}
 
       This is an automated notification. Questions? Talk to the moderation team.'
     action:
@@ -260,7 +264,9 @@ warn:
         description: Reason
   confirm_title: Warn this member?
   success: '{warning} **Warning** recorded for {member} ({count}/{limit}).'
-  dm: '{warning} You received a warning in **{guild}** from {moderator}!
+  dm: '{warning} **You received a warning in {guild}**
+
+    • **{shield} Moderator:** {moderator}
 
     • **{scroll} Reason:** {reason}'
 warnings:

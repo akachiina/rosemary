@@ -61,6 +61,19 @@ class CardPayload:
         return kwargs
 
 
+@dataclasses.dataclass(frozen=True)
+class RenderedMessage:
+    """One message of a card: the payload and the mentions it may ping.
+
+    A card ships as one message or as the sequence its document declares.
+    Each message carries its own mention policy, because Discord applies
+    ``allowed_mentions`` per message.
+    """
+
+    payload: CardPayload
+    allowed: discord.AllowedMentions
+
+
 def is_v2_message(message: Any) -> bool:
     """Whether a live message carries Discord's ``IS_COMPONENTS_V2`` flag.
 
@@ -115,10 +128,32 @@ async def send_card(
     return await target.send(**payload.message_kwargs(), allowed_mentions=allowed, **kwargs)
 
 
+async def send_cards(
+    target,
+    messages: list[RenderedMessage] | tuple[RenderedMessage, ...],
+    **kwargs: Any,
+):
+    """Send the messages of a card, in order.
+
+    The send sites that need a keyword on one message only (a code-owned
+    ``view``) loop themselves; this helper covers the common case.
+    """
+    sent = []
+    for message in messages:
+        options = dict(kwargs)
+        options.setdefault("allowed_mentions", message.allowed)
+        sent.append(
+            await target.send(**message.payload.message_kwargs(), **options)
+        )
+    return sent
+
+
 __all__ = [
     "COMPONENTS_V2_FLAG",
     "CardPayload",
+    "RenderedMessage",
     "is_v2_message",
     "is_v2_payload",
     "send_card",
+    "send_cards",
 ]

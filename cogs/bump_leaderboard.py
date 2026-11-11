@@ -24,7 +24,6 @@ from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
 from rosemary.core.themes import theme_for
 from rosemary.core.timezone import resolve_timezone
-from rosemary.ui.boost_dm import send_preview
 
 log = logging.getLogger(__name__)
 
@@ -523,6 +522,8 @@ class BumpLeaderboardCog(commands.Cog):
             is_repeat = old_winner_id == new_winner_id
             key = "bump.dm.winner_again" if is_repeat else "bump.dm.winner_new"
             max_members = await get_setting(self.bot.storage, guild.id, "boost.max_members")
+            data = await self.boost_store.get_role(guild.id, role.id) or {}
+            role_icon = role.icon.url if role.icon is not None else ""
             with contextlib.suppress(discord.Forbidden, discord.HTTPException):
                 await send(
                     self.bot,
@@ -532,11 +533,11 @@ class BumpLeaderboardCog(commands.Cog):
                     mention=new_member.mention,
                     bump_count=bump_count,
                     role_name=role.name,
+                    role_icon=role_icon,
+                    count=len(data.get("members", [])),
                     max_members=max_members,
                     total_wins=total_wins,
                 )
-                data = await self.boost_store.get_role(guild.id, role.id) or {}
-                await send_preview(self.bot, new_member, guild.id, role, data)
 
         if old_winner_id and old_winner_id != new_winner_id:
             old_member = guild.get_member(old_winner_id)

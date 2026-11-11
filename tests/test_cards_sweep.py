@@ -106,12 +106,12 @@ async def test_invalid_override_falls_back(tmp_path):
     await make_theme(
         bot,
         tmp_path,
-        "  boost.dm.invite:\n"
+        "  boost.dm.member_left:\n"
         "    - type: 10\n"
         '      content: "text"\n'
         "    - type: 17\n"
         "      components: []\n",  # container nesting at top level is fine, empty child is not
     )
     dest = FakeDestination()
-    await boost_dm.send(bot, dest, 1, "boost.dm.invite", role_name="x")
-    assert dest.last.get("content", "").startswith("boost.dm.invite:")
+    await boost_dm.send(bot, dest, 1, "boost.dm.member_left", role_name="x")
+    assert dest.last.get("content", "").startswith("boost.dm.member_left:")

@@ -40,11 +40,12 @@ confess:
     approved: '{check} Your confession **#{confession_number}** was approved!'
     rejected: '{error} Your confession **#{confession_number}** was denied.'
     reason: 'Reason: {reason}'
-    response: '{envelope} New anonymous reply **#{confession_number}-{reply_index}**:
-
-      > {body}'
+    response: '{envelope} New anonymous reply **#{confession_number}-{reply_index}**:'
+    response_parent: '{envelope} New anonymous reply **#{confession_number}-{reply_index}** {parent_line}:'
     jump: Go to the thread
-    banned: '{ban} You were banned from confessions. Reason: {reason}'
+    banned: '{ban} **You were banned from confessions**
+
+      • **{scroll} Reason:** {reason}'
   no_reason: No reason given.
   review_approved: '{success} Confession posted.'
   review_denied: '{success} Confession denied.'

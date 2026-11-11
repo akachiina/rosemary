@@ -1,10 +1,27 @@
 {
-  "content": "ℹ️ **Seu período como Bump-MVP terminou**\n\nOlá, <@0>! Esta semana outro membro conquistou o título. Não desanime!\n\n• **📊 Seus bumps:** 1\n• **👑 Novo vencedor:** <@0>\n\nSuas customizações foram salvas e voltam se você ganhar novamente!\n\nContinue dando bumps e reconquiste o trono!",
-  "embed": null,
-  "form": "text",
+  "content": "ℹ️ Seu período como Bump-MVP terminou",
+  "embed": {
+    "color": 3447003,
+    "description": "Olá, <@0>! Esta semana outro membro conquistou o título. Não desanime!\n\nSuas customizações foram salvas e voltam se você ganhar novamente!\n",
+    "fields": [
+      {
+        "inline": true,
+        "name": "📊 Seus bumps",
+        "value": "1"
+      },
+      {
+        "inline": true,
+        "name": "👑 Novo vencedor",
+        "value": "<@0>"
+      }
+    ],
+    "footer": {
+      "text": "Continue dando bumps e reconquiste o trono!"
+    },
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "bump.dm.winner_lost",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

@@ -1,10 +1,16 @@
 {
-  "content": "⚠️ **Renovação de Parceria Necessária!**\n\nOlá, <@0>! Sua parceria com **…** está chegando ao fim e precisa ser renovada.\n\n**Como renovar**\nUse o comando `/parcerias renovar` no servidor antes do prazo acabar.\n\n⚠️ **Prazo**\nVocê tem **1 dia(s)** para agir.\n\nAo expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido.",
-  "embed": null,
-  "form": "text",
+  "content": "⚠️ Renovação de Parceria Necessária!",
+  "embed": {
+    "color": 15844367,
+    "description": "Olá, <@0>! Sua parceria com **…** está chegando ao fim e precisa ser renovada.\n**Como renovar**\nUse o comando `/parcerias renovar` no servidor antes do prazo acabar.\n\n⚠️ **Prazo**\nVocê tem **1 dia(s)** para agir.\n",
+    "fields": [],
+    "footer": {
+      "text": "Ao expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido."
+    },
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "partnerships.dm.warning",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

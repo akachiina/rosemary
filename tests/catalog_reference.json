@@ -1,10 +1,10 @@
 {
   "en-US": {
-    "catalog": "sha256:a7cde3e162035aebc50c352ef8feabecb138745a9faca188921fc49c5918e70b",
-    "keys": "sha256:f8693065caf0b59de6ace5cb1e45c7af08416ea3d774c79d0f581756cb351239"
+    "catalog": "sha256:09db576a09d3f50e43483cd404d8b27dcd1d4d822f68cc2dbce72c4a6e402b7d",
+    "keys": "sha256:559fc22bbeedc25e84f13c829f0f59ca9ea4ceec86c7bd428a4ebecd66c96039"
   },
   "pt-BR": {
-    "catalog": "sha256:47817e2a8c016ffd6ec9604a60a5916e1a2735e8da1e5fd4aec113bf63cea294",
-    "keys": "sha256:f8693065caf0b59de6ace5cb1e45c7af08416ea3d774c79d0f581756cb351239"
+    "catalog": "sha256:38ae229d61121481d9a3583f4bf685b6b0071a777c7e608cad5f990bab5e4068",
+    "keys": "sha256:559fc22bbeedc25e84f13c829f0f59ca9ea4ceec86c7bd428a4ebecd66c96039"
   }
 }

@@ -235,7 +235,10 @@ Rosemary speaks three shapes, and every message picks one:
 - **classic embed**: staff logs, audit cards, info listings and the social
   content (starboard, birthdays, welcome/leave, suggestions, confessions,
   tickets, bump). The document declares the shape: the logs, the audit cards
-  and the social content are embeds.
+  and the social content are embeds. An embed that speaks to the member (the
+  event DMs) declares its sentence in the **`content_line`** slot: the line
+  always rides the `content` of the message, unlike `ping_line`, which the
+  theme's `pings:` toggle gates.
 - **Components V2**: the interactive UI only (the menus and panels): settings,
   themes, debug, cleaner, boost, roleplay, colors, confessions review and the
   ticket panel.
@@ -282,9 +285,31 @@ the opposite: the theme asked for a rich layout, so it ships as Components V2.
   tokens travel in the message `content` (`core/forms.py::embed_content_for_pings`).
 - DMs travel the same pipeline (`ui/boost_dm.py::send`): a text card is one
   line, an embed card an embed, a themed V2 override a view. DMs never send
-  `allowed_mentions`.
+  `allowed_mentions`. A themed sequence sends **every** message, in order
+  (`send` and `send_preview` both walk the sequence).
 - `core/card_service.py::render_card_message` resolves both `{name}` and
   `{@name}` placeholders in the text form: a raw `{ms}` never ships.
+
+### The topology of a card (`messages:`)
+
+A card is not always one message. A document may declare a **sequence**: each
+entry of `messages:` is a whole card (its own shape, its own slots), and the
+keys outside `messages` (`variables`, `style`, `actor`) are the metadata of
+the card, inherited by every message that does not declare its own.
+
+- The sequence is **opt-in**: a document without `messages:` renders one
+  message, exactly as before.
+- `core/card_service.py::render_card_messages` returns the whole sequence
+  (a `RenderedMessage` per entry, with its own mention policy);
+  `render_card_message` is the wrapper that returns the **first** message
+  (the repaint path and the send sites that ship one message).
+- `core/card_payload.py::send_cards` sends every message, in order.
+- A theme's delta customizes the **first** message; a delta that declares
+  `messages:` replaces the topology whole.
+- The sequences are **one-shot** (the DMs and the announcements): the
+  repaint never rebuilds them, it edits the first message.
+- `embeds:` (two embeds in the same message) does not exist yet: v1 sends N
+  messages, each one with its own embed.
 
 ### Repaint follows the message
 
@@ -311,7 +336,9 @@ holds **only** the model and its two ends (the meta de 900 linhas):
 - `core/design/ir.py`: the model (`Card`, `Field`, `Author`, `Action`, `Text`,
   `Divider`, `Gallery`, `Thumbnail`, `Row`, `Section`, `Container`) and the
   block converters. A card is native in one shape: `blocks` (V2), `slots`
-  (semantic fields) or `content` (plain text).
+  (semantic fields) or `content` (plain text). The `content_line` slot is the
+  sentence an embed ships in the message `content`: it is not a field and
+  never becomes one.
 - `core/design/compile.py`: the placeholders resolved **once** (`{name}` and
   `{@name}`) and the mention ids collected. The `color` slot resolves too
   (the state may choose the token): a hex is accepted as it is, a token that
@@ -454,7 +481,7 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   that key: when the catalog has none, the slot stays **empty** (the card
   has nothing to say and the send site keeps its own fallback) instead of
   shipping the raw key to the member.
-- The notices live in `themes/default/cards/notices.yaml` (39 cards: the
+- The notices live in `themes/default/cards/notices.yaml` (30 cards: the
   acknowledgements, the channel notices, the confirmations and the plain-text
   DMs). The archetype `notice` keeps the surface (one line) and the `style`
   slot names the tone of the notice (the theme owns it). The icon is **not**
@@ -462,10 +489,17 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   ships the catalog's words verbatim. A notice that says more than one thing
   uses the slots (the ping answers with a title and the latency): the text
   serializer joins them, the join is the dialect of the form, never the copy.
-- The `boost.dm.invite` golden changed with the notices: the copy uses
-  `{user}` as the icon of the "Convidado por" label, and the contract no
-  longer claims `user` (no send site provides it). The golden now shows the
-  theme's icon, exactly what the live DM shows.
+- The **event DMs** are embeds now (`themes/default/cards/content.yaml`): the
+  boost invite, the three bump winners and the six partnership notices. Each
+  one declares its `content_line` (the sentence the member reads first) and
+  the embed carries the details. The moderation notices (ban, kick, mute,
+  warn, trap) and the confession ban stay **text**: the title opens in bold
+  and the fields ride as bullets (`• **Label:** value`).
+- The boost invite is **one message**: the content line, the embed with the
+  role and the accept/decline buttons. A Components V2 message cannot carry
+  content nor an embed, so `BoostInviteView` is a classic `discord.ui.View`
+  (`ui/boost_invite.py`): the outcome replaces the content line and disables
+  the buttons, the embed stays.
 - The listings live in `themes/default/cards/lists.yaml` (20 cards: the
   invites, the leaderboards, the birthdays, the partnerships, the about
   card). The archetype `listing` keeps the frame (an embed, no ping, the

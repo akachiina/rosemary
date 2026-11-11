@@ -191,16 +191,11 @@ boost:
       Hello, {mention}! Your boost ended, but the boost role @{role_name} stays with you on **{server_name}**.
 
       Only the server staff can remove it.
-    invite: |
-      {info} Boost Role Invite!
-
-      Hello, {mention}! You have been invited to join a boost role on **{server_name}**.
-
-      • **{tag} Role:** @{role_name}
-      • **{user} Invited by:** {inviter_mention}
-      • **{clock} Expires:** {expires}
-
-      By accepting, you will receive the role and can use it on the server. Use the buttons below to reply!
+    invite: '{info} **Boost Role Invite!**'
+    invite_body: 'Hello, {mention}! You have been invited to join a boost role on **{server_name}**.'
+    invite_inviter: '{user} Invited by'
+    invite_expires: '{clock} Expires'
+    invite_footer: 'By accepting, you will receive the role and can use it on the server. Use the buttons below to reply!'
     accepted: |
       {success} Invite Accepted!
 

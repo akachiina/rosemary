@@ -3,8 +3,6 @@
   "embed": null,
   "form": "text",
   "key": "boost.dm.auto_restored",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

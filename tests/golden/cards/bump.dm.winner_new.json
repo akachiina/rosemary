@@ -1,10 +1,31 @@
 {
-  "content": "✅ **Você é o Bump-MVP da Semana!**\n\nOlá, <@0>! Sua dedicação manteve o servidor brilhando. Muito obrigada!\n\n• **📊 Bumps na semana:** 1\n• **🏆 Cargo:** …\n\n🎨 **Personalize seu cargo**\nUse `/boost painel` para customizar:\n• ✏️ Nome e emoji\n• 🎨 Cor\n• 👥 Convidar até **10** membros\n\nSuas customizações são salvas e voltam caso você ganhe novamente!\n\nAproveite até o próximo reset.",
-  "embed": null,
-  "form": "text",
+  "content": "✅ Você é o Bump-MVP da Semana!",
+  "embed": {
+    "color": 3066993,
+    "description": "Olá, <@0>! Sua dedicação manteve o servidor brilhando. Muito obrigada!\n\n🎨 **Personalize seu cargo**\nUse `/boost painel` para customizar:\n• ✏️ Nome e emoji\n• 🎨 Cor\n• 👥 Convidar até **10** membros\n",
+    "fields": [
+      {
+        "inline": true,
+        "name": "📊 Bumps na semana",
+        "value": "1"
+      },
+      {
+        "inline": true,
+        "name": "👥 Membros",
+        "value": "1/10 membros"
+      }
+    ],
+    "footer": {
+      "text": "Aproveite até o próximo reset."
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "@…",
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "bump.dm.winner_new",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

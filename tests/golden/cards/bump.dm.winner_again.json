@@ -1,10 +1,36 @@
 {
-  "content": "✅ **Bump-MVP mais uma vez!**\n\nOlá, <@0>! Você reconquistou o título. Sua dedicação é admirável!\n\n• **📊 Bumps na semana:** 1\n• **🏆 Total de vitórias:** 1\n\nSeu cargo **…** foi restaurado com suas customizações anteriores!\n\nContinue sendo incrível.",
-  "embed": null,
-  "form": "text",
+  "content": "✅ Bump-MVP mais uma vez!",
+  "embed": {
+    "color": 3066993,
+    "description": "Olá, <@0>! Você reconquistou o título. Sua dedicação é admirável!\n\nSeu cargo **…** foi restaurado com suas customizações anteriores!\n",
+    "fields": [
+      {
+        "inline": true,
+        "name": "📊 Bumps na semana",
+        "value": "1"
+      },
+      {
+        "inline": true,
+        "name": "🏆 Total de vitórias",
+        "value": "1"
+      },
+      {
+        "inline": true,
+        "name": "👥 Membros",
+        "value": "1/10 membros"
+      }
+    ],
+    "footer": {
+      "text": "Continue sendo incrível."
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "@…",
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "bump.dm.winner_again",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

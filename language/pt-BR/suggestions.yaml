@@ -19,9 +19,7 @@ suggest:
   dm:
     up: upvote
     down: downvote
-    body: '{voter} deu um **{vote}** na sua **sugestão #{suggestion_number}:**
-
-      > {body}'
+    body: '{voter} deu um **{vote}** na sua **sugestão #{suggestion_number}**:'
     jump: Ir para a sugestão
     approved: '{check} Sua sugestão **#{suggestion_number}** foi aprovada por {moderator}!'
     rejected: '{error} Sua sugestão **#{suggestion_number}** foi recusada por {moderator}.'

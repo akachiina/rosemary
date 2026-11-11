@@ -87,6 +87,8 @@ card:
         title: Confession denied DM
       response:
         title: Confession reply DM
+      banned:
+        title: Confession ban DM
   utility:
     ping:
       title: Latency card

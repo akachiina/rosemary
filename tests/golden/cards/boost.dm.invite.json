@@ -1,10 +1,31 @@
 {
-  "content": "ℹ️ **Convite para Cargo Boost!**\n\nOlá, <@0>! Você recebeu um convite para fazer parte de um cargo boost no **…**.\n\n• **🏷️ Cargo:** @…\n• **👤 Convidado por:** <@0>\n• **⏰ Expira:** …\n\nAo aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!",
-  "embed": null,
-  "form": "text",
+  "content": "ℹ️ **Convite para Cargo Boost!**",
+  "embed": {
+    "color": 3066993,
+    "description": "Olá, <@0>! Você recebeu um convite para fazer parte de um cargo boost no **…**.",
+    "fields": [
+      {
+        "inline": false,
+        "name": "👤 Convidado por",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "⏰ Expira",
+        "value": "…"
+      }
+    ],
+    "footer": {
+      "text": "Ao aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!"
+    },
+    "thumbnail": {
+      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+    },
+    "title": "@…",
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "boost.dm.invite",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

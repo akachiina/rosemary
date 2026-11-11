@@ -34,7 +34,7 @@ import rosemary.cogs.welcome  # noqa: F401  (registers the event cards)
 from rosemary.cogs.starboard import _ramp_hex
 from rosemary.cogs.suggestions import _score_hex, _side_color
 from rosemary.core.card_service import (
-    render_card_message,
+    render_card_messages,
 )
 from rosemary.core.cards import all_cards, default_form, get_card
 from rosemary.core.i18n import Translator
@@ -205,7 +205,9 @@ async def render_card(bot: GoldenBot, key: str) -> dict[str, Any]:
     """Render one card and normalize the payload for the fixture.
 
     The pipeline is the IR one: the document is read into the semantic
-    model, compiled and drawn by the serializer of its form.
+    model, compiled and drawn by the serializer of its form. A card that
+    ships as a sequence keeps one entry per message, in order; a
+    single-message card keeps the flat shape it always had.
     """
     spec = get_card(key)
     variables = sample_variables(spec)
@@ -213,14 +215,33 @@ async def render_card(bot: GoldenBot, key: str) -> dict[str, Any]:
     state = STATE_BY_KEY.get(key)
     if state is not None:
         variables.update(state(bot.theme, variables))
-    payload, allowed = await render_card_message(bot, GUILD_ID, key, variables)
+    messages = await render_card_messages(bot, GUILD_ID, key, variables)
+    if len(messages) <= 1:
+        message = messages[0] if messages else None
+        return {
+            "key": key,
+            "form": default_form(key),
+            **_message_snapshot(message),
+        }
     return {
         "key": key,
-        "form": default_form(key),
+        "form": "sequence",
+        "messages": [_message_snapshot(message) for message in messages],
+    }
+
+
+def _message_snapshot(message: Any) -> dict[str, Any]:
+    """One message of a card, normalized for the fixture."""
+    payload = getattr(message, "payload", None)
+    allowed = getattr(message, "allowed", None)
+    pings: list[int] = []
+    if allowed is not None:
+        pings = sorted(allowed.to_dict().get("users") or [])
+    return {
         "content": getattr(payload, "content", None),
         "embed": _embed_snapshot(payload),
         "view": _view_snapshot(payload),
-        "pings": sorted(allowed.to_dict().get("users") or []),
+        "pings": pings,
     }
 
 

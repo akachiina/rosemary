@@ -173,6 +173,11 @@ class Card:
     #: embed never notifies: the mention tokens travel here, not in the
     #: embed body.
     ping_line: str = ""
+    #: The line that always rides the message content of an embed card (the
+    #: event sentence). Unlike ``ping_line``, it is not gated by the theme's
+    #: pings toggle: a DM line is content, not a notification, so it ships
+    #: whatever the toggle says.
+    content_line: str = ""
     #: The names the card receives (its contract). A name of the contract is
     #: reserved: when the send site does not provide it, the placeholder
     #: stays literal instead of falling back to a theme emoji with the same

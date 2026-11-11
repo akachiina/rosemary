@@ -1,10 +1,16 @@
 {
-  "content": "ℹ️ **Parceria Encerrada**\n\nOlá, <@0>! Sua parceria com **…** foi encerrada pela equipe.\n\n✉️ Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.\n\nEsta é uma notificação automática da parceria.",
-  "embed": null,
-  "form": "text",
+  "content": "ℹ️ Parceria Encerrada",
+  "embed": {
+    "color": 3447003,
+    "description": "Olá, <@0>! Sua parceria com **…** foi encerrada pela equipe.\n✉️ Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.",
+    "fields": [],
+    "footer": {
+      "text": "Esta é uma notificação automática da parceria."
+    },
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "partnerships.dm.removed",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

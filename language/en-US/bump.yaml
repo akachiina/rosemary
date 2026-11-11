@@ -54,45 +54,33 @@ bump:
       '
     no_bumps_you: '{bar_chart} You haven''t bumped this week yet! Use `/bump` in the bump channel.'
   dm:
-    winner_new: |
-      {success} You are the Bump-MVP of the Week!
-
+    winner_new: '{success} You are the Bump-MVP of the Week!'
+    winner_new_body: |
       Hello, {mention}! Your dedication kept the server shining. Thank you!
-
-      • **{bar_chart} Weekly bumps:** {bump_count}
-      • **{trophy} Role:** {role_name}
 
       {palette} **Customize your role**
       Use `/boost panel` to customize:
       • {pencil} Name and emoji
       • {palette} Color
       • {members} Invite up to **{max_members}** members
-
-      Your customizations are saved and will return if you win again!
-
-      Enjoy it until the next reset.
-    winner_again: |
-      {success} Bump-MVP once again!
-
+    winner_new_footer: Enjoy it until the next reset.
+    winner_again: '{success} Bump-MVP once again!'
+    winner_again_body: |
       Hello, {mention}! You've reclaimed the title. Your dedication is admirable!
 
-      • **{bar_chart} Weekly bumps:** {bump_count}
-      • **{trophy} Total wins:** {total_wins}
-
       Your role **{role_name}** has been restored with your previous customizations!
-
-      Keep being awesome.
-    winner_lost: |
-      {info} Your time as Bump-MVP has ended
-
+    winner_again_footer: Keep being awesome.
+    winner_lost: '{info} Your time as Bump-MVP has ended'
+    winner_lost_body: |
       Hello, {mention}! This week another member claimed the title. Don't be discouraged!
 
-      • **{bar_chart} Your bumps:** {bump_count}
-      • **{crown} New winner:** {winner_mention}
-
       Your customizations were saved and will return if you win again!
-
-      Keep bumping and reclaim the throne!
+    winner_lost_footer: Keep bumping and reclaim the throne!
+    bumps_week: '{bar_chart} Weekly bumps'
+    total_wins: '{trophy} Total wins'
+    your_bumps: '{bar_chart} Your bumps'
+    new_winner: '{crown} New winner'
+    members: '{members} Members'
   logs:
     bump_recorded:
       title: '{rocket} Bump Detected'

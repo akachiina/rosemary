@@ -365,7 +365,7 @@ def test_card_specs_registered_with_exact_contracts():
         "confession_number", "body", "reason", "reason_line",
     )
     assert get_card("confessions.dm.response").variables == (
-        "confession_number", "reply_index", "body", "message_link",
+        "confession_number", "reply_index", "body", "message_link", "parent_line",
     )
 
 
@@ -486,6 +486,11 @@ async def test_nested_replies_number_and_dm_both_authors(tmp_path):
     # their own one (a DM about your own comment is noise).
     assert author.send.await_count == 1
     assert replier.send.await_count == 1
+    # The DM names the answer and the answer it answers.
+    dm_texts = _sent_texts(replier.send)
+    assert any("in reply to" in text for text in dm_texts), dm_texts
+    assert any("#1-1" in text for text in dm_texts), dm_texts
+    assert any("second!" in text for text in dm_texts), dm_texts
 
 
 async def test_thread_created_lazily_and_reused(tmp_path):
@@ -681,8 +686,15 @@ async def test_ban_button_bans_and_dm(tmp_path):
     assert await cog.store.is_banned(1, 7) is True
     assert await cog.store.get(1, 555) is None
     author.send.assert_awaited_once()
-    text = author.send.await_args.args[0]
-    assert "spam" in text, text
+    # The ban notice is a themed text card: the copy rides the content.
+    kwargs = author.send.await_args.kwargs
+    text = kwargs.get("content") or ""
+    assert "spam" in text, kwargs
+    assert kwargs["allowed_mentions"].none()
+    # The plain-text grammar: the icon opens the title, the motive is a
+    # bullet.
+    assert text.startswith("🚫 **"), text
+    assert "• **" in text, text
 
 
 async def test_modal_submit_with_image_attaches(tmp_path):

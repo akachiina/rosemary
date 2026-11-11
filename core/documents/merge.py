@@ -110,6 +110,30 @@ def resolve_layers(
     return _resolve(doc, archetypes, fragments, ())
 
 
+def resolve_document(
+    doc: Mapping[str, Any],
+    archetypes: Mapping[str, Mapping[str, Any]],
+    fragments: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Resolve a document, including the messages of a sequence.
+
+    A sequence document carries one card document per message; each one
+    resolves its own archetype and fragments, exactly like a single card, so
+    a theme can describe a two-message card with the same frames it already
+    uses.
+    """
+    resolved = resolve_layers(doc, archetypes, fragments)
+    raw = resolved.get("messages")
+    if isinstance(raw, list):
+        resolved["messages"] = [
+            resolve_layers(entry, archetypes, fragments)
+            if isinstance(entry, Mapping)
+            else entry
+            for entry in raw
+        ]
+    return resolved
+
+
 def _resolve(
     doc: Mapping[str, Any],
     archetypes: Mapping[str, Mapping[str, Any]],
@@ -151,5 +175,6 @@ __all__ = [
     "ITEMS_KEY",
     "DocumentError",
     "merge",
+    "resolve_document",
     "resolve_layers",
 ]

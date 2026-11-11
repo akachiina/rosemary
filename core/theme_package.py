@@ -27,7 +27,7 @@ from typing import Any
 
 import yaml
 
-from rosemary.core.documents.merge import DocumentError, resolve_layers
+from rosemary.core.documents.merge import DocumentError, resolve_document
 
 log = logging.getLogger(__name__)
 
@@ -79,18 +79,33 @@ class Package:
         return tuple(sorted(self.documents))
 
     def metadata(self, key: str) -> dict[str, Any]:
-        """The contract of a card: variables, mention policy, category, form."""
+        """The contract of a card: variables, mention policy, category, form.
+
+        A sequence document declares its metadata outside ``messages``; the
+        shape, the actor and the tone of the card are the ones of its first
+        message (the main one), so the editor and the fallback keep reading
+        one card per key.
+        """
         doc = self.documents.get(key) or {}
+        first = _first_message(doc)
         return {
             "variables": tuple(doc.get("variables") or ()),
             "mention": str(doc.get("mention") or "none"),
             "category": str(doc.get("category") or "general"),
-            "form": str(doc.get("form") or "embed"),
-            "actor": str(doc.get("actor") or ""),
+            "form": str(first.get("form") or doc.get("form") or "embed"),
+            "actor": str(first.get("actor") or doc.get("actor") or ""),
             "rich": bool(doc.get("rich", True)),
-            "style": str(doc.get("style") or "info"),
+            "style": str(first.get("style") or doc.get("style") or "info"),
             "legacy_body": doc.get("legacy_body"),
         }
+
+
+def _first_message(doc: Mapping[str, Any]) -> Mapping[str, Any]:
+    """The message that carries the card's own shape (the first one)."""
+    raw = doc.get("messages")
+    if isinstance(raw, list) and raw and isinstance(raw[0], Mapping):
+        return raw[0]
+    return doc
 
 
 def load_theme_package(directory: Path | str) -> ThemePackage:
@@ -142,7 +157,7 @@ def load_package(directory: Path | str = PACKAGE_DIR) -> Package:
     documents: dict[str, dict[str, Any]] = {}
     for key, doc in raw.documents.items():
         try:
-            documents[key] = resolve_layers(doc, raw.archetypes, raw.fragments)
+            documents[key] = resolve_document(doc, raw.archetypes, raw.fragments)
         except DocumentError as exc:
             log.error("card package %s: %s (%s)", key, exc, exc.code)
     return Package(

@@ -1,10 +1,16 @@
 {
-  "content": "ℹ️ **Parceria Expirada**\n\nOlá, <@0>! A parceria com **…** expirou por falta de renovação e foi removida automaticamente.\n\n🔄 **Quer voltar?**\nBasta falar com a equipe do servidor para refazer o processo de parceria.\n\nSeu anúncio foi deletado e o cargo de parceiro foi removido.",
-  "embed": null,
-  "form": "text",
+  "content": "ℹ️ Parceria Expirada",
+  "embed": {
+    "color": 3447003,
+    "description": "Olá, <@0>! A parceria com **…** expirou por falta de renovação e foi removida automaticamente.\n🔄 **Quer voltar?**\nBasta falar com a equipe do servidor para refazer o processo de parceria.\n",
+    "fields": [],
+    "footer": {
+      "text": "Seu anúncio foi deletado e o cargo de parceiro foi removido."
+    },
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "partnerships.dm.expired",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

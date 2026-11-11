@@ -1,10 +1,8 @@
 {
-  "content": "⚠️ **Você foi expulso de … por <@0>!**\n• **📜 Motivo:** …",
+  "content": "⚠️ **Você foi expulso de …**\n• **🛡️ Moderador:** <@0>\n• **📜 Motivo:** …",
   "embed": null,
   "form": "text",
   "key": "kick.dm",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

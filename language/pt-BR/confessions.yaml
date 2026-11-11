@@ -40,11 +40,12 @@ confess:
     approved: '{check} Sua confissão **#{confession_number}** foi aprovada!'
     rejected: '{error} Sua confissão **#{confession_number}** foi recusada.'
     reason: 'Motivo: {reason}'
-    response: '{envelope} Nova resposta anônima **#{confession_number}-{reply_index}**:
-
-      > {body}'
+    response: '{envelope} Nova resposta anônima **#{confession_number}-{reply_index}**:'
+    response_parent: '{envelope} Nova resposta anônima **#{confession_number}-{reply_index}** {parent_line}:'
     jump: Ir para a thread
-    banned: '{ban} Você foi banido das confissões. Motivo: {reason}'
+    banned: '{ban} **Você foi banido das confissões**
+
+      • **{scroll} Motivo:** {reason}'
   no_reason: Sem motivo informado.
   review_approved: '{success} Confissão postada.'
   review_denied: '{success} Confissão recusada.'

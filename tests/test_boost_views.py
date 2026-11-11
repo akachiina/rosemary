@@ -16,6 +16,11 @@ class FakeTranslator:
     async def t(self, guild_id, key, **variables):
         return key
 
+    async def raw(self, guild_id, key):
+        # A card slot that names a catalog key resolves to the copy: the
+        # pipeline treats the bare key as "no copy" and drops the line.
+        return f"copy:{key}"
+
 
 class FakeBot:
     theme = load_theme()
@@ -246,19 +251,16 @@ async def test_invite_view_is_buttons_only(bot):
         accept_label="Accept",
         decline_label="Decline",
     )
-    assert [type(item).__name__ for item in view.children] == ["ActionRow"]
+    assert [type(item).__name__ for item in view.children] == ["Button", "Button"]
 
 
-async def test_dm_invite_sends_text_and_v2_view_separately(monkeypatch, bot):
-    """Components V2 messages cannot carry content: two separate sends."""
+async def test_dm_invite_sends_one_message_with_line_embed_and_buttons(monkeypatch, bot):
+    """The invite is one message: the line, the role embed and the buttons.
+
+    A Components V2 message cannot carry content or an embed, so the invite
+    view is a classic ``discord.ui.View`` riding the same message.
+    """
     from datetime import UTC, datetime, timedelta
-
-    import rosemary.ui.boost_dm as boost_dm
-
-    async def noop(*args, **kwargs):
-        return None
-
-    monkeypatch.setattr(boost_dm, "send_preview", noop)
 
     guild_bot = BotWithGuild(bot.storage)
     guild = guild_bot._guild
@@ -269,13 +271,58 @@ async def test_dm_invite_sends_text_and_v2_view_separately(monkeypatch, bot):
 
     await menu._dm_invite(guild.get_role(123), member, {"owner_id": 1}, "123-7-999", expires)
 
-    assert len(member.calls) == 2
-    assert set(member.calls[0]) == {"content"}
-    assert set(member.calls[1]) == {"view"}
+    assert len(member.calls) == 1
+    call = member.calls[0]
+    assert set(call) == {"content", "embed", "view", "allowed_mentions"}
+    assert isinstance(call["embed"], discord.Embed)
+    assert isinstance(call["view"], BoostInviteView)
+    assert call["allowed_mentions"].to_dict() == {"parse": []}
+    assert call["content"]
+
+
+async def test_dm_invite_puts_the_buttons_on_the_last_message(monkeypatch, bot):
+    """A themed sequence keeps the buttons on the call to action (the last)."""
+    from rosemary.core.card_payload import CardPayload, RenderedMessage
+
+    guild_bot = BotWithGuild(bot.storage)
+    guild = guild_bot._guild
+    guild._role.guild = guild
+    member = FakeSendUser()
+    menu = BoostMenuView(guild_bot, 1, owner_id=1)
+    messages = [
+        RenderedMessage(
+            payload=CardPayload(content="first"),
+            allowed=discord.AllowedMentions.none(),
+        ),
+        RenderedMessage(
+            payload=CardPayload(content="second"),
+            allowed=discord.AllowedMentions.none(),
+        ),
+    ]
+
+    async def fake_render(*args, **kwargs):
+        return messages
+
+    monkeypatch.setattr(
+        "rosemary.core.card_service.render_card_messages", fake_render
+    )
+
+    from datetime import UTC, datetime, timedelta
+
+    await menu._dm_invite(
+        guild.get_role(123),
+        member,
+        {"owner_id": 1},
+        "123-7-999",
+        datetime.now(UTC) + timedelta(hours=1),
+    )
+
+    assert [call["content"] for call in member.calls] == ["first", "second"]
+    assert "view" not in member.calls[0]
     assert isinstance(member.calls[1]["view"], BoostInviteView)
 
 
-async def test_invite_edit_replaces_components_without_content(bot):
+async def test_invite_edit_replaces_the_line_and_disables_the_buttons(bot):
     view = BoostInviteView(
         bot,
         guild_id=1,
@@ -287,10 +334,9 @@ async def test_invite_edit_replaces_components_without_content(bot):
 
     await view._edit(interaction, "done")
 
-    assert interaction.kwargs.keys() == {"view"}
+    assert interaction.kwargs.keys() == {"content", "view"}
+    assert interaction.kwargs["content"] == "done"
     assert interaction.kwargs["view"] is view
-    kinds = [type(item).__name__ for item in view.children]
-    assert kinds == ["TextDisplay", "ActionRow"]
     assert view.accept_button.disabled is True
     assert view.decline_button.disabled is True
 
@@ -358,7 +404,8 @@ async def test_boost_menu_layout_valid_with_icon(bot, screen, has_icon):
     _assert_valid_layout(view, f"boost_menu.{screen}")
 
 
-async def test_boost_invite_view_layout_valid(bot):
+async def test_boost_invite_view_serializes_as_one_action_row(bot):
+    """A classic view travels as one ActionRow: content and embed are allowed."""
     view = BoostInviteView(
         bot,
         guild_id=1,
@@ -366,7 +413,14 @@ async def test_boost_invite_view_layout_valid(bot):
         accept_label="Accept",
         decline_label="Decline",
     )
-    _assert_valid_layout(view, "boost_invite")
+    components = view.to_components()
+    assert len(components) == 1
+    row = components[0]
+    assert row["type"] == 1
+    assert [button["custom_id"] for button in row["components"]] == [
+        f"{ACCEPT_PREFIX}:10-20-30",
+        f"{DECLINE_PREFIX}:10-20-30",
+    ]
 
 
 #: duplicate custom_id guard -------------------------------------------------

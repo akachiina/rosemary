@@ -1,10 +1,8 @@
 {
-  "content": "⚠️ **Você foi silenciado em … por <@0>!**\n• **⏰ Duração:** …\n• **📜 Motivo:** …",
+  "content": "⚠️ **Você foi silenciado em …**\n• **⏰ Duração:** …\n• **🛡️ Moderador:** <@0>\n• **📜 Motivo:** …",
   "embed": null,
   "form": "text",
   "key": "mute.dm",
-  "pings": [
-    0
-  ],
+  "pings": [],
   "view": []
 }

@@ -87,6 +87,8 @@ card:
         title: DM de confissão recusada
       response:
         title: DM de resposta de confissão
+      banned:
+        title: DM de banimento das confissões
   utility:
     ping:
       title: Card de latência

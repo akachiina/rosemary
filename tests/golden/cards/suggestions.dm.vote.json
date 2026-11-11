@@ -1,8 +1,8 @@
 {
-  "content": null,
+  "content": "<@0> deu um **upvote** na sua **sugestão #1**:",
   "embed": {
     "color": 3066993,
-    "description": "<@0> deu um **upvote** na sua **sugestão #1:**\n> …",
+    "description": "…",
     "fields": [],
     "type": "rich"
   },

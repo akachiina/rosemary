@@ -17,6 +17,7 @@ the mention fields.
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -46,6 +47,7 @@ SLOT_KEYS = frozenset(
         "blocks",
         "category",
         "color",
+        "content_line",
         "description",
         "fields",
         "footer",
@@ -55,6 +57,7 @@ SLOT_KEYS = frozenset(
         "image",
         "legacy_body",
         "mention",
+        "messages",
         "paragraphs",
         "ping_line",
         "rich",
@@ -157,11 +160,56 @@ async def build_card(
         actor=actor,
         timestamp=timestamp,
         ping_line=await _copy(doc.get("ping_line"), resolver),
+        content_line=await _copy(doc.get("content_line"), resolver),
         fields=tuple(fields),
         blocks=tuple(blocks),
         actions=tuple(actions),
         variables=tuple(str(name) for name in (doc.get("variables") or ())),
     )
+
+
+async def build_cards(
+    doc: Mapping[str, Any],
+    key: str,
+    resolver: Resolver,
+) -> tuple[Card, ...]:
+    """Read a document into the messages it declares.
+
+    A document without ``messages`` is the single card it always was: the
+    return value is a tuple of one, so no call site branches on the shape.
+
+    A document with ``messages`` is a **sequence**: each entry is a complete
+    card of its own (its own form, body, fields, buttons). The keys outside
+    ``messages`` describe the card as a whole (the contract, the category,
+    the tone), so every message inherits them when it does not declare its
+    own. A message never nests another sequence.
+    """
+    validate_keys(doc)
+    raw = doc.get("messages")
+    if raw is None:
+        return (await build_card(doc, key, resolver),)
+    if not isinstance(raw, list) or not raw:
+        raise DocumentError("card_bad_messages")
+    outer_variables = tuple(str(name) for name in (doc.get("variables") or ()))
+    outer_style = str(doc.get("style") or "info")
+    outer_actor = await _text(doc.get("actor"), resolver)
+    _alias_actor(outer_actor, resolver)
+    cards: list[Card] = []
+    for entry in raw:
+        if not isinstance(entry, dict) or not entry:
+            raise DocumentError("card_bad_messages")
+        if "messages" in entry:
+            raise DocumentError("card_nested_messages")
+        card = await build_card(entry, key, resolver)
+        cards.append(
+            dataclasses.replace(
+                card,
+                variables=card.variables if "variables" in entry else outer_variables,
+                style=card.style if "style" in entry else outer_style,
+                actor=card.actor if "actor" in entry else outer_actor,
+            )
+        )
+    return tuple(cards)
 
 
 def _epoch(value: Any) -> int | None:
@@ -490,6 +538,7 @@ __all__ = [
     "MACHINE_NAMES",
     "SLOT_KEYS",
     "build_card",
+    "build_cards",
     "is_semantic_document",
     "validate_keys",
 ]

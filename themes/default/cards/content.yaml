@@ -355,15 +355,16 @@ suggestions.card:
   - command
   category: suggestions
 
-# The vote notice DM: the sentence names the voter and the suggestion, and
-# the jump button sends the author back to it. The color follows the voted
-# side (green up, red down).
+# The vote notice DM: the content line names the voter and the suggestion,
+# the embed carries the suggestion itself and the jump button sends the
+# author back to it. The color follows the voted side (green up, red down).
 suggestions.dm.vote:
   form: embed
   color:
   - '{state_color}'
   - 'info'
-  description: '{suggest.dm.body}'
+  content_line: '{suggest.dm.body}'
+  description: '{body}'
   actions:
   - label: '{suggest.dm.jump}'
     url: '{message_link}'
@@ -377,14 +378,16 @@ suggestions.dm.vote:
   rich: false
   category: suggestions
 
-# The decision notice DM: the sentence names the staff member who decided,
-# the motive rides its own line (it disappears when there is none) and the
-# jump button sends the author back to the suggestion.
+# The decision notice DM: the content line names the staff member who
+# decided, the embed carries the suggestion and the motive (the motive
+# disappears when there is none) and the jump button sends the author back
+# to the suggestion.
 suggestions.dm.approved:
   form: embed
   color: gold
+  content_line: '{suggest.dm.approved}'
   paragraphs:
-  - '{suggest.dm.approved}'
+  - '{body}'
   - '{reason_line}'
   actions:
   - label: '{suggest.dm.jump}'
@@ -403,8 +406,9 @@ suggestions.dm.approved:
 suggestions.dm.rejected:
   form: embed
   color: danger
+  content_line: '{suggest.dm.rejected}'
   paragraphs:
-  - '{suggest.dm.rejected}'
+  - '{body}'
   - '{reason_line}'
   actions:
   - label: '{suggest.dm.jump}'
@@ -485,12 +489,14 @@ confessions.response:
   - parent_link
   category: confessions
 
-# The approval notice DM: the sentence from the catalog and the button
-# that sends the author back to the thread.
+# The approval notice DM: the content line carries the decision, the embed
+# carries the confession itself and the button sends the author back to the
+# thread.
 confessions.dm.approved:
   form: embed
   color: success
-  description: '{confess.dm.approved}'
+  content_line: '{confess.dm.approved}'
+  description: '{body}'
   actions:
   - label: '{confess.dm.jump}'
     url: '{message_link}'
@@ -501,14 +507,16 @@ confessions.dm.approved:
   rich: false
   category: confessions
 
-# The denial notice DM: the sentence and the motive (it disappears when the
-# staff gave none). No button: the confession was never posted, so there is
-# no thread to jump to.
+# The denial notice DM: the content line carries the decision, the embed
+# carries the confession and the motive (it disappears when the staff gave
+# none). No button: the confession was never posted, so there is no thread
+# to jump to.
 confessions.dm.rejected:
   form: embed
   color: danger
+  content_line: '{confess.dm.rejected}'
   paragraphs:
-  - '{confess.dm.rejected}'
+  - '{body}'
   - '{reason_line}'
   variables:
   - confession_number
@@ -518,12 +526,16 @@ confessions.dm.rejected:
   rich: false
   category: confessions
 
-# The reply notice DM: the author of the confession hears about the answer
-# to their confession (nobody hears about their own reply).
+# The reply notice DM: the content line names the answer (and the answer it
+# answers, when there is one), the embed carries the reply itself and the
+# button sends the author back to the thread.
 confessions.dm.response:
   form: embed
   color: info
-  description: '{confess.dm.response}'
+  content_line:
+  - '{confess.dm.response_parent}'
+  - '{confess.dm.response}'
+  description: '{body}'
   actions:
   - label: '{confess.dm.jump}'
     url: '{message_link}'
@@ -532,8 +544,220 @@ confessions.dm.response:
   - reply_index
   - body
   - message_link
+  - parent_line
   rich: false
   category: confessions
+
+# The boost role invite: the content line announces the invite, the embed
+# carries the role (its name, who invited and when it expires) and the
+# accept/decline buttons ride the same message.
+boost.dm.invite:
+  form: embed
+  color: success
+  content_line: '{boost.dm.invite}'
+  title: '@{role_name}'
+  description: '{boost.dm.invite_body}'
+  fields:
+  - label: '{boost.dm.invite_inviter}'
+    value: '{inviter_mention}'
+  - label: '{boost.dm.invite_expires}'
+    value: '{expires}'
+  thumbnail: '{role_icon}'
+  footer: '{boost.dm.invite_footer}'
+  variables:
+  - mention
+  - role_name
+  - server_name
+  - inviter_mention
+  - expires
+  - role_icon
+  rich: false
+  category: boost
+
+# The Bump-MVP winner DM: the content line announces the title, the embed
+# carries the role the winner just got (its icon and member count, the
+# preview that used to be a second message), the week stats and the
+# customization hint.
+bump.dm.winner_new:
+  form: embed
+  color: success
+  content_line: '{bump.dm.winner_new}'
+  title: '@{role_name}'
+  description: '{bump.dm.winner_new_body}'
+  fields:
+  - label: '{bump.dm.bumps_week}'
+    value: '{bump_count}'
+    inline: true
+  - label: '{bump.dm.members}'
+    value: '{boost.descriptions.members_count}'
+    inline: true
+  thumbnail: '{role_icon}'
+  footer: '{bump.dm.winner_new_footer}'
+  variables:
+  - mention
+  - bump_count
+  - role_name
+  - role_icon
+  - count
+  - max_members
+  rich: false
+  category: bump
+
+# The repeat winner: the same frame, with the total wins and the restored
+# customization notice (the role is the title, so it is not repeated).
+bump.dm.winner_again:
+  form: embed
+  color: success
+  content_line: '{bump.dm.winner_again}'
+  title: '@{role_name}'
+  description: '{bump.dm.winner_again_body}'
+  fields:
+  - label: '{bump.dm.bumps_week}'
+    value: '{bump_count}'
+    inline: true
+  - label: '{bump.dm.total_wins}'
+    value: '{total_wins}'
+    inline: true
+  - label: '{bump.dm.members}'
+    value: '{boost.descriptions.members_count}'
+    inline: true
+  thumbnail: '{role_icon}'
+  footer: '{bump.dm.winner_again_footer}'
+  variables:
+  - mention
+  - bump_count
+  - role_name
+  - total_wins
+  - role_icon
+  - count
+  - max_members
+  rich: false
+  category: bump
+
+# The former winner: the content line says the reign ended, the embed keeps
+# the week stats and the new winner.
+bump.dm.winner_lost:
+  form: embed
+  color: info
+  content_line: '{bump.dm.winner_lost}'
+  description: '{bump.dm.winner_lost_body}'
+  fields:
+  - label: '{bump.dm.your_bumps}'
+    value: '{bump_count}'
+    inline: true
+  - label: '{bump.dm.new_winner}'
+    value: '{winner_mention}'
+    inline: true
+  footer: '{bump.dm.winner_lost_footer}'
+  variables:
+  - mention
+  - bump_count
+  - winner_mention
+  rich: false
+  category: bump
+
+# The partnership DMs: the content line carries the event (the partnership
+# was established, ended, needs renewal), the embed carries the details.
+# The copy is split by paragraph so a theme can reorder or drop one without
+# rewriting the whole notice.
+partnerships.dm.added:
+  form: embed
+  color: success
+  content_line: '{partnerships.dm.added}'
+  paragraphs:
+  - '{partnerships.dm.added_greeting}'
+  - '{partnerships.dm.added_responsibilities}'
+  - '{partnerships.dm.added_closing}'
+  footer: '{partnerships.dm.added_footer}'
+  variables:
+  - server
+  - mention
+  rich: false
+  category: partnerships
+
+partnerships.dm.removed:
+  form: embed
+  color: info
+  content_line: '{partnerships.dm.removed}'
+  paragraphs:
+  - '{partnerships.dm.removed_greeting}'
+  - '{partnerships.dm.removed_hint}'
+  footer: '{partnerships.dm.removed_footer}'
+  variables:
+  - server
+  - mention
+  rich: false
+  category: partnerships
+
+partnerships.dm.rep_changed:
+  form: embed
+  color: info
+  content_line: '{partnerships.dm.rep_changed}'
+  paragraphs:
+  - '{partnerships.dm.rep_changed_greeting}'
+  - '{partnerships.dm.added_responsibilities}'
+  - '{partnerships.dm.rep_changed_closing}'
+  footer: '{partnerships.dm.rep_changed_footer}'
+  variables:
+  - server
+  - mention
+  rich: false
+  category: partnerships
+
+partnerships.dm.warning:
+  form: embed
+  color: warning
+  content_line: '{partnerships.dm.warning}'
+  paragraphs:
+  - '{partnerships.dm.warning_greeting}'
+  - '{partnerships.dm.warning_how}'
+  - '{partnerships.dm.warning_deadline}'
+  footer: '{partnerships.dm.warning_footer}'
+  variables:
+  - days
+  - server
+  - mention
+  rich: false
+  category: partnerships
+
+partnerships.dm.expired:
+  form: embed
+  color: info
+  content_line: '{partnerships.dm.expired}'
+  paragraphs:
+  - '{partnerships.dm.expired_greeting}'
+  - '{partnerships.dm.expired_hint}'
+  footer: '{partnerships.dm.expired_footer}'
+  variables:
+  - server
+  - mention
+  rich: false
+  category: partnerships
+
+# The admin who added the partnership is told it expired and gets the invite
+# to hand to the representative (the button disappears when no invite exists).
+partnerships.dm.expired_admin:
+  form: embed
+  color: warning
+  content_line: '{partnerships.dm.expired_admin}'
+  description: '{partnerships.dm.expired_admin_greeting}'
+  fields:
+  - label: '{partnerships.dm.representative}'
+    value: '{rep}'
+  - label: '{partnerships.dm.last_renewed}'
+    value: '{partnerships.dm.expired_admin_days}'
+  actions:
+  - label: '{partnerships.dm.expired_admin_invite}'
+    url: '{invite}'
+  footer: '{partnerships.dm.expired_admin_footer}'
+  variables:
+  - rep
+  - server
+  - days
+  - invite
+  - mention
+  rich: false
+  category: partnerships
 
 # The roleplay interaction: the sentence pings both members, the gif rides
 # the card and the timestamp closes it.

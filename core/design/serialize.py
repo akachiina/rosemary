@@ -151,6 +151,10 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     body: list[Any] = []
     if card.title:
         body.append(Text(body=_title_markdown(card, theme)))
+    if card.content_line:
+        # The event line of the card: in the V2 form it is a text block of
+        # its own (a V2 message cannot carry a top-level content).
+        body.append(Text(body=card.content_line))
     for paragraph in card.paragraphs:
         body.append(Text(body=paragraph))
     if body:
@@ -242,11 +246,14 @@ def card_to_embed(card: Card) -> dict[str, Any]:
     document: dict[str, Any] = {"kind": "embed", "embed": embed}
     if card.actions:
         document["buttons"] = [action_to_document(action) for action in card.actions]
-    if card.ping_line:
+    line = card.content_line or card.ping_line
+    if line:
         # The message content line of an embed card: an embed never notifies,
         # so the mention tokens travel here, inside a phrase the document
-        # declares (never a bare token extracted from the embed body).
-        document["content"] = card.ping_line
+        # declares (never a bare token extracted from the embed body). The
+        # content line wins over the ping line: it is the line that always
+        # ships.
+        document["content"] = line
     return document
 
 
@@ -273,6 +280,10 @@ def card_to_text(card: Card) -> str:
         title = bold_title(card.title)
         if title:
             lines.append(title)
+    if card.content_line:
+        # The event line opens the card: it is the sentence the member reads
+        # first, so it keeps its own emphasis (the copy owns it).
+        lines.append(str(card.content_line).strip())
     for paragraph in card.paragraphs:
         text = str(paragraph).strip()
         if text:

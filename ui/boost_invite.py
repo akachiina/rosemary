@@ -1,11 +1,11 @@
 """Persistent DM buttons for boost-role invites.
 
-The invite DM is plain text (see :mod:`rosemary.ui.boost_dm`); the accept and
-decline buttons travel on their own buttons-only Components V2 message, and
-the role-preview card is yet another message (``send_preview``). Discord
-forbids combining top-level ``content`` with Components V2, so this view must
-never be sent with ``content=``; outcome text is rendered as a TextDisplay
-inside the view instead.
+The invite DM is one message (see :mod:`rosemary.ui.boost_dm`): the content
+line announces the invite, the embed carries the role and the accept and
+decline buttons ride the same message as a classic
+:class:`discord.ui.View`. On accept/decline/error the outcome replaces the
+content line and both buttons are disabled; the embed (the role) stays as it
+is.
 
 Each invite gets unique custom_ids ``boost_invite_accept:{invite_id}`` /
 ``boost_invite_decline:{invite_id}`` so the interaction store never sees two
@@ -47,17 +47,17 @@ def invite_id_from_custom_id(custom_id: str, prefix: str) -> str | None:
     return custom_id.split(":", 1)[1]
 
 
-class BoostInviteView(discord.ui.DesignerView):
+class BoostInviteView(discord.ui.View):
     """Accept/decline buttons for one boost-role invite, sent via DM.
 
-    The view is a buttons-only ``DesignerView`` message (the invite text is a
-    separate plain message, so this view is never sent with ``content=``). On
-    accept/decline/error the message is replaced with an outcome
-    :class:`~discord.ui.TextDisplay` above the disabled action row. The view
-    has no timeout and is re-registered on startup via ``bot.add_view`` so the
-    buttons keep working after a restart; the accept/decline logic re-reads the
-    invite from the store and re-validates it (expiry, invitee identity, role
-    still existing, boost system enabled).
+    The view rides the invite message (the content line and the embed): a
+    classic view travels with content and an embed, so the whole invite is
+    one message. On accept/decline/error the outcome replaces the content
+    line and both buttons are disabled; the embed (the role) stays as it is.
+    The view has no timeout and is re-registered on startup via
+    ``bot.add_view`` so the buttons keep working after a restart; the
+    accept/decline logic re-reads the invite from the store and re-validates
+    it (expiry, invitee identity, role still existing, boost system enabled).
     """
 
     def __init__(
@@ -89,7 +89,8 @@ class BoostInviteView(discord.ui.DesignerView):
         decline.callback = self._decline
         self.accept_button = accept
         self.decline_button = decline
-        self.add_item(discord.ui.ActionRow(accept, decline))
+        self.add_item(accept)
+        self.add_item(decline)
 
     #: helpers ------------------------------------------------------------
 
@@ -97,15 +98,17 @@ class BoostInviteView(discord.ui.DesignerView):
         return await self.bot.translator.t(self.guild_id, key, **variables)
 
     async def _edit(self, interaction: discord.Interaction, content: str) -> None:
-        """Replace the DM with an outcome TextDisplay and disable both buttons."""
+        """Replace the invite with its outcome and disable both buttons.
+
+        The content line carries the outcome (the invite is over) and the
+        embed keeps the role: the member still sees what the invite was
+        about.
+        """
         self.accept_button.disabled = True
         self.decline_button.disabled = True
-        self.clear_items()
-        self.add_item(discord.ui.TextDisplay(content))
-        self.add_item(discord.ui.ActionRow(self.accept_button, self.decline_button))
         # interaction.edit routes to edit_message or edit_original_response
         # depending on whether the interaction was already deferred.
-        await interaction.edit(view=self)
+        await interaction.edit(content=content, view=self)
 
     async def _error(self, interaction: discord.Interaction, key: str, **variables) -> None:
 

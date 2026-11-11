@@ -22,11 +22,58 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from rosemary.core.design.ir import Card
 
 log = logging.getLogger(__name__)
+
+
+#: The keys of a sequence document that describe the card as a whole, not
+#: one of its messages.
+SEQUENCE_KEYS = frozenset(
+    {
+        "actor",
+        "category",
+        "form_override",
+        "legacy_body",
+        "mention",
+        "messages",
+        "rich",
+        "style",
+        "variables",
+    }
+)
+
+
+async def get_effective_cards(
+    bot,
+    guild_id: int,
+    key: str,
+    variables: dict[str, Any] | None = None,
+    form: str | None = None,
+) -> tuple[Card, ...] | None:
+    """The messages of a card: the theme's override, else the package.
+
+    A card ships as one message or as the sequence its document declares
+    (``messages:``). ``None`` means the package carries no document for the
+    key, so the call site keeps its own default.
+
+    ``form`` forces the shape of the **first** message (the repaint path) and
+    the guild's form override picks the shape of the packaged content.
+    """
+    from rosemary.core.themes import card_delta, card_document
+
+    delta = await card_delta(bot, guild_id, key)
+    if delta is not None:
+        cards = await _delta_cards(bot, guild_id, key, delta, variables or {}, form)
+        if cards is not None:
+            return cards
+    themed = await card_document(bot, guild_id, key)
+    if themed is not None:
+        return _themed_cards(bot, guild_id, key, themed, form)
+    return await _packaged_cards(bot, guild_id, key, variables or {}, form)
 
 
 async def get_effective_card(
@@ -36,28 +83,9 @@ async def get_effective_card(
     variables: dict[str, Any] | None = None,
     form: str | None = None,
 ) -> Card | None:
-    """The card to render: the theme's override, else the packaged document.
-
-    ``form`` forces the shape (the repaint path) and the guild's form
-    override picks the shape of the packaged content.
-    """
-    from rosemary.core.themes import card_delta, card_document
-
-    delta = await card_delta(bot, guild_id, key)
-    if delta is not None:
-        card = await _delta_card(bot, guild_id, key, delta, variables or {}, form)
-        if card is not None:
-            return card
-    themed = await card_document(bot, guild_id, key)
-    if themed is not None:
-        card = _themed_card(bot, guild_id, key, themed, form)
-        if card.copy_only:
-            # The theme wrote copy, not a layout: the card keeps its own
-            # surface (the tone of the notice and the contract).
-            style, contract = _packaged_surface(key)
-            card = dataclasses.replace(card, style=style, variables=contract)
-        return card
-    return await _packaged_card(bot, guild_id, key, variables or {}, form)
+    """The first message of a card (the shape every single-message send uses)."""
+    cards = await get_effective_cards(bot, guild_id, key, variables, form=form)
+    return cards[0] if cards else None
 
 
 def _packaged_surface(key: str) -> tuple[str, tuple[str, ...]]:
@@ -75,19 +103,19 @@ def _packaged_surface(key: str) -> tuple[str, tuple[str, ...]]:
     return style, contract
 
 
-async def _packaged_card(
+async def _packaged_cards(
     bot,
     guild_id: int,
     key: str,
     variables: dict[str, Any],
     form: str | None = None,
-) -> Card | None:
+) -> tuple[Card, ...] | None:
     """The packaged document of the card (the source of truth).
 
     ``None`` when the package carries no document for the key: the call site
     keeps its own default.
     """
-    from rosemary.core.documents.semantic import build_card
+    from rosemary.core.documents.semantic import build_cards
     from rosemary.core.documents.templates import Resolver
     from rosemary.core.theme_package import default_package
     from rosemary.core.themes import card_form, theme_for
@@ -102,26 +130,26 @@ async def _packaged_card(
         variables or {},
         emojis=getattr(theme, "emojis", {}) or {},
     )
-    card = await build_card(raw, key, resolver)
+    cards = list(await build_cards(raw, key, resolver))
     legacy = await _legacy_body(bot, guild_id, key, raw, variables)
     if legacy:
         # The old body card of a guild theme: it replaces the body (and
         # the fields) of the packaged document, keeping its frame.
-        card = dataclasses.replace(card, paragraphs=(legacy,), fields=())
+        cards[0] = dataclasses.replace(cards[0], paragraphs=(legacy,), fields=())
     shape = form or card_form(bot, guild_id, key)
-    if shape and shape != card.form:
-        card = dataclasses.replace(card, form=shape)
-    return card
+    if shape and shape != cards[0].form:
+        cards[0] = dataclasses.replace(cards[0], form=shape)
+    return tuple(cards)
 
 
-async def _delta_card(
+async def _delta_cards(
     bot,
     guild_id: int,
     key: str,
     delta: dict[str, Any],
     variables: dict[str, Any],
     form: str | None,
-) -> Card | None:
+) -> tuple[Card, ...] | None:
     """A themed delta: the packaged document with the theme's own fields.
 
     The delta names the fields it changes; the fields it does not declare
@@ -129,8 +157,8 @@ async def _delta_card(
     one). A broken delta never breaks a send: the card falls back to the
     packaged document.
     """
-    from rosemary.core.documents.merge import DocumentError, merge, resolve_layers
-    from rosemary.core.documents.semantic import build_card
+    from rosemary.core.documents.merge import DocumentError, resolve_document
+    from rosemary.core.documents.semantic import build_cards
     from rosemary.core.documents.templates import Resolver
     from rosemary.core.theme_package import default_package
     from rosemary.core.themes import card_form, theme_for
@@ -142,12 +170,12 @@ async def _delta_card(
         return None
     theme = theme_for(bot, guild_id)
     try:
-        resolved = resolve_layers(
+        resolved = resolve_document(
             delta,
             getattr(theme, "archetypes", {}) or {},
             getattr(theme, "fragments", {}) or {},
         )
-        merged = merge(base, resolved)
+        merged = _merge_delta(base, resolved)
     except DocumentError as exc:
         log.warning("themed delta for %s is invalid: %s", key, exc)
         return None
@@ -155,30 +183,85 @@ async def _delta_card(
         bot, guild_id, variables, emojis=getattr(theme, "emojis", {}) or {}
     )
     try:
-        card = await build_card(merged, key, resolver)
+        cards = list(await build_cards(merged, key, resolver))
     except DocumentError as exc:
         log.warning("themed delta for %s is invalid: %s", key, exc)
         return None
-    if not resolved.get("description") and not resolved.get("paragraphs"):
+    if (
+        "messages" not in resolved
+        and not resolved.get("description")
+        and not resolved.get("paragraphs")
+    ):
         legacy = await _legacy_body(bot, guild_id, key, base, variables)
         if legacy:
             # The old body card of a guild theme: it replaces the body (and
             # the fields) of the packaged document, keeping its frame.
-            card = dataclasses.replace(card, paragraphs=(legacy,), fields=())
+            cards[0] = dataclasses.replace(cards[0], paragraphs=(legacy,), fields=())
     shape = form or resolved.get("form") or card_form(bot, guild_id, key)
-    if shape and shape != card.form:
-        card = dataclasses.replace(card, form=shape)
-    return card
+    if shape and shape != cards[0].form:
+        cards[0] = dataclasses.replace(cards[0], form=shape)
+    return tuple(cards)
 
 
-def _themed_card(
+def _merge_delta(base: dict[str, Any], resolved: dict[str, Any]) -> dict[str, Any]:
+    """Merge a theme delta over a packaged document (a card or a sequence).
+
+    Against a sequence, the delta's card slots customize the **first**
+    message (the main one) and the metadata keys merge as usual. A delta that
+    declares ``messages`` replaces the packaged topology whole: the single
+    card slots of the package belonged to the old topology.
+    """
+    from rosemary.core.documents.merge import merge
+
+    if "messages" in resolved:
+        outer = {
+            name: value
+            for name, value in base.items()
+            if name in SEQUENCE_KEYS and name != "messages"
+        }
+        own = {
+            name: value
+            for name, value in resolved.items()
+            if name in SEQUENCE_KEYS and name != "messages"
+        }
+        merged = merge(outer, own)
+        merged["messages"] = resolved["messages"]
+        return merged
+    if "messages" not in base:
+        return merge(base, resolved)
+    messages = list(base["messages"])
+    first = dict(messages[0]) if isinstance(messages[0], Mapping) else {}
+    own = {
+        name: value
+        for name, value in resolved.items()
+        if name not in SEQUENCE_KEYS
+    }
+    if own:
+        first = merge(first, own)
+    messages[0] = first
+    outer = {
+        name: value
+        for name, value in base.items()
+        if name in SEQUENCE_KEYS and name != "messages"
+    }
+    meta = {
+        name: value
+        for name, value in resolved.items()
+        if name in SEQUENCE_KEYS and name != "messages"
+    }
+    merged = merge(outer, meta)
+    merged["messages"] = messages
+    return merged
+
+
+def _themed_cards(
     bot,
     guild_id: int,
     key: str,
     themed: dict[str, Any],
     form: str | None,
-) -> Card:
-    """The themed document, as a card of the same model.
+) -> tuple[Card, ...]:
+    """The themed document, as the messages of the same model.
 
     A themed document always wins over the packaged one. A document that
     carries only copy (no layout) keeps the card's own surface: a text card
@@ -195,7 +278,12 @@ def _themed_card(
         shape = default_form(key)
     if shape and shape != card.form:
         card = dataclasses.replace(card, form=shape)
-    return card
+    if card.copy_only:
+        # The theme wrote copy, not a layout: the card keeps its own
+        # surface (the tone of the notice and the contract).
+        style, contract = _packaged_surface(key)
+        card = dataclasses.replace(card, style=style, variables=contract)
+    return (card,)
 
 
 async def _legacy_body(
@@ -242,4 +330,4 @@ def reserve_contract(
     return out
 
 
-__all__ = ["get_effective_card", "reserve_contract"]
+__all__ = ["SEQUENCE_KEYS", "get_effective_card", "get_effective_cards", "reserve_contract"]

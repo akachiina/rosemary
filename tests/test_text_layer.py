@@ -199,6 +199,39 @@ async def test_embed_ping_stays_silent_when_the_toggle_is_off(tmp_path):
     assert not allowed.users
 
 
+async def test_embed_content_line_ships_even_when_pings_are_off(tmp_path):
+    """The content line is content, not a ping: it always rides the message.
+
+    A DM names the event in the message content (the line above the embed).
+    That line is not a notification, so the theme's ``pings:`` toggle never
+    takes it away: only the mention policy decides who may ping.
+    """
+    bot = _make_bot(
+        tmp_path,
+        "name: t\n"
+        "colors:\n"
+        '  brand: "#57F287"\n'
+        "pings:\n"
+        "  about.card: false\n"
+        "cards:\n"
+        "  about.card:\n"
+        "    form: embed\n"
+        '    title: "Hi"\n'
+        '    description: "Hello {user}"\n'
+        '    content_line: "{user}, come see"\n'
+        "    color: brand\n",
+    )
+    await _activate(bot)
+    payload, allowed = await render_card_message(
+        bot, 1, "about.card", {"user": "<@77>"}
+    )
+    assert payload is not None and payload.embed is not None
+    assert payload.content == "<@77>, come see"
+    # The card pings nobody: the toggle is off and the card has no policy.
+    assert allowed.everyone is False
+    assert not allowed.users
+
+
 async def test_embed_card_ships_without_a_view(tmp_path):
     """A pure embed card has no Components V2 items: the classic shape."""
     import rosemary.cogs.utility  # noqa: F401  (registers the builder)

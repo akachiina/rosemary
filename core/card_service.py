@@ -24,11 +24,16 @@ import discord
 
 from rosemary.core.card_payload import (
     CardPayload,
+    RenderedMessage,
     is_v2_message,
     is_v2_payload,
     send_card,
 )
-from rosemary.core.card_resolution import get_effective_card, reserve_contract
+from rosemary.core.card_resolution import (
+    get_effective_card,
+    get_effective_cards,
+    reserve_contract,
+)
 from rosemary.core.cards import (
     ECHO_VARIABLES,
     FORM_CARD,
@@ -78,6 +83,7 @@ def simple_payload(
     *,
     title: str = "",
     body: str = "",
+    content_line: str = "",
     color: str | discord.Colour | None = None,
     style: str | None = None,
     author: str = "",
@@ -96,6 +102,9 @@ def simple_payload(
     under the member: a text card answers with one notice line, an embed
     card with a classic embed, a Components V2 card with a container.
 
+    ``content_line`` is the line that opens an embed card (the event
+    sentence): it rides the message content, never the embed body.
+
     The fallback is a card of the same model as every other one: the
     serializer writes it in the shape the card ships in.
     """
@@ -107,6 +116,7 @@ def simple_payload(
         color=f"#{accent.value:06x}",
         title=str(title or "").strip(),
         paragraphs=(str(body or "").strip(),) if str(body or "").strip() else (),
+        content_line=str(content_line or "").strip(),
         author=Author(name=str(author), icon_url=str(author_icon))
         if str(author or "").strip()
         else None,
@@ -165,6 +175,74 @@ async def _canonical_variables(
     return values
 
 
+async def render_card_messages(
+    bot,
+    guild_id: int,
+    key: str,
+    variables: dict[str, Any] | None = None,
+    *,
+    silent: bool = False,
+    form: str | None = None,
+) -> list[RenderedMessage]:
+    """Render a card as the messages it ships in (one, or a themed sequence).
+
+    Each message carries its own :class:`CardPayload` and its own
+    ``allowed_mentions``: Discord applies the mention policy per message, so
+    a two-message card pings only where its document puts the mention.
+
+    A message whose copy the catalog does not have is dropped (the card
+    never ships an empty frame), and an invalid message is logged and
+    dropped too. An empty list means the card says nothing at all, so the
+    call site keeps its own fallback.
+    """
+    from rosemary.core.debug import trace_card_path
+
+    variables = await _canonical_variables(bot, guild_id, variables)
+    cards = await get_effective_cards(bot, guild_id, key, variables, form=form)
+    if not cards:
+        return []
+    theme = theme_for(bot, guild_id)
+    base_mapping = {
+        **(getattr(theme, "emojis", {}) or {}),
+        **(dict(ECHO_VARIABLES) if variables is None else variables),
+    }
+    rendered: list[RenderedMessage] = []
+    for card in cards:
+        mapping = reserve_contract(card, base_mapping, variables)
+        try:
+            if card.blocks:
+                # A blocks-native card (the theme's own layout): the legacy
+                # validator still guards the document it draws, so an invalid
+                # one falls back to the default message.
+                issues = validate_document(card_to_v2(card), theme=theme, variables=mapping)
+                if issues:
+                    raise CardsError(issues)
+            compiled = compile_card(card, mapping)
+        except CardsError as exc:
+            log.warning(
+                "card %s for guild %s is invalid, using default: %s", key, guild_id, exc
+            )
+            continue
+        if not _says_something(compiled.card):
+            # The card has no copy (the catalog has none for it): there is
+            # nothing to say, so the message does not exist.
+            continue
+        try:
+            payload, content = _payload_for_card(
+                bot, guild_id, key, compiled.card, theme, mapping
+            )
+        except CardsError as exc:
+            log.warning(
+                "card %s for guild %s is invalid, using default: %s", key, guild_id, exc
+            )
+            continue
+        allowed = await _allowed_for_card(bot, guild_id, key, compiled, content, silent)
+        rendered.append(RenderedMessage(payload=payload, allowed=allowed))
+    if rendered:
+        await trace_card_path(bot, guild_id, key)
+    return rendered
+
+
 async def render_card_message(
     bot,
     guild_id: int,
@@ -174,7 +252,11 @@ async def render_card_message(
     silent: bool = False,
     form: str | None = None,
 ) -> tuple[CardPayload | None, discord.AllowedMentions]:
-    """Render a card for a real send: ``(payload, allowed_mentions)``.
+    """Render the first message of a card: ``(payload, allowed_mentions)``.
+
+    The single-message call sites keep this signature. A card that ships as
+    a sequence is sent through :func:`render_card_messages`, which returns
+    every message in order.
 
     ``payload`` is a :class:`rosemary.core.card_payload.CardPayload`: a
     Components V2 ``DesignerView``, an ``embed=``-ready bundle when the card
@@ -191,46 +273,13 @@ async def render_card_message(
     edits: a V2 message gets the V2 form, a classic message the classic
     one).
     """
-    from rosemary.core.debug import trace_card_path
-
-    variables = await _canonical_variables(bot, guild_id, variables)
-    card = await get_effective_card(bot, guild_id, key, variables, form=form)
-    if card is None:
+    messages = await render_card_messages(
+        bot, guild_id, key, variables, silent=silent, form=form
+    )
+    if not messages:
         return None, discord.AllowedMentions.none()
-    theme = theme_for(bot, guild_id)
-    mapping = {
-        **(getattr(theme, "emojis", {}) or {}),
-        **(dict(ECHO_VARIABLES) if variables is None else variables),
-    }
-    mapping = reserve_contract(card, mapping, variables)
-    try:
-        if card.blocks:
-            # A blocks-native card (the theme's own layout): the legacy
-            # validator still guards the document it draws, so an invalid
-            # one falls back to the default message.
-            issues = validate_document(card_to_v2(card), theme=theme, variables=mapping)
-            if issues:
-                raise CardsError(issues)
-        compiled = compile_card(card, mapping)
-    except CardsError as exc:
-        log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
-        return None, discord.AllowedMentions.none()
-
-    if not _says_something(compiled.card):
-        # The card has no copy (the catalog has none for it): there is
-        # nothing to say, so the call site keeps its own fallback.
-        return None, discord.AllowedMentions.none()
-
-    try:
-        payload, content = _payload_for_card(
-            bot, guild_id, key, compiled.card, theme, mapping
-        )
-    except CardsError as exc:
-        log.warning("card %s for guild %s is invalid, using default: %s", key, guild_id, exc)
-        return None, discord.AllowedMentions.none()
-    allowed = await _allowed_for_card(bot, guild_id, key, compiled, content, silent)
-    await trace_card_path(bot, guild_id, key)
-    return payload, allowed
+    first = messages[0]
+    return first.payload, first.allowed
 
 
 def _payload_for_card(
@@ -261,12 +310,14 @@ def _payload_for_card(
         document = card_to_embed(card)
         embed, buttons = resolve_embed(document, theme, mapping, resolved=True)
         view = build_embed_view(buttons, mapping, key, resolved=True)
-        # The content of an embed is only the phrase its document declares;
-        # when pings are off for the card, the notification line does not
-        # ship at all (the embed stays as it is).
-        content = str(document.get("content") or "")
-        if content and not theme_pings(bot, guild_id, key):
-            content = ""
+        # The content of an embed is the phrase its document declares: the
+        # content line (the event sentence, which always ships) or the ping
+        # line (the notification phrase, which only ships when the theme's
+        # pings toggle is on). When pings are off for the card, the
+        # notification line does not ship at all (the embed stays as it is).
+        content = card.content_line
+        if not content and theme_pings(bot, guild_id, key):
+            content = card.ping_line
         return CardPayload(embed=embed, view=view, content=content or None), content
     document = card_to_v2(card, theme)
     view = render_document(
@@ -306,12 +357,20 @@ def _says_something(card: Card) -> bool:
     """Whether a card carries any copy at all.
 
     The copy is what the member reads: the title, the body, the fields, the
-    blocks or the line of a text card. The frame (the footer, the thumbnail,
-    the image) is not copy: a card whose copy the catalog does not have (a
-    missing key, a translator without the catalog) says nothing, so the call
-    site keeps its own fallback instead of shipping an empty frame.
+    blocks, the line of a text card or the content line that opens an embed
+    card. The frame (the footer, the thumbnail, the image) is not copy: a
+    card whose copy the catalog does not have (a missing key, a translator
+    without the catalog) says nothing, so the call site keeps its own
+    fallback instead of shipping an empty frame.
     """
-    if card.content or card.blocks or card.title or card.paragraphs or card.fields:
+    if (
+        card.content
+        or card.content_line
+        or card.blocks
+        or card.title
+        or card.paragraphs
+        or card.fields
+    ):
         return True
     return card.author is not None and bool(card.author.name)
 
@@ -374,11 +433,14 @@ async def align_to_message(
 
 __all__ = [
     "CardPayload",
+    "RenderedMessage",
     "align_to_message",
     "get_effective_card",
+    "get_effective_cards",
     "is_v2_message",
     "is_v2_payload",
     "render_card_message",
+    "render_card_messages",
     "render_document",
     "send_card",
     "simple_payload",

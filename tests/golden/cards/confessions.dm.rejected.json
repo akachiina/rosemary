@@ -1,8 +1,8 @@
 {
-  "content": null,
+  "content": "❌ Sua confissão **#1** foi recusada.",
   "embed": {
     "color": 15158332,
-    "description": "❌ Sua confissão **#1** foi recusada.\nMotivo: …",
+    "description": "…\nMotivo: …",
     "fields": [],
     "type": "rich"
   },

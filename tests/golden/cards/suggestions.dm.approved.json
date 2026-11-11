@@ -1,8 +1,8 @@
 {
-  "content": null,
+  "content": "✅ Sua sugestão **#1** foi aprovada por <@0>!",
   "embed": {
     "color": 16766720,
-    "description": "✅ Sua sugestão **#1** foi aprovada por <@0>!\nMotivo: …",
+    "description": "…\nMotivo: …",
     "fields": [],
     "type": "rich"
   },

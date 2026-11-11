@@ -573,6 +573,27 @@ async def test_vote_sends_dm_to_owner(tmp_path):
     assert message.jump_url in urls, urls
 
 
+async def test_vote_dm_splits_the_event_from_the_suggestion(tmp_path):
+    """The content line names the vote, the embed carries the suggestion.
+
+    The member reads the event in the line above the embed and the thing the
+    event happened to in the embed itself.
+    """
+    bot = FakeBot(tmp_path)
+    cog = SuggestionsCog(bot)
+    bot._cog = cog
+    guild, channel, member, _sent = make_guild()
+    await cog.post_suggestion(guild, channel, member, "vote on me")
+    assert await cog.apply_vote(guild, make_message(), 9, "up") is True
+    kwargs = member.send.await_args.kwargs
+    content = kwargs.get("content") or ""
+    embed = kwargs.get("embed")
+    assert member.mention in content, content
+    assert "**upvote**" in content, content
+    assert embed is not None
+    assert embed.description == "vote on me"
+
+
 async def test_vote_down_dm_uses_downvote_word(tmp_path):
     bot = FakeBot(tmp_path)
     cog = SuggestionsCog(bot)
@@ -630,7 +651,7 @@ async def test_dm_renders_bold_markdown(tmp_path):
     assert await cog.apply_vote(guild, make_message(), 9, "up") is True
     texts = _payload_texts(member.send.await_args.kwargs)
     assert any("**upvote**" in text for text in texts), texts
-    assert any("**sugestão #1:**" in text for text in texts), texts
+    assert any("**sugestão #1**:" in text for text in texts), texts
     assert any("<@9>" in text for text in texts), texts
 
 
@@ -1128,8 +1149,11 @@ async def test_decision_dms_carry_their_own_copy(tmp_path):
     )
     assert approved is not None and approved.embed is not None
     assert rejected is not None and rejected.embed is not None
-    assert "approved" in (approved.embed.description or "")
-    assert "rejected" in (rejected.embed.description or "")
+    # The decision rides the content line, the suggestion rides the embed.
+    assert "approved" in (approved.content or "")
+    assert "rejected" in (rejected.content or "")
+    assert "idea" in (approved.embed.description or "")
+    assert "Reason: spam" in (approved.embed.description or "")
     assert approved.embed.colour.value == bot.theme.color("gold").value
     assert rejected.embed.colour.value == bot.theme.color("danger").value
 

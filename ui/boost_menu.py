@@ -27,7 +27,6 @@ from typing import Any
 import discord
 
 from rosemary.core.boost_roles import BoostRoleStore, parse_datetime
-from rosemary.core.cards import text_or
 from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
 from rosemary.ui import boost_dm as dm
@@ -993,30 +992,31 @@ class BoostMenuView(_BaseMenu):
         invite_id: str,
         expires_at: datetime,
     ) -> None:
+        """Send the invite: one message with the line, the role and the buttons.
+
+        The content line announces the invite, the embed carries the role
+        (name, who invited, when it expires) and the accept/decline buttons
+        ride the last message. A theme may split the card into more messages:
+        the buttons still ride the last one, which is the call to action. The
+        role preview is not a second message: the embed already shows the
+        role.
+        """
+        from rosemary.core.card_payload import RenderedMessage
+        from rosemary.core.card_service import render_card_messages, simple_payload
         from rosemary.ui.boost_invite import BoostInviteView
 
         guild = role.guild
         inviter_mention = f"<@{data.get('owner_id', 0)}>"
         expires = f"<t:{int(expires_at.timestamp())}:R>"
-        invite_key = "boost.dm.invite"
-        content = await text_or(
-            self.bot,
-            self.guild_id,
-            invite_key,
-            await self._t(
-                invite_key,
-                mention=member.mention,
-                server_name=guild.name,
-                role_name=role.name,
-                inviter_mention=inviter_mention,
-                expires=expires,
-            ),
-            mention=member.mention,
-            server_name=guild.name,
-            role_name=role.name,
-            inviter_mention=inviter_mention,
-            expires=expires,
-        )
+        role_icon = role.icon.url if role.icon is not None else ""
+        variables = {
+            "mention": member.mention,
+            "server_name": guild.name,
+            "role_name": role.name,
+            "inviter_mention": inviter_mention,
+            "expires": expires,
+            "role_icon": role_icon,
+        }
         view = BoostInviteView(
             self.bot,
             guild_id=guild.id,
@@ -1024,9 +1024,40 @@ class BoostMenuView(_BaseMenu):
             accept_label=await self._t("boost.buttons.accept_invite"),
             decline_label=await self._t("boost.buttons.decline_invite"),
         )
-        await member.send(content=content)
-        await member.send(view=view)
-        await dm.send_preview(self.bot, member, guild.id, role, data)
+        messages = await render_card_messages(
+            self.bot, guild.id, "boost.dm.invite", variables
+        )
+        if not messages:
+            # No document resolved: the fallback follows the card's own form.
+            payload = simple_payload(
+                self.bot,
+                guild.id,
+                "boost.dm.invite",
+                title=f"@{role.name}",
+                body=await self._t("boost.dm.invite_body", **variables),
+                content_line=await self._t("boost.dm.invite", **variables),
+                color="success",
+                thumbnail=role_icon,
+                footer=await self._t("boost.dm.invite_footer"),
+                fields=(
+                    (await self._t("boost.dm.invite_inviter"), inviter_mention, False),
+                    (await self._t("boost.dm.invite_expires"), expires, False),
+                ),
+            )
+            messages = [
+                RenderedMessage(
+                    payload=payload,
+                    allowed=discord.AllowedMentions.none(),
+                )
+            ]
+        # The buttons ride the last message (the call to action), and a DM
+        # never pings.
+        for index, message in enumerate(messages):
+            kwargs = message.payload.message_kwargs()
+            if index == len(messages) - 1:
+                kwargs["view"] = view
+            kwargs["allowed_mentions"] = discord.AllowedMentions.none()
+            await member.send(**kwargs)
 
     async def _cancel_invite(self, interaction: discord.Interaction) -> None:
         if not await self._ack(interaction):

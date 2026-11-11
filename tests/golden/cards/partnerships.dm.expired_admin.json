@@ -1,10 +1,34 @@
 {
-  "content": "ℹ️ **Parceria Expirada**\n\nOlá, <@0>! A parceria que você adicionou com o representante <@0> expirou por falta de renovação e foi removida de **…**.\n\n📅 **Detalhes**\n• **Representante:** <@0>\n• **Última renovação:** há 1 dia(s)\n\n🔄 **Quer restabelecer?**\nRefaça o processo normalmente no canal de parcerias.\n• Convite para repassar ao representante: https://discord.gg/example\n\nEsta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria.",
-  "embed": null,
-  "form": "text",
+  "content": "ℹ️ Parceria Expirada",
+  "embed": {
+    "color": 15844367,
+    "description": "Olá, <@0>! A parceria que você adicionou com o representante <@0> expirou por falta de renovação e foi removida de **…**.",
+    "fields": [
+      {
+        "inline": false,
+        "name": "📅 Representante",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "🔄 Última renovação",
+        "value": "há 1 dia(s)"
+      }
+    ],
+    "footer": {
+      "text": "Esta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria."
+    },
+    "type": "rich"
+  },
+  "form": "embed",
   "key": "partnerships.dm.expired_admin",
-  "pings": [
-    0
-  ],
-  "view": []
+  "pings": [],
+  "view": [
+    {
+      "label": "💌 Convite para o representante",
+      "style": "link",
+      "type": "Button",
+      "url": "https://discord.gg/example"
+    }
+  ]
 }

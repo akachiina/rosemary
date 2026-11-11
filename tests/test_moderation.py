@@ -238,7 +238,7 @@ class _ActionMember:
     def __str__(self) -> str:
         return f"User{self.id}"
 
-    async def send(self, content: str) -> None:
+    async def send(self, content: str, **kwargs) -> None:
         self.sent.append(content)
 
     async def ban(self, reason: str | None = None) -> None:

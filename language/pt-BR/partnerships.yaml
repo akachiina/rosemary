@@ -25,75 +25,45 @@ partnerships:
   invite_text: '{info} Faça parceria com a gente! Fale com a staff para participar.'
   invite_text_default: Faça parceria com a gente! Fale com {rep} para participar.
   dm:
-    added: |
-      {success} Nova Parceria Estabelecida!
-
-      Olá, {mention}! Você foi designado(a) como **representante oficial** da parceria com **{server}**.
-
+    added: '{success} Nova Parceria Estabelecida!'
+    added_greeting: 'Olá, {mention}! Você foi designado(a) como **representante oficial** da parceria com **{server}**.'
+    added_responsibilities: |
       {scroll} **Suas responsabilidades**
       • Manter seu servidor seguro, ativo e acolhedor
       • Seguir as regras de parceria do canal correspondente
       • Representar as duas comunidades com respeito
-
-      {tada} Obrigado por fazer parte desta parceria!
-
-      Sair do servidor ou descumprir as regras pode resultar na perda da parceria. Dúvidas? Fale com a equipe de moderação!
-    removed: |
-      {info} Parceria Encerrada
-
-      Olá, {mention}! Sua parceria com **{server}** foi encerrada pela equipe.
-
-      {envelope} Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.
-
-      Esta é uma notificação automática da parceria.
-    rep_changed: |
-      {info} Você Agora Representa uma Parceria!
-
-      Olá, {mention}! A parceria com **{server}** agora é representada por você. O anúncio foi atualizado e o cargo de parceiro foi transferido.
-
-      {scroll} **Suas responsabilidades**
-      • Manter seu servidor seguro, ativo e acolhedor
-      • Seguir as regras de parceria do canal correspondente
-      • Representar as duas comunidades com respeito
-
-      {tada} Bem-vindo(a) à parceria!
-
-      Dúvidas? Fale com a equipe de moderação!
-    warning: |
-      {warning} Renovação de Parceria Necessária!
-
-      Olá, {mention}! Sua parceria com **{server}** está chegando ao fim e precisa ser renovada.
-
+    added_closing: '{tada} Obrigado por fazer parte desta parceria!'
+    added_footer: Sair do servidor ou descumprir as regras pode resultar na perda da parceria. Dúvidas? Fale com a equipe de moderação!
+    removed: '{info} Parceria Encerrada'
+    removed_greeting: 'Olá, {mention}! Sua parceria com **{server}** foi encerrada pela equipe.'
+    removed_hint: '{envelope} Se quiser restabelecer o vínculo, fale com a equipe do servidor para recomeçar o processo.'
+    removed_footer: Esta é uma notificação automática da parceria.
+    rep_changed: '{info} Você Agora Representa uma Parceria!'
+    rep_changed_greeting: 'Olá, {mention}! A parceria com **{server}** agora é representada por você. O anúncio foi atualizado e o cargo de parceiro foi transferido.'
+    rep_changed_closing: '{tada} Bem-vindo(a) à parceria!'
+    rep_changed_footer: Dúvidas? Fale com a equipe de moderação!
+    warning: '{warning} Renovação de Parceria Necessária!'
+    warning_greeting: 'Olá, {mention}! Sua parceria com **{server}** está chegando ao fim e precisa ser renovada.'
+    warning_how: |
       **Como renovar**
       Use o comando `/parcerias renovar` no servidor antes do prazo acabar.
-
+    warning_deadline: |
       {warning} **Prazo**
       Você tem **{days} dia(s)** para agir.
-
-      Ao expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido.
-    expired: |
-      {info} Parceria Expirada
-
-      Olá, {mention}! A parceria com **{server}** expirou por falta de renovação e foi removida automaticamente.
-
+    warning_footer: Ao expirar, sua mensagem de parceria será deletada e o cargo de parceiro será removido.
+    expired: '{info} Parceria Expirada'
+    expired_greeting: 'Olá, {mention}! A parceria com **{server}** expirou por falta de renovação e foi removida automaticamente.'
+    expired_hint: |
       {refresh} **Quer voltar?**
       Basta falar com a equipe do servidor para refazer o processo de parceria.
-
-      Seu anúncio foi deletado e o cargo de parceiro foi removido.
-    expired_admin: |
-      {info} Parceria Expirada
-
-      Olá, {mention}! A parceria que você adicionou com o representante {rep} expirou por falta de renovação e foi removida de **{server}**.
-
-      {calendar} **Detalhes**
-      • **Representante:** {rep}
-      • **Última renovação:** há {days} dia(s)
-
-      {refresh} **Quer restabelecer?**
-      Refaça o processo normalmente no canal de parcerias.
-      • Convite para repassar ao representante: {invite}
-
-      Esta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria.
+    expired_footer: Seu anúncio foi deletado e o cargo de parceiro foi removido.
+    expired_admin: '{info} Parceria Expirada'
+    expired_admin_greeting: 'Olá, {mention}! A parceria que você adicionou com o representante {rep} expirou por falta de renovação e foi removida de **{server}**.'
+    expired_admin_days: 'há {days} dia(s)'
+    expired_admin_invite: '{love_letter} Convite para o representante'
+    expired_admin_footer: Esta é uma notificação automática. Nenhuma ação adicional foi tomada além da remoção da parceria.
+    representative: '{calendar} Representante'
+    last_renewed: '{refresh} Última renovação'
   invite: '{server} 🤝'
   success:
     added: '{success} Parceria adicionada para {user}.'

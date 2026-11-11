@@ -191,16 +191,11 @@ boost:
       Olá, {mention}! Seu boost terminou, mas o cargo boost @{role_name} continua com você no **{server_name}**.
 
       Só a equipe do servidor pode removê-lo.
-    invite: |
-      {info} Convite para Cargo Boost!
-
-      Olá, {mention}! Você recebeu um convite para fazer parte de um cargo boost no **{server_name}**.
-
-      • **{tag} Cargo:** @{role_name}
-      • **{user} Convidado por:** {inviter_mention}
-      • **{clock} Expira:** {expires}
-
-      Ao aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!
+    invite: '{info} **Convite para Cargo Boost!**'
+    invite_body: 'Olá, {mention}! Você recebeu um convite para fazer parte de um cargo boost no **{server_name}**.'
+    invite_inviter: '{user} Convidado por'
+    invite_expires: '{clock} Expira'
+    invite_footer: 'Ao aceitar, você receberá o cargo e poderá usá-lo no servidor. Use os botões abaixo para responder!'
     accepted: |
       {success} Convite Aceito!
 

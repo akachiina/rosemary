@@ -1,10 +1,10 @@
-"""Partnership DM texts: rich catalog copy and the {mention} contract.
+"""Partnership DMs: the card pipeline, the split copy and the invite button.
 
-Locks the four ``partnerships.dm.*`` cards: the default copy is the rich
-multi-line template (title emoji token, greeting with ``{mention}``,
-markdown sections, footer), theme emojis resolve through ``t()``, the
-variable contract carries ``mention`` on all four keys, and ``_dm``
-injects ``mention=<@id>`` for the recipient without touching callers.
+The six ``partnerships.dm.*`` cards are embeds: the content line carries the
+event (the partnership was established, ended, needs renewal), the embed
+carries the details and ``expired_admin`` gets a button with the invite to
+hand to the representative. ``_dm`` injects ``mention=<@id>`` for the
+recipient and sends through the same pipeline every other DM uses.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from catalog import catalog_text, load_catalog
 
 import rosemary.core.card_specs  # noqa: F401  (fills the registry)
 from rosemary.cogs.partnerships import PartnershipsCog
+from rosemary.core.card_service import render_card_messages
 from rosemary.core.cards import get_card
 from rosemary.core.storage import GuildStorage
 from rosemary.core.themes import ThemeStore
@@ -25,7 +26,7 @@ from rosemary.ui.theme import load_theme
 
 ROOT = Path(__file__).resolve().parents[1]
 
-DM_KEYS = ("added", "removed", "warning", "expired")
+DM_KEYS = ("added", "removed", "rep_changed", "warning", "expired", "expired_admin")
 
 
 def _catalog_text(key: str) -> str:
@@ -55,6 +56,7 @@ def _bot(tmp_path):
     bot.translator = FakeTranslator()
     bot.storage = GuildStorage(tmp_path)
     bot._theme_store = ThemeStore(tmp_path, themes_dir=tmp_path / "themes")
+    bot._theme_cache = {}
     return bot
 
 
@@ -76,45 +78,55 @@ def _member(member_id: int):
     return member
 
 
-async def test_dm_texts_are_rich_multiline_templates(tmp_path):
-    """Every DM is a rich template: title, {mention} greeting and a footer.
+def _embed_text(embed: discord.Embed) -> str:
+    """Every line of an embed, so a raw key never hides in a field."""
+    parts = [embed.title or "", embed.description or ""]
+    if embed.footer is not None:
+        parts.append(embed.footer.text or "")
+    for field in embed.fields:
+        parts.extend((field.name, field.value))
+    return "\n".join(parts)
 
-    The copy is semantic: the title is its first line, with no Components V2
-    marker (the heading belongs to the V2 renderer, never to the catalog).
-    """
+
+async def _render(cog, key: str, **variables):
+    values = {
+        "mention": "<@100>",
+        "server": "Girassol",
+        "days": 3,
+        "rep": "<@100>",
+        "invite": "https://discord.gg/abc",
+        **variables,
+    }
+    return await render_card_messages(
+        cog.bot, 1, f"partnerships.dm.{key}", values
+    )
+
+
+async def test_dm_cards_are_embeds_with_a_content_line(tmp_path):
+    """The DM shape is the card's: a line plus an embed, never raw text."""
     cog = _cog(tmp_path)
     for key in DM_KEYS:
-        text = await cog.bot.translator.t(
-            1, f"partnerships.dm.{key}", mention="<@100>", server="Girassol", days=3
-        )
-        assert "\n" in text, f"partnerships.dm.{key} lost its multi-line body"
-        assert "Olá, <@100>!" in text, f"partnerships.dm.{key} lost the greeting"
-        assert "Girassol" in text, f"partnerships.dm.{key} lost the server name"
-        title = text.lstrip().splitlines()[0]
-        assert title and not title.startswith(("# ", "-# ")), (
-            f"partnerships.dm.{key} lost its title"
-        )
+        messages = await _render(cog, key)
+        assert len(messages) == 1, key
+        payload = messages[0].payload
+        assert payload.embed is not None, key
+        assert payload.content, f"partnerships.dm.{key} lost its content line"
+        assert "partnerships.dm." not in payload.content, key
+        assert "partnerships.dm." not in _embed_text(payload.embed), key
 
 
-async def test_dm_texts_resolve_theme_emoji_tokens(tmp_path):
-    """Emoji tokens come from the theme, never hardcoded in the catalogs.
-
-    The head of the copy carries no emoji: the notice prefix owns the mark
-    of the line. The body keeps its theme tokens (they resolve).
-    """
+async def test_dm_content_line_is_the_event_headline(tmp_path):
+    """The line is the notice the member reads first, with the theme icon."""
     cog = _cog(tmp_path)
-    theme_emojis = load_theme().emojis
-    text = await cog.bot.translator.t(
-        1, "partnerships.dm.added", mention="<@100>", server="Girassol"
-    )
-    head = text.splitlines()[0]
-    assert theme_emojis["crown"] not in head, head
-    assert theme_emojis["scroll"] in text
-    assert theme_emojis["tada"] in text
+    for key in DM_KEYS:
+        payload = (await _render(cog, key))[0].payload
+        assert payload.content
+        assert not payload.content.startswith("{"), key
+        assert payload.embed.title or payload.embed.description, key
 
 
 async def test_dm_variable_contract_includes_mention():
-    """All four DM specs contract {mention}; the variable is registered."""
+    """All six DM specs contract {mention}; the variable is registered."""
     for key in DM_KEYS:
         spec = get_card(f"partnerships.dm.{key}")
         assert spec is not None
@@ -133,15 +145,17 @@ async def test_dm_variable_contract_has_catalog_labels():
 
 
 async def test_dm_send_injects_recipient_mention(tmp_path):
-    """_dm passes mention=<@id> so the greeting pings the right member."""
+    """_dm passes mention=<@id> so the greeting names the right member."""
     cog = _cog(tmp_path)
     guild = _guild()
     guild.get_member = MagicMock(return_value=_member(100))
     await cog._dm(guild, 100, "added", server=guild.name)
     member = guild.get_member.return_value
-    text = member.send.await_args.args[0]
-    assert "Olá, <@100>!" in text
-    assert "Girassol" in text
+    kwargs = member.send.await_args.kwargs
+    embed = kwargs["embed"]
+    assert "Olá, <@100>!" in embed.description
+    assert "Girassol" in embed.description
+    assert "view" not in kwargs
 
 
 async def test_dm_warning_carries_days(tmp_path):
@@ -150,8 +164,8 @@ async def test_dm_warning_carries_days(tmp_path):
     guild = _guild()
     guild.get_member = MagicMock(return_value=_member(100))
     await cog._dm(guild, 100, "warning", days=3, server=guild.name)
-    text = guild.get_member.return_value.send.await_args.args[0]
-    assert "3 dia(s)" in text
+    embed = guild.get_member.return_value.send.await_args.kwargs["embed"]
+    assert "3 dia(s)" in embed.description
 
 
 async def test_dm_mention_always_the_recipient(tmp_path):
@@ -160,22 +174,20 @@ async def test_dm_mention_always_the_recipient(tmp_path):
     guild = _guild()
     guild.get_member = MagicMock(return_value=_member(100))
     await cog._dm(guild, 100, "added", server=guild.name, mention="<@999>")
-    text = guild.get_member.return_value.send.await_args.args[0]
-    assert "Olá, <@100>!" in text
-    assert "<@999>" not in text
+    embed = guild.get_member.return_value.send.await_args.kwargs["embed"]
+    assert "Olá, <@100>!" in embed.description
+    assert "<@999>" not in _embed_text(embed)
 
 
 async def test_expired_admin_dm_reaches_the_adder(tmp_path):
     """Expiry DMs the admin who added the partnership, not the rep again."""
     cog = _cog(tmp_path)
     guild = _guild()
-    sent: dict[int, str] = {}
+    sent: dict[int, dict] = {}
 
     def get_member(user_id):
         member = _member(user_id)
-        member.send = AsyncMock(
-            side_effect=lambda text: sent.setdefault(user_id, text)
-        )
+        member.send = AsyncMock(side_effect=lambda **kwargs: sent.setdefault(user_id, kwargs))
         return member
 
     guild.get_member = get_member
@@ -184,11 +196,12 @@ async def test_expired_admin_dm_reaches_the_adder(tmp_path):
         rep="<@100>", server=guild.name, days=21, invite="https://discord.gg/abc",
     )
     assert 7 in sent and 100 not in sent
-    text = sent[7]
-    assert "Olá, <@7>!" in text
-    assert "<@100>" in text
-    assert "há 21 dia(s)" in text
-    assert "https://discord.gg/abc" in text
+    kwargs = sent[7]
+    embed = kwargs["embed"]
+    assert "Olá, <@7>!" in embed.description
+    assert [field.value for field in embed.fields] == ["<@100>", "há 21 dia(s)"]
+    view = kwargs["view"]
+    assert [button.url for button in view.children] == ["https://discord.gg/abc"]
 
 
 async def test_expired_admin_dm_survives_missing_invite(tmp_path):
@@ -200,8 +213,12 @@ async def test_expired_admin_dm_survives_missing_invite(tmp_path):
         guild, 7, "expired_admin",
         rep="<@100>", server=guild.name, days=21, invite="",
     )
-    text = guild.get_member.return_value.send.await_args.args[0]
-    assert "<@100>" in text and "há 21 dia(s)" in text
+    kwargs = guild.get_member.return_value.send.await_args.kwargs
+    embed = kwargs["embed"]
+    assert "<@100>" in _embed_text(embed)
+    assert "há 21 dia(s)" in _embed_text(embed)
+    # A link button whose URL never arrived does not exist.
+    assert "view" not in kwargs
 
 
 async def test_expired_admin_variable_contract():
