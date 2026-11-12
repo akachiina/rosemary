@@ -249,7 +249,7 @@ async def test_a_themed_document_still_renders_through_the_ir():
 
 async def test_a_themed_copy_only_document_keeps_the_card_surface():
     """A themed document made only of text carries no layout: the card
-    keeps its own surface (the embed)."""
+    keeps its own surface (the Components V2 card it ships in)."""
     from rosemary.core.card_service import render_card_message
 
     bot = await _themed_bot(
@@ -262,6 +262,31 @@ async def test_a_themed_copy_only_document_keeps_the_card_surface():
     payload, _allowed = await render_card_message(
         bot, 1, "events.welcome", {"user": "<@7>"}
     )
+    assert payload is not None and payload.view is not None
+    assert payload.embed is None
+    texts = [
+        item.content
+        for item in payload.view.walk_children()
+        if hasattr(item, "content")
+    ]
+    assert any("Welcome <@7>" in text for text in texts), texts
+
+
+async def test_a_themed_copy_only_document_keeps_the_embed_surface():
+    """The same rule for a card that ships as an embed: the copy never
+    changes the surface under the member."""
+    from rosemary.core.card_service import render_card_message
+
+    bot = await _themed_bot(
+        "name: t\n"
+        "cards:\n"
+        "  partnerships.audit:\n"
+        "    - type: 10\n"
+        '      content: "Audit {title}"\n'
+    )
+    payload, _allowed = await render_card_message(
+        bot, 1, "partnerships.audit", {"title": "T"}
+    )
     assert payload is not None and payload.view is None
     assert payload.embed is not None
-    assert payload.embed.description == "Welcome <@7>"
+    assert payload.embed.description == "Audit T"

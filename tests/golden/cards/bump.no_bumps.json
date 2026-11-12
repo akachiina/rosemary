@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 3447003,
-    "description": "Ninguém deu bump esta semana! 😢\n\n**🚀 Seja o primeiro:** use `/bump` no canal de bump e ganhe um ponto no placar!\n",
-    "fields": [],
-    "title": "🏆 Placar Semanal de Bumps",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "bump.no_bumps",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "content": "# 🏆 Placar Semanal de Bumps",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Ninguém deu bump esta semana! 😢\n\n**🚀 Seja o primeiro:** use `/bump` no canal de bump e ganhe um ponto no placar!\n",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

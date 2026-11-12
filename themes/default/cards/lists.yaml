@@ -252,6 +252,7 @@ partnerships.list:
 
 partnerships.audit:
   archetype: listing
+  form: embed
   color: warning
   title: '{partnerships.audit_title}'
   description: '{body}'

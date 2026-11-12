@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 3447003,
-    "description": "…",
-    "fields": [],
-    "title": "📊 Stats de Convites do Servidor",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "invites.server_stats",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "content": "# 📊 Stats de Convites do Servidor",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

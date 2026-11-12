@@ -1,31 +1,43 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "description": "🎨 …",
-    "fields": [
-      {
-        "inline": true,
-        "name": "📅 Criado em",
-        "value": "<t:1111111111:D> · <t:1111111111:R>"
-      },
-      {
-        "inline": true,
-        "name": "🎉 Animado",
-        "value": "Não"
-      }
-    ],
-    "footer": {
-      "text": "`123456789012345678`"
-    },
-    "thumbnail": {
-      "url": "https://cdn.discordapp.com/emojis/1.png"
-    },
-    "title": "😀",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "utility.emojiinfo",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/emojis/1.png"
+          },
+          "children": [
+            {
+              "content": "# 😀",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "🎨 …",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "**📅 Criado em:** <t:1111111111:D> · <t:1111111111:R>\n**🎉 Animado:** Não",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# `123456789012345678`",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

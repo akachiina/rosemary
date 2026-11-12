@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 15844367,
-    "description": "…",
-    "fields": [],
-    "title": "…",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "bump.stats",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#f1c40f",
+      "children": [
+        {
+          "content": "# …",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

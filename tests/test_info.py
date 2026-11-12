@@ -15,6 +15,7 @@ import discord
 from card_forms import (
     payload_author_icon,
     payload_image,
+    payload_pictures,
     payload_texts,
     payload_thumbnail,
 )
@@ -121,10 +122,14 @@ async def test_userinfo_card_renders_full_and_degraded():
     assert any("Ana" in t for t in texts)
     assert any("aninha" in t for t in texts), texts
     assert any("<@&7>" in t for t in texts)
-    # The avatar rides the author line and the banner the image.
+    # The avatar rides the author line and the banner the image: two
+    # pictures, one of each.
     assert "ana.png" in payload_author_icon(payload)
     assert "banner.png" in payload_image(payload)
-    assert payload_thumbnail(payload) == ""
+    assert payload_pictures(payload) == [
+        "https://a.b/ana.png",
+        "https://a.b/banner.png",
+    ]
     # No raw keys leak into the card (the created_at_label regression).
     assert not any("card.utility." in t for t in texts), texts
 
@@ -393,8 +398,8 @@ async def test_emojiinfo_dispatch_custom_unicode_and_sticker(tmp_path):
     assert (allowed.everyone, allowed.users, allowed.roles, allowed.replied_user) == (
         False, False, False, False
     )
-    # The emoji card ships as a classic embed.
-    assert sent.get("embed") is not None
+    # The emoji card ships as a Components V2 card.
+    assert sent.get("view") is not None
 
     # Unicode glyph path: no fetches at all.
     ctx2 = _make_ctx(guild, author)
@@ -594,8 +599,8 @@ async def test_userinfo_defers_and_sends_card(tmp_path):
     assert (allowed.everyone, allowed.users, allowed.roles, allowed.replied_user) == (
         False, False, False, False
     )
-    # The info cards ship as classic embeds.
-    assert sent["embed"] is not None
+    # The info cards ship as Components V2 cards.
+    assert sent["view"] is not None
 
 
 def _texts_of_view(view):
@@ -639,11 +644,8 @@ async def test_userinfo_everyone_top_role_renders_plain_text(tmp_path):
 
     await InfoCog.userinfo.callback(cog, ctx, member=None)
     assert ctx.followup.calls, "card must be sent"
-    embed = ctx.followup.calls[0]["embed"]
-    texts = "\n".join(
-        [embed.title or "", embed.description or ""]
-        + [field.value or "" for field in embed.fields]
-    )
+    view = ctx.followup.calls[0]["view"]
+    texts = "\n".join(_texts_of_view(view))
     assert "@everyone" in texts
     assert "<@&1>" not in texts, "raw guild-id role token must not leak"
     allowed = ctx.followup.calls[0].get("allowed_mentions")

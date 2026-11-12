@@ -234,11 +234,9 @@ async def test_embed_content_line_ships_even_when_pings_are_off(tmp_path):
 
 async def test_embed_card_ships_without_a_view(tmp_path):
     """A pure embed card has no Components V2 items: the classic shape."""
-    import rosemary.cogs.utility  # noqa: F401  (registers the builder)
-
     bot = _make_bot(tmp_path)
     payload, _allowed = await render_card_message(
-        bot, 1, "utility.serverinfo", {"server": "Girassol"}
+        bot, 1, "partnerships.audit", {"title": "Audit", "body": "B"}
     )
     assert payload is not None
     assert payload.embed is not None
@@ -298,13 +296,13 @@ async def test_a_themed_copy_keeps_the_embed_surface(tmp_path):
         "colors:\n"
         '  brand: "#57F287"\n'
         "cards:\n"
-        "  about.card:\n"
+        "  partnerships.audit:\n"
         "    - type: 10\n"
         '      content: "Version {version}"\n',
     )
     await _activate(bot)
     payload, _allowed = await render_card_message(
-        bot, 1, "about.card", {"version": "1.2.3"}
+        bot, 1, "partnerships.audit", {"version": "1.2.3"}
     )
     assert payload is not None
     assert payload.embed is not None
@@ -384,11 +382,15 @@ async def test_the_fallback_follows_the_card_form(tmp_path):
     assert text_card.embed is None
     assert text_card.view is None
 
-    embed_card = simple_payload(bot, 1, "about.card", title="About", body="Hi")
+    embed_card = simple_payload(bot, 1, "partnerships.audit", title="About", body="Hi")
     assert embed_card.embed is not None
     assert embed_card.embed.title == "About"
     assert embed_card.embed.description == "Hi"
     assert embed_card.view is None
+
+    v2_card = simple_payload(bot, 1, "about.card", title="About", body="Hi")
+    assert v2_card.view is not None
+    assert v2_card.embed is None
 
 
 #: the notice never notifies ------------------------------------------------

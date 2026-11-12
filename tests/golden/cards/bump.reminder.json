@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "description": "Já se passou o cooldown de … desde o último bump!\n\n**🚀 Sua vez de ajudar:** use `/bump` e ganhe um ponto no placar!\n",
-    "fields": [],
-    "title": "⏰ Hora do Bump!",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "bump.reminder",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# ⏰ Hora do Bump!",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Já se passou o cooldown de … desde o último bump!\n\n**🚀 Sua vez de ajudar:** use `/bump` e ganhe um ponto no placar!\n",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

@@ -6,6 +6,13 @@ from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
+from card_forms import (
+    payload_accent,
+    payload_author_icon,
+    payload_footer_lines,
+    payload_pictures,
+    payload_texts,
+)
 
 from rosemary.cogs.bump_leaderboard import _next_reset
 from rosemary.core.storage import GuildStorage
@@ -102,35 +109,38 @@ async def _build_views(bot, guild, cooldown_display="2h", next_bump_timestamp=99
 
 async def test_bump_cards_build_without_avatar(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(False))
-    # The bump cards are content: they ship as classic embeds.
-    assert reminder.embed is not None
-    assert thanks.embed is not None
+    # The bump cards are content: they ship as Components V2 cards.
+    assert reminder.view is not None
+    assert thanks.view is not None
+    assert reminder.embed is None
+    assert thanks.embed is None
 
 
 async def test_bump_cards_build_with_avatar(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(True))
-    assert reminder.embed is not None
-    assert thanks.embed is not None
+    assert reminder.view is not None
+    assert thanks.view is not None
     # The bumper's avatar rides the author line.
-    assert thanks.embed.author.icon_url == "https://example.com/avatar.png"
+    assert payload_author_icon(thanks) == "https://example.com/avatar.png"
 
 
 async def test_bump_card_layout_valid(bot):
-    """The embed carries the whole card: a title, a body and nothing else."""
+    """The card carries the whole card: a title, a body and nothing else."""
     bot = BotWithGuild(bot.storage, has_avatar=True)
     guild = bot.get_guild(1)
     reminder, thanks = await _build_views(bot, guild)
     for payload in (reminder, thanks):
-        assert payload.embed.title
-        assert payload.embed.description
-        assert payload.view is None
+        texts = payload_texts(payload)
+        assert any(text.startswith("# ") for text in texts), texts
+        assert len(texts) > 1, texts
+        assert payload.embed is None
 
 
 async def test_bump_cards_use_reminder_style_color(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(True))
     expected = bot.theme.color(bot.theme.style("bump_reminder").color)
     for payload in (reminder, thanks):
-        assert payload.embed.color == expected
+        assert payload_accent(payload) == expected.value
 
 
 def test_next_reset():
@@ -267,16 +277,17 @@ async def test_bump_card_document_layout_and_style(
     payload, _allowed = await render_card_message(
         bot, 1, key, {**variables, "state_color": state_color}
     )
-    assert payload is not None and payload.embed is not None
-    embed = payload.embed
+    assert payload is not None
+    texts = payload_texts(payload)
     # The color is the token the theme style names.
-    assert embed.colour.value == theme_for(bot, 1).color(state_color).value
-    assert embed.title
-    assert embed.description
-    assert embed.author and embed.author.name == variables[name_var]
-    assert embed.author.icon_url == variables[avatar_var]
-    assert embed.thumbnail is None
-    footer = (embed.footer.text if embed.footer else "") or ""
+    assert payload_accent(payload) == theme_for(bot, 1).color(state_color).value
+    assert any(text.startswith("# ") for text in texts), texts
+    assert len(texts) > 1, texts
+    # The subject owns the author line (the name in bold, the avatar as the
+    # picture of the section).
+    assert f"**{variables[name_var]}**" in texts, texts
+    assert payload_author_icon(payload) == variables[avatar_var]
+    footer = "\n".join(payload_footer_lines(payload))
     assert "<@" not in footer and "<t:" not in footer
 
 
@@ -298,9 +309,9 @@ async def test_bump_card_without_avatar_omits_author_icon(
     payload, _allowed = await render_card_message(
         bot, 1, key, {**bare, "state_color": "brand"}
     )
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.author and not payload.embed.author.icon_url
-    assert payload.embed.thumbnail is None
+    assert payload is not None
+    assert payload_author_icon(payload) == ""
+    assert payload_pictures(payload) == []
 
 
 async def test_bump_card_colors_follow_theme_styles(tmp_path):
@@ -334,5 +345,5 @@ async def test_bump_card_colors_follow_theme_styles(tmp_path):
     board, _ = await render_card_message(
         bot, 1, "bump.leaderboard", {**_LEADERBOARD_VARS, "state_color": board_color}
     )
-    assert thanks.embed.colour.value == theme_for(bot, 1).color("success").value
-    assert board.embed.colour.value == theme_for(bot, 1).color("danger").value
+    assert payload_accent(thanks) == theme_for(bot, 1).color("success").value
+    assert payload_accent(board) == theme_for(bot, 1).color("danger").value

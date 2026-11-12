@@ -1,14 +1,27 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "description": "A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.\nVersão: `v1.0.0` (`#…`)",
-    "fields": [],
-    "title": "Sobre a Rosemary",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "about.card",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Sobre a Rosemary",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Versão: `v1.0.0` (`#…`)",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

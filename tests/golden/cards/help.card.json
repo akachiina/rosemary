@@ -1,35 +1,27 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "description": "…",
-    "fields": [
-      {
-        "inline": false,
-        "name": "🛡️ Moderação",
-        "value": "…"
-      },
-      {
-        "inline": false,
-        "name": "ℹ️ Informações",
-        "value": "…"
-      },
-      {
-        "inline": false,
-        "name": "⚙️ Geral",
-        "value": "…"
-      },
-      {
-        "inline": false,
-        "name": "💬 Interações",
-        "value": "…"
-      }
-    ],
-    "title": "…",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "help.card",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# …",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "**🛡️ Moderação:** …\n**ℹ️ Informações:** …\n**⚙️ Geral:** …\n**💬 Interações:** …",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

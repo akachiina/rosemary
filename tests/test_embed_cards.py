@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import discord
 import pytest
+from card_forms import payload_texts
 
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
 from rosemary.core.cards import is_embed_document, resolve_embed
@@ -225,8 +226,8 @@ async def test_invalid_embed_document_falls_back_to_default(tmp_path):
     payload, allowed = await render_card_message(bot, 1, "about.card", {})
     assert payload is not None
     # The broken themed embed is refused: the card's own default takes over.
-    assert payload.embed is not None
-    assert payload.embed.title != "Hi 🤡!"
+    texts = payload_texts(payload)
+    assert not any("Hi 🤡!" in text for text in texts), texts
     assert allowed is not None
 
 

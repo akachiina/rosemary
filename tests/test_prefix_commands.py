@@ -12,6 +12,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+from card_forms import payload_texts, sent
 from catalog import load_catalog
 
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
@@ -280,13 +281,9 @@ async def test_warnings_prefix_shows_the_card(tmp_path):
 
     await cog.warnings_prefix(ctx, target)
 
-    # The warnings card ships as an embed.
-    embed = ctx.reply.call_args.kwargs.get("embed")
-    assert embed is not None
-    assert "warnings.none" in "\n".join(
-        [embed.title or "", embed.description or ""]
-        + [field.value or "" for field in embed.fields]
-    )
+    # The warnings card ships as a card of its own form.
+    text = "\n".join(payload_texts(sent(ctx.reply.call_args)))
+    assert "warnings.none" in text
 
 
 async def test_unwarn_prefix_removes_one_warning(tmp_path):
@@ -368,19 +365,15 @@ async def test_help_prefix_lists_localized_commands(tmp_path):
     await cog.help_prefix(ctx)
 
     assert ctx.reply.call_args.kwargs.get("mention_author") is False
-    # The help card ships as an embed.
-    embed = ctx.reply.call_args.kwargs.get("embed")
-    assert embed is not None
-    text = "\n".join(
-        [embed.title or "", embed.description or ""]
-        + [field.value or "" for field in embed.fields]
-    )
-    names = [field.name for field in embed.fields]
-    # groups are embed fields (the field name carries the group icon), entries
-    # in the ``**!name:** description`` shape, the guild's real prefix applied
-    assert any("Moderação" in name for name in names)
+    # The help card ships as a card of its own form.
+    texts = payload_texts(sent(ctx.reply.call_args))
+    text = "\n".join(texts)
+    # groups are labelled lines (the field name carries the group icon),
+    # entries in the ``**!name:** description`` shape, the guild's real
+    # prefix applied
+    assert any("Moderação" in one for one in texts)
     assert "**`?ban`:** Banir um membro" in text  # bold + inline code (house standard)
-    assert any("Informações" in name for name in names)
+    assert any("Informações" in one for one in texts)
     assert "**`?serverinfo`:**" in text
     assert "**`?help`:** Mostra esta lista de comandos" in text
     assert "prefixo `?`" in text  # intro: the guild prefix as inline code
@@ -388,7 +381,7 @@ async def test_help_prefix_lists_localized_commands(tmp_path):
     assert "/ban" not in text
     assert "?sobre" not in text
     # roleplay is off by default: the interactions group is omitted
-    assert not any("Interações" in name for name in names)
+    assert not any("Interações" in one for one in texts)
 
 
 async def test_help_prefix_lists_interactions_when_roleplay_enabled(tmp_path):
@@ -400,15 +393,11 @@ async def test_help_prefix_lists_interactions_when_roleplay_enabled(tmp_path):
 
     await cog.help_prefix(ctx)
 
-    embed = ctx.reply.call_args.kwargs.get("embed")
-    assert embed is not None
-    field = next(
-        (field for field in embed.fields if "Interações" in field.name), None
-    )
+    texts = payload_texts(sent(ctx.reply.call_args))
+    field = next((one for one in texts if "Interações" in one), None)
     assert field is not None
-    text = field.value or ""
-    assert "`!hug · !kiss" in text  # one code span over every latin action verb
-    assert "!cuddle`" in text  # the same span closes right after the last verb
+    assert "`!hug · !kiss" in field  # one code span over every latin action verb
+    assert "!cuddle`" in field  # the same span closes right after the last verb
 
 
 def test_help_table_covers_every_registered_prefix_command(tmp_path):
@@ -452,23 +441,24 @@ async def test_help_card_skips_empty_lists(tmp_path):
             "interactions_list": "",
         },
     )
-    assert payload is not None and payload.embed is not None
-    values = {field.name: field.value for field in payload.embed.fields}
-    assert "M" in values.values() and "I" in values.values() and "G" in values.values()
-    # roleplay off: the field disappears, the placeholder never pairs with it
-    assert not any("Interações" in name for name in values)
-    assert "interactions_list" not in (payload.embed.description or "")
+    assert payload is not None
+    texts = payload_texts(payload)
+    text = "\n".join(texts)
+    assert "M" in text and "I" in text and "G" in text
+    # roleplay off: the group disappears, the placeholder never pairs with it
+    assert not any("Interações" in one for one in texts)
+    assert "interactions_list" not in text
 
     # The value never arrived: the placeholder stays (the editor preview).
     payload, _allowed = await render_card_message(
         bot, 1, "help.card", {"title": "Ajuda", "body": "Comandos"}
     )
-    assert payload is not None and payload.embed is not None
+    assert payload is not None
     interactions = next(
-        (field for field in payload.embed.fields if "Interações" in field.name), None
+        (one for one in payload_texts(payload) if "Interações" in one), None
     )
     assert interactions is not None
-    assert interactions.value == "{interactions_list}"
+    assert "{interactions_list}" in interactions
 
 
 #: error feedback -------------------------------------------------------

@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 3447003,
-    "description": "…",
-    "fields": [],
-    "title": "🏆 Maiores Convidadores",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "invites.leaderboard",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "content": "# 🏆 Maiores Convidadores",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

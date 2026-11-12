@@ -1,24 +1,49 @@
 {
-  "content": "Parabéns, <@0>!",
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 15844367,
-    "description": "Confira quem mais ajudou o servidor esta semana!\n\n**📅 Período:** <t:1111111111:d> até <t:1111111111:d>\n**⏳ A semana termina em:** <t:1111111111:R>\n**👑 Vencedor:** <@0> com **1** bumps!\n\n**🎁 Prêmio:** Cargo **…** customizável por 1 semana!\nUse `/boost painel` para personalizar nome, cor, emoji e convidar membros.\n\n…\n",
-    "fields": [],
-    "footer": {
-      "text": "01/01/2026 00:00"
-    },
-    "timestamp": "<iso>",
-    "title": "🏆 Placar Semanal de Bumps",
-    "type": "rich"
-  },
-  "form": "embed",
+  "content": null,
+  "embed": null,
+  "form": "card",
   "key": "bump.leaderboard",
   "pings": [
     0
   ],
-  "view": []
+  "view": [
+    {
+      "accent": "#f1c40f",
+      "children": [
+        {
+          "content": "Parabéns, <@0>!",
+          "type": "TextDisplay"
+        },
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# 🏆 Placar Semanal de Bumps",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Confira quem mais ajudou o servidor esta semana!\n\n**📅 Período:** <t:1111111111:d> até <t:1111111111:d>\n**⏳ A semana termina em:** <t:1111111111:R>\n**👑 Vencedor:** <@0> com **1** bumps!\n\n**🎁 Prêmio:** Cargo **…** customizável por 1 semana!\nUse `/boost painel` para personalizar nome, cor, emoji e convidar membros.\n\n…\n",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

@@ -1,24 +1,49 @@
 {
-  "content": "<@0>, feliz aniversário!",
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 15844367,
-    "description": "<@0> está comemorando hoje. Participe da festa!",
-    "fields": [],
-    "footer": {
-      "text": "01/01/2026 00:00"
-    },
-    "timestamp": "<iso>",
-    "title": "Feliz aniversário! 🎁",
-    "type": "rich"
-  },
-  "form": "embed",
+  "content": null,
+  "embed": null,
+  "form": "card",
   "key": "birthdays.announce",
   "pings": [
     0
   ],
-  "view": []
+  "view": [
+    {
+      "accent": "#f1c40f",
+      "children": [
+        {
+          "content": "<@0>, feliz aniversário!",
+          "type": "TextDisplay"
+        },
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# Feliz aniversário! 🎁",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "<@0> está comemorando hoje. Participe da festa!",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

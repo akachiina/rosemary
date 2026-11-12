@@ -1,51 +1,43 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "description": "🏷️ …",
-    "fields": [
-      {
-        "inline": true,
-        "name": "👥 Membros",
-        "value": "1"
-      },
-      {
-        "inline": true,
-        "name": "🔢 Posição",
-        "value": "1"
-      },
-      {
-        "inline": true,
-        "name": "🎨 Cor",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "💬 Mencionável",
-        "value": "Não"
-      },
-      {
-        "inline": true,
-        "name": "⬆️ Exibido à parte",
-        "value": "Não"
-      },
-      {
-        "inline": true,
-        "name": "📅 Criado em",
-        "value": "<t:1111111111:D> · <t:1111111111:R>"
-      }
-    ],
-    "footer": {
-      "text": "`123456789012345678`"
-    },
-    "thumbnail": {
-      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-    },
-    "title": "…",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "utility.roleinfo",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "# …",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "🏷️ …",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "**👥 Membros:** 1\n**🔢 Posição:** 1\n**🎨 Cor:** …\n**💬 Mencionável:** Não\n**⬆️ Exibido à parte:** Não\n**📅 Criado em:** <t:1111111111:D> · <t:1111111111:R>",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# `123456789012345678`",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

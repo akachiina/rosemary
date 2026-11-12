@@ -1,22 +1,47 @@
 {
   "content": null,
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 15844367,
-    "description": "@you saiu do servidor. Agora somos 1 membros.",
-    "fields": [],
-    "footer": {
-      "text": "… · #1 · `123456789012345678`"
-    },
-    "timestamp": "<iso>",
-    "title": "🚪 Até a próxima",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "events.leave",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#f1c40f",
+      "children": [
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# 🚪 Até a próxima",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "@you saiu do servidor. Agora somos 1 membros.",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# … · #1 · `123456789012345678`",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

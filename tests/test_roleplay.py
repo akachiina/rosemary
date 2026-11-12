@@ -11,6 +11,12 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
+from card_forms import (
+    payload_author_icon,
+    payload_image,
+    payload_texts,
+    sent,
+)
 from catalog import load_catalog
 
 from rosemary.core.roleplay import (
@@ -274,8 +280,8 @@ async def test_card_flow_posts_gallery_and_regive(tmp_path):
     guild = _guild(channel)
     actor, target = _member(100), _member(200)
 
-    sent = await cog.send_interaction_card(guild, actor, target, "hug", channel=channel)
-    assert sent is True
+    posted = await cog.send_interaction_card(guild, actor, target, "hug", channel=channel)
+    assert posted is True
     channel.send.assert_awaited_once()
     kwargs = channel.send.await_args.kwargs
     view = kwargs.get("view")
@@ -301,10 +307,10 @@ async def test_theme_api_seed_posts_without_configuration(tmp_path):
     guild = _guild(channel)
 
     with patch.object(roleplay, "fetch_nekos_gif", return_value="https://n.gif"):
-        sent = await cog.send_interaction_card(
+        posted = await cog.send_interaction_card(
             guild, _member(1), _member(2), "hug", channel=channel
         )
-    assert sent is True
+    assert posted is True
     channel.send.assert_awaited_once()
     # The resolved gif url IS the source: even an API gif carries the link.
     sent_view = channel.send.await_args.kwargs.get("view")
@@ -327,10 +333,10 @@ async def test_no_source_anywhere_returns_false(tmp_path):
     guild = _guild(channel)
 
     with patch.object(roleplay, "fetch_nekos_gif", return_value=None):
-        sent = await cog.send_interaction_card(
+        posted = await cog.send_interaction_card(
             guild, _member(1), _member(2), "hug", channel=channel
         )
-    assert sent is False
+    assert posted is False
     channel.send.assert_not_awaited()
 
 
@@ -624,15 +630,14 @@ async def test_roleplay_sentence_is_body_not_title_and_pings_both(tmp_path):
         "timestamp": "<t:1:R>",
     }
     payload, allowed = await render_card_message(bot, 1, "roleplay.card", variables)
-    assert payload is not None and payload.embed is not None
-    embed = payload.embed
+    assert payload is not None
+    texts = payload_texts(payload)
     # The sentence is the body of the card, never its title.
-    assert not embed.title, embed.title
-    assert "abraçou" in (embed.description or "")
-    assert "<@100>" in (embed.description or "")
-    assert "<@200>" in (embed.description or "")
-    # A classic embed never notifies: the pings travel in the content.
-    assert "<@100>" in (payload.content or "")
+    assert not any(text.startswith("# ") for text in texts), texts
+    assert any("abraçou" in text for text in texts)
+    assert any("<@100>" in text for text in texts)
+    assert any("<@200>" in text for text in texts)
+    # The opening line carries the pings (the body never notifies).
     pinged = {obj.id for obj in (allowed.users or [])}
     assert pinged == {100, 200}, allowed
 
@@ -702,15 +707,14 @@ async def test_send_with_no_repeat_avoids_last_gif(tmp_path):
     channel = _channel()
     guild = _guild(channel)
 
-    sent = await cog.send_interaction_card(
+    posted = await cog.send_interaction_card(
         guild, _member(100), _member(200), "hug", channel=channel
     )
-    assert sent is True
+    assert posted is True
     kwargs = channel.send.await_args.kwargs
-    # The roleplay card ships as an embed: the gif rides the embed image.
-    embed = kwargs.get("embed")
-    assert embed is not None
-    assert embed.image and embed.image.url == "https://gifs/b.gif"
+    # The roleplay card ships as a Components V2: the gif rides the gallery.
+    assert kwargs.get("view") is not None
+    assert payload_image(sent(channel.send.await_args)) == "https://gifs/b.gif"
     assert await cog.store.get_recent(1, "hug") == [
         "https://gifs/a.gif",
         "https://gifs/b.gif",
@@ -735,7 +739,9 @@ async def test_default_card_has_no_avatar(tmp_path):
             "timestamp": "<t:1:R>",
         },
     )
-    assert payload is not None and payload.embed is not None
-    embed = payload.embed
-    assert not getattr(embed.thumbnail, "url", "")
-    assert "actor_avatar" not in (embed.description or "")
+    assert payload is not None
+    # The card shows the gif and nothing else: the author line has no name
+    # to show, so no avatar rides it.
+    assert payload_image(payload) == "https://media.tenor.com/hug.gif"
+    assert payload_author_icon(payload) == ""
+    assert not any("actor_avatar" in text for text in payload_texts(payload))

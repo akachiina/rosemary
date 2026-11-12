@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 import pytest
+from card_forms import payload_texts, sent
 
 from rosemary.cogs.birthdays import BirthdayCog
 from rosemary.core.birthdays import BirthdaysStore, validate_date
@@ -142,9 +143,9 @@ async def test_announce_posts_card_marks_year_and_grants_role(tmp_path):
     channel.send.assert_awaited_once()
     _, kwargs = channel.send.call_args
     # The announcement is content, not an interactive card: it ships as a
-    # classic embed.
-    assert kwargs["embed"] is not None
-    assert kwargs.get("view") is None
+    # Components V2 card.
+    assert kwargs.get("view") is not None
+    assert kwargs.get("embed") is None
     member.add_roles.assert_awaited_once()
     other.remove_roles.assert_awaited_once()
 
@@ -183,10 +184,10 @@ async def test_announce_honors_override_document(tmp_path):
     await cog.announce_today(guild, channel, datetime(2026, 8, 23).date())
 
     _, kwargs = channel.send.call_args
-    # The plain override keeps the card's surface: a classic embed.
-    embed = kwargs["embed"]
-    assert embed is not None
-    assert "PARABÉNS <@10>!" in (embed.description or "")
+    # The plain override keeps the card's surface: the Components V2 card.
+    assert kwargs.get("view") is not None
+    texts = payload_texts(sent(channel.send.call_args))
+    assert any("PARABÉNS <@10>!" in text for text in texts), texts
 
 
 #: disabled / missing channel ---------------------------------------------------

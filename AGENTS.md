@@ -2,8 +2,9 @@
 
 Rosemary: modular, multilingual Discord bot (multi-server) on **py-cord 2.8.1**.
 User-facing strings are pt-BR / en-US via i18n keys. The bot speaks **three
-shapes**: plain text (acks and notices), classic embeds (logs and content) and
-Components V2 (the interactive UI only).
+shapes**: plain text (acks and notices), classic embeds (the staff logs and
+the DMs that stay) and Components V2 (the content of the channel and the
+interactive UI).
 
 ## Setup / run
 
@@ -236,16 +237,28 @@ Rosemary speaks three shapes, and every message picks one:
   is in the copy too. A notice **never notifies**: the copy may name the member
   the bot is about to ban, so every text send carries `AllowedMentions.none()`
   (the Components V2 container it replaced never pinged).
-- **classic embed**: staff logs, audit cards, info listings and the social
-  content (starboard, birthdays, welcome/leave, suggestions, confessions,
-  tickets, bump). The document declares the shape: the logs, the audit cards
-  and the social content are embeds. An embed that speaks to the member (the
-  event DMs) declares its sentence in the **`content_line`** slot: the line
-  always rides the `content` of the message, unlike `ping_line`, which the
-  theme's `pings:` toggle gates.
-- **Components V2**: the interactive UI only (the menus and panels): settings,
-  themes, debug, cleaner, boost, roleplay, colors, confessions review and the
-  ticket panel.
+- **classic embed**: the staff logs (the logs, the audit cards and the staff
+  records) and the DMs that stay as they are (the event DMs and the
+  partnership notices). A card that speaks to the member through a DM
+  declares its sentence in the **`content_line`** slot: the line always
+  rides the `content` of the message, unlike `ping_line`, which the theme's
+  `pings:` toggle gates.
+- **Components V2**: the content the bot posts in the channel (the social
+  cards, the listings, the reports and the event announcements) and the
+  interactive UI (the menus and panels): settings, themes, debug, cleaner,
+  boost, roleplay, colors, confessions review and the ticket panel.
+
+The rule of the three layers decides the shape of every message:
+
+1. an **ack or a notice** is plain text (`core/feedback.py`);
+2. a **DM** keeps the shape the card declares (embed or text);
+3. the **content of the group** (what the bot posts in a channel) is a
+   Components V2 card;
+4. the **staff log** (the `logs.*`, `audit.*`, `moderation.logs.*` and
+   `partnerships.audit` cards) is a classic embed.
+
+The unit of the change is the whole group of commands: a card never changes
+shape alone, the family changes together.
 
 The **form** is part of the card's contract: the document declares it (`card`
 (Components V2), `embed` or `text`), and the registry projects it into the
@@ -364,8 +377,10 @@ becomes V2 (an edit that ignores this ends in a 400, error 50035).
 
 - `core/card_service.py::align_to_message` owns the rule: a V2 message gets
   the card rendered again in the V2 form (`render_card_message(form="card")`),
-  a classic message keeps the classic card, and a classic message facing a V2
-  card skips the repaint (the old content stays).
+  a classic message gets it rendered again in the classic form
+  (`form="embed"`), so a message posted before the card changed shape keeps
+  its shape and stays up to date. A card that says nothing in the message's
+  form skips the repaint (the old content stays).
 - `is_v2_message` reads the flag, `is_v2_payload` reads the rendered view
   (both in `core/card_payload.py`).
 - Attach the interactive rows **after** the alignment: the row rides the

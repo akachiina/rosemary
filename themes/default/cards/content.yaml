@@ -762,7 +762,7 @@ partnerships.dm.expired_admin:
 # The roleplay interaction: the sentence pings both members, the gif rides
 # the card and the timestamp closes it.
 roleplay.card:
-  form: embed
+  form: card
   color: brand
   author: '{actor_name}'
   author_icon: '{actor_avatar}'
@@ -788,7 +788,7 @@ roleplay.card:
 # The help list: the title, the intro and one paragraph per group (the
 # send site renders the group; an empty group drops its paragraph).
 help.card:
-  form: embed
+  form: card
   color: brand
   title: '{title}'
   description: '{body}'

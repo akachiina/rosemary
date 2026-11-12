@@ -1,24 +1,49 @@
 {
-  "content": "Obrigado pelo bump, <@0>!",
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 5763719,
-    "description": "Muito obrigada pelo bump, <@0>! Sua dedicação mantém o servidor brilhando. 🍵\n\n**⏰ Próximo bump:** <t:1111111111:R>\n**⏳ Lembrete:** volto para te avisar em **…!**\n\n🏆 Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!\n",
-    "fields": [],
-    "footer": {
-      "text": "01/01/2026 00:00"
-    },
-    "timestamp": "<iso>",
-    "title": "🎉 Bump Registrado!",
-    "type": "rich"
-  },
-  "form": "embed",
+  "content": null,
+  "embed": null,
+  "form": "card",
   "key": "bump.thank_you",
   "pings": [
     0
   ],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "Obrigado pelo bump, <@0>!",
+          "type": "TextDisplay"
+        },
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# 🎉 Bump Registrado!",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Muito obrigada pelo bump, <@0>! Sua dedicação mantém o servidor brilhando. 🍵\n\n**⏰ Próximo bump:** <t:1111111111:R>\n**⏳ Lembrete:** volto para te avisar em **…!**\n\n🏆 Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!\n",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

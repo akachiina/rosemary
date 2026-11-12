@@ -8,6 +8,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 import pytest
+from card_forms import (
+    payload_accent,
+    payload_footer_lines,
+    payload_image,
+    payload_texts,
+    payload_thumbnail,
+    sent,
+)
 from catalog import load_catalog
 
 import rosemary.cogs.confessions  # noqa: F401  (registers the commands)
@@ -765,10 +773,8 @@ async def test_public_card_shows_the_identicon_but_not_the_real_avatar(tmp_path)
     guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
     await _enable_confessions(bot)
     await cog._confess_submit(make_click(guild, user_id=7), "secret", [])
-    embed = _sent_embed(public.send)
-    assert embed is not None, "the public card is an embed"
-    thumbnail = embed.thumbnail.url if embed.thumbnail else ""
-    assert thumbnail, "the generated identicon must be the card thumbnail"
+    thumbnail = payload_thumbnail(sent(public.send.await_args))
+    assert thumbnail, "the generated identicon must be the card picture"
     assert thumbnail.startswith("attachment://anonimo_"), thumbnail
     avatar = "https://cdn.discordapp.com/embed/avatars/0.png"
     assert avatar not in "\n".join(_sent_texts(public.send))
@@ -815,9 +821,8 @@ async def test_reply_with_image_attaches_and_persists(tmp_path):
     reply = await cog.store.get_reply(1, 901)
     assert reply is not None
     assert reply["image_url"] == "https://cdn.discordapp.com/attachments/1/42/reply.png"
-    embed = _sent_embed(thread.send)
-    assert embed is not None
-    assert embed.image and embed.image.url, "the picture rides the embed image"
+    assert thread.send.await_args.kwargs.get("view") is not None
+    assert payload_image(sent(thread.send.await_args)), "the picture rides the card"
 
 
 def _has_gallery(view) -> bool:
@@ -847,9 +852,8 @@ def _identicon_file(files):
 async def test_card_shows_the_alias_as_title_and_the_number_as_footer(tmp_path):
     """The alias name is the card title; "Confession (#N)" is the footer.
 
-    The card is a classic embed: the alias rides the title (Discord renders
-    it bold), the identicon is the thumbnail and the numbered title closes
-    the card.
+    The card is a Components V2: the alias rides the heading, the identicon
+    is the picture of the section and the numbered title closes the card.
     """
     from rosemary.core.card_service import render_card_message
 
@@ -870,16 +874,14 @@ async def test_card_shows_the_alias_as_title_and_the_number_as_footer(tmp_path):
             "op_emoji": "",
         },
     )
-    assert payload is not None and payload.embed is not None
-    embed = payload.embed
-    assert embed.title == "Anonymous K7Q"
-    assert embed.description == "o texto"
-    assert embed.thumbnail is not None
-    assert embed.thumbnail.url == "attachment://anonimo_K7Q.png"
-    assert embed.footer is not None
-    assert embed.footer.text == "Confession (#55)"
+    assert payload is not None
+    texts = payload_texts(payload)
+    assert "# Anonymous K7Q" in texts
+    assert "o texto" in texts
+    assert payload_thumbnail(payload) == "attachment://anonimo_K7Q.png"
+    assert "Confession (#55)" in payload_footer_lines(payload)
     # The alias' own color is the accent (the identicon's color).
-    assert embed.colour.value == 0xFFB7C5
+    assert payload_accent(payload) == 0xFFB7C5
 
 
 async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
@@ -906,15 +908,14 @@ async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
             "parent_link": "",
         },
     )
-    assert payload is not None and payload.embed is not None
-    embed = payload.embed
-    assert embed.title == "Anonymous K7Q<:op_emoji:123>"
-    assert embed.description == "o texto"
+    assert payload is not None
+    texts = payload_texts(payload)
+    assert "# Anonymous K7Q<:op_emoji:123>" in texts
+    assert "o texto" in texts
     # Only the reference and the number: the parent's own text never rides
     # the card (the reference links to it) and the OP emoji alone marks the
     # author.
-    assert embed.footer is not None
-    assert embed.footer.text == "in reply to #55-1 · Confession (#55-1)"
+    assert payload_footer_lines(payload) == ["in reply to #55-1 · Confession (#55-1)"]
 
 
 async def test_review_card_closes_with_the_standard_footer(tmp_path):
@@ -961,10 +962,8 @@ async def test_public_card_attaches_the_identicon_and_keeps_the_text(tmp_path):
     texts = _sent_texts(public.send)
     # The body is plain text in the card, not a rendered image.
     assert any("my secret" in text for text in texts), texts
-    # The alias is the embed title (embeds render it bold) and the number
-    # is the footer.
-    embed = _sent_embed(public.send)
-    assert embed.title.startswith("Anonymous"), embed.title
+    # The alias is the heading of the card and the number is the footer.
+    assert any(text.startswith("# Anonymous") for text in texts), texts
     assert any("Confession (#1)" in text for text in texts), texts
     entry = await cog.store.get(1, 111)
     assert entry is not None

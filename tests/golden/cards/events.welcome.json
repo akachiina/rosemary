@@ -1,24 +1,53 @@
 {
-  "content": "Boas-vindas, <@0>!",
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 5763719,
-    "description": "<@0> acabou de entrar. Diga oi! Membro #1 do ….",
-    "fields": [],
-    "footer": {
-      "text": "… · #1 · `123456789012345678`"
-    },
-    "timestamp": "<iso>",
-    "title": "🎉 Bem-vindo(a)!",
-    "type": "rich"
-  },
-  "form": "embed",
+  "content": null,
+  "embed": null,
+  "form": "card",
   "key": "events.welcome",
   "pings": [
     0
   ],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "Boas-vindas, <@0>!",
+          "type": "TextDisplay"
+        },
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# 🎉 Bem-vindo(a)!",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "<@0> acabou de entrar. Diga oi! Membro #1 do ….",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# … · #1 · `123456789012345678`",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

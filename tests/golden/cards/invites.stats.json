@@ -1,20 +1,42 @@
 {
-  "content": "Aqui estão os seus convites, <@0>.",
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 3447003,
-    "description": "…",
-    "fields": [],
-    "title": "📊 Convites de <@0>",
-    "type": "rich"
-  },
-  "form": "embed",
+  "content": null,
+  "embed": null,
+  "form": "card",
   "key": "invites.stats",
   "pings": [
     0
   ],
-  "view": []
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "content": "Aqui estão os seus convites, <@0>.",
+          "type": "TextDisplay"
+        },
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# 📊 Convites de <@0>",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

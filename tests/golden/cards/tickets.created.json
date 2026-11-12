@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "description": "<@0>, descreva seu problema. A staff vai te atender (…).",
-    "fields": [],
-    "title": "Ticket aberto",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "tickets.created",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# Ticket aberto",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "<@0>, descreva seu problema. A staff vai te atender (…).",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

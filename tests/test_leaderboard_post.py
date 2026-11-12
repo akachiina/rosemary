@@ -10,6 +10,7 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import discord
+from card_forms import payload_texts, sent
 
 from rosemary.cogs.bump_leaderboard import BumpLeaderboardCog
 from rosemary.core.storage import GuildStorage
@@ -57,10 +58,10 @@ async def test_post_current_leaderboard_empty_publishes_no_bumps_card(tmp_path):
 
     assert posted is False
     channel.send.assert_awaited_once()
-    # The "no data" notice is content: it ships as a classic embed.
-    embed = channel.send.await_args.kwargs["embed"]
-    assert isinstance(embed, discord.Embed)
-    assert embed.title
+    # The "no data" notice is content: it ships as a card of its own form.
+    kwargs = channel.send.await_args.kwargs
+    assert kwargs.get("view") is not None or isinstance(kwargs.get("embed"), discord.Embed)
+    assert payload_texts(sent(channel.send.await_args))
 
 
 async def test_post_current_leaderboard_disabled_does_nothing(tmp_path):

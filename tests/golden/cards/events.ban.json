@@ -1,22 +1,47 @@
 {
   "content": null,
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 15158332,
-    "description": "@you (`123456789012345678`) foi banido do ….",
-    "fields": [],
-    "footer": {
-      "text": "… · #1 · `123456789012345678`"
-    },
-    "timestamp": "<iso>",
-    "title": "🚫 Membro banido",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "events.ban",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#e74c3c",
+      "children": [
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# 🚫 Membro banido",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "@you (`123456789012345678`) foi banido do ….",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# … · #1 · `123456789012345678`",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

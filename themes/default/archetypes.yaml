@@ -44,13 +44,13 @@ archetypes:
 
   # An event announcement (a member joined, left or got banned): the member
   # owns the author line (name and avatar), the body tells the story and the
-  # footer names the server, the member count and the id.
+  # footer names the server, the member count, the id and the date.
   event:
-    form: embed
+    form: card
     color: brand
     author: '{user_name}'
     author_icon: '{user_avatar}'
-    footer: '{server} · #{count} · `{user_id}`'
+    footer: "{server} · #{count} · `{user_id}`\n{timestamp}"
     timestamp: true
     mention: single
     rich: true
@@ -59,7 +59,7 @@ archetypes:
   # the partnerships). The title names the list, the body carries the rows:
   # the copy of the catalog or the body the send site built.
   listing:
-    form: embed
+    form: card
     color: info
     mention: none
     rich: true
@@ -69,7 +69,7 @@ archetypes:
   # image rides the title, the subtitle tells who it is, the rows carry the
   # stats and the footer closes the card with the id.
   info_card:
-    form: embed
+    form: card
     color: brand
     mention: none
     rich: true

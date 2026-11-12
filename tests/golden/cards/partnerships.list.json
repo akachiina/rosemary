@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 3447003,
-    "description": "…",
-    "fields": [],
-    "title": "Parcerias",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "partnerships.list",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "content": "# Parcerias",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

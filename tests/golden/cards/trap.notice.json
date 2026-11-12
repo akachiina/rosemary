@@ -1,14 +1,23 @@
 {
   "content": null,
-  "embed": {
-    "color": 15158332,
-    "description": "Este canal é uma **armadilha** de moderação do ….\n\n### 🚫 Não envie mensagens aqui\n> Este canal existe para capturar contas de spam, bots e RAID. Quem enviar mensagem aqui perde a mensagem na hora e sofre uma consequência.\n\n**⚙️ Consequência configurada:** …\n\n✉️ Caiu aqui por engano? Fale com a equipe de moderação.",
-    "fields": [],
-    "title": "Aviso do canal armadilha",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "trap.notice",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#e74c3c",
+      "children": [
+        {
+          "content": "# Aviso do canal armadilha",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Este canal é uma **armadilha** de moderação do ….\n\n### 🚫 Não envie mensagens aqui\n> Este canal existe para capturar contas de spam, bots e RAID. Quem enviar mensagem aqui perde a mensagem na hora e sofre uma consequência.\n\n**⚙️ Consequência configurada:** …\n\n✉️ Caiu aqui por engano? Fale com a equipe de moderação.",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

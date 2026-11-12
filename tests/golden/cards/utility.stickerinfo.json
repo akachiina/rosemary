@@ -1,45 +1,39 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "fields": [
-      {
-        "inline": true,
-        "name": "🖼️ Formato",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "🏷️ Tags",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "👤 Enviado por",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "📜 Descrição",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "📅 Criado em",
-        "value": "<t:1111111111:D> · <t:1111111111:R>"
-      }
-    ],
-    "footer": {
-      "text": "`123456789012345678`"
-    },
-    "image": {
-      "url": "https://cdn.discordapp.com/stickers/1.png"
-    },
-    "title": "…",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "utility.stickerinfo",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# …",
+          "type": "TextDisplay"
+        },
+        {
+          "children": [
+            {
+              "type": "MediaGalleryItem",
+              "url": "https://cdn.discordapp.com/stickers/1.png"
+            }
+          ],
+          "type": "MediaGallery"
+        },
+        {
+          "content": "**🖼️ Formato:** …\n**🏷️ Tags:** …\n**👤 Enviado por:** …\n**📜 Descrição:** …\n**📅 Criado em:** <t:1111111111:D> · <t:1111111111:R>",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# `123456789012345678`",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

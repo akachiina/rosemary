@@ -101,6 +101,13 @@ class WelcomeCog(commands.Cog):
         from rosemary.core.card_service import render_card_message, simple_payload
         from rosemary.core.mentions import allowed_for_ids
 
+        # The instant of the event: the card's footer shows the date (the
+        # Components V2 form has no timestamp field of its own).
+        variables = {
+            **variables,
+            "timestamp": variables.get("timestamp")
+            or discord.utils.format_dt(discord.utils.utcnow(), style="R"),
+        }
         payload, allowed = await render_card_message(
             self.bot, guild_id, key, variables
         )

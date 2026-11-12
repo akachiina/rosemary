@@ -1,62 +1,30 @@
 {
   "content": null,
-  "embed": {
-    "color": 5763719,
-    "fields": [
-      {
-        "inline": true,
-        "name": "💬 Tipo",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "🖼️ Categoria",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "📜 Tópico",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "⏳ Modo lento",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "🔊 Bitrate",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "👥 Limite de usuários",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "🔒 Restrito por idade",
-        "value": "Não"
-      },
-      {
-        "inline": true,
-        "name": "🔢 Posição",
-        "value": "1"
-      },
-      {
-        "inline": true,
-        "name": "📅 Criado em",
-        "value": "<t:1111111111:D> · <t:1111111111:R>"
-      }
-    ],
-    "footer": {
-      "text": "`123456789012345678`"
-    },
-    "title": "…",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "utility.channelinfo",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "# …",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "**💬 Tipo:** …\n**🖼️ Categoria:** …\n**📜 Tópico:** …\n**⏳ Modo lento:** …\n**🔊 Bitrate:** …\n**👥 Limite de usuários:** …\n**🔒 Restrito por idade:** Não\n**🔢 Posição:** 1\n**📅 Criado em:** <t:1111111111:D> · <t:1111111111:R>",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# `123456789012345678`",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

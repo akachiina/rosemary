@@ -1,32 +1,69 @@
 {
   "content": null,
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 16248744,
-    "description": "…",
-    "fields": [],
-    "footer": {
-      "text": "01/01/2026 00:00"
-    },
-    "image": {
-      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-    },
-    "timestamp": "<iso>",
-    "title": "…",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "starboard.card",
   "pings": [],
   "view": [
     {
-      "label": "Ir para a mensagem",
-      "style": "link",
-      "type": "Button",
-      "url": "https://example.com/message"
+      "accent": "#f7efa8",
+      "children": [
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# …",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
+        },
+        {
+          "children": [
+            {
+              "type": "MediaGalleryItem",
+              "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+            }
+          ],
+          "type": "MediaGallery"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        },
+        {
+          "children": [
+            {
+              "label": "Ir para a mensagem",
+              "style": "link",
+              "type": "Button",
+              "url": "https://example.com/message"
+            },
+            {
+              "label": "Ir para a mensagem",
+              "style": "link",
+              "type": "Button",
+              "url": "https://example.com/message"
+            }
+          ],
+          "type": "ActionRow"
+        }
+      ],
+      "type": "Container"
     }
   ]
 }

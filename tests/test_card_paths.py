@@ -195,6 +195,6 @@ async def test_about_command_traces_card_path(tmp_path, monkeypatch):
     # py-cord wraps the coroutine in a SlashCommand; call the raw function.
     await AboutCog.about.callback(cog, Ctx)
     assert Ctx.responded is not None, "about must respond with the card"
-    assert Ctx.responded.get("embed") is not None, "the about card is an embed"
+    assert Ctx.responded.get("view") is not None, "the about card is a card"
     assert len(calls) == 1, f"expected exactly one trace, got {calls}"
     assert calls[0]["path"] == "card.about.card"

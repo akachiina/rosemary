@@ -1,26 +1,54 @@
 {
-  "content": "<@0> … <@0>.",
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 5763719,
-    "description": "💌 <@0> … <@0>",
-    "fields": [],
-    "footer": {
-      "text": "01/01/2026 00:00"
-    },
-    "image": {
-      "url": "https://media.tenor.com/x.gif"
-    },
-    "timestamp": "<iso>",
-    "type": "rich"
-  },
-  "form": "embed",
+  "content": null,
+  "embed": null,
+  "form": "card",
   "key": "roleplay.card",
   "pings": [
     0
   ],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "<@0> … <@0>.",
+          "type": "TextDisplay"
+        },
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "💌 <@0> … <@0>",
+          "type": "TextDisplay"
+        },
+        {
+          "children": [
+            {
+              "type": "MediaGalleryItem",
+              "url": "https://media.tenor.com/x.gif"
+            }
+          ],
+          "type": "MediaGallery"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# 01/01/2026 00:00",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

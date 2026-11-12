@@ -1,60 +1,56 @@
 {
   "content": null,
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 5763719,
-    "description": "👑 …",
-    "fields": [
-      {
-        "inline": true,
-        "name": "📅 Criado em",
-        "value": "<t:1111111111:D> · <t:1111111111:R>"
-      },
-      {
-        "inline": true,
-        "name": "🚪 Entrou",
-        "value": "<t:1111111111:D> · <t:1111111111:R>"
-      },
-      {
-        "inline": true,
-        "name": "✏️ Apelido",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "🏷️ Cargos",
-        "value": "1"
-      },
-      {
-        "inline": true,
-        "name": "🚀 Boost desde",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "🔇 Timeout",
-        "value": "…"
-      },
-      {
-        "inline": true,
-        "name": "⚙️ Bot",
-        "value": "Não"
-      }
-    ],
-    "footer": {
-      "text": "`123456789012345678`"
-    },
-    "image": {
-      "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-    },
-    "title": "Informações do Membro",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "utility.userinfo",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# Informações do Membro",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "👑 …",
+          "type": "TextDisplay"
+        },
+        {
+          "children": [
+            {
+              "type": "MediaGalleryItem",
+              "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+            }
+          ],
+          "type": "MediaGallery"
+        },
+        {
+          "content": "**📅 Criado em:** <t:1111111111:D> · <t:1111111111:R>\n**🚪 Entrou:** <t:1111111111:D> · <t:1111111111:R>\n**✏️ Apelido:** …\n**🏷️ Cargos:** 1\n**🚀 Boost desde:** …\n**🔇 Timeout:** …\n**⚙️ Bot:** Não",
+          "type": "TextDisplay"
+        },
+        {
+          "type": "Separator"
+        },
+        {
+          "content": "-# `123456789012345678`",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }

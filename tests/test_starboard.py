@@ -7,6 +7,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 import pytest
+from card_forms import (
+    payload_author_icon,
+    payload_footer_lines,
+    payload_image,
+    payload_texts,
+)
 
 from rosemary.cogs.starboard import StarboardCog
 from rosemary.core.starboard import StarboardStore
@@ -290,14 +296,14 @@ async def test_the_packaged_document_is_full_rich_layout(tmp_path):
         },
     )
     assert payload is not None
-    embed = payload.embed
-    assert embed is not None
-    assert "⭐ 3 · #geral" in (embed.title or "") + (embed.description or "")
-    assert embed.author and embed.author.name == "Ana"
-    assert embed.author.icon_url == "https://a.b/x.png"
-    assert embed.footer and "<@" not in embed.footer.text
-    assert embed.image and embed.image.url == "https://a.b/cat.png"
-    assert embed.thumbnail is None
+    texts = payload_texts(payload)
+    assert any("⭐ 3 · #geral" in text for text in texts), texts
+    # The author line: the name in bold, the avatar as the picture.
+    assert any(text == "**Ana**" for text in texts), texts
+    assert payload_author_icon(payload) == "https://a.b/x.png"
+    footer = "\n".join(payload_footer_lines(payload))
+    assert "<@" not in footer
+    assert payload_image(payload) == "https://a.b/cat.png"
 
 
 async def test_the_packaged_document_skips_gallery_without_image(tmp_path):
@@ -322,8 +328,7 @@ async def test_the_packaged_document_skips_gallery_without_image(tmp_path):
         },
     )
     assert payload is not None
-    assert payload.embed is not None
-    assert payload.embed.image is None
+    assert payload_image(payload) == ""
 
 
 async def test_send_site_reacts_to_star_tier(tmp_path):

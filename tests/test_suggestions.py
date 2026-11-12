@@ -10,6 +10,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 import pytest
+from card_forms import (
+    payload_accent,
+    payload_author_icon,
+    payload_footer_lines,
+    payload_image,
+    payload_texts,
+)
 from catalog import load_catalog
 
 import rosemary.cogs.suggestions  # noqa: F401  (registers the command)
@@ -278,8 +285,8 @@ async def test_score_ramp_moves_with_balance(tmp_path):
         payload, _allowed = await render_card_message(
             bot, 1, "suggestions.card", variables
         )
-        assert payload is not None and payload.embed is not None
-        return payload.embed.colour.value
+        assert payload is not None
+        return payload_accent(payload)
 
     neutral, low, mid, strong = await asyncio.gather(
         color_for(0), color_for(1), color_for(5), color_for(10)
@@ -305,8 +312,8 @@ async def test_score_falls_back_to_tokens_without_ramp(tmp_path):
         score=4, state_color=_score_hex(bot.theme, 4)
     )
     payload, _allowed = await render_card_message(bot, 1, "suggestions.card", variables)
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.colour.value == bot.theme.color("success").value
+    assert payload is not None
+    assert payload_accent(payload) == bot.theme.color("success").value
 
 
 async def test_card_renders_title_body_counts_and_hint(tmp_path):
@@ -316,16 +323,15 @@ async def test_card_renders_title_body_counts_and_hint(tmp_path):
     payload, _allowed = await render_card_message(
         bot, 1, "suggestions.card", _card_variables()
     )
-    assert payload is not None and payload.embed is not None
-    embed = payload.embed
-    assert embed.title == "Suggestion #1"
-    assert "more emojis please" in (embed.description or "")
-    assert "⬆️ 0 · ⬇️ 0" in (embed.description or "")
+    assert payload is not None
+    texts = payload_texts(payload)
+    assert any(text == "# Suggestion #1" for text in texts), texts
+    assert any("more emojis please" in text for text in texts), texts
+    assert any("⬆️ 0 · ⬇️ 0" in text for text in texts), texts
     # The subject owns the author line; the hint names the localized command.
-    assert embed.author and embed.author.name == "Author"
-    assert embed.author.icon_url == "https://cdn.discordapp.com/embed/avatars/0.png"
-    assert embed.thumbnail is None
-    footer = embed.footer.text if embed.footer else ""
+    assert any(text == "**Author**" for text in texts), texts
+    assert payload_author_icon(payload) == "https://cdn.discordapp.com/embed/avatars/0.png"
+    footer = "\n".join(payload_footer_lines(payload))
     assert "/suggest" in footer
     assert "<@7>" not in footer and "<t:" not in footer
 
@@ -337,8 +343,8 @@ async def test_status_line_shows_only_when_decided(tmp_path):
     open_payload, _ = await render_card_message(
         bot, 1, "suggestions.card", _card_variables(status="open", status_line="")
     )
-    assert open_payload is not None and open_payload.embed is not None
-    assert "Approved" not in (open_payload.embed.description or "")
+    assert open_payload is not None
+    assert not any("Approved" in text for text in payload_texts(open_payload))
 
     decided, _ = await render_card_message(
         bot,
@@ -346,8 +352,8 @@ async def test_status_line_shows_only_when_decided(tmp_path):
         "suggestions.card",
         _card_variables(status="approved", status_line="✅ Aprovada pela staff"),
     )
-    assert decided is not None and decided.embed is not None
-    assert "Aprovada pela staff" in (decided.embed.description or "")
+    assert decided is not None
+    assert any("Aprovada pela staff" in text for text in payload_texts(decided))
 
 
 #: vote view ------------------------------------------------------------------
@@ -473,8 +479,8 @@ async def test_card_includes_the_hint(tmp_path):
         payload, _allowed = await render_card_message(
             bot, 1, "suggestions.card", _card_variables(command=command)
         )
-        assert payload is not None and payload.embed is not None
-        footer = payload.embed.footer.text if payload.embed.footer else ""
+        assert payload is not None
+        footer = "\n".join(payload_footer_lines(payload))
         assert expected in footer, (language, footer)
 
 
@@ -834,16 +840,15 @@ async def test_image_rides_only_when_it_arrived(tmp_path):
     payload, _allowed = await render_card_message(
         bot, 1, "suggestions.card", _card_variables()
     )
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.image is None
+    assert payload is not None
+    assert payload_image(payload) == ""
 
     with_image = _card_variables(image_url="https://cdn.example.com/cat.png")
     payload, _allowed = await render_card_message(
         bot, 1, "suggestions.card", with_image
     )
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.image is not None
-    assert payload.embed.image.url == "https://cdn.example.com/cat.png"
+    assert payload is not None
+    assert payload_image(payload) == "https://cdn.example.com/cat.png"
 
 
 async def test_modal_submit_with_image_attaches_and_stores_url(tmp_path):

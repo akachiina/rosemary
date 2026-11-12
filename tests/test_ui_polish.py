@@ -81,6 +81,7 @@ async def test_event_titles_are_not_double_decorated():
     The event documents point at the catalog copy, so the token of the copy
     is the only decoration. Dry titles (the audit cards) get the theme emoji
     from the document."""
+    from card_forms import payload_texts
     from golden_cards import make_bot
 
     from rosemary.core.card_service import render_card_message
@@ -102,8 +103,12 @@ async def test_event_titles_are_not_double_decorated():
             "inviter": "",
         },
     )
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.title.count(ban_emoji) == 1, payload.embed.title
+    assert payload is not None
+    # The event card is a Components V2: the title is the heading.
+    heading = next(
+        (text for text in payload_texts(payload) if text.startswith("# ")), ""
+    )
+    assert heading.count(ban_emoji) == 1, heading
 
     # The audit card: the document carries the emoji token, the catalog title
     # is dry. The two never meet, so the title has one emoji.
@@ -116,6 +121,7 @@ async def test_event_titles_are_not_double_decorated():
 async def test_event_document_has_avatar_author_and_footer():
     """The event documents: the member owns the author line and the footer
     names the server, the count and the id (the id in inline code)."""
+    from card_forms import payload_author_icon, payload_footer_lines, payload_texts
     from golden_cards import make_bot
 
     from rosemary.core.card_service import render_card_message
@@ -143,11 +149,13 @@ async def test_event_document_has_avatar_author_and_footer():
             "inviter": "",
         },
     )
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.author.name == "Ana"
-    assert payload.embed.author.icon_url == "https://a.b/ana.png"
-    assert payload.embed.thumbnail is None
-    assert payload.embed.footer.text == "Serv · #3 · `5`"
+    assert payload is not None
+    texts = payload_texts(payload)
+    # The author line: the name in bold, the avatar as the picture.
+    assert "**Ana**" in texts, texts
+    assert payload_author_icon(payload) == "https://a.b/ana.png"
+    # The footer names the server, the count and the id (in inline code).
+    assert "Serv · #3 · `5`" in payload_footer_lines(payload)
 
 
 #: catalog templates: real newlines, never literal "\n" ----------------------

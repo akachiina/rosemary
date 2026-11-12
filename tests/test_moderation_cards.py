@@ -15,6 +15,13 @@ from pathlib import Path
 import discord
 import pytest
 import yaml
+from card_forms import (
+    payload_accent,
+    payload_author_icon,
+    payload_footer_lines,
+    payload_pictures,
+    payload_texts,
+)
 
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
 from rosemary.ui.theme import load_theme
@@ -114,16 +121,16 @@ async def test_warnings_card_layout_and_state_color(variables, style, tmp_path):
         "moderation.warnings",
         {**variables, "state_color": state_color},
     )
-    assert payload is not None and payload.embed is not None
-    embed = payload.embed
-    assert embed.colour.value == bot.theme.color(state_color).value
-    assert embed.title == variables["title"]
-    assert variables["body"] in (embed.description or "")
-    assert embed.author and embed.author.name == variables["user_name"]
-    assert embed.author.icon_url == variables["user_avatar"]
-    assert embed.thumbnail is None
+    assert payload is not None
+    texts = payload_texts(payload)
+    assert payload_accent(payload) == bot.theme.color(state_color).value
+    assert any(text == f"# {variables['title']}" for text in texts), texts
+    assert any(variables["body"] in text for text in texts), texts
+    # The author line: the name in bold, the avatar as the picture.
+    assert any(text == f"**{variables['user_name']}**" for text in texts), texts
+    assert payload_author_icon(payload) == variables["user_avatar"]
     # The date closes the card, readable and free of raw tokens.
-    footer = embed.footer.text if embed.footer else ""
+    footer = "\n".join(payload_footer_lines(payload))
     assert "<@" not in footer and "<t:" not in footer
 
 
@@ -136,9 +143,9 @@ async def test_warnings_card_without_avatar_omits_author_icon(tmp_path):
     payload, _allowed = await render_card_message(
         bot, 1, "moderation.warnings", {**bare, "state_color": "warning"}
     )
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.author and not payload.embed.author.icon_url
-    assert payload.embed.thumbnail is None
+    assert payload is not None
+    assert payload_author_icon(payload) == ""
+    assert payload_pictures(payload) == []
 
 
 async def test_warnings_card_color_follows_theme_style(tmp_path):
@@ -166,8 +173,8 @@ async def test_warnings_card_color_follows_theme_style(tmp_path):
     payload, _allowed = await render_card_message(
         bot, 1, "moderation.warnings", {**_WARNINGS_VARS, "state_color": state_color}
     )
-    assert payload is not None and payload.embed is not None
-    assert payload.embed.colour.value == theme_for(bot, 1).color("danger").value
+    assert payload is not None
+    assert payload_accent(payload) == theme_for(bot, 1).color("danger").value
 
 
 async def test_warnings_card_v2_form_is_valid(tmp_path):

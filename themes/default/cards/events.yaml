@@ -20,6 +20,7 @@ events.welcome:
   - count
   - user_avatar
   - inviter
+  - timestamp
   mention: single
   category: events
 
@@ -36,6 +37,7 @@ events.leave:
   - count
   - inviter
   - user_avatar
+  - timestamp
   mention: single
   category: events
 
@@ -52,13 +54,14 @@ events.ban:
   - count
   - inviter
   - user_avatar
+  - timestamp
   mention: single
   category: events
 
 # The birthday announcement: the celebrant's avatar rides the title and
 # the standard author footer attributes the card to them.
 birthdays.announce:
-  form: embed
+  form: card
   color: warning
   title: '{birthdays.announce.title}'
   description: '{birthdays.announce.body}'

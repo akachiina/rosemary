@@ -130,8 +130,8 @@ class TrapCog(commands.Cog):
     async def _fallback_notice(self, guild: discord.Guild):
         """Code-built notice (no theme override / builder failure).
 
-        The card ships as a classic embed, so the fallback does too: the
-        surface never changes under the member.
+        The fallback follows the card's own form: the surface never changes
+        under the member.
         """
         from rosemary.core.card_service import simple_payload
 

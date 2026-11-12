@@ -12,12 +12,21 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
-from catalog import load_catalog
+from catalog import flatten, load_catalog
 
 from rosemary.cogs.trap import DELETE_WINDOWS, TrapCog
 from rosemary.core.storage import GuildStorage
 from rosemary.core.themes import ThemeStore
 from rosemary.ui.theme import load_theme
+
+#: The catalog of the notice card (the copy lives in the language files).
+_CATALOG = flatten(load_catalog("pt-BR"))
+
+
+def _catalog_copy(key: str) -> str:
+    """The copy of one catalog key (empty when the catalog has none)."""
+    value = _CATALOG.get(key)
+    return value if isinstance(value, str) else ""
 
 
 def _bot(tmp_path):
@@ -29,7 +38,7 @@ def _bot(tmp_path):
     bot.get_guild = MagicMock(return_value=None)
     bot.translator = MagicMock()
     bot.translator.t = AsyncMock(side_effect=lambda gid, key, **kw: key)
-    bot.translator.raw = AsyncMock(side_effect=lambda gid, key: None)
+    bot.translator.raw = AsyncMock(side_effect=lambda gid, key: _catalog_copy(key))
     # The DM override path resolves the guild theme (catalog fallback here).
     bot.theme = load_theme()
     bot._theme_store = ThemeStore(tmp_path, themes_dir=tmp_path / "themes")

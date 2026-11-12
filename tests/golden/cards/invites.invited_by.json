@@ -1,18 +1,36 @@
 {
   "content": null,
-  "embed": {
-    "author": {
-      "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
-      "name": "@you"
-    },
-    "color": 3447003,
-    "description": "Membro: <@0>\nConvidado por: <@0>\nCódigo: `abc123`\nEntrou: …\nStatus: …",
-    "fields": [],
-    "title": "Convidado por",
-    "type": "rich"
-  },
-  "form": "embed",
+  "embed": null,
+  "form": "card",
   "key": "invites.invited_by",
   "pings": [],
-  "view": []
+  "view": [
+    {
+      "accent": "#3498db",
+      "children": [
+        {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**@you**",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "# Convidado por",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Membro: <@0>\nConvidado por: <@0>\nCódigo: `abc123`\nEntrou: …\nStatus: …",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
 }
