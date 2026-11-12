@@ -411,7 +411,10 @@ holds **only** the model and its two ends (the meta de 900 linhas):
   never arrived is dropped and the card ships without an accent.
 - `core/design/serialize.py`: the model written in each form. The V2
   serializer owns the markdown dialect (`#` heading, `-#` small text); the
-  embed serializer writes neither.
+  embed serializer writes neither. The **opening line** (the `content_line`
+  or the `ping_line`) rides a block of its own, **above the container**: the
+  sentence the embed carried in the message content stays outside the frame,
+  it is not swallowed by the card.
 - The **readers** live outside the package, in `core/documents/`: the strict
   document (`semantic.py`), the legacy one (`legacy.py`), the templates
   (`templates.py`) and the merge of the layers (`merge.py`). The loader of the
@@ -438,7 +441,9 @@ at it (`attachment://<filename>`) through a media gallery.
   author (`cards.<key>.author: null`).
 - `core/render/elements.py`: the registry (`render_element`,
   `element_filename`), the cache and the rasterizer (WeasyPrint to PDF,
-  PyMuPDF to a transparent PNG, the pipeline of the color panel).
+  PyMuPDF to a transparent PNG, the pipeline of the color panel). The picture
+  is scaled to the **display size** (`MAX_WIDTH`/`MAX_HEIGHT`): the strip is
+  an author line, so it is small on the screen.
 - `core/render/identity.py`: who the card is about (the display name, the
   avatar as a **data URI**: the renderer draws a document, it does not
   browse the web). The fetch happens in a **daemon thread** and the card
@@ -460,8 +465,10 @@ at it (`attachment://<filename>`) through a media gallery.
   drawing.
 - The templates live in the theme's `elements:` section of `tokens.yaml`
   (`elements.author.html`): the values are `{name}`, `{avatar}`, `{initial}`
-  and `{accent}`. WeasyPrint speaks a CSS subset: `inline-block` renders
-  faithfully, flexbox and grid do not.
+  and `{accent}`. The strip is a **transparent** picture: it draws the avatar
+  and the name and nothing else, so it takes the color of the message behind
+  it. WeasyPrint speaks a CSS subset: `inline-block` renders faithfully,
+  flexbox and grid do not.
 - The removal of the author survives the resolution of the layers
   (`core/documents/merge.py::keep_removals`), so it also removes the slot of
   the packaged document.

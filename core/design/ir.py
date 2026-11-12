@@ -73,7 +73,6 @@ class Element:
 
     kind: str
     attachment: str = ""
-    description: str = ""
 
 
 @dataclass(frozen=True)

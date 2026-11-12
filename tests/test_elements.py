@@ -21,12 +21,14 @@ drawing the same strip twice.
 from __future__ import annotations
 
 import base64
+import io
 from pathlib import Path
 
 import pytest
 from card_forms import payload_texts
 from golden_cards import make_bot
 from offline import FIXED_PNG, offline_pictures
+from PIL import Image
 
 from rosemary.core.card_service import render_card_message
 from rosemary.core.i18n import Translator
@@ -200,6 +202,37 @@ def test_the_renderer_draws_a_png():
     )
     assert png is not None
     assert png.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_the_strip_is_transparent_and_small():
+    """The strip draws the avatar and the name on a transparent picture.
+
+    A box behind the author line would fight the card (the frame of the
+    container) and a big picture would shout over the card itself, so the
+    picture is transparent and small: an author line, nothing more.
+    """
+    pytest.importorskip("weasyprint")
+    template = load_theme().elements["author"]["html"]
+    png = render_element(
+        "author",
+        template,
+        {
+            "name": "Ana",
+            "initial": "A",
+            "avatar": FIXED_DATA_URI,
+            "accent": "#57f287",
+        },
+    )
+    assert png is not None
+    with Image.open(io.BytesIO(png)) as img:
+        width, height = img.size
+        corner = img.convert("RGBA").getpixel((1, 1))
+    # The background is transparent: the picture takes the color of the
+    # message behind it.
+    assert corner[3] == 0, corner
+    # The picture is small: the author line, not a poster.
+    assert width <= elements.MAX_WIDTH, width
+    assert height <= elements.MAX_HEIGHT, height
 
 
 def test_a_broken_template_draws_nothing():

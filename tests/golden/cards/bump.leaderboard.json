@@ -11,12 +11,12 @@
   ],
   "view": [
     {
+      "content": "Parabéns, <@0>!",
+      "type": "TextDisplay"
+    },
+    {
       "accent": "#f1c40f",
       "children": [
-        {
-          "content": "Parabéns, <@0>!",
-          "type": "TextDisplay"
-        },
         {
           "children": [
             {

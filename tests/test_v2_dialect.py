@@ -166,6 +166,29 @@ async def test_the_pings_toggle_silences_the_v2_card():
     assert _pings(allowed) == []
 
 
+async def test_the_opening_line_rides_above_the_frame():
+    """The sentence stays outside the card.
+
+    The embed carried it in the message content, above the box; the V2
+    keeps it above the frame (a block of its own), so the card does not
+    swallow the sentence that introduces it.
+    """
+    import discord
+
+    bot = make_bot()
+    payload, _allowed = await render_card_message(
+        bot, GUILD_ID, "events.welcome", WELCOME, form="card"
+    )
+    assert payload is not None
+    children = list(getattr(payload.view, "children", []) or [])
+    assert children, "the card says nothing"
+    first = children[0]
+    assert isinstance(first, discord.ui.TextDisplay), type(first)
+    assert first.content.startswith("Boas-vindas"), first.content
+    # The frame (the container) carries the card itself.
+    assert isinstance(children[1], discord.ui.Container), type(children[1])
+
+
 async def test_the_author_line_rides_the_v2_card():
     """The author line of the V2 card is the drawn strip.
 

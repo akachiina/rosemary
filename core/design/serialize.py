@@ -166,8 +166,8 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     """The internal Components V2 document of a card.
 
     A blocks-native card keeps its body. A slots-native card gets the standard
-    frame: the opening line (the event sentence or the notification phrase) as
-    the first block, the author line as the drawn strip (the picture the bot
+    frame: the opening line (the event sentence or the notification phrase)
+    above the frame, the author line as the drawn strip (the picture the bot
     rendered for the card) or, without one, in a section of its own, the title
     and the description in a section (with the picture as the accessory), the
     fields as labelled lines, the footer as a small (``-#``) line and the
@@ -181,14 +181,15 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
 
     children: list[Any] = []
     body: list[Any] = []
+    outside: list[Any] = []
     opening = card.content_line or card.ping_line
     if opening:
         # The opening line of the card: the event sentence (the content
         # line) or the notification phrase (the ping line). The embed
-        # carries it in the message content, above the box; a V2 message
-        # cannot carry a top-level content, so the line rides as the first
-        # block of the card.
-        children.append(Text(body=opening))
+        # carries it in the message content, above the box; the V2 keeps
+        # it above the frame too (a block of its own, outside the
+        # container), so the sentence is not swallowed by the card.
+        outside.append(Text(body=opening))
     if card.author is not None and card.author.name:
         # The author line: the member the card is about. The embed draws it
         # in its own frame (the name and the picture side by side); the V2
@@ -248,11 +249,11 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
                 children.append(Text(body=f"-# {line}"))
     if card.actions:
         children.append(Row(buttons=tuple(card.actions)))
-    if not children:
+    if not children and not outside:
         return {"v": 1, "blocks": []}
-    if card.color:
+    if card.color and children:
         children = [Container(children=tuple(children), color=card.color)]
-    return blocks_to_document(tuple(children))
+    return blocks_to_document(tuple(outside + children))
 
 
 def card_to_embeds(card: Card, boxes: tuple[Card, ...] | None = None) -> list[dict[str, Any]]:

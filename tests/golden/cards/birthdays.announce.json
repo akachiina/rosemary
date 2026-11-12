@@ -11,12 +11,12 @@
   ],
   "view": [
     {
+      "content": "<@0>, feliz aniversário!",
+      "type": "TextDisplay"
+    },
+    {
       "accent": "#f1c40f",
       "children": [
-        {
-          "content": "<@0>, feliz aniversário!",
-          "type": "TextDisplay"
-        },
         {
           "children": [
             {

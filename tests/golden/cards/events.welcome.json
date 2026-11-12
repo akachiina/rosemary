@@ -11,12 +11,12 @@
   ],
   "view": [
     {
+      "content": "Boas-vindas, <@0>!",
+      "type": "TextDisplay"
+    },
+    {
       "accent": "#57f287",
       "children": [
-        {
-          "content": "Boas-vindas, <@0>!",
-          "type": "TextDisplay"
-        },
         {
           "children": [
             {

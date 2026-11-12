@@ -28,9 +28,12 @@ AUTHOR = "author"
 #: draws many).
 CACHE_SIZE = 128
 
-#: The maximum size of a drawn picture (a card is a message, not a poster).
-MAX_WIDTH = 1200
-MAX_HEIGHT = 400
+#: The size of the drawn picture (the pixels Discord shows). The strip is
+#: an author line, so it is small: the picture is scaled down to this size
+#: whatever the template asks for, and the avatar and the name keep the
+#: proportions the theme wrote.
+MAX_WIDTH = 260
+MAX_HEIGHT = 90
 
 #: The budget of one drawing (seconds). The document is local (the picture
 #: is a data URI), so the renderer never waits on the network: the budget is

@@ -11,12 +11,12 @@
   ],
   "view": [
     {
+      "content": "Obrigado pelo bump, <@0>!",
+      "type": "TextDisplay"
+    },
+    {
       "accent": "#57f287",
       "children": [
-        {
-          "content": "Obrigado pelo bump, <@0>!",
-          "type": "TextDisplay"
-        },
         {
           "children": [
             {

@@ -11,12 +11,12 @@
   ],
   "view": [
     {
+      "content": "Aqui estão os seus convites, <@0>.",
+      "type": "TextDisplay"
+    },
+    {
       "accent": "#3498db",
       "children": [
-        {
-          "content": "Aqui estão os seus convites, <@0>.",
-          "type": "TextDisplay"
-        },
         {
           "children": [
             {
