@@ -49,7 +49,7 @@ from rosemary.core.cards import (
     is_embed_document,
     validate_document,
 )
-from rosemary.core.documents.merge import DocumentError, merge
+from rosemary.core.documents.merge import DocumentError, keep_removals, merge
 from rosemary.core.documents.semantic import is_semantic_document, validate_keys
 from rosemary.core.storage import GuildStorage
 from rosemary.core.theme_package import PACKAGE_DIR, ThemePackage, load_theme_package
@@ -148,6 +148,7 @@ class RosemaryTheme(Theme):
         color_panel: dict[str, str] | None = None,
         snapshot: dict[str, str] | None = None,
         panels: dict[str, Any] | None = None,
+        elements: dict[str, Any] | None = None,
         deltas: dict[str, dict[str, Any]] | None = None,
         archetypes: dict[str, dict[str, Any]] | None = None,
         fragments: dict[str, dict[str, Any]] | None = None,
@@ -187,6 +188,16 @@ class RosemaryTheme(Theme):
         # header, the body, the footer and the navigation every panel
         # shares.
         self.panels = dict(panels or {})
+        # The drawn elements of a card (``elements.author``): the HTML
+        # templates the bot rasterizes for the cards (the author strip).
+        self.elements = {
+            str(kind): (
+                {str(k): str(v) for k, v in fields.items()}
+                if isinstance(fields, dict)
+                else str(fields)
+            )
+            for kind, fields in (elements or {}).items()
+        }
 
 
 @dataclass
@@ -316,8 +327,35 @@ def _parse_tokens(data: dict[str, Any]) -> dict[str, Any]:
             for key, value in (data.get("snapshot") or {}).items()
             if isinstance(key, str) and isinstance(value, str)
         },
+        "elements": _parse_elements(data.get("elements")),
         "panels": dict(data.get("panels") or {}),
     }
+
+
+def _parse_elements(section: Any) -> dict[str, Any]:
+    """The drawn elements of a theme (``elements.author.html`` and friends).
+
+    An element is a kind (the name of the picture) and its templates. A
+    plain string is accepted as the ``html`` template of the element, so a
+    theme may write either shape.
+    """
+    if section is None:
+        return {}
+    if not isinstance(section, dict):
+        raise ThemeError([CardIssue("theme_document_shape")])
+    parsed: dict[str, Any] = {}
+    for kind, entry in section.items():
+        if isinstance(entry, str):
+            parsed[str(kind)] = {"html": entry}
+            continue
+        if not isinstance(entry, dict):
+            continue
+        parsed[str(kind)] = {
+            str(key): str(value)
+            for key, value in entry.items()
+            if isinstance(value, str) and value.strip()
+        }
+    return parsed
 
 
 def _parse_pings(section: Any) -> dict[str, bool]:
@@ -432,6 +470,7 @@ def _baseline_tokens() -> dict[str, Any]:
         "star_tier_emoji": dict(theme.star_tier_emoji),
         "color_panel": dict(getattr(theme, "color_panel", {}) or {}),
         "snapshot": dict(getattr(theme, "snapshot", {}) or {}),
+        "elements": dict(getattr(theme, "elements", {}) or {}),
         "panels": dict(getattr(theme, "panels", {}) or {}),
     }
 
@@ -457,6 +496,7 @@ def _build_theme(name: str, layers: _Layers) -> RosemaryTheme:
         color_panel=tokens["color_panel"],
         snapshot=tokens["snapshot"],
         panels=tokens["panels"],
+        elements=tokens["elements"],
         deltas=layers.deltas,
         # The frames of the built-in package are always available: a theme
         # may name them without extending the default one.
@@ -587,7 +627,10 @@ def _merge_layers(base: _Layers, overlay: _Layers) -> _Layers:
         out.deltas[key] = doc
     for key, doc in overlay.deltas.items():
         current = out.deltas.get(key)
-        out.deltas[key] = merge(current, doc) if current else dict(doc)
+        merged = merge(current, doc) if current else dict(doc)
+        # A slot the child removes (``null``) keeps saying so: the null is
+        # what removes the slot of the packaged document.
+        out.deltas[key] = keep_removals(doc, merged)
     for key in out.deltas:
         out.cards.pop(key, None)
     return out

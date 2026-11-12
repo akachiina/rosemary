@@ -1,6 +1,9 @@
 {
   "content": null,
   "embed": null,
+  "files": [
+    "author_a1ca080c4632.png"
+  ],
   "form": "card",
   "key": "invites.stats",
   "pings": [
@@ -15,17 +18,13 @@
           "type": "TextDisplay"
         },
         {
-          "accessory": {
-            "type": "Thumbnail",
-            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-          },
           "children": [
             {
-              "content": "**@you**",
-              "type": "TextDisplay"
+              "type": "MediaGalleryItem",
+              "url": "attachment://author_a1ca080c4632.png"
             }
           ],
-          "type": "Section"
+          "type": "MediaGallery"
         },
         {
           "content": "# 📊 Convites de <@0>",

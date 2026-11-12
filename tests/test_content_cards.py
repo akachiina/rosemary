@@ -14,6 +14,7 @@ from card_forms import (
     payload_accent,
     payload_author_icon,
     payload_image,
+    payload_strip,
     payload_texts,
     payload_thumbnail,
 )
@@ -264,8 +265,10 @@ async def test_starboard_card_resolves_via_document():
     )
     texts = payload_texts(payload)
     assert any("mensagem estrelada" in text for text in texts)
-    # The attribution is the author line, with the member's display name.
-    assert any(text == "**Ana**" for text in texts), texts
+    # The attribution is the author line: the drawn strip carries the
+    # member's display name (and the picture).
+    assert payload_strip(payload).startswith("attachment://author_")
+    assert not any(text == "**Ana**" for text in texts), texts
     assert not any("<@" in text for text in texts)
 
 
@@ -310,14 +313,19 @@ async def test_serverinfo_card_resolves_via_document():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    assert any("Overdose Community" in text for text in texts)
+    # The name of the server lives in the drawn strip (the author line is
+    # a picture, not a line of text).
+    assert payload_strip(payload).startswith("attachment://author_")
+    assert not any("Overdose Community" in text for text in texts), texts
     # The document carries the stat rows (channel breakdown, verification).
     assert any("34" in text and "12" in text for text in texts), texts
     assert any("120" in text and "10" in text for text in texts), texts
     assert any("Médio" in text for text in texts), texts
-    # Exactly one icon: the server icon rides the author line, not a thumbnail.
-    assert payload_author_icon(payload) == "https://a.b/icon.png"
-    assert payload_thumbnail(payload) == "https://a.b/icon.png"
+    # Exactly one icon: the server icon rides the author line (the drawn
+    # strip), the banner rides the image.
+    assert payload_strip(payload).startswith("attachment://author_")
+    assert payload_author_icon(payload) == ""
+    assert payload_thumbnail(payload) == ""
     assert payload_image(payload) == "https://a.b/banner.png"
 
 
@@ -357,7 +365,9 @@ async def test_serverinfo_card_degrades_without_banner_and_icon():
     texts = payload_texts(payload)
     assert any("Serv" in text for text in texts)
     assert not any("servidor de testes" in text for text in texts)
-    # No icon, no banner: no empty image rides the card.
+    # No icon, no banner: no empty image rides the card (the strip draws
+    # the initial of the server's name).
+    assert payload_strip(payload).startswith("attachment://author_")
     assert payload_author_icon(payload) == ""
     assert payload_thumbnail(payload) == ""
     assert payload_image(payload) == ""

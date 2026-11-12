@@ -121,7 +121,12 @@ async def test_event_titles_are_not_double_decorated():
 async def test_event_document_has_avatar_author_and_footer():
     """The event documents: the member owns the author line and the footer
     names the server, the count and the id (the id in inline code)."""
-    from card_forms import payload_author_icon, payload_footer_lines, payload_texts
+    from card_forms import (
+        payload_author_icon,
+        payload_footer_lines,
+        payload_strip,
+        payload_texts,
+    )
     from golden_cards import make_bot
 
     from rosemary.core.card_service import render_card_message
@@ -151,9 +156,10 @@ async def test_event_document_has_avatar_author_and_footer():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    # The author line: the name in bold, the avatar as the picture.
-    assert "**Ana**" in texts, texts
-    assert payload_author_icon(payload) == "https://a.b/ana.png"
+    # The author line: the drawn strip carries the name and the picture.
+    assert payload_strip(payload).startswith("attachment://author_")
+    assert "**Ana**" not in texts, texts
+    assert payload_author_icon(payload) == ""
     # The footer names the server, the count and the id (in inline code).
     assert "Serv · #3 · `5`" in payload_footer_lines(payload)
 

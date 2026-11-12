@@ -63,6 +63,20 @@ class Author:
 
 
 @dataclass(frozen=True)
+class Element:
+    """A drawn element of a card: a picture the bot renders for it.
+
+    The picture rides the message as an attachment and the card points at
+    it (``attachment://<filename>``). The kind names the element (the
+    ``author`` strip), so the serializer knows what to draw where.
+    """
+
+    kind: str
+    attachment: str = ""
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class Action:
     """One button: a link, a registered action or a code-owned picker."""
 
@@ -186,6 +200,10 @@ class Card:
     #: a theme can stack several boxes in a single message. An empty tuple
     #: means the card's own slots describe its single embed.
     embeds: tuple[Card, ...] = ()
+    #: The pictures the bot draws for the card (the author strip). They ride
+    #: the message as attachments and replace the slot they stand for (the
+    #: strip replaces the author line).
+    elements: tuple[Element, ...] = ()
     #: The names the card receives (its contract). A name of the contract is
     #: reserved: when the send site does not provide it, the placeholder
     #: stays literal instead of falling back to a theme emoji with the same

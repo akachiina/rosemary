@@ -15,6 +15,7 @@ from card_forms import (
     payload_author_icon,
     payload_footer_lines,
     payload_image,
+    payload_strip,
     payload_texts,
 )
 from catalog import load_catalog
@@ -328,9 +329,11 @@ async def test_card_renders_title_body_counts_and_hint(tmp_path):
     assert any(text == "# Suggestion #1" for text in texts), texts
     assert any("more emojis please" in text for text in texts), texts
     assert any("⬆️ 0 · ⬇️ 0" in text for text in texts), texts
-    # The subject owns the author line; the hint names the localized command.
-    assert any(text == "**Author**" for text in texts), texts
-    assert payload_author_icon(payload) == "https://cdn.discordapp.com/embed/avatars/0.png"
+    # The subject owns the author line: the drawn strip carries the name
+    # and the picture; the hint names the localized command.
+    assert payload_strip(payload).startswith("attachment://author_")
+    assert not any(text == "**Author**" for text in texts), texts
+    assert payload_author_icon(payload) == ""
     footer = "\n".join(payload_footer_lines(payload))
     assert "/suggest" in footer
     assert "<@7>" not in footer and "<t:" not in footer

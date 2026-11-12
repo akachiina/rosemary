@@ -300,6 +300,47 @@ snapshot:
   image: |
     <img class="attachment" src="{image}" style="border-radius: 4px; margin-top: 8px; max-width: 320px; max-height: 240px;" />
 
+# elements: the pictures the bot draws for a card.
+# The card's own vocabulary decides when a picture is drawn (a card that
+# names an author gets the `author` strip): a theme that does not want it
+# removes the author (`cards.<key>.author: null`).
+#   author - the strip of the author line (the picture and the name). The
+#            values are {name} (the display name), {avatar} (the picture as
+#            a data URI), {initial} (the first letter of the name) and
+#            {accent} (the accent of the card, as a hex color).
+# WeasyPrint speaks a CSS subset: inline-block renders faithfully, flexbox
+# and grid do not.
+elements:
+  author:
+    html: |
+      <style>
+      @page { size: 640px 128px; margin: 0; background: transparent; }
+      html, body { margin: 0; padding: 0; background: transparent; }
+      .strip {
+        display: inline-block;
+        background: #2b2d31;
+        border-left: 6px solid {accent};
+        border-radius: 18px;
+        padding: 14px 32px 14px 14px;
+      }
+      .avatar {
+        width: 84px;
+        height: 84px;
+        border-radius: 50%;
+        vertical-align: middle;
+      }
+      .name {
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 20px;
+        font-family: "Segoe UI", "Ubuntu", "Noto Sans", sans-serif;
+        font-size: 34px;
+        font-weight: 700;
+        color: #ffffff;
+      }
+      </style>
+      <div class="strip"><img class="avatar" src="{avatar}" /><span class="name">{name}</span></div>
+
 # panels: the chrome of the interactive surfaces (the menus and the panels).
 # Every panel inherits this frame: the header, the body, the footer and the
 # navigation. Restyling all of them is one edit here.

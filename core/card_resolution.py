@@ -162,7 +162,11 @@ async def _delta_cards(
     one). A broken delta never breaks a send: the card falls back to the
     packaged document.
     """
-    from rosemary.core.documents.merge import DocumentError, resolve_document
+    from rosemary.core.documents.merge import (
+        DocumentError,
+        keep_removals,
+        resolve_document,
+    )
     from rosemary.core.documents.semantic import build_cards
     from rosemary.core.documents.templates import Resolver
     from rosemary.core.theme_package import default_package
@@ -175,10 +179,13 @@ async def _delta_cards(
         return None
     theme = theme_for(bot, guild_id)
     try:
-        resolved = resolve_document(
+        resolved = keep_removals(
             delta,
-            getattr(theme, "archetypes", {}) or {},
-            getattr(theme, "fragments", {}) or {},
+            resolve_document(
+                delta,
+                getattr(theme, "archetypes", {}) or {},
+                getattr(theme, "fragments", {}) or {},
+            ),
         )
         merged = _merge_delta(base, resolved)
     except DocumentError as exc:

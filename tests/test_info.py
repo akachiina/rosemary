@@ -16,6 +16,7 @@ from card_forms import (
     payload_author_icon,
     payload_image,
     payload_pictures,
+    payload_strip,
     payload_texts,
     payload_thumbnail,
 )
@@ -119,15 +120,17 @@ async def test_userinfo_card_renders_full_and_degraded():
     }
     payload = await _build_and_render(bot, "utility.userinfo", full)
     texts = payload_texts(payload)
-    assert any("Ana" in t for t in texts)
+    # The name of the member lives in the drawn strip (the author line is
+    # a picture, not a line of text).
+    assert payload_strip(payload).startswith("attachment://author_")
+    assert not any("Ana" in t for t in texts), texts
     assert any("aninha" in t for t in texts), texts
     assert any("<@&7>" in t for t in texts)
-    # The avatar rides the author line and the banner the image: two
-    # pictures, one of each.
-    assert "ana.png" in payload_author_icon(payload)
+    # The avatar rides the author line (the drawn strip) and the banner the
+    # image: two pictures, one of each.
+    assert payload_strip(payload).startswith("attachment://author_")
     assert "banner.png" in payload_image(payload)
     assert payload_pictures(payload) == [
-        "https://a.b/ana.png",
         "https://a.b/banner.png",
     ]
     # No raw keys leak into the card (the created_at_label regression).
@@ -147,9 +150,10 @@ async def test_userinfo_card_renders_full_and_degraded():
     assert not any("aninha" in t for t in texts)
     assert not any("<@&7>" in t for t in texts)
     assert payload_image(payload) == ""
-    # No avatar -> no author icon at all (never an empty one).
+    # No avatar -> the strip draws the initial, never an empty accessory.
     plain = {**bare, "user_avatar": ""}
     payload = await _build_and_render(bot, "utility.userinfo", plain)
+    assert payload_strip(payload).startswith("attachment://author_")
     assert payload_author_icon(payload) == ""
 
 

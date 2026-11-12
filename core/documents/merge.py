@@ -96,6 +96,26 @@ def _appended_items(value: Any) -> list[Any] | None:
     return copy.deepcopy(items)
 
 
+def keep_removals(source: Mapping[str, Any], resolved: dict[str, Any]) -> dict[str, Any]:
+    """Keep the slots a document removes (``null``) in the resolved document.
+
+    Resolving a document drops a null (it removes the inherited key), but a
+    theme that removes a slot of the packaged document must keep saying so
+    after the resolution: the null is what removes it. The helper puts the
+    removals back, so the merge that follows removes the inherited slot.
+    """
+    for name, value in source.items():
+        if value is None and name not in resolved:
+            resolved[name] = None
+    messages = resolved.get("messages")
+    raw = source.get("messages")
+    if isinstance(messages, list) and isinstance(raw, list):
+        for entry, origin in zip(messages, raw, strict=False):
+            if isinstance(entry, dict) and isinstance(origin, Mapping):
+                keep_removals(origin, entry)
+    return resolved
+
+
 def resolve_layers(
     doc: Mapping[str, Any],
     archetypes: Mapping[str, Mapping[str, Any]],
@@ -174,6 +194,7 @@ __all__ = [
     "EXCLUSIVE_SLOTS",
     "ITEMS_KEY",
     "DocumentError",
+    "keep_removals",
     "merge",
     "resolve_document",
     "resolve_layers",

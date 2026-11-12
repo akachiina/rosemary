@@ -17,7 +17,9 @@ Discord.
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
+import io
 import logging
 from typing import Any
 
@@ -48,7 +50,7 @@ from rosemary.core.cards import (
     validate_document,
 )
 from rosemary.core.design.compile import compile_card
-from rosemary.core.design.ir import Action, Author, Card, Field
+from rosemary.core.design.ir import Action, Author, Card, Element, Field
 from rosemary.core.design.serialize import card_to_embeds, card_to_text, card_to_v2
 from rosemary.core.identity import event_time, inject_identities
 from rosemary.core.themes import theme_for
@@ -228,9 +230,10 @@ async def render_card_messages(
             # The card has no copy (the catalog has none for it): there is
             # nothing to say, so the message does not exist.
             continue
+        drawn, files = await _draw_elements(bot, guild_id, compiled.card, theme)
         try:
             payload, content = _payload_for_card(
-                bot, guild_id, key, compiled.card, theme, mapping
+                bot, guild_id, key, drawn, theme, mapping, files=files
             )
         except CardsError as exc:
             log.warning(
@@ -290,6 +293,7 @@ def _payload_for_card(
     card: Card,
     theme: Any,
     mapping: dict[str, Any],
+    files: list[discord.File] | None = None,
 ) -> tuple[CardPayload, str]:
     """The payload of a compiled card, in the shape it ships in.
 
@@ -298,6 +302,9 @@ def _payload_for_card(
     travels in the message content), the Components V2 form pings through
     the ids of that same line (its opening phrase) and the ids the compiler
     collected.
+
+    ``files`` are the pictures the bot drew for the card (the author
+    strip): they ride the message and the card points at them.
     """
     from rosemary.core.mentions import theme_pings
 
@@ -324,7 +331,12 @@ def _payload_for_card(
         if not content and theme_pings(bot, guild_id, key):
             content = card.ping_line
         return (
-            CardPayload(embeds=tuple(embeds), view=view, content=content or None),
+            CardPayload(
+                embeds=tuple(embeds),
+                view=view,
+                content=content or None,
+                files=list(files or ()),
+            ),
             content,
         )
     # The opening line of a Components V2 card: the event sentence (the
@@ -338,7 +350,78 @@ def _payload_for_card(
     view = render_document(
         bot, document, mapping, guild_id=guild_id, card_key=key, resolved=True
     )
-    return CardPayload(view=view), line
+    return CardPayload(view=view, files=list(files or ())), line
+
+
+async def _draw_elements(
+    bot,
+    guild_id: int,
+    card: Card,
+    theme: Any,
+) -> tuple[Card, list[discord.File]]:
+    """The pictures the bot draws for a card (the author strip).
+
+    The trigger is the card's own vocabulary: a card that names an author
+    (``author``/``author_icon``) gets the strip the theme draws for it. A
+    theme that does not want it removes the author (``cards.<key>.author:
+    null``), and a host without the renderer keeps the native author line.
+
+    Returns the card (with its elements) and the files that ride the
+    message.
+    """
+    from rosemary.core.render.elements import (
+        AUTHOR,
+        DRAW_TIMEOUT,
+        element_filename,
+        render_element,
+    )
+    from rosemary.core.render.identity import Identity, identity_key, identity_values
+
+    if card.form != FORM_CARD or card.author is None or not card.author.name:
+        return card, []
+    template = _element_template(theme, AUTHOR)
+    if not template:
+        return card, []
+    identity = Identity(name=card.author.name, avatar_url=card.author.icon_url)
+    accent = _accent_hex(card.color, theme)
+    values = await identity_values(identity, accent=accent)
+    try:
+        png = await asyncio.wait_for(
+            asyncio.to_thread(render_element, AUTHOR, template, values), DRAW_TIMEOUT
+        )
+    except TimeoutError:
+        log.warning("the drawn element of %s took too long", card.key)
+        return card, []
+    if not png:
+        # The renderer is unavailable or the picture is blank: the card
+        # keeps its native author line.
+        return card, []
+    filename = element_filename(AUTHOR, identity_key(identity, accent))
+    element = Element(kind=AUTHOR, attachment=f"attachment://{filename}")
+    files = [discord.File(io.BytesIO(png), filename=filename)]
+    return dataclasses.replace(card, elements=(element,)), files
+
+
+def _element_template(theme: Any, kind: str) -> str:
+    """The template the theme writes for one drawn element."""
+    elements = getattr(theme, "elements", {}) or {}
+    entry = elements.get(kind) or {}
+    if isinstance(entry, str):
+        return entry
+    return str(entry.get("html") or "")
+
+
+def _accent_hex(color: str, theme: Any) -> str:
+    """The accent of a card as a hex color (the strip paints with it)."""
+    token = (color or "").strip()
+    if not token:
+        return ""
+    if token.startswith("#"):
+        return token
+    try:
+        return f"#{theme.color(token).value:06x}"
+    except KeyError:
+        return ""
 
 
 async def _allowed_for_card(

@@ -1,6 +1,9 @@
 {
   "content": null,
   "embed": null,
+  "files": [
+    "author_a1dd3166884b.png"
+  ],
   "form": "card",
   "key": "utility.userinfo",
   "pings": [],
@@ -9,17 +12,13 @@
       "accent": "#57f287",
       "children": [
         {
-          "accessory": {
-            "type": "Thumbnail",
-            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
-          },
           "children": [
             {
-              "content": "**@you**",
-              "type": "TextDisplay"
+              "type": "MediaGalleryItem",
+              "url": "attachment://author_a1dd3166884b.png"
             }
           ],
-          "type": "Section"
+          "type": "MediaGallery"
         },
         {
           "content": "# Informações do Membro",

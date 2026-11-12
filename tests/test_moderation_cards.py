@@ -19,7 +19,7 @@ from card_forms import (
     payload_accent,
     payload_author_icon,
     payload_footer_lines,
-    payload_pictures,
+    payload_strip,
     payload_texts,
 )
 
@@ -126,16 +126,18 @@ async def test_warnings_card_layout_and_state_color(variables, style, tmp_path):
     assert payload_accent(payload) == bot.theme.color(state_color).value
     assert any(text == f"# {variables['title']}" for text in texts), texts
     assert any(variables["body"] in text for text in texts), texts
-    # The author line: the name in bold, the avatar as the picture.
-    assert any(text == f"**{variables['user_name']}**" for text in texts), texts
-    assert payload_author_icon(payload) == variables["user_avatar"]
+    # The author line: the drawn strip carries the name and the picture.
+    assert payload_strip(payload).startswith("attachment://author_")
+    assert not any(text == f"**{variables['user_name']}**" for text in texts), texts
+    assert payload_author_icon(payload) == ""
     # The date closes the card, readable and free of raw tokens.
     footer = "\n".join(payload_footer_lines(payload))
     assert "<@" not in footer and "<t:" not in footer
 
 
-async def test_warnings_card_without_avatar_omits_author_icon(tmp_path):
-    """A missing avatar must degrade to plain text, never an empty accessory."""
+async def test_warnings_card_without_avatar_still_draws_the_strip(tmp_path):
+    """A missing avatar never leaves an empty accessory: the strip draws the
+    initial of the name instead."""
     from rosemary.core.card_service import render_card_message
 
     bot = _card_bot(tmp_path)
@@ -144,8 +146,8 @@ async def test_warnings_card_without_avatar_omits_author_icon(tmp_path):
         bot, 1, "moderation.warnings", {**bare, "state_color": "warning"}
     )
     assert payload is not None
+    assert payload_strip(payload).startswith("attachment://author_")
     assert payload_author_icon(payload) == ""
-    assert payload_pictures(payload) == []
 
 
 async def test_warnings_card_color_follows_theme_style(tmp_path):
