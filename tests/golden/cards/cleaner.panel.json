@@ -9,7 +9,7 @@
       "accent": "#f1c40f",
       "children": [
         {
-          "content": "# Limpeza de mensagens",
+          "content": "**Limpeza de mensagens**",
           "type": "TextDisplay"
         },
         {

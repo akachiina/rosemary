@@ -9,7 +9,7 @@
       "accent": "#57f287",
       "children": [
         {
-          "content": "# Gerenciar Cores",
+          "content": "**Gerenciar Cores**",
           "type": "TextDisplay"
         },
         {

@@ -257,8 +257,10 @@ def _message_snapshot(message: Any) -> dict[str, Any]:
     payload = getattr(message, "payload", None)
     allowed = getattr(message, "allowed", None)
     pings: list[int] = []
+    role_pings: list[int] = []
     if allowed is not None:
         pings = sorted(allowed.to_dict().get("users") or [])
+        role_pings = sorted(allowed.to_dict().get("roles") or [])
     stack = _embeds_snapshot(payload)
     files = [
         str(getattr(item, "filename", ""))
@@ -272,6 +274,7 @@ def _message_snapshot(message: Any) -> dict[str, Any]:
         **({"files": files} if files else {}),
         "view": _view_snapshot(payload),
         "pings": pings,
+        **({"role_pings": role_pings} if role_pings else {}),
     }
 
 

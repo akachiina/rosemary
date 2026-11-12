@@ -4,12 +4,19 @@
   "form": "card",
   "key": "bump.reminder",
   "pings": [],
+  "role_pings": [
+    0
+  ],
   "view": [
+    {
+      "content": "<@&0>",
+      "type": "TextDisplay"
+    },
     {
       "accent": "#57f287",
       "children": [
         {
-          "content": "# ⏰ Hora do Bump!",
+          "content": "**⏰ Hora do Bump!**",
           "type": "TextDisplay"
         },
         {

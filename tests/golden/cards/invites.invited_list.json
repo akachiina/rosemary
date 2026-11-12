@@ -21,7 +21,7 @@
           "type": "MediaGallery"
         },
         {
-          "content": "# Membros convidados por <@0>",
+          "content": "**Membros convidados por <@0>**",
           "type": "TextDisplay"
         },
         {

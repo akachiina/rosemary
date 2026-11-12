@@ -144,14 +144,15 @@ async def test_restart_skips_without_a_bump(tmp_path):
     assert not cog._schedule_reminder.called
 
 
-async def test_send_reminder_separates_content_and_view(tmp_path):
+async def test_send_reminder_sends_the_ping_with_the_card(tmp_path):
     """Regression: send_reminder must never pass content and a V2 view in the
     same channel.send() call, or py-cord raises:
 
         TypeError: cannot send embeds or content with a view using v2 component logic
 
-    The reminder must send content (role ping) and the DesignerView in two
-    separate calls.
+    The role ping rides the opening line of the card (a TextDisplay of the
+    V2), so the reminder is ONE message and it never carries a content
+    beside the view.
     """
     import rosemary.cogs.bump_reminder as mod
     from rosemary.cogs.bump_reminder import BumpReminderCog
@@ -195,19 +196,17 @@ async def test_send_reminder_separates_content_and_view(tmp_path):
         mod.get_setting = orig_get_setting
         mod.send_log = orig_send_log
 
-    # Two send calls: one for the role ping, one for the card alone.
-    assert channel.send.await_count == 2
+    # One send call: the ping travels in the card, never in a message of
+    # its own.
+    assert channel.send.await_count == 1
 
-    first_call = channel.send.await_args_list[0]
-    second_call = channel.send.await_args_list[1]
+    call = channel.send.await_args_list[0]
 
-    # First call: content only (no card)
-    assert first_call.args[0] == "<@&42>"
-    assert first_call.kwargs.get("embed") is None
-
-    # Second call: the card alone (no content): the reminder is an embed.
-    assert second_call.kwargs.get("embed") is not None
-    assert len(second_call.args) == 0
+    # The card alone (no content beside it): the reminder is an embed.
+    assert call.kwargs.get("embed") is not None
+    assert len(call.args) == 0
+    # The role may ping: the policy carries the role the card names.
+    assert call.kwargs["allowed_mentions"].to_dict()["roles"] == [42]
 
     cog.store.mark_reminder_sent.assert_awaited_once_with(1)
 

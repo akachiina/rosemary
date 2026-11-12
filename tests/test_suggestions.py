@@ -326,7 +326,8 @@ async def test_card_renders_title_body_counts_and_hint(tmp_path):
     )
     assert payload is not None
     texts = payload_texts(payload)
-    assert any(text == "# Suggestion #1" for text in texts), texts
+    # The title is a bold line (the size of the title of an embed).
+    assert any(text == "**Suggestion #1**" for text in texts), texts
     assert any("more emojis please" in text for text in texts), texts
     assert any("⬆️ 0 · ⬇️ 0" in text for text in texts), texts
     # The subject owns the author line: the drawn strip carries the name

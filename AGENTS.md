@@ -50,7 +50,9 @@ interactive UI).
   author strip) records the file that rides the message in the `files` field
   and the gallery points at it; the fixtures never touch the network
   (`tests/golden_cards.py::offline_pictures` answers the avatar download with
-  a fixed picture), so the pixels stay out of the snapshot.
+  a fixed picture), so the pixels stay out of the snapshot. The mentions the
+  message may notify are pinned too: `pings` holds the users and `role_pings`
+  the roles (the field only appears when there is one).
 - **Golden panels**: `tests/golden/panels/<name>.json` pins what every
   representative panel shows (the texts, the buttons and the selects, with the
   label, the description, the icon and the current default). After a
@@ -414,7 +416,10 @@ holds **only** the model and its two ends (the meta de 900 linhas):
   embed serializer writes neither. The **opening line** (the `content_line`
   or the `ping_line`) rides a block of its own, **above the container**: the
   sentence the embed carried in the message content stays outside the frame,
-  it is not swallowed by the card.
+  it is not swallowed by the card. The **title** is a bold line (the size of
+  the title of an embed), never a heading: the dialect comes from the theme
+  (`markdown.title`, `**{title}**` in the default), so a theme may shout
+  louder if it wants to.
 - The **readers** live outside the package, in `core/documents/`: the strict
   document (`semantic.py`), the legacy one (`legacy.py`), the templates
   (`templates.py`) and the merge of the layers (`merge.py`). The loader of the
@@ -443,7 +448,11 @@ at it (`attachment://<filename>`) through a media gallery.
   `element_filename`), the cache and the rasterizer (WeasyPrint to PDF,
   PyMuPDF to a transparent PNG, the pipeline of the color panel). The picture
   is scaled to the **display size** (`MAX_WIDTH`/`MAX_HEIGHT`): the strip is
-  an author line, so it is small on the screen.
+  an author line, so it is small on the screen. `MAX_WIDTH` is the **button**
+  of the strip (the width of the PNG): the whole picture scales to it, so the
+  avatar and the name shrink together and keep the proportion the theme
+  wrote. The size of one piece of it is the theme's business (the CSS of the
+  template), never the code's.
 - `core/render/identity.py`: who the card is about (the display name, the
   avatar as a **data URI**: the renderer draws a document, it does not
   browse the web). The fetch happens in a **daemon thread** and the card
@@ -467,7 +476,10 @@ at it (`attachment://<filename>`) through a media gallery.
   (`elements.author.html`): the values are `{name}`, `{avatar}`, `{initial}`
   and `{accent}`. The strip is a **transparent** picture: it draws the avatar
   and the name and nothing else, so it takes the color of the message behind
-  it. WeasyPrint speaks a CSS subset: `inline-block` renders faithfully,
+  it. The template writes the **proportion** of the pieces (the default one
+  keeps the author line of an embed: a 24px icon and a 14px name in the final
+  PNG), the code writes the **size** of the picture (`MAX_WIDTH`, the button).
+  WeasyPrint speaks a CSS subset: `inline-block` renders faithfully,
   flexbox and grid do not.
 - The removal of the author survives the resolution of the layers
   (`core/documents/merge.py::keep_removals`), so it also removes the slot of
@@ -621,6 +633,13 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   copy of the feature) or from the send site (the `{title}` and `{body}`
   variables). A body of several paragraphs uses the `paragraphs` slot (the
   about card: the text and the version line).
+- The **bump reminder is one message**: the role ping rides the `ping_line`
+  of the document (the opening line, the first block of the V2, above the
+  frame), so `cogs/bump_reminder.py::send_reminder` sends the card alone and
+  never a separate ping message ahead of it. The mention policy follows the
+  line (`allowed_for_text` reads the `<@&id>` of it) and the theme's `pings:`
+  toggle still governs it. A retry re-sends the whole message (the ping
+  included), the risk the card already had when it shipped alone.
 - The listings' goldens changed for `bump.no_bumps`, `bump.reminder` and
   `trap.notice`: the legacy converter broke the body into lines to hunt the
   fields and dropped the blank lines with it, so the card showed less than

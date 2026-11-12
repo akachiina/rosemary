@@ -28,12 +28,13 @@ AUTHOR = "author"
 #: draws many).
 CACHE_SIZE = 128
 
-#: The size of the drawn picture (the pixels Discord shows). The strip is
-#: an author line, so it is small: the picture is scaled down to this size
-#: whatever the template asks for, and the avatar and the name keep the
-#: proportions the theme wrote.
-MAX_WIDTH = 260
-MAX_HEIGHT = 90
+#: The size of the drawn picture (the pixels Discord shows). This is the
+#: button of the strip: the whole picture is scaled to this width, so the
+#: avatar and the name shrink together and keep the proportion the theme
+#: wrote. The strip is an author line, so it is small: the author line of
+#: an embed is a 24px icon and a 14px name.
+MAX_WIDTH = 240
+MAX_HEIGHT = 120
 
 #: The budget of one drawing (seconds). The document is local (the picture
 #: is a data URI), so the renderer never waits on the network: the budget is

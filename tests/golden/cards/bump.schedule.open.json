@@ -4,5 +4,8 @@
   "form": "text",
   "key": "bump.schedule.open",
   "pings": [],
+  "role_pings": [
+    0
+  ],
   "view": []
 }

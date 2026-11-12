@@ -9,7 +9,7 @@
       "accent": "#57f287",
       "children": [
         {
-          "content": "# Precisa de ajuda? Abra um ticket",
+          "content": "**Precisa de ajuda? Abra um ticket**",
           "type": "TextDisplay"
         },
         {

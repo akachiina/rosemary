@@ -9,7 +9,7 @@
       "accent": "#57f287",
       "children": [
         {
-          "content": "# Gerenciar gifs",
+          "content": "**Gerenciar gifs**",
           "type": "TextDisplay"
         },
         {

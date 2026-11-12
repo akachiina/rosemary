@@ -180,26 +180,28 @@ async def test_send_reminder_no_retry_on_http_exception(real_cog_factory):
     assert state["reminder_sent"] is False
 
 
-async def test_send_reminder_pings_once_when_card_send_retries(
-    real_cog_factory, monkeypatch
-):
-    """A retry must not re-ping the role: the ping message is sent only once."""
+async def test_send_reminder_sends_the_ping_with_the_card(real_cog_factory, monkeypatch):
+    """The role ping rides the card: the reminder is one message.
+
+    A retry re-sends that whole message (the ping included), which is the
+    risk the card already had when it shipped alone.
+    """
     channel = _ok_channel()
-    # First call (role ping) succeeds; second (card) fails once, then succeeds.
-    channel.send = AsyncMock(
-        side_effect=[None, OSError(-2, "boom"), None]
-    )
+    # The first attempt fails, the second one goes through.
+    channel.send = AsyncMock(side_effect=[OSError(-2, "boom"), None])
     cog, mod = real_cog_factory(_settings_map(**{"bump.ping_role": 42}), channel)
     monkeypatch.setattr(mod, "SEND_RETRY_DELAY", 0.0)
     await cog.store.record_bump(1, 123)
 
     await cog.send_reminder(1)
 
-    assert channel.send.await_count == 3
-    ping_texts = [
-        c.args[0] for c in channel.send.await_args_list if c.args and c.args[0]
-    ]
-    assert ping_texts == ["<@&42>"]
+    # One message per attempt: no separate ping message rides ahead of the
+    # card, so the retry never doubles the ping on its own.
+    assert channel.send.await_count == 2
+    for call in channel.send.await_args_list:
+        assert not call.args, call
+        allowed = call.kwargs["allowed_mentions"]
+        assert allowed.to_dict()["roles"] == [42]
 
 
 # ---------------------------------------------------------------------------

@@ -124,7 +124,8 @@ async def test_warnings_card_layout_and_state_color(variables, style, tmp_path):
     assert payload is not None
     texts = payload_texts(payload)
     assert payload_accent(payload) == bot.theme.color(state_color).value
-    assert any(text == f"# {variables['title']}" for text in texts), texts
+    # The title is a bold line (the size of the title of an embed).
+    assert any(text == f"**{variables['title']}**" for text in texts), texts
     assert any(variables["body"] in text for text in texts), texts
     # The author line: the drawn strip carries the name and the picture.
     assert payload_strip(payload).startswith("attachment://author_")

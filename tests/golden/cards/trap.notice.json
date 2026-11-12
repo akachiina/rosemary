@@ -9,7 +9,7 @@
       "accent": "#e74c3c",
       "children": [
         {
-          "content": "# Aviso do canal armadilha",
+          "content": "**Aviso do canal armadilha**",
           "type": "TextDisplay"
         },
         {

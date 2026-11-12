@@ -9,7 +9,7 @@
       "accent": "#57f287",
       "children": [
         {
-          "content": "# Sobre a Rosemary",
+          "content": "**Sobre a Rosemary**",
           "type": "TextDisplay"
         },
         {

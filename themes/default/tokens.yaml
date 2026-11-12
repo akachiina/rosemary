@@ -142,7 +142,7 @@ emojis:
 # Theme.md(name, **kwargs); the emojis above are injected automatically, so any
 # template can reference them (e.g. "{success}").
 markdown:
-  title: "# {title}"
+  title: "**{title}**"
   category: "**{category_label}:** {category}"
   entry: "**{label}:**\n{value}"
   edit_title: "# {label}"
@@ -311,7 +311,9 @@ snapshot:
 # The strip is a transparent picture: it draws the avatar and the name and
 # nothing else, so it takes the color of the message behind it. The page is
 # fixed (the picture always has the same size) and a name too long for it
-# ends with an ellipsis.
+# ends with an ellipsis. The avatar and the name keep the proportion of the
+# author line of an embed (24:14): the size of the picture is the button
+# (the width of the PNG), never the size of one piece of it.
 # WeasyPrint speaks a CSS subset: inline-block renders faithfully, flexbox
 # and grid do not.
 elements:
@@ -326,8 +328,8 @@ elements:
         background: transparent;
       }
       .avatar {
-        width: 56px;
-        height: 56px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         vertical-align: middle;
       }
@@ -340,7 +342,7 @@ elements:
         text-overflow: ellipsis;
         white-space: nowrap;
         font-family: "Segoe UI", "Ubuntu", "Noto Sans", sans-serif;
-        font-size: 24px;
+        font-size: 28px;
         font-weight: 600;
         color: #dbdee1;
       }

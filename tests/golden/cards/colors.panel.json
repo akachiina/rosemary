@@ -9,7 +9,7 @@
       "accent": "#57f287",
       "children": [
         {
-          "content": "# Escolha sua Cor",
+          "content": "**Escolha sua Cor**",
           "type": "TextDisplay"
         },
         {

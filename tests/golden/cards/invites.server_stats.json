@@ -9,7 +9,7 @@
       "accent": "#3498db",
       "children": [
         {
-          "content": "# 📊 Stats de Convites do Servidor",
+          "content": "**📊 Stats de Convites do Servidor**",
           "type": "TextDisplay"
         },
         {

@@ -9,7 +9,7 @@
       "accent": "#57f287",
       "children": [
         {
-          "content": "# Ticket aberto",
+          "content": "**Ticket aberto**",
           "type": "TextDisplay"
         },
         {

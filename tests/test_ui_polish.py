@@ -104,9 +104,9 @@ async def test_event_titles_are_not_double_decorated():
         },
     )
     assert payload is not None
-    # The event card is a Components V2: the title is the heading.
+    # The event card is a Components V2: the title is the bold line.
     heading = next(
-        (text for text in payload_texts(payload) if text.startswith("# ")), ""
+        (text for text in payload_texts(payload) if text.startswith("**")), ""
     )
     assert heading.count(ban_emoji) == 1, heading
 

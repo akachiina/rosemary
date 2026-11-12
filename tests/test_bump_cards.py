@@ -132,7 +132,9 @@ async def test_bump_card_layout_valid(bot):
     reminder, thanks = await _build_views(bot, guild)
     for payload in (reminder, thanks):
         texts = payload_texts(payload)
-        assert any(text.startswith("# ") for text in texts), texts
+        # The title is a bold line (the size of the title of an embed), not
+        # a heading: the card does not shout over its own body.
+        assert any(text.startswith("**") for text in texts), texts
         assert len(texts) > 1, texts
         assert payload.embed is None
 
@@ -283,7 +285,8 @@ async def test_bump_card_document_layout_and_style(
     texts = payload_texts(payload)
     # The color is the token the theme style names.
     assert payload_accent(payload) == theme_for(bot, 1).color(state_color).value
-    assert any(text.startswith("# ") for text in texts), texts
+    # The title is a bold line (the size of the title of an embed).
+    assert any(text.startswith("**") for text in texts), texts
     assert len(texts) > 1, texts
     # The subject owns the author line: the strip draws the name and the
     # picture, so the card carries no author section anymore.

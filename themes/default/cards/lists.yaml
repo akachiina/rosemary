@@ -25,8 +25,13 @@ bump.reminder:
   color: brand
   title: '{bump.messages.reminder_title}'
   description: '{bump.messages.reminder_description}'
+  # The role ping rides the opening line of the card (the first block of the
+  # V2, above the frame), so the reminder is one message: the ping and the
+  # card travel together.
+  ping_line: '{ping_role}'
   variables:
   - cooldown
+  - ping_role
   mention: role
   category: bump
 

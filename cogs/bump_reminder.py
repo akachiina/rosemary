@@ -543,46 +543,46 @@ class BumpReminderCog(commands.Cog):
             return
 
         ping_role_id = await get_setting(self.bot.storage, guild_id, "bump.ping_role")
-        content = f"<@&{ping_role_id}>" if ping_role_id else ""
+        ping_role = f"<@&{ping_role_id}>" if ping_role_id else ""
         cooldown = await get_setting(self.bot.storage, guild_id, "bump.cooldown")
         cooldown_display = TimeParser.format_duration(timedelta(seconds=cooldown))
 
         from rosemary.core.card_service import render_card_message
 
+        # The role ping rides the opening line of the card (the first block
+        # of the V2, above the frame), so the reminder is ONE message: the
+        # ping and the card travel together.
         payload, card_allowed = await render_card_message(
             self.bot,
             guild_id,
             "bump.reminder",
-            {"cooldown": cooldown_display},
+            {"cooldown": cooldown_display, "ping_role": ping_role},
         )
         if payload is None:
-            payload = await self._build_reminder_payload(guild, cooldown_display)
+            # The document did not resolve: the code fallback carries the role
+            # ping in its content (the classic form pings through the content
+            # line), and the allowed mentions follow it.
+            payload = await self._build_reminder_payload(guild, cooldown_display, ping_role)
+            try:
+                from rosemary.core.mentions import allowed_for_ids
 
-        try:
-            from rosemary.core.mentions import allowed_for_ids
-
-            # The role ping is plain content sent ahead of the card; the card
-            # itself carries no mention tokens, so its allowed stays
-            # content-driven from the render above.
-            ping_allowed = await allowed_for_ids(
-                self.bot, guild_id, "bump.reminder",
-                role_ids=[ping_role_id] if ping_role_id else [],
-            )
-        except Exception as exc:
-            log.error("Failed to prepare bump reminder in %s: %s", guild_id, exc)
-            return
+                card_allowed = await allowed_for_ids(
+                    self.bot,
+                    guild_id,
+                    "bump.reminder",
+                    role_ids=[ping_role_id] if ping_role_id else [],
+                )
+            except Exception as exc:
+                log.error("Failed to prepare bump reminder in %s: %s", guild_id, exc)
+                return
 
         # A dropped connection surfaces here as an OSError (aiohttp's DNS/socket
         # failures; asyncio.TimeoutError on stalls). Retry those briefly: the
         # outage usually lasts seconds, and without a retry the reminder would
         # be lost until a reconnect or restart re-runs recovery. Discord API
         # errors (400s, 403s, rate limits) are real failures: do not retry.
-        content_sent = False
         for attempt in range(1, SEND_RETRY_ATTEMPTS + 1):
             try:
-                if content and not content_sent:
-                    await channel.send(content, allowed_mentions=ping_allowed)
-                    content_sent = True
                 await channel.send(
                     **payload.message_kwargs(),
                     allowed_mentions=card_allowed,
@@ -695,9 +695,13 @@ class BumpReminderCog(commands.Cog):
             log.error("Failed to send bump thank you in %s: %s", guild_id, exc)
 
     async def _build_reminder_payload(
-        self, guild: discord.Guild, cooldown_display: str
+        self, guild: discord.Guild, cooldown_display: str, ping_role: str = ""
     ):
-        """The code-built reminder, in the card's own form (an embed)."""
+        """The code-built reminder, in the card's own form.
+
+        The role ping rides the opening line (the content line), so the
+        reminder is still one message.
+        """
         from rosemary.core.card_service import simple_payload
 
         title = await self.bot.translator.t(guild.id, "bump.messages.reminder_title")
@@ -712,6 +716,7 @@ class BumpReminderCog(commands.Cog):
             "bump.reminder",
             title=title,
             body=description,
+            content_line=ping_role,
             color=self.bot.theme.style("bump_reminder").color,
         )
 
@@ -722,7 +727,7 @@ class BumpReminderCog(commands.Cog):
         cooldown_display: str,
         next_bump_timestamp: int,
     ):
-        """The code-built thank-you, in the card's own form (an embed)."""
+        """The code-built thank-you, in the card's own form."""
         from rosemary.core.card_service import simple_payload
 
         title = await self.bot.translator.t(guild.id, "bump.messages.thank_you_title")

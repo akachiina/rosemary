@@ -876,7 +876,7 @@ async def test_card_shows_the_alias_as_title_and_the_number_as_footer(tmp_path):
     )
     assert payload is not None
     texts = payload_texts(payload)
-    assert "# Anonymous K7Q" in texts
+    assert "**Anonymous K7Q**" in texts
     assert "o texto" in texts
     assert payload_thumbnail(payload) == "attachment://anonimo_K7Q.png"
     assert "Confession (#55)" in payload_footer_lines(payload)
@@ -910,7 +910,7 @@ async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
     )
     assert payload is not None
     texts = payload_texts(payload)
-    assert "# Anonymous K7Q<:op_emoji:123>" in texts
+    assert "**Anonymous K7Q<:op_emoji:123>**" in texts
     assert "o texto" in texts
     # Only the reference and the number: the parent's own text never rides
     # the card (the reference links to it) and the OP emoji alone marks the
@@ -963,7 +963,7 @@ async def test_public_card_attaches_the_identicon_and_keeps_the_text(tmp_path):
     # The body is plain text in the card, not a rendered image.
     assert any("my secret" in text for text in texts), texts
     # The alias is the heading of the card and the number is the footer.
-    assert any(text.startswith("# Anonymous") for text in texts), texts
+    assert any(text.startswith("**Anonymous") for text in texts), texts
     assert any("Confession (#1)" in text for text in texts), texts
     entry = await cog.store.get(1, 111)
     assert entry is not None
