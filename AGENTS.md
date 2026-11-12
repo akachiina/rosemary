@@ -32,10 +32,9 @@ interactive UI).
   From inside this dir the `rosemary` path does not resolve (E902).
 - No CI workflows or pre-commit config here; these local commands are the gate.
 - `asyncio_mode = "auto"`: async tests need no decorator.
-  `tests/conftest.py` is the sys.path bootstrap and installs the **offline
-  policy of the pictures** (`tests/offline.py`: the avatar download answers
-  with a fixed PNG, so the suite never reaches the internet and never waits
-  on a DNS that does not answer); each test file builds its own fakes.
+  `tests/conftest.py` is the sys.path bootstrap; each test file builds its
+  own fakes. The cards draw nothing (the author line rides the native
+  thumbnail of Discord), so the suite never reaches the internet.
 - **Golden cards**: `tests/golden/cards/<key>.json` pins what every card
   renders (text, embed or V2 view), so a pipeline refactor cannot change what
   members see unnoticed. After a *deliberate* change to a card's visible
@@ -46,13 +45,11 @@ interactive UI).
   send site computes (`STATE_BY_KEY`) are filled the same way the live send
   fills them. A message that carries a stack of embeds records the boxes in
   the `embeds` field (the `embed` field keeps the first one); the field only
-  appears when there is more than one box. A card that draws a picture (the
-  author strip) records the file that rides the message in the `files` field
-  and the gallery points at it; the fixtures never touch the network
-  (`tests/golden_cards.py::offline_pictures` answers the avatar download with
-  a fixed picture), so the pixels stay out of the snapshot. The mentions the
-  message may notify are pinned too: `pings` holds the users and `role_pings`
-  the roles (the field only appears when there is one).
+  appears when there is more than one box. A file that rides the message is
+  recorded in the `files` field (no card draws one: the author line rides
+  the native thumbnail of Discord). The mentions the message may notify are
+  pinned too: `pings` holds the users and `role_pings` the roles (the field
+  only appears when there is one).
 - **Golden panels**: `tests/golden/panels/<name>.json` pins what every
   representative panel shows (the texts, the buttons and the selects, with the
   label, the description, the icon and the current default). After a
@@ -433,54 +430,24 @@ holds **only** the model and its two ends (the meta de 900 linhas):
   `resolve_embed`, `build_embed_view`): the text is final, so nothing is
   validated nor substituted twice.
 
-### The drawn elements (`core/render/`)
+### The author line (the native thumbnail)
 
-A card may carry a **drawn element**: a picture the bot rasterizes for it
-(the author strip: the avatar and the name painted by the template of the
-theme). The picture rides the message as an attachment and the card points
-at it (`attachment://<filename>`) through a media gallery.
+A card that names an author (the `author`/`author_icon` slots) draws the
+author line the way the embed does: the name in bold and the picture as the
+**accessory** of a section (the native `Thumbnail` of the Components V2). The
+YAML of the cards says nothing new, and a theme removes the line by removing
+the author (`cards.<key>.author: null`).
 
-- The **trigger is the card's own vocabulary**: a card that names an author
-  (the `author`/`author_icon` slots) gets the `author` strip. The YAML of the
-  cards says nothing new, and a theme turns the strip off by removing the
-  author (`cards.<key>.author: null`).
-- `core/render/elements.py`: the registry (`render_element`,
-  `element_filename`), the cache and the rasterizer (WeasyPrint to PDF,
-  PyMuPDF to a transparent PNG, the pipeline of the color panel). The picture
-  is scaled to the **display size** (`MAX_WIDTH`/`MAX_HEIGHT`): the strip is
-  an author line, so it is small on the screen. `MAX_WIDTH` is the **button**
-  of the strip (the width of the PNG): the whole picture scales to it, so the
-  avatar and the name shrink together and keep the proportion the theme
-  wrote. The size of one piece of it is the theme's business (the CSS of the
-  template), never the code's.
-- `core/render/identity.py`: who the card is about (the display name, the
-  avatar as a **data URI**: the renderer draws a document, it does not
-  browse the web). The fetch happens in a **daemon thread** and the card
-  waits for it at most `AVATAR_TIMEOUT` (1s): a CDN that is slow (or a host
-  whose DNS never answers) costs the card one second, never more. A picture
-  that cannot be downloaded degrades to the SVG fallback (the initial).
-- `core/card_service.py::_draw_elements` drives it: the drawing happens
-  **outside the event loop** (`asyncio.to_thread`, with the `DRAW_TIMEOUT`
-  budget) and the file rides the payload (`CardPayload.files`).
-- **The strip replaces the native author section**: the name lives inside
-  the picture, so the card says nothing about the author in its text.
-- **The degradation is the native author line**: without the renderer, without
-  a picture or with a broken template, the card keeps its author section (the
-  name in bold, the picture as the accessory). The strip never breaks a send.
-- The **code fallback** (`core/card_service.py::simple_payload`) never draws:
-  it is synchronous, so it keeps the native author line.
-- The file name is stable: it is built from what does not change (the name,
-  the address of the picture, the accent), never from the bytes of the
-  drawing.
-- The templates live in the theme's `elements:` section of `tokens.yaml`
-  (`elements.author.html`): the values are `{name}`, `{avatar}`, `{initial}`
-  and `{accent}`. The strip is a **transparent** picture: it draws the avatar
-  and the name and nothing else, so it takes the color of the message behind
-  it. The template writes the **proportion** of the pieces (the default one
-  keeps the author line of an embed: a 24px icon and a 14px name in the final
-  PNG), the code writes the **size** of the picture (`MAX_WIDTH`, the button).
-  WeasyPrint speaks a CSS subset: `inline-block` renders faithfully,
-  flexbox and grid do not.
+- `core/design/serialize.py::card_to_v2` writes the section: the name in
+  bold, the picture as the accessory when the `author_icon` resolved. A
+  missing picture leaves the name alone (never an empty accessory, which
+  Discord would reject).
+- The picture is the **native** one (the URL of the member's avatar): the
+  card never rasterizes anything, never downloads the avatar and never
+  attaches a file. The rendering is Discord's, so it looks the same on the
+  phone and on the desktop.
+- The author line is the **first block of the frame**, before the title and
+  the body, and it is a line of the card: the name is readable text.
 - The removal of the author survives the resolution of the layers
   (`core/documents/merge.py::keep_removals`), so it also removes the slot of
   the packaged document.
@@ -682,7 +649,7 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   fallback (`bot.theme`) and the selectable "default" in `/themes`. The old
   single file (`themes/<name>.yaml`) still loads: a theme = one YAML with
   `colors`/`emojis`/`markdown`/`styles` + optional `cards:`/`pings:`/
-  `color_panel:`/`snapshot:`/`elements:`. Active theme resolves via sync
+  `color_panel:`/`snapshot:`. Active theme resolves via sync
   `theme_for(bot, guild_id)` (boot snapshot).
 - **A theme extends another one** (`extends: <name>`): the chain merges from
   the root to the child (the tokens deeply, the card documents as documents:

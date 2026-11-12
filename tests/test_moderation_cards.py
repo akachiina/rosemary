@@ -19,7 +19,6 @@ from card_forms import (
     payload_accent,
     payload_author_icon,
     payload_footer_lines,
-    payload_strip,
     payload_texts,
 )
 
@@ -127,18 +126,16 @@ async def test_warnings_card_layout_and_state_color(variables, style, tmp_path):
     # The title is a bold line (the size of the title of an embed).
     assert any(text == f"**{variables['title']}**" for text in texts), texts
     assert any(variables["body"] in text for text in texts), texts
-    # The author line: the drawn strip carries the name and the picture.
-    assert payload_strip(payload).startswith("attachment://author_")
-    assert not any(text == f"**{variables['user_name']}**" for text in texts), texts
-    assert payload_author_icon(payload) == ""
+    # The author line: the name in bold and the picture as the accessory.
+    assert any(text == f"**{variables['user_name']}**" for text in texts), texts
+    assert payload_author_icon(payload) == variables["user_avatar"]
     # The date closes the card, readable and free of raw tokens.
     footer = "\n".join(payload_footer_lines(payload))
     assert "<@" not in footer and "<t:" not in footer
 
 
-async def test_warnings_card_without_avatar_still_draws_the_strip(tmp_path):
-    """A missing avatar never leaves an empty accessory: the strip draws the
-    initial of the name instead."""
+async def test_warnings_card_without_avatar_keeps_the_author_line(tmp_path):
+    """A missing avatar leaves the name in bold, without an empty accessory."""
     from rosemary.core.card_service import render_card_message
 
     bot = _card_bot(tmp_path)
@@ -147,7 +144,8 @@ async def test_warnings_card_without_avatar_still_draws_the_strip(tmp_path):
         bot, 1, "moderation.warnings", {**bare, "state_color": "warning"}
     )
     assert payload is not None
-    assert payload_strip(payload).startswith("attachment://author_")
+    texts = payload_texts(payload)
+    assert any(text == f"**{bare['user_name']}**" for text in texts), texts
     assert payload_author_icon(payload) == ""
 
 

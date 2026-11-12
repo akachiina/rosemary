@@ -1,9 +1,6 @@
 {
   "content": null,
   "embed": null,
-  "files": [
-    "author_cc6c5b373cf9.png"
-  ],
   "form": "card",
   "key": "starboard.card",
   "pings": [],
@@ -12,13 +9,17 @@
       "accent": "#f7efa8",
       "children": [
         {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
           "children": [
             {
-              "type": "MediaGalleryItem",
-              "url": "attachment://author_cc6c5b373cf9.png"
+              "content": "**@you**",
+              "type": "TextDisplay"
             }
           ],
-          "type": "MediaGallery"
+          "type": "Section"
         },
         {
           "content": "**…**",

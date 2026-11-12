@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from card_forms import payload_strip, payload_texts
+from card_forms import payload_author_icon, payload_texts
 from golden_cards import GUILD_ID, make_bot
 
 from rosemary.core.card_service import render_card_message
@@ -190,11 +190,11 @@ async def test_the_opening_line_rides_above_the_frame():
 
 
 async def test_the_author_line_rides_the_v2_card():
-    """The author line of the V2 card is the drawn strip.
+    """The author line of the V2 card is a section of its own.
 
     The embed has a frame for it (the author line); the V2 draws the name
-    and the picture as a picture of its own (the media gallery), so the card
-    keeps the attribution without a section of its own.
+    in bold and the picture as the accessory of the section (the native
+    thumbnail), so the card keeps the attribution the way the embed does.
     """
     bot = make_bot()
     payload, _allowed = await render_card_message(
@@ -202,29 +202,10 @@ async def test_the_author_line_rides_the_v2_card():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    # The name lives in the drawing, not in a line of text.
-    assert "**Ana**" not in texts, texts
-    strip = payload_strip(payload)
-    assert strip.startswith("attachment://author_"), strip
-    # The picture rides the message and the gallery points at it.
-    assert len(payload.files) == 1
-    assert payload.files[0].filename == strip.removeprefix("attachment://")
-    # The picture of the card is not an accessory anymore.
-    assert _pictures(payload.view) == []
-
-
-async def test_without_the_drawing_the_author_line_stays_native(monkeypatch):
-    """A host that cannot draw keeps the native line: the name in bold and
-    the picture as the accessory of the section."""
-    from rosemary.core.render import elements
-
-    monkeypatch.setattr(elements, "render_element", lambda *args, **kwargs: None)
-    bot = make_bot()
-    payload, _allowed = await render_card_message(
-        bot, GUILD_ID, "events.welcome", WELCOME, form="card"
-    )
-    assert payload is not None
-    texts = payload_texts(payload)
+    # The name lives in the section, in bold.
     assert "**Ana**" in texts, texts
-    assert payload_strip(payload) == ""
+    # The picture is the accessory of that section (the native thumbnail).
+    assert payload_author_icon(payload) == "https://a.b/ana.png"
+    # The card draws no picture of its own: nothing rides the message.
+    assert payload.files == []
     assert _pictures(payload.view) == ["https://a.b/ana.png"]

@@ -1,9 +1,6 @@
 {
   "content": null,
   "embed": null,
-  "files": [
-    "author_a54138f0bf01.png"
-  ],
   "form": "card",
   "key": "events.leave",
   "pings": [],
@@ -12,13 +9,17 @@
       "accent": "#f1c40f",
       "children": [
         {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
           "children": [
             {
-              "type": "MediaGalleryItem",
-              "url": "attachment://author_a54138f0bf01.png"
+              "content": "**@you**",
+              "type": "TextDisplay"
             }
           ],
-          "type": "MediaGallery"
+          "type": "Section"
         },
         {
           "content": "**🚪 Até a próxima**",

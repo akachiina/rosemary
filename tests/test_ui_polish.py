@@ -104,11 +104,11 @@ async def test_event_titles_are_not_double_decorated():
         },
     )
     assert payload is not None
-    # The event card is a Components V2: the title is the bold line.
-    heading = next(
-        (text for text in payload_texts(payload) if text.startswith("**")), ""
-    )
-    assert heading.count(ban_emoji) == 1, heading
+    # The event card is a Components V2: the title is the bold line (the
+    # author line is a bold line too, so the emoji is counted in every
+    # bold line of the card).
+    bold = [text for text in payload_texts(payload) if text.startswith("**")]
+    assert sum(text.count(ban_emoji) for text in bold) == 1, bold
 
     # The audit card: the document carries the emoji token, the catalog title
     # is dry. The two never meet, so the title has one emoji.
@@ -124,7 +124,6 @@ async def test_event_document_has_avatar_author_and_footer():
     from card_forms import (
         payload_author_icon,
         payload_footer_lines,
-        payload_strip,
         payload_texts,
     )
     from golden_cards import make_bot
@@ -156,10 +155,9 @@ async def test_event_document_has_avatar_author_and_footer():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    # The author line: the drawn strip carries the name and the picture.
-    assert payload_strip(payload).startswith("attachment://author_")
-    assert "**Ana**" not in texts, texts
-    assert payload_author_icon(payload) == ""
+    # The author line: the name in bold and the picture as the accessory.
+    assert "**Ana**" in texts, texts
+    assert payload_author_icon(payload) == "https://a.b/ana.png"
     # The footer names the server, the count and the id (in inline code).
     assert "Serv · #3 · `5`" in payload_footer_lines(payload)
 

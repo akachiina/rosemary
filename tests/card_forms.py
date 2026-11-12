@@ -123,33 +123,12 @@ def payload_image(payload: Any) -> str:
     return _first_gallery(payload)
 
 
-#: The prefix of the file of a drawn element (the kind names the file: the
-#: author strip is ``author_<hash>.png``).
-ELEMENT_PREFIX = "attachment://author_"
-
-
-def payload_strip(payload: Any) -> str:
-    """The reference of the drawn strip (the picture of the author line).
-
-    The strip replaces the native author section: it is a media gallery
-    whose picture is the file that rides the message.
-    """
-    for node in _walk(payload):
-        if type(node).__name__ != "MediaGallery":
-            continue
-        for item in getattr(node, "items", []) or []:
-            url = getattr(item, "url", "")
-            if isinstance(url, str) and url.startswith(ELEMENT_PREFIX):
-                return url
-    return ""
-
-
 def payload_author_icon(payload: Any) -> str:
     """The author icon URL of a rendered payload (empty when there is none).
 
-    The drawn strip carries the picture inside the drawing, so a card that
-    ships one has no icon URL: the helper answers empty and the strip is
-    read with :func:`payload_strip`.
+    The V2 card draws the author line as a section of its own: the name in
+    bold and the picture as the accessory (the native thumbnail). The embed
+    draws the same picture in its own author frame.
     """
     embed = getattr(payload, "embed", None)
     if embed is not None and embed.author and embed.author.icon_url:
@@ -172,9 +151,6 @@ def payload_accent(payload: Any) -> int:
 
 def payload_pictures(payload: Any) -> list[str]:
     """Every picture of a rendered payload (the accessories and the gallery).
-
-    The drawn strip is not one of them: it is a drawn element, read with
-    :func:`payload_strip`.
     """
     embed = getattr(payload, "embed", None)
     if embed is not None:
@@ -197,9 +173,7 @@ def payload_pictures(payload: Any) -> list[str]:
             continue
         for item in getattr(node, "items", []) or []:
             item_url = getattr(item, "url", "")
-            if isinstance(item_url, str) and item_url and not item_url.startswith(
-                ELEMENT_PREFIX
-            ):
+            if isinstance(item_url, str) and item_url:
                 found.append(item_url)
     return found
 
@@ -232,15 +206,15 @@ def _first_accessory(payload: Any) -> str:
 def _first_gallery(payload: Any) -> str:
     """The URL of the first picture of the V2 (the gallery of the image).
 
-    The drawn strip is a gallery too: it never answers here (the image of
-    the card is the picture the member asked for).
+    The image of the card is the picture the member asked for: the gallery
+    is the only place it rides.
     """
     for node in _walk(payload):
         if type(node).__name__ != "MediaGallery":
             continue
         for item in getattr(node, "items", []) or []:
             url = getattr(item, "url", "")
-            if isinstance(url, str) and url and not url.startswith(ELEMENT_PREFIX):
+            if isinstance(url, str) and url:
                 return url
     return ""
 

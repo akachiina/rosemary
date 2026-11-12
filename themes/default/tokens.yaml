@@ -300,55 +300,6 @@ snapshot:
   image: |
     <img class="attachment" src="{image}" style="border-radius: 4px; margin-top: 8px; max-width: 320px; max-height: 240px;" />
 
-# elements: the pictures the bot draws for a card.
-# The card's own vocabulary decides when a picture is drawn (a card that
-# names an author gets the `author` strip): a theme that does not want it
-# removes the author (`cards.<key>.author: null`).
-#   author - the strip of the author line (the picture and the name). The
-#            values are {name} (the display name), {avatar} (the picture as
-#            a data URI), {initial} (the first letter of the name) and
-#            {accent} (the accent of the card, as a hex color).
-# The strip is a transparent picture: it draws the avatar and the name and
-# nothing else, so it takes the color of the message behind it. The page is
-# fixed (the picture always has the same size) and a name too long for it
-# ends with an ellipsis. The avatar and the name keep the proportion of the
-# author line of an embed (24:14): the size of the picture is the button
-# (the width of the PNG), never the size of one piece of it.
-# WeasyPrint speaks a CSS subset: inline-block renders faithfully, flexbox
-# and grid do not.
-elements:
-  author:
-    html: |
-      <style>
-      @page { size: 480px 80px; margin: 0; background: transparent; }
-      html, body { margin: 0; padding: 0; background: transparent; }
-      .strip {
-        display: inline-block;
-        vertical-align: top;
-        background: transparent;
-      }
-      .avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        vertical-align: middle;
-      }
-      .name {
-        display: inline-block;
-        vertical-align: middle;
-        margin-left: 14px;
-        max-width: 380px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-family: "Segoe UI", "Ubuntu", "Noto Sans", sans-serif;
-        font-size: 28px;
-        font-weight: 600;
-        color: #dbdee1;
-      }
-      </style>
-      <div class="strip"><img class="avatar" src="{avatar}" /><span class="name">{name}</span></div>
-
 # panels: the chrome of the interactive surfaces (the menus and the panels).
 # Every panel inherits this frame: the header, the body, the footer and the
 # navigation. Restyling all of them is one edit here.

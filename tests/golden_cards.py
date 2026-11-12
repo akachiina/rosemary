@@ -17,8 +17,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from offline import offline_pictures
-
 # The cog modules register their commands and their send-site helpers when
 # imported, so the snapshot must import them to see the same cards the bot
 # renders (the documents live in the default package; the helpers compute the
@@ -236,8 +234,7 @@ async def render_card(bot: GoldenBot, key: str) -> dict[str, Any]:
     state = STATE_BY_KEY.get(key)
     if state is not None:
         variables.update(state(bot.theme, variables))
-    with offline_pictures():
-        messages = await render_card_messages(bot, GUILD_ID, key, variables)
+    messages = await render_card_messages(bot, GUILD_ID, key, variables)
     if len(messages) <= 1:
         message = messages[0] if messages else None
         return {

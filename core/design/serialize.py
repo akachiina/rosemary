@@ -150,28 +150,15 @@ def _sections(body: list[Any]) -> list[list[Any]]:
     ]
 
 
-def _element(card: Card, kind: str) -> Any:
-    """The drawn element of a kind (``None`` when the card carries none).
-
-    The element is a picture the bot rendered for the card (the author
-    strip): it rides the card as a media gallery.
-    """
-    for element in card.elements or ():
-        if element.kind == kind and element.attachment:
-            return element
-    return None
-
-
 def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     """The internal Components V2 document of a card.
 
     A blocks-native card keeps its body. A slots-native card gets the standard
     frame: the opening line (the event sentence or the notification phrase)
-    above the frame, the author line as the drawn strip (the picture the bot
-    rendered for the card) or, without one, in a section of its own, the title
-    and the description in a section (with the picture as the accessory), the
-    fields as labelled lines, the footer as a small (``-#``) line and the
-    actions as a row.
+    above the frame, the author line in a section of its own (the name in
+    bold, the picture as the accessory), the title and the description in a
+    section (with the picture as the accessory), the fields as labelled
+    lines, the footer as a small (``-#``) line and the actions as a row.
 
     ``theme`` gives the title preset (the theme owns the markdown dialect);
     without it the heading is the plain ``# title``.
@@ -193,26 +180,16 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     if card.author is not None and card.author.name:
         # The author line: the member the card is about. The embed draws it
         # in its own frame (the name and the picture side by side); the V2
-        # draws the strip (the picture the bot rendered for the card) and,
-        # without a drawing, a section of its own with the picture as its
-        # accessory.
-        strip = _element(card, "author")
-        if strip is not None:
-            # The drawn strip (the picture the bot renders for the card)
-            # replaces the section: it carries the name and the picture
-            # already drawn.
-            children.append(Gallery(urls=(strip.attachment,)))
-        else:
-            children.append(
-                Section(
-                    children=(Text(body=f"**{card.author.name}**"),),
-                    accessory=(
-                        Thumbnail(url=card.author.icon_url)
-                        if card.author.icon_url
-                        else None
-                    ),
-                )
+        # draws it in a section of its own, with the picture as its
+        # accessory (the native thumbnail of the Components V2).
+        children.append(
+            Section(
+                children=(Text(body=f"**{card.author.name}**"),),
+                accessory=(
+                    Thumbnail(url=card.author.icon_url) if card.author.icon_url else None
+                ),
             )
+        )
     if card.title:
         body.append(Text(body=_title_markdown(card, theme)))
     for paragraph in card.paragraphs:

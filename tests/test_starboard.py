@@ -11,7 +11,6 @@ from card_forms import (
     payload_author_icon,
     payload_footer_lines,
     payload_image,
-    payload_strip,
     payload_texts,
 )
 
@@ -299,10 +298,9 @@ async def test_the_packaged_document_is_full_rich_layout(tmp_path):
     assert payload is not None
     texts = payload_texts(payload)
     assert any("⭐ 3 · #geral" in text for text in texts), texts
-    # The author line: the drawn strip carries the name and the picture.
-    assert payload_strip(payload).startswith("attachment://author_")
-    assert not any(text == "**Ana**" for text in texts), texts
-    assert payload_author_icon(payload) == ""
+    # The author line: the name in bold and the picture as the accessory.
+    assert any(text == "**Ana**" for text in texts), texts
+    assert payload_author_icon(payload) == "https://a.b/x.png"
     footer = "\n".join(payload_footer_lines(payload))
     assert "<@" not in footer
     assert payload_image(payload) == "https://a.b/cat.png"

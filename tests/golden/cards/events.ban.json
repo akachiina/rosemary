@@ -1,9 +1,6 @@
 {
   "content": null,
   "embed": null,
-  "files": [
-    "author_acae39006985.png"
-  ],
   "form": "card",
   "key": "events.ban",
   "pings": [],
@@ -12,13 +9,17 @@
       "accent": "#e74c3c",
       "children": [
         {
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
           "children": [
             {
-              "type": "MediaGalleryItem",
-              "url": "attachment://author_acae39006985.png"
+              "content": "**@you**",
+              "type": "TextDisplay"
             }
           ],
-          "type": "MediaGallery"
+          "type": "Section"
         },
         {
           "content": "**🚫 Membro banido**",
