@@ -6,9 +6,9 @@ repaint that ignores this ends in a 400 (error 50035), so the card follows
 the message:
 
 * a V2 message gets the card in its V2 form (the feature's own layout);
-* a classic message keeps the classic card;
-* a classic message facing a V2 card skips the repaint (the old content
-  stays: the flag cannot be added).
+* a classic message gets the card in its classic form;
+* a card that says nothing in the message's form skips the repaint (the
+  old content stays: an empty box is worse than no edit).
 """
 
 from __future__ import annotations
@@ -50,6 +50,17 @@ STARBOARD_VARIABLES = {
     "message_link": "https://discord.com/jump",
     "timestamp": "<t:1:R>",
 }
+
+#: The boost preview (a card that ships as a Components V2).
+PREVIEW_VARIABLES = {
+    "role_name": "VIP",
+    "owner": "<@7>",
+    "count": 3,
+    "max_members": 10,
+}
+
+#: The partnerships audit (a staff card that ships as a classic embed).
+AUDIT_VARIABLES = {"title": "Audit", "body": "B"}
 
 
 def _resolver(language: str):
@@ -145,15 +156,15 @@ async def test_v2_message_repaints_with_the_v2_card(tmp_path):
     """A legacy V2 message gets the card in V2: no embed, no content."""
     bot = FakeBot(tmp_path)
     payload, allowed = await render_card_message(
-        bot, 1, "starboard.card", STARBOARD_VARIABLES
+        bot, 1, "boost.preview", PREVIEW_VARIABLES
     )
-    assert payload is not None and payload.embed is not None
+    assert payload is not None and is_v2_payload(payload)
 
     aligned, _allowed = await align_to_message(
         bot,
         1,
-        "starboard.card",
-        STARBOARD_VARIABLES,
+        "boost.preview",
+        PREVIEW_VARIABLES,
         payload,
         allowed,
         _message(v2=True),
@@ -171,13 +182,14 @@ async def test_classic_message_keeps_the_embed_card(tmp_path):
     """The classic message keeps the classic card: nothing changes shape."""
     bot = FakeBot(tmp_path)
     payload, allowed = await render_card_message(
-        bot, 1, "starboard.card", STARBOARD_VARIABLES
+        bot, 1, "partnerships.audit", AUDIT_VARIABLES
     )
+    assert payload is not None and payload.embed is not None
     aligned, _allowed = await align_to_message(
         bot,
         1,
-        "starboard.card",
-        STARBOARD_VARIABLES,
+        "partnerships.audit",
+        AUDIT_VARIABLES,
         payload,
         allowed,
         _message(v2=False),
@@ -187,17 +199,48 @@ async def test_classic_message_keeps_the_embed_card(tmp_path):
     assert aligned.message_kwargs()["embed"] is not None
 
 
-async def test_classic_message_skips_a_v2_card(tmp_path):
-    """A classic message never gains the V2 flag: the repaint is skipped."""
+async def test_classic_message_gets_the_v2_card_in_its_classic_form(tmp_path):
+    """A card that changed shape keeps the shape of the message.
+
+    The flag is immutable, so a classic message never becomes V2: the card
+    is drawn again in the classic form and the message stays up to date.
+    """
     bot = FakeBot(tmp_path)
-    variables = {"role_name": "VIP", "owner": "<@7>"}
-    payload, allowed = await render_card_message(bot, 1, "boost.preview", variables)
+    payload, allowed = await render_card_message(
+        bot, 1, "boost.preview", PREVIEW_VARIABLES
+    )
     assert payload is not None and is_v2_payload(payload)
 
     aligned, _allowed = await align_to_message(
         bot,
         1,
         "boost.preview",
+        PREVIEW_VARIABLES,
+        payload,
+        allowed,
+        _message(v2=False),
+    )
+    assert aligned is not None
+    assert aligned.embed is not None
+    assert not is_v2_payload(aligned)
+    assert aligned.message_kwargs()["embed"] is not None
+
+
+async def test_classic_message_skips_a_card_without_a_classic_form(tmp_path):
+    """A card that says nothing in the message's form: the repaint is skipped.
+
+    The old content stays: an edit that sends an empty box is worse than an
+    edit that sends nothing.
+    """
+    bot = FakeBot(tmp_path)
+    variables = {"role_name": "VIP", "owner": "<@7>"}
+    payload, allowed = await render_card_message(bot, 1, "no.such.card", variables)
+    assert payload is None
+
+    aligned, _allowed = await align_to_message(
+        bot,
+        1,
+        "no.such.card",
         variables,
         payload,
         allowed,

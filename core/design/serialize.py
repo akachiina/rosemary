@@ -133,13 +133,32 @@ def _title_markdown(card: Card, theme: Any = None) -> str:
     return f"# {title}"
 
 
+#: Discord's limit: a section carries three text blocks at most.
+SECTION_TEXTS = 3
+
+
+def _sections(body: list[Any]) -> list[list[Any]]:
+    """The body of a card split into the groups a section can carry.
+
+    A card that says more than three things (a title and three paragraphs)
+    does not fit in one section: the body opens a second one instead of
+    asking Discord for a 400.
+    """
+    return [
+        body[index : index + SECTION_TEXTS]
+        for index in range(0, len(body), SECTION_TEXTS)
+    ]
+
+
 def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     """The internal Components V2 document of a card.
 
     A blocks-native card keeps its body. A slots-native card gets the standard
-    frame: the title and the description in a section (with the thumbnail as
-    the accessory), the fields as labelled lines, the footer as a small
-    (``-#``) line and the actions as a row.
+    frame: the opening line (the event sentence or the notification phrase) as
+    the first block, the author line in a section of its own, the title and
+    the description in a section (with the picture as the accessory), the
+    fields as labelled lines, the footer as a small (``-#``) line and the
+    actions as a row.
 
     ``theme`` gives the title preset (the theme owns the markdown dialect);
     without it the heading is the plain ``# title``.
@@ -149,19 +168,41 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
 
     children: list[Any] = []
     body: list[Any] = []
+    opening = card.content_line or card.ping_line
+    if opening:
+        # The opening line of the card: the event sentence (the content
+        # line) or the notification phrase (the ping line). The embed
+        # carries it in the message content, above the box; a V2 message
+        # cannot carry a top-level content, so the line rides as the first
+        # block of the card.
+        children.append(Text(body=opening))
+    if card.author is not None and card.author.name:
+        # The author line: the member the card is about. The embed draws it
+        # in its own frame (the name and the picture side by side); the V2
+        # draws a section of its own, with the picture as its accessory.
+        children.append(
+            Section(
+                children=(Text(body=f"**{card.author.name}**"),),
+                accessory=(
+                    Thumbnail(url=card.author.icon_url) if card.author.icon_url else None
+                ),
+            )
+        )
     if card.title:
         body.append(Text(body=_title_markdown(card, theme)))
-    if card.content_line:
-        # The event line of the card: in the V2 form it is a text block of
-        # its own (a V2 message cannot carry a top-level content).
-        body.append(Text(body=card.content_line))
     for paragraph in card.paragraphs:
         body.append(Text(body=paragraph))
     if body:
         if card.thumbnail:
-            children.append(
-                Section(children=tuple(body), accessory=Thumbnail(url=card.thumbnail))
-            )
+            # The picture rides the first section (a section carries three
+            # text blocks at most, so a longer body opens more sections).
+            for index, group in enumerate(_sections(body)):
+                children.append(
+                    Section(
+                        children=tuple(group),
+                        accessory=Thumbnail(url=card.thumbnail) if index == 0 else None,
+                    )
+                )
         else:
             children.extend(body)
     if card.image:

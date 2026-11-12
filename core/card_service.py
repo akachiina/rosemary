@@ -17,6 +17,7 @@ Discord.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from typing import Any
 
@@ -295,7 +296,8 @@ def _payload_for_card(
     Returns the payload and the line that carries the mentions: the classic
     forms ping through the content (an embed never notifies, so its ping
     travels in the message content), the Components V2 form pings through
-    the ids the compiler collected.
+    the ids of that same line (its opening phrase) and the ids the compiler
+    collected.
     """
     from rosemary.core.mentions import theme_pings
 
@@ -325,11 +327,18 @@ def _payload_for_card(
             CardPayload(embeds=tuple(embeds), view=view, content=content or None),
             content,
         )
-    document = card_to_v2(card, theme)
+    # The opening line of a Components V2 card: the event sentence (the
+    # content line) wins over the notification phrase (the ping line),
+    # exactly like the embed, and the theme's pings toggle gates the phrase
+    # (when it is off, the phrase does not ship at all).
+    line = card.content_line
+    if not line and theme_pings(bot, guild_id, key):
+        line = card.ping_line
+    document = card_to_v2(dataclasses.replace(card, ping_line=line), theme)
     view = render_document(
         bot, document, mapping, guild_id=guild_id, card_key=key, resolved=True
     )
-    return CardPayload(view=view), ""
+    return CardPayload(view=view), line
 
 
 async def _allowed_for_card(
@@ -342,19 +351,25 @@ async def _allowed_for_card(
 ) -> discord.AllowedMentions:
     """The mention policy of a rendered card.
 
-    The Components V2 form pings the ids its mention fields resolved to; the
-    classic forms ping through their content line.
+    The Components V2 form pings the ids its mention fields resolved to and
+    the ids of its opening line (the notification phrase); the classic forms
+    ping through their content line.
     """
-    from rosemary.core.mentions import allowed_for_ids, allowed_for_text
+    from rosemary.core.mentions import allowed_for_text
 
     if compiled.card.form == FORM_CARD:
-        return await allowed_for_ids(
+        # The body of a V2 card never pings: in the embed it lives inside
+        # the box (which never notifies), and the V2 keeps that intent. The
+        # mention fields (the ``{@name}`` ones) and the opening line are the
+        # two places where a mention may notify.
+        return await allowed_for_text(
             bot,
             guild_id,
             key,
+            content,
+            silent=silent,
             user_ids=compiled.users,
             role_ids=compiled.roles,
-            silent=silent,
         )
     return await allowed_for_text(bot, guild_id, key, content, silent=silent)
 
@@ -406,8 +421,11 @@ async def align_to_message(
     card follows the message:
 
     * V2 message, classic card: the card is rendered again in the V2 form;
-    * classic message, V2 card: the repaint is skipped (the old content
-      stays: the flag cannot be added).
+    * classic message, V2 card: the card is rendered again in the classic
+      form (a message posted before the card changed shape keeps its shape
+      and stays up to date);
+    * a card that says nothing in the message's form: the repaint is
+      skipped (the old content stays).
 
     Returns ``(payload, allowed)``; a ``None`` payload means "skip this
     repaint" (the caller keeps the message as it is).
@@ -418,26 +436,35 @@ async def align_to_message(
     payload_v2 = is_v2_payload(payload)
     if message_v2 == payload_v2:
         return payload, allowed
-    if message_v2:
-        # The message is Components V2: it cannot carry an embed or content.
-        rendered, rendered_allowed = await render_card_message(
-            bot, guild_id, key, variables, form=FORM_CARD, silent=silent
-        )
-        if rendered is None or not is_v2_payload(rendered):
-            log.warning(
-                "card %s has no Components V2 form for guild %s: repaint skipped",
-                key,
-                guild_id,
-            )
-            return None, rendered_allowed
-        return rendered, rendered_allowed
+    # The message is Components V2: it cannot carry an embed or content.
     # A classic message cannot become Components V2: the flag is immutable.
-    log.warning(
-        "card %s is Components V2 but message %s is classic: repaint skipped",
-        key,
-        getattr(message, "id", "?"),
+    form = FORM_CARD if message_v2 else FORM_EMBED
+    rendered, rendered_allowed = await render_card_message(
+        bot, guild_id, key, variables, form=form, silent=silent
     )
-    return None, allowed
+    if rendered is None:
+        log.warning(
+            "card %s has no %s form for guild %s: repaint skipped",
+            key,
+            "Components V2" if message_v2 else "classic",
+            guild_id,
+        )
+        return None, rendered_allowed
+    if message_v2 and not is_v2_payload(rendered):
+        log.warning(
+            "card %s has no Components V2 form for guild %s: repaint skipped",
+            key,
+            guild_id,
+        )
+        return None, rendered_allowed
+    if not message_v2 and is_v2_payload(rendered):
+        log.warning(
+            "card %s has no classic form for guild %s: repaint skipped",
+            key,
+            guild_id,
+        )
+        return None, rendered_allowed
+    return rendered, rendered_allowed
 
 
 __all__ = [
