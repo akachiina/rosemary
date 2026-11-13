@@ -2,6 +2,10 @@ confess:
   command:
     name: confissão
     description: Envie confissões anônimas
+  panel:
+    title: 'Confesse com a Rosemary'
+    text: 'Clique em **Escrever confissão** e conte o que quiser. É anônimo: o autor fica selado e nem o dono do bot consegue abrir.'
+    posted: '{success} Painel de confissões postado.'
   modal:
     title: Enviar confissão
     label: Sua confissão
@@ -151,6 +155,10 @@ confess_banned:
   command:
     name: banidos
     description: '[ADMIN] Lista membros banidos das confissões'
+confess_panel:
+  command:
+    name: painel
+    description: '[ADMIN] Posta o painel de confissões'
 confess_reply:
   command:
     name: responder

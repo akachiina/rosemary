@@ -312,14 +312,14 @@ def test_command_names_are_valid():
             assert sub["name"] == sub["name"].lower(), f"{code}:{key}"
 
 
-def test_group_registers_five_subcommands():
+def test_group_registers_six_subcommands():
     subs = {
         sub.name
         for attr in vars(ConfessionsCog).values()
         if isinstance(attr, discord.SlashCommandGroup)
         for sub in (getattr(attr, "subcommands", None) or [])
     }
-    assert subs == {"send", "ban", "unban", "banned", "reply"}
+    assert subs == {"send", "panel", "ban", "unban", "banned", "reply"}
 
 
 def test_confess_modal_strings_present():
@@ -1265,3 +1265,31 @@ async def test_confession_confirmation_carries_the_seal_proof(tmp_path):
     assert entry is not None
     assert "author_id" not in entry, entry
     assert ":" in entry["author_seal"], entry["author_seal"]
+
+
+async def test_panel_is_posted_and_the_write_button_opens_the_modal(tmp_path):
+    """The panel is the no-typing path: the write button opens the modal."""
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    bot.get_guild = MagicMock(return_value=guild)
+
+    await cog.repaint_panel(bot, 1)
+
+    public.send.assert_awaited_once()
+    view = public.send.await_args.kwargs.get("view")
+    assert view is not None
+    buttons = [
+        item for item in view.walk_children()
+        if getattr(item, "custom_id", None) == "confess_new"
+    ]
+    assert [button.label for button in buttons] == ["Write confession"]
+    panel_id = await cog.store.get_panel(1)
+    assert panel_id == 111
+
+    interaction = make_click(guild, user_id=7)
+    view = ConfessionView(bot, 1)
+    await view._new(interaction)
+    interaction.response.send_modal.assert_awaited_once()

@@ -226,6 +226,18 @@ class ConfessionStore:
         await self._storage.set_all(guild_id, data)
         return dict(entry)
 
+    async def get_panel(self, guild_id: int) -> int | None:
+        """The posted confessions panel (its message id)."""
+        data = await self._doc(guild_id)
+        panel = data.get("panel_message")
+        return int(panel) if panel else None
+
+    async def set_panel(self, guild_id: int, message_id: int | None) -> None:
+        """Remember the posted confessions panel (to repaint it)."""
+        data = await self._doc(guild_id)
+        data["panel_message"] = message_id
+        await self._storage.set_all(guild_id, data)
+
     async def add_reply(
         self,
         guild_id: int,

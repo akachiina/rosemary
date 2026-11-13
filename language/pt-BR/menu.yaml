@@ -71,6 +71,8 @@ card:
       title: Card de confissão
     response:
       title: Card de resposta de confissão
+    panel:
+      title: Cabeçalho do painel de confissões
     logs:
       approved:
         title: 'Log: confissão aprovada'
@@ -321,6 +323,8 @@ card:
   roleplay:
     card:
       title: Card de roleplay
+    panel:
+      title: Cabeçalho do painel de roleplay
     manager:
       title: Cabeçalho do gerenciador de gifs
   cleaner:

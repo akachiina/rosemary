@@ -124,6 +124,36 @@ _PREFIX_ALIASES: dict[str, str] = {
 
 _REGIVE_PREFIX = "roleplay_regive"
 
+#: The posted panel's ids: the native user select and the action buttons.
+_PICK_ID = "roleplay_pick"
+_PLAY_PREFIX = "roleplay_play"
+
+
+async def _panel_target_id(interaction: discord.Interaction) -> int:
+    """The member picked in the panel's native user select (0 when none).
+
+    The selected value lives in the message's components, not in a view
+    field: the panel is one message and the dispatcher may be the boot view
+    (a fresh object), so reading the message is the only stable source.
+    The panel's container is the first component; the select is nested.
+    """
+    message = getattr(interaction, "message", None)
+    for component in getattr(message, "components", None) or []:
+        stack = [component]
+        while stack:
+            node = stack.pop(0)
+            if getattr(node, "custom_id", None) == _PICK_ID:
+                values = list(getattr(node, "values", None) or [])
+                try:
+                    return int(values[0]) if values else 0
+                except (TypeError, ValueError):
+                    return 0
+            children = list(getattr(node, "children", None) or []) + list(
+                getattr(node, "items", None) or []
+            )
+            stack.extend(children)
+    return 0
+
 #: Pre-rename custom_id of the regive button. Cards posted before the
 #: interactions -> roleplay rename carry this id; the dispatcher answers it
 #: with the same handler so old buttons keep working.
@@ -324,6 +354,106 @@ class RegiveView(MenuView):
                     )
 
 
+class RoleplayPanelView(MenuView):
+    """The posted roleplay panel: pick a member, then an action.
+
+    The native user select resolves the target without typing; the action
+    buttons send the card. The selected target lives on the view (the panel
+    is one message), so the button knows who was picked.
+    """
+
+    def __init__(self, bot, guild_id: int) -> None:
+        super().__init__(author_id=None, timeout=None)
+        self.bot = bot
+        self.guild_id = guild_id
+        self.register(_PLAY_PREFIX, self._play)
+        self.register(_PICK_ID, self._pick)
+
+    def _emoji(self, name: str, fallback: str) -> str | None:
+        theme = getattr(self.bot, "theme", None)
+        value = theme.emoji(name) if theme is not None else ""
+        return value or fallback or None
+
+    async def panel_items(self) -> list[discord.ui.ViewItem]:
+        """The user select and the action buttons (5 per row)."""
+        items: list[discord.ui.ViewItem] = [
+            discord.ui.ActionRow(
+                self.make_native_select(
+                    custom_id=_PICK_ID,
+                    select_type=discord.ComponentType.user_select,
+                    placeholder=await self.bot.translator.t(
+                        self.guild_id, "roleplay.panel.pick"
+                    ),
+                )
+            )
+        ]
+        row: list[discord.ui.ViewItem] = []
+        for action in ACTIONS:
+            row.append(
+                self.make_button(
+                    custom_id=f"{_PLAY_PREFIX}:{action}",
+                    label=await self.bot.translator.t(
+                        self.guild_id, f"roleplay.panel.actions.{action}"
+                    ),
+                    emoji=self._emoji("love_letter", "💌"),
+                    style=discord.ButtonStyle.primary,
+                )
+            )
+            if len(row) == 5:
+                items.append(discord.ui.ActionRow(*row))
+                row = []
+        if row:
+            items.append(discord.ui.ActionRow(*row))
+        return items
+
+    async def _pick(self, interaction: discord.Interaction) -> None:
+        """The user select answers: the action buttons read the message."""
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+
+    async def _play(self, interaction: discord.Interaction) -> None:
+        action = (interaction.custom_id or "").split(":", 1)[-1]
+        guild = interaction.guild
+        cog = self.bot.get_cog("RoleplayCog")
+        t = self.bot.translator.t
+        if guild is None or cog is None or action not in ACTIONS:
+            return
+        if not await cog._enabled(guild.id):
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    await t(guild.id, "roleplay.error_disabled"), ephemeral=True
+                )
+            return
+        # The target comes from the select on the message the button rides:
+        # the panel is one message, and the selected value is on the
+        # message's components (no in-memory state, no stale target).
+        target_id = await _panel_target_id(interaction)
+        target = guild.get_member(target_id) if target_id else None
+        if target is None:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    await t(guild.id, "roleplay.panel.pick_first"), ephemeral=True
+                )
+            return
+        if target.bot:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    await t(guild.id, "roleplay.error_bot"), ephemeral=True
+                )
+            return
+        if target.id == interaction.user.id:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    await t(guild.id, "roleplay.error_self"), ephemeral=True
+                )
+            return
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+        await cog.send_interaction_card(
+            guild, interaction.user, target, action, channel=interaction.channel
+        )
+
+
 class RoleplayCog(commands.Cog):
     """The roleplay surface: action cards with gifs."""
 
@@ -335,15 +465,57 @@ class RoleplayCog(commands.Cog):
         self.bot = bot
         self.store = RoleplayStore(bot.storage.data_dir)
         self._regive_view: RegiveView | None = None
+        self._panel_target: dict[int, int] = {}
 
     async def start(self) -> None:
-        """Register the persistent regive dispatcher once per process."""
+        """Register the persistent regive dispatcher and the posted panels."""
         view = RegiveView(self.bot, guild_id=0)
         # py-cord's ViewStore indexes only walk_children() results: an empty
         # dispatcher view registers nothing and every click dies unanswered.
         view.add_item(await view.build_row())
         self.bot.add_view(view)
         self._regive_view = view
+        from rosemary.core.panels import register as register_panel
+
+        register_panel(
+            "roleplay.panel",
+            self.repaint_panel,
+            setting_keys=("roleplay.enabled",),
+        )
+        for guild in self.bot.guilds:
+            if await self._enabled(guild.id):
+                panel = RoleplayPanelView(self.bot, guild.id)
+                for item in await panel.panel_items():
+                    panel.add_item(item)
+                self.bot.add_view(panel)
+                await self.repaint_panel(self.bot, guild.id)
+
+    @roleplay_group.command(
+        name="panel",
+        description="[ADMIN] Post the roleplay panel",
+    )
+    async def roleplay_panel(self, ctx: discord.ApplicationContext) -> None:
+        """Post the roleplay panel (user select + action buttons)."""
+        guild = ctx.guild
+        if guild is None:
+            return
+        if not await ctx.author.guild_permissions.administrator:
+            return await ctx.respond(
+                await self.bot.translator.t(guild.id, "general.no_permission"),
+                ephemeral=True,
+            )
+        if not await self._enabled(guild.id):
+            return await ctx.respond(
+                await self.bot.translator.t(guild.id, "roleplay.error_disabled"),
+                ephemeral=True,
+            )
+        await ctx.response.defer(ephemeral=True)
+        await self._set_panel_channel(guild.id, ctx.channel.id)
+        await self._post_panel(guild, ctx.channel)
+        await ctx.followup.send(
+            await self.bot.translator.t(guild.id, "roleplay.panel.posted"),
+            ephemeral=True,
+        )
 
     #: helpers ---------------------------------------------------------------
 
@@ -351,6 +523,88 @@ class RoleplayCog(commands.Cog):
         return bool(
             await get_setting(self.bot.storage, guild_id, "roleplay.enabled")
         )
+
+    #: panel -----------------------------------------------------------------
+
+    async def _panel_view(self, guild_id: int):
+        """The roleplay panel: the card frame + the action rows.
+
+        The member picks the target in the native user select, then clicks
+        the action ("Abraçar", "Beijar"...): no command, no typing. The
+        select and the buttons are code (the callbacks are registered), the
+        document owns the heading and the body.
+
+        The panel view is rebuilt on every render (and registered as a
+        persistent view), so its selected target is read from the message's
+        select through the dispatcher instead of a stale in-memory value.
+        """
+        from rosemary.core.card_service import render_card_message, simple_payload
+
+        payload, _allowed = await render_card_message(
+            self.bot, guild_id, "roleplay.panel"
+        )
+        if payload is None:
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "roleplay.panel",
+                title=await self.bot.translator.t(guild_id, "roleplay.panel.title"),
+                body=await self.bot.translator.t(guild_id, "roleplay.panel.text"),
+                color="brand",
+            )
+        panel = RoleplayPanelView(self.bot, guild_id)
+        items = await panel.panel_items()
+        if payload.embed is not None:
+            view = payload.view or discord.ui.View(timeout=None)
+            for item in items:
+                view.add_item(item)
+            from rosemary.core.card_payload import CardPayload
+
+            return CardPayload(embed=payload.embed, view=view)
+        if payload.view is not None:
+            for item in items:
+                payload.view.add_item(item)
+        return payload
+
+    async def _post_panel(
+        self, guild: discord.Guild, channel: discord.TextChannel
+    ) -> None:
+        message = await channel.send(
+            **(await self._panel_view(guild.id)).message_kwargs()
+        )
+        await self.store.set_panel(guild.id, message.id)
+
+    async def repaint_panel(self, bot, guild_id: int) -> None:
+        """Edit the posted panel in place (theme/setting changed)."""
+        if not await self._enabled(guild_id):
+            return
+        guild = bot.get_guild(guild_id)
+        if guild is None:
+            return
+        channel = guild.get_channel(
+            int((await self.store._doc(guild_id)).get("panel_channel") or 0)
+        )
+        if not isinstance(channel, discord.TextChannel):
+            return
+        payload = await self._panel_view(guild_id)
+        panel_id = await self.store.get_panel(guild_id)
+        if panel_id is not None:
+            try:
+                await channel.get_partial_message(panel_id).edit(
+                    **payload.message_kwargs()
+                )
+                return
+            except discord.NotFound:
+                pass
+            except (discord.Forbidden, discord.HTTPException) as exc:
+                log.warning("Roleplay panel repaint failed in %s: %s", guild_id, exc)
+                return
+        await self._post_panel(guild, channel)
+
+    async def _set_panel_channel(self, guild_id: int, channel_id: int) -> None:
+        doc = await self.store._doc(guild_id)
+        doc["panel_channel"] = channel_id
+        await self.store._save(guild_id, doc)
 
     async def gifs_for(self, guild_id: int, action: str) -> list[dict[str, str]]:
         """Guild overrides when seeded, else the theme's built-in list."""

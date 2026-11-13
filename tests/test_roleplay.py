@@ -251,7 +251,7 @@ async def test_action_subcommands_attached_to_group(tmp_path):
 
 
 async def test_start_registers_dispatcher_with_real_children(tmp_path):
-    """The persistent dispatcher must carry its action row when registered:
+    """The persistent dispatchers must carry their rows when registered:
     py-cord's ViewStore indexes only walk_children() results, so an empty
     view registers nothing and every click dies as "did not respond" (the
     colors-panel lesson)."""
@@ -261,8 +261,8 @@ async def test_start_registers_dispatcher_with_real_children(tmp_path):
     cog = RoleplayCog(bot)
     bot.add_view = MagicMock()
     bot.add_application_command = MagicMock()
+    bot.guilds = []
     await cog.start()
-    bot.add_view.assert_called_once()
     registered = bot.add_view.call_args.args[0]
     assert list(registered.walk_children()), "dispatcher registered with no children"
 
@@ -829,3 +829,40 @@ async def test_default_card_has_no_avatar(tmp_path):
     assert payload_image(payload) == "https://media.tenor.com/hug.gif"
     assert payload_thumbnail(payload) == ""
     assert not any("actor_avatar" in text for text in payload_texts(payload))
+
+
+async def test_panel_posts_the_user_select_and_the_action_buttons(tmp_path):
+    """The panel is the no-typing path: the member picks the target in the
+    native user select, then clicks the action."""
+    from rosemary.cogs.roleplay import RoleplayCog
+
+    bot = _bot(tmp_path)
+    cog = RoleplayCog(bot)
+    bot._cog = cog
+    bot.guilds = []
+    channel = _channel()
+    guild = _guild(channel)
+    bot.get_guild = MagicMock(return_value=guild)
+    await bot.storage.set(1, "roleplay.enabled", True)
+    await cog.store.set_panel(1, 0)
+    await cog.store._save(1, {**(await cog.store._doc(1)), "panel_channel": 55})
+
+    await cog.repaint_panel(bot, 1)
+
+    channel.send.assert_awaited_once()
+    view = channel.send.await_args.kwargs.get("view")
+    assert view is not None
+    select = [
+        item
+        for item in view.walk_children()
+        if getattr(item, "custom_id", None) == "roleplay_pick"
+    ]
+    assert len(select) == 1
+    labels = [
+        item.label
+        for item in view.walk_children()
+        if getattr(item, "custom_id", "")
+        and str(item.custom_id).startswith("roleplay_play:")
+    ]
+    assert labels[:3] == ["Abraçar", "Beijar", "Cafuné"]
+    assert len(labels) == 12

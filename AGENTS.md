@@ -669,6 +669,15 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   `confessions.sealed_author` off (the reveal needs the readable id), and
   the sealed setting on forces the reveal off. The settings menu applies
   the pair and the boot reconciles it, so the two can never both be on.
+- **The posted panels are the no-typing path**: `confessions.panel` (a
+  write button that opens the intake modal) and `roleplay.panel` (a native
+  user select plus the action buttons, "Abraçar", "Beijar"...) are posted
+  in the channel and repainted by `core.panels`; the document owns the
+  frame, the code owns the callbacks (the row ids are fixed), and the store
+  keeps the posted message id. The roleplay target is read from the
+  message's select, never from a view field, so a restart or a fresh
+  dispatcher still knows who was picked. `/confess painel` and
+  `/roleplay painel` post them (the confessions command is admin-only).
 - There is no **builder** left: every card is a document, so the document is
   the only source of truth (the shape, the category, the mention policy and
   the contract). A card that needs a new slot adds it to the document (and

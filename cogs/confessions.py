@@ -141,6 +141,19 @@ class ConfessionView(MenuView):
         value = theme.emoji(name) if theme is not None else ""
         return value or fallback or None
 
+    async def write_row(self) -> discord.ui.ActionRow:
+        """The write button for the posted confessions panel."""
+        return discord.ui.ActionRow(
+            self.make_button(
+                custom_id=_NEW_ID,
+                label=await self.bot.translator.t(
+                    self.guild_id, "confess.buttons.new"
+                ),
+                emoji=self._emoji("pencil", "✏️"),
+                style=discord.ButtonStyle.primary,
+            ),
+        )
+
     async def public_row(self) -> discord.ui.ActionRow:
         """Write + reply buttons for public confession cards."""
         return discord.ui.ActionRow(
@@ -208,6 +221,10 @@ class ConfessionView(MenuView):
             )
         except discord.HTTPException as exc:
             log.warning("Confession modal failed in %s: %s", guild.id, exc)
+
+    async def _open_modal(self, interaction: discord.Interaction) -> None:
+        """The write button of the panel and of the cards (same rules)."""
+        await self._new(interaction)
 
     async def _reply(self, interaction: discord.Interaction) -> None:
         guild = interaction.guild
@@ -435,6 +452,13 @@ class ConfessionsCog(commands.Cog):
         review = ConfessionReviewView(self.bot, 0)
         review.add_item(await review.review_row())
         self.bot.add_view(review)
+        from rosemary.core.panels import register as register_panel
+
+        register_panel(
+            "confessions.panel",
+            self.repaint_panel,
+            setting_keys=("confessions.enabled", "confessions.public_channel"),
+        )
         for guild in self.bot.guilds:
             if await get_setting(
                 self.bot.storage, guild.id, "confessions.reveal_author"
@@ -451,6 +475,7 @@ class ConfessionsCog(commands.Cog):
                     "turned off (the reveal needs the readable id)",
                     guild.id,
                 )
+        await self._restore_panels()
 
     #: helpers ---------------------------------------------------------------
 
@@ -509,6 +534,99 @@ class ConfessionsCog(commands.Cog):
         return bool(
             await get_setting(self.bot.storage, guild_id, "confessions.sealed_author")
         )
+
+    #: panel -----------------------------------------------------------------
+
+    async def _panel_view(self, guild_id: int):
+        """The confessions panel: the card frame + the write button.
+
+        The button opens the intake modal, so no one has to type the
+        command; the panel is posted in the public channel and repainted
+        when the theme or the channel changes.
+        """
+        from rosemary.core.card_service import render_card_message, simple_payload
+
+        payload, _allowed = await render_card_message(
+            self.bot, guild_id, "confessions.panel"
+        )
+        if payload is None:
+            payload = simple_payload(
+                self.bot,
+                guild_id,
+                "confessions.panel",
+                title=await self.bot.translator.t(guild_id, "confess.panel.title"),
+                body=await self.bot.translator.t(guild_id, "confess.panel.text"),
+                color="brand",
+            )
+        row = await ConfessionView(self.bot, guild_id).write_row()
+        if payload.embed is not None:
+            view = payload.view or discord.ui.View(timeout=None)
+            for item in row.children:
+                view.add_item(item)
+            from rosemary.core.card_payload import CardPayload
+
+            return CardPayload(
+                embed=payload.embed, view=view, files=payload.files
+            )
+        if payload.view is not None:
+            payload.view.add_item(row)
+        return payload
+
+    async def _post_panel(
+        self, guild: discord.Guild, channel: discord.TextChannel
+    ) -> None:
+        from rosemary.core.mentions import allowed_for_ids
+
+        message = await channel.send(
+            **(await self._panel_view(guild.id)).message_kwargs(),
+            allowed_mentions=await allowed_for_ids(
+                self.bot, guild.id, "confessions.panel"
+            ),
+        )
+        await self.store.set_panel(guild.id, message.id)
+
+    async def repaint_panel(self, bot, guild_id: int) -> None:
+        """Edit the posted panel in place (theme/setting changed).
+
+        Deleted or unreachable message falls back to a fresh post, so the
+        panel never disappears. Registered in :mod:`rosemary.core.panels`.
+        """
+        if not await get_setting(bot.storage, guild_id, "confessions.enabled"):
+            return
+        guild = bot.get_guild(guild_id)
+        channel = await self._public_channel(guild) if guild else None
+        if guild is None or channel is None:
+            return
+        payload = await self._panel_view(guild_id)
+        panel_id = await self.store.get_panel(guild_id)
+        if panel_id is not None:
+            try:
+                await channel.get_partial_message(panel_id).edit(
+                    **payload.message_kwargs()
+                )
+                return
+            except discord.NotFound:
+                pass
+            except (discord.Forbidden, discord.HTTPException) as exc:
+                log.warning("Confession panel repaint failed in %s: %s", guild_id, exc)
+                return
+        await self._post_panel(guild, channel)
+
+    async def _restore_panels(self) -> None:
+        for guild in self.bot.guilds:
+            if not await get_setting(
+                self.bot.storage, guild.id, "confessions.enabled"
+            ):
+                continue
+            channel = await self._public_channel(guild)
+            if channel is None:
+                continue
+            # The dispatcher must carry the row when registered: py-cord's
+            # ViewStore indexes only walk_children() results.
+            view = ConfessionView(self.bot, guild.id)
+            view.add_item(await view.write_row())
+            self.bot.add_view(view)
+            await self.repaint_panel(self.bot, guild.id)
 
     async def _reply_alias(
         self, guild_id: int, confession_id: int, user_id: int
@@ -1732,6 +1850,32 @@ class ConfessionsCog(commands.Cog):
         return "ok", sent
 
     #: commands ------------------------------------------------------------
+
+    @confess_group.command(
+        name="panel",
+        description="[ADMIN] Post the confession panel",
+    )
+    async def confess_panel(self, ctx: discord.ApplicationContext) -> None:
+        """Post the confessions panel (write button) in this channel."""
+        guild = ctx.guild
+        if guild is None:
+            return
+        if not await ctx.author.guild_permissions.administrator:
+            return await ctx.respond(
+                await self.bot.translator.t(guild.id, "general.no_permission"),
+                ephemeral=True,
+            )
+        if not await self._enabled(guild.id):
+            return await ctx.respond(
+                await self.bot.translator.t(guild.id, "confess.error_disabled"),
+                ephemeral=True,
+            )
+        await ctx.response.defer(ephemeral=True)
+        await self._post_panel(guild, ctx.channel)
+        await ctx.followup.send(
+            await self.bot.translator.t(guild.id, "confess.panel.posted"),
+            ephemeral=True,
+        )
 
     @confess_group.command(
         name="send",

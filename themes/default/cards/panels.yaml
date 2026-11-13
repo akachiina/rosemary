@@ -56,11 +56,30 @@ roleplay.manager:
   - body
   category: roleplay
 
+# The posted roleplay panel: the heading names the panel and the body says
+# how it works. The user select and the action buttons are code (the
+# callbacks are registered), the document owns the frame only.
+roleplay.panel:
+  archetype: panel
+  color: brand
+  title: '{roleplay.panel.title}'
+  description: '{roleplay.panel.text}'
+  category: roleplay
+
 # The ticket panel: the heading asks for a ticket, the body explains how.
 tickets.panel:
   archetype: panel
   title: '{tickets.panel.title}'
   description: '{tickets.panel.text}'
+
+# The confessions panel: the heading invites the confession and the body
+# tells how it works. The write button is code-owned (it opens the modal),
+# so the document owns the frame only.
+confessions.panel:
+  archetype: panel
+  color: brand
+  title: '{confess.panel.title}'
+  description: '{confess.panel.text}'
 
 # The color manager: the heading names the manager, the body is the hint.
 colors.manager:

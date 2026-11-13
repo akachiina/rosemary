@@ -82,6 +82,17 @@ class RoleplayStore:
     async def _save(self, guild_id: int, doc: dict[str, Any]) -> None:
         await self.storage.set_all(guild_id, doc)
 
+    async def get_panel(self, guild_id: int) -> int | None:
+        """The posted roleplay panel (its message id)."""
+        panel = (await self._doc(guild_id)).get("panel_message")
+        return int(panel) if panel else None
+
+    async def set_panel(self, guild_id: int, message_id: int | None) -> None:
+        """Remember the posted roleplay panel (to repaint it)."""
+        doc = await self._doc(guild_id)
+        doc["panel_message"] = message_id
+        await self._save(guild_id, doc)
+
     async def get_gifs(self, guild_id: int, action: str) -> list[dict[str, Any]]:
         """The guild's gif list for an action (empty when not seeded)."""
         doc = await self._doc(guild_id)

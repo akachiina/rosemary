@@ -39,6 +39,25 @@ roleplay:
   card:
     title: Roleplay card
     ping: '{actor} {action} {target}.'
+  panel:
+    title: Roleplay
+    text: Pick a member and an action.
+    pick: Pick a member
+    pick_first: Pick a member first.
+    posted: '{success} Roleplay panel posted.'
+    actions:
+      hug: Hug
+      kiss: Kiss
+      pat: Pat
+      slap: Slap
+      bite: Bite
+      punch: Punch
+      attack: Attack
+      poke: Poke
+      dance: Dance
+      highfive: High-five
+      stare: Stare
+      cuddle: Cuddle
   source: Image source
   manager:
     title: Manage gifs
@@ -103,6 +122,10 @@ roleplay_hug:
     options:
       member:
         description: Who receives the action
+roleplay_panel:
+  command:
+    name: panel
+    description: '[ADMIN] Post the roleplay panel'
 roleplay_kiss:
   command:
     name: kiss

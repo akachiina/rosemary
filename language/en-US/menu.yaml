@@ -71,6 +71,8 @@ card:
       title: Confession card
     response:
       title: Confession reply card
+    panel:
+      title: Confession panel heading
     logs:
       approved:
         title: 'Log: confession approved'
@@ -301,6 +303,8 @@ card:
   roleplay:
     card:
       title: Roleplay card
+    panel:
+      title: Roleplay panel heading
     manager:
       title: Gif manager heading
   cleaner:

@@ -2,6 +2,10 @@ confess:
   command:
     name: confess
     description: Send anonymous confessions
+  panel:
+    title: 'Confess with Rosemary'
+    text: 'Click **Write a confession** and tell us what you want. It is anonymous: the author is sealed and not even the bot owner can open it.'
+    posted: '{success} Confession panel posted.'
   modal:
     title: Send a confession
     label: Your confession
@@ -150,6 +154,10 @@ confess_banned:
   command:
     name: banned
     description: '[ADMIN] List members banned from confessions'
+confess_panel:
+  command:
+    name: panel
+    description: '[ADMIN] Post the confession panel'
 confess_reply:
   command:
     name: reply

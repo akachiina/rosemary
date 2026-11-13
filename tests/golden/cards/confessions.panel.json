@@ -1,0 +1,23 @@
+{
+  "content": null,
+  "embed": null,
+  "form": "card",
+  "key": "confessions.panel",
+  "pings": [],
+  "view": [
+    {
+      "accent": "#57f287",
+      "children": [
+        {
+          "content": "**Confesse com a Rosemary**",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "Clique em **Escrever confissão** e conte o que quiser. É anônimo: o autor fica selado e nem o dono do bot consegue abrir.",
+          "type": "TextDisplay"
+        }
+      ],
+      "type": "Container"
+    }
+  ]
+}
