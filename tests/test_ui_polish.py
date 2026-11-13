@@ -120,7 +120,7 @@ async def test_event_titles_are_not_double_decorated():
 
 async def test_event_document_has_avatar_thumbnail_and_footer():
     """The event documents: the member's avatar is the thumbnail and the
-    footer names the server, the count and the time (one small line)."""
+    footer names the server, the count and the id (the id in inline code)."""
     from card_forms import (
         payload_footer_lines,
         payload_texts,
@@ -136,8 +136,8 @@ async def test_event_document_has_avatar_thumbnail_and_footer():
     assert document["thumbnail"] == "{user_avatar}"
     assert "author" not in document
     assert "author_icon" not in document
-    assert "`{user_id}`" not in document["footer"]
-    assert "\n" not in document["footer"]
+    assert "`{user_id}`" in document["footer"]
+    assert "{timestamp}" not in document["footer"]
 
     bot = make_bot()
     payload, _allowed = await render_card_message(
@@ -160,8 +160,8 @@ async def test_event_document_has_avatar_thumbnail_and_footer():
     # The subject's picture is the thumbnail; the name is not a line.
     assert "**Ana**" not in texts, texts
     assert payload_thumbnail(payload) == "https://a.b/ana.png"
-    # The footer names the server, the count and the time, in one line.
-    assert payload_footer_lines(payload) == ["Serv · #3 · 11/11/2026 10:00"]
+    # The footer names the server, the count and the id (one small line).
+    assert payload_footer_lines(payload) == ["Serv · #3 · `5`"]
 
 
 #: catalog templates: real newlines, never literal "\n" ----------------------

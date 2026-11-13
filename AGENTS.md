@@ -597,9 +597,10 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   and the fields ride as bullets (`• **Label:** value`).
 - An **event announcement** (`events.welcome`/`leave`/`ban`) is a V2 card:
   the member's avatar rides the thumbnail, the body tells the story and the
-  footer is **one** small line (`server · #count · timestamp`). The member
-  id is not repeated: the body already names the member and the count is the
-  frame the server needs. The birthday announcement follows the same rule.
+  footer is one small line (`server · #count · id`). The member id is not
+  repeated in the body, and the date is not part of the frame until the
+  copy asks for it (the timestamp stays out of the footer). The birthday
+  announcement follows the same card shape.
 - The **info cards** (`utility.*`) open with the subject's name as the title
   (`{server}`, `{user_name}`, `{role_name}`...), not with a generic "Informações
   de...": the picture is the thumbnail and the rows carry the stats. The

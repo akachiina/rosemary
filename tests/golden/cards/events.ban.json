@@ -29,7 +29,7 @@
           "type": "Separator"
         },
         {
-          "content": "-# … · #1 · 01/01/2026 00:00",
+          "content": "-# … · #1 · `123456789012345678`",
           "type": "TextDisplay"
         }
       ],

@@ -44,13 +44,13 @@ archetypes:
 
   # An event announcement (a member joined, left or got banned): the member's
   # avatar rides the thumbnail, the body tells the story and the footer names
-  # the server, the member count, the id and the date.
+  # the server, the member count and the id. No date yet: the timestamp is
+  # not part of the frame until the copy asks for it.
   event:
     form: card
     color: brand
     thumbnail: '{user_avatar}'
-    footer: "{server} · #{count} · {timestamp}"
-    timestamp: true
+    footer: "{server} · #{count} · `{user_id}`"
     mention: single
     rich: true
 
