@@ -311,9 +311,8 @@ async def test_serverinfo_card_resolves_via_document():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    # The server's name is not a line of the card: its picture is the
-    # thumbnail.
-    assert not any("**Overdose Community**" in text for text in texts), texts
+    # The server's name is the title; its picture is the thumbnail.
+    assert any(text == "**Overdose Community**" for text in texts), texts
     # The document carries the stat rows (channel breakdown, verification).
     assert any("34" in text and "12" in text for text in texts), texts
     assert any("120" in text and "10" in text for text in texts), texts
@@ -364,8 +363,9 @@ async def test_serverinfo_card_degrades_without_banner_and_icon():
     texts = payload_texts(payload)
     assert any("Serv" in text for text in texts)
     assert not any("servidor de testes" in text for text in texts)
-    # No icon, no banner: no empty picture rides the card.
-    assert not any("**Serv**" in text for text in texts), texts
+    # No icon, no banner: no empty picture rides the card (the name is the
+    # title and stays).
+    assert any("**Serv**" in text for text in texts), texts
     assert payload_thumbnail(payload) == ""
     assert payload_pictures(payload) == []
     assert payload_image(payload) == ""

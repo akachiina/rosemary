@@ -1,12 +1,14 @@
 """Roleplay: action cards with gifs between members.
 
 ``/roleplay hug @user`` (or ``!hug @user`` with the guild prefix) posts a
-V2 card: the action sentence as the opening body line
-(``{love_letter} @A abraçou @B``, both members ping), a MediaGallery
-carrying the gif (URL only, no upload), a relative-timestamp footer and
-one button: **Retribuir** (target-only; sends a fresh card with the roles
-swapped) plus **Fonte da imagem** linking the resolved gif (even when the
-gif came from the API: the resolved url IS the source).
+V2 card: the action sentence as the body (``@A abraçou @B``, both members
+ping through the mention fields), a MediaGallery carrying the gif (URL only,
+no upload) and a relative-timestamp footer. The row carries **Retribuir**
+(target-only; sends a fresh card with the roles swapped, labelled with the
+action: "Abraçar de volta") plus **Fonte da imagem** linking the resolved
+gif (even when the gif came from the API: the resolved url IS the source).
+After a re-give the old card's row is rebuilt disabled: the action was
+answered, and the button would only repeat it.
 
 Gif resolution per action: the guild's ``roleplay.json`` override list
 when seeded (first manager edit), else the theme's ``roleplay.gifs``
@@ -26,6 +28,7 @@ annotations break option parsing (same rule as moderation/invites/info).
 
 import contextlib
 import logging
+from typing import Any
 
 import discord
 from discord.ext import commands
@@ -131,6 +134,63 @@ def _sentence_key(action: str) -> str:
     return f"roleplay.actions.{action}"
 
 
+async def _regive_row(
+    bot,
+    guild_id: int,
+    action: str | None = None,
+    source_url: str = "",
+    disabled: bool = False,
+    handler: Any = None,
+) -> discord.ui.ActionRow:
+    """The interaction row: re-give the action, or read the gif source.
+
+    The re-give label names the action ("Abraçar de volta"): a generic
+    "Retribuir" would make every card look the same. After the action was
+    answered the row is rebuilt disabled ("Retribuído"): the button would
+    only repeat a card that already exists. The source link keeps its label
+    (a bare emoji is not discoverable) and disappears when no url arrived.
+
+    ``handler`` is the dispatcher callback the button binds to (the
+    dispatcher's own method); the row sent with the card passes it, the
+    rebuilt disabled row passes none (a disabled button never fires).
+    """
+    theme = getattr(bot, "theme", None)
+
+    async def label(key: str) -> str:
+        text = await bot.translator.t(guild_id, key)
+        return key if text == key else text
+
+    if disabled:
+        text = await label("roleplay.regiven")
+    elif action:
+        text = await label(f"roleplay.regive_labels.{action}")
+        if text == f"roleplay.regive_labels.{action}":
+            text = await label("roleplay.regive")
+    else:
+        text = await label("roleplay.regive")
+    items: list[discord.ui.ViewItem] = [
+        discord.ui.Button(
+            style=discord.ButtonStyle.primary,
+            label=text,
+            emoji=theme.emoji("love_letter") if theme is not None else "💌",
+            custom_id=_REGIVE_PREFIX,
+            disabled=disabled,
+        )
+    ]
+    if handler is not None:
+        items[0].callback = handler
+    if source_url:
+        items.append(
+            discord.ui.Button(
+                style=discord.ButtonStyle.link,
+                url=source_url,
+                label=await label("roleplay.source"),
+                emoji=theme.emoji("search") if theme is not None else "🔍",
+            )
+        )
+    return discord.ui.ActionRow(*items)
+
+
 class RegiveView(MenuView):
     """One persistent dispatcher row for every interaction card.
 
@@ -148,35 +208,21 @@ class RegiveView(MenuView):
         self.register(_REGIVE_PREFIX, self._regive)
         self.register(_LEGACY_REGIVE_PREFIX, self._regive)
 
-    async def build_row(self, source_url: str = ""):
-        """The regive button; the source link needs a real URL at send time."""
-        label = await self.bot.translator.t(self.guild_id, "roleplay.regive")
-        items = [
-            self.make_button(
-                custom_id=_REGIVE_PREFIX,
-                label=label,
-                emoji=(
-                    self.bot.theme.emoji("love_letter")
-                    if getattr(self.bot, "theme", None)
-                    else "💌"
-                ),
-                style=discord.ButtonStyle.primary,
-            )
-        ]
-        if source_url:
-            items.append(
-                discord.ui.Button(
-                    style=discord.ButtonStyle.link,
-                    url=source_url,
-                    label=None,
-                    emoji=(
-                        self.bot.theme.emoji("search")
-                        if getattr(self.bot, "theme", None)
-                        else "🔍"
-                    ),
-                )
-            )
-        return discord.ui.ActionRow(*items)
+    async def build_row(
+        self,
+        action: str | None = None,
+        source_url: str = "",
+        disabled: bool = False,
+    ) -> discord.ui.ActionRow:
+        """The interaction row; the source link needs a real URL at send time."""
+        return await _regive_row(
+            self.bot,
+            self.guild_id,
+            action,
+            source_url,
+            disabled,
+            handler=self._regive if not disabled else None,
+        )
 
     async def _regive(self, interaction: discord.Interaction) -> None:
         """Resolve the card from the message id; only the target may regive."""
@@ -224,13 +270,38 @@ class RegiveView(MenuView):
         sent = await cog.send_interaction_card(
             guild, actor, target, action, channel=interaction.channel
         )
-        if not sent and not interaction.response.is_done():
-            await interaction.response.send_message(
-                await self.bot.translator.t(
-                    guild.id, "roleplay.error_no_gif"
-                ),
-                ephemeral=True,
+        if not sent:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    await self.bot.translator.t(
+                        guild.id, "roleplay.error_no_gif"
+                    ),
+                    ephemeral=True,
+                )
+            return
+        # The action was answered: the old card's button has nothing left to
+        # do. Rebuild the row disabled (the source link stays); the message
+        # is the interaction's own, so this is a plain edit, not a response.
+        if message is not None:
+            row = await _regive_row(
+                self.bot,
+                guild.id,
+                action,
+                str(context.get("source_url") or ""),
+                disabled=True,
             )
+            disabled_view = discord.ui.DesignerView.from_message(message)
+            disabled_view.clear_items()
+            disabled_view.add_item(row)
+            try:
+                await message.edit(view=disabled_view)
+            except discord.HTTPException as exc:
+                log.warning(
+                    "Could not disable the regive row of message %s in %s: %s",
+                    getattr(message, "id", "?"),
+                    guild.id,
+                    exc,
+                )
 
 
 class RoleplayCog(commands.Cog):
@@ -323,8 +394,9 @@ class RoleplayCog(commands.Cog):
             )
         view = RegiveView(self.bot, guild_id)
         # The source link always points at the resolved gif (API gifs
-        # included: that exact url IS the source).
-        row = await view.build_row(source_url=gif_url)
+        # included: that exact url IS the source). The re-give label names
+        # the action, so the row says what it does.
+        row = await view.build_row(action=action, source_url=gif_url)
         view.add_item(row)
         if payload.embed is not None:
             embed_view = payload.view or discord.ui.View(timeout=None)
@@ -343,10 +415,17 @@ class RoleplayCog(commands.Cog):
             log.warning("Interaction card send failed in %s: %s", guild_id, exc)
             return True
         # The regive context keys on the posted message: without it the
-        # button answers "gone". Send first, remember after.
+        # button answers "gone". Send first, remember after. The source url
+        # travels too: after a re-give the old row is rebuilt disabled and
+        # the link must survive the edit.
         with contextlib.suppress(Exception):
             await self.store.set_regive(
-                guild_id, sent.id, action, actor.id, target.id
+                guild_id,
+                sent.id,
+                action,
+                actor.id,
+                target.id,
+                source_url=gif_url,
             )
         return True
 
@@ -360,7 +439,7 @@ class RoleplayCog(commands.Cog):
         # Plain placeholders here (the fallback pings via allowed_for_ids):
         # `{@...}` would render literally outside the document renderer.
         sentence = safe_format(
-            "{love_letter} {actor} {action} {target}",
+            "{actor} {action} {target}",
             mapping,
         )
         return simple_payload(

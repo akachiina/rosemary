@@ -12,7 +12,7 @@
 
 utility.serverinfo:
   archetype: info_card
-  title: '{serverinfo.title}'
+  title: '{server}'
   thumbnail: '{server_icon}'
   image: '{banner_url}'
   paragraphs:
@@ -59,7 +59,7 @@ utility.serverinfo:
 
 utility.userinfo:
   archetype: info_card
-  title: '{card.utility.userinfo.title}'
+  title: '{user_name}'
   thumbnail: '{user_avatar}'
   image: '{banner_url}'
   description: '{card.utility.userinfo.subtitle}'
@@ -755,14 +755,12 @@ partnerships.dm.expired_admin:
   rich: false
   category: partnerships
 
-# The roleplay interaction: the sentence pings both members, the gif rides
-# the card and the timestamp closes it.
+# The roleplay interaction: the sentence names both members (the mention
+# fields ping them), the gif rides the card and the timestamp closes it.
 roleplay.card:
   form: card
   color: brand
-  thumbnail: '{actor_avatar}'
-  description: '{love_letter} {@actor} {action} {@target}'
-  ping_line: '{roleplay.card.ping}'
+  description: '{@actor} {action} {@target}'
   image: '{gif_url}'
   footer: '{timestamp}'
   timestamp: true

@@ -15,7 +15,7 @@
           },
           "children": [
             {
-              "content": "**Informações do Membro**",
+              "content": "**@you**",
               "type": "TextDisplay"
             },
             {

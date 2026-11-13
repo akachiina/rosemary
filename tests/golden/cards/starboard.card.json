@@ -48,12 +48,6 @@
               "style": "link",
               "type": "Button",
               "url": "https://example.com/message"
-            },
-            {
-              "label": "Ir para a mensagem",
-              "style": "link",
-              "type": "Button",
-              "url": "https://example.com/message"
             }
           ],
           "type": "ActionRow"

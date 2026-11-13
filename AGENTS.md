@@ -49,7 +49,9 @@ interactive UI).
   recorded in the `files` field (no card draws one: the subject's picture
   rides the native thumbnail of Discord). The mentions the message may
   notify are pinned too: `pings` holds the users and `role_pings` the roles
-  (the field only appears when there is one).
+  (the field only appears when there is one). An `ActionRow` exposes the
+  same list as `children` and `items`, so the walker counts each child once:
+  a button appears once in the fixture, not twice.
 - **Golden panels**: `tests/golden/panels/<name>.json` pins what every
   representative panel shows (the texts, the buttons and the selects, with the
   label, the description, the icon and the current default). After a
@@ -592,6 +594,25 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   the embed carries the details. The moderation notices (ban, kick, mute,
   warn, trap) and the confession ban stay **text**: the title opens in bold
   and the fields ride as bullets (`• **Label:** value`).
+- An **event announcement** (`events.welcome`/`leave`/`ban`) is a V2 card:
+  the member's avatar rides the thumbnail, the body tells the story and the
+  footer is **one** small line (`server · #count · timestamp`). The member
+  id is not repeated: the body already names the member and the count is the
+  frame the server needs. The birthday announcement follows the same rule.
+- The **info cards** (`utility.*`) open with the subject's name as the title
+  (`{server}`, `{user_name}`, `{role_name}`...), not with a generic "Informações
+  de...": the picture is the thumbnail and the rows carry the stats. The
+  footer keeps the subject's id in inline code (a machine value).
+- The **roleplay** card is the simplest content card: the sentence names both
+  members (`{@actor} {action} {@target}`, the mention fields ping), the gif
+  rides the gallery and the timestamp closes the card. No opening line (the
+  sentence would ship twice) and no thumbnail (the action is between two
+  members: one face would mislead). Its row is code-owned: the re-give
+  button is labelled with the action (`roleplay.regive_labels.<action>`,
+  "Abraçar de volta") and the source link carries `roleplay.source`. After
+  the target re-gives, the old row is rebuilt **disabled**
+  (`roleplay.regiven`): the button would only repeat a card that already
+  exists. The store keeps the card's `source_url` for that rebuild.
 - The boost invite is **one message**: the content line, the embed with the
   role and the accept/decline buttons. A Components V2 message cannot carry
   content nor an embed, so `BoostInviteView` is a classic `discord.ui.View`

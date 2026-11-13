@@ -49,7 +49,7 @@ archetypes:
     form: card
     color: brand
     thumbnail: '{user_avatar}'
-    footer: "{server} · #{count} · `{user_id}`\n{timestamp}"
+    footer: "{server} · #{count} · {timestamp}"
     timestamp: true
     mention: single
     rich: true

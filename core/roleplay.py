@@ -106,13 +106,21 @@ class RoleplayStore:
     #: regive contexts (one dispatcher view, keyed by message id) -------------
 
     async def set_regive(
-        self, guild_id: int, message_id: int, action: str, actor_id: int, target_id: int
+        self,
+        guild_id: int,
+        message_id: int,
+        action: str,
+        actor_id: int,
+        target_id: int,
+        source_url: str = "",
     ) -> None:
         """Remember who may re-give the card posted as ``message_id``.
 
         The dispatcher button's custom_id is fixed, so the pair travels in
         this table (surviving restarts) instead of the custom_id; the oldest
         entries fall off beyond :data:`REGIVE_HISTORY` to bound the file.
+        ``source_url`` is the gif the card shows: after a re-give the row of
+        the old card is rebuilt disabled, and it keeps the source link.
         """
         doc = await self._doc(guild_id)
         table = doc.setdefault("regives", {})
@@ -120,6 +128,7 @@ class RoleplayStore:
             "action": action,
             "actor": actor_id,
             "target": target_id,
+            "source_url": source_url,
         }
         while len(table) > REGIVE_HISTORY:
             table.pop(next(iter(table)))

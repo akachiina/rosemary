@@ -9,6 +9,20 @@ roleplay:
   error_gone: Quem participou deste roleplay não está mais no servidor.
   error_no_gif: '{error} Nenhuma fonte de gif disponível para este roleplay (API fora do ar e nada configurado).'
   regive: Retribuir
+  regiven: Retribuído
+  regive_labels:
+    hug: Abraçar de volta
+    kiss: Beijar de volta
+    pat: Fazer cafuné de volta
+    slap: Dar um tapa de volta
+    bite: Morder de volta
+    punch: Socar de volta
+    attack: Atacar de volta
+    poke: Cutucar de volta
+    dance: Dançar de volta
+    highfive: Tocar as mãos de volta
+    stare: Encarar de volta
+    cuddle: Dormir abraçado de volta
   actions:
     hug: abraçou
     kiss: beijou

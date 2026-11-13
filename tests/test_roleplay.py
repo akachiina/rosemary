@@ -288,9 +288,14 @@ async def test_card_flow_posts_gallery_and_regive(tmp_path):
     assert view is not None
     # The card view carries the regive action row (nested in the container).
     assert _REGIVE_PREFIX in _walk_custom_ids(view)
-    # The pair is remembered for the dispatcher.
+    # The pair is remembered for the dispatcher, with the gif the row links.
     context = await cog.store.get_regive(1, 999)
-    assert context == {"action": "hug", "actor": 100, "target": 200}
+    assert context == {
+        "action": "hug",
+        "actor": 100,
+        "target": 200,
+        "source_url": "https://media.tenor.com/hug.gif",
+    }
 
 
 async def test_theme_api_seed_posts_without_configuration(tmp_path):
@@ -427,6 +432,61 @@ async def test_static_gif_adds_source_link(tmp_path):
         if getattr(item, "url", None) == "https://media.tenor.com/hug.gif"
     ]
     assert link_buttons, "static gif must carry a source link button"
+    # The re-give button names the action, not a generic "Retribuir".
+    regive = [
+        item
+        for item in sent_view.walk_children()
+        if getattr(item, "custom_id", None) == "roleplay_regive"
+    ]
+    assert [button.label for button in regive] == ["Abraçar de volta"]
+    # The source link carries its label (a bare emoji is not discoverable).
+    assert link_buttons[0].label == "Fonte da imagem"
+
+
+async def test_regive_disables_the_old_row(tmp_path):
+    """After the target re-gives, the old card's button is disabled.
+
+    The row is rebuilt from the stored source url (the link survives) and the
+    action keeps its name: the member reads what was answered.
+    """
+    from rosemary.cogs.roleplay import RegiveView, RoleplayCog
+
+    bot = _bot(tmp_path)
+    cog = RoleplayCog(bot)
+    await cog.store.set_regive(
+        1, 999, "hug", 100, 200, source_url="https://media.tenor.com/hug.gif"
+    )
+    bot.get_cog = MagicMock(return_value=cog)
+    cog.send_interaction_card = AsyncMock(return_value=True)
+
+    member = _member(200)
+    guild = _guild(_channel())
+    guild.get_member = MagicMock(
+        side_effect=lambda uid: _member(uid) if uid in (100, 200) else None
+    )
+    message = MagicMock(spec=discord.Message)
+    message.id = 999
+    message.edit = AsyncMock()
+    interaction = MagicMock()
+    interaction.guild = guild
+    interaction.user = member
+    interaction.message = message
+    interaction.channel = _channel()
+    interaction.response.is_done = MagicMock(return_value=False)
+    interaction.response.defer = AsyncMock()
+
+    view = RegiveView(bot, 1)
+    await view._regive(interaction)
+
+    cog.send_interaction_card.assert_awaited_once()
+    message.edit.assert_awaited_once()
+    edited = message.edit.await_args.kwargs["view"]
+    buttons = list(edited.walk_children())
+    regive = [item for item in buttons if getattr(item, "custom_id", None) == "roleplay_regive"]
+    assert [button.label for button in regive] == ["Retribuído"]
+    assert regive[0].disabled is True
+    link = [item for item in buttons if getattr(item, "url", None)]
+    assert [button.url for button in link] == ["https://media.tenor.com/hug.gif"]
 
 
 # gif manager view =============================================================
@@ -721,8 +781,8 @@ async def test_send_with_no_repeat_avoids_last_gif(tmp_path):
     ]
 
 
-async def test_default_card_has_the_avatar_as_thumbnail(tmp_path):
-    """The default roleplay card shows the actor's picture as the thumbnail."""
+async def test_default_card_has_no_avatar(tmp_path):
+    """The default roleplay card shows the gif and no user picture."""
     from rosemary.core.card_service import render_card_message
 
     bot = _bot(tmp_path)
@@ -740,7 +800,7 @@ async def test_default_card_has_the_avatar_as_thumbnail(tmp_path):
         },
     )
     assert payload is not None
-    # The gif is the image of the card; the actor's avatar is the thumbnail.
+    # The card shows the gif and nothing else: no avatar, no name.
     assert payload_image(payload) == "https://media.tenor.com/hug.gif"
-    assert payload_thumbnail(payload) == "https://a.b/x.png"
+    assert payload_thumbnail(payload) == ""
     assert not any("actor_avatar" in text for text in payload_texts(payload))

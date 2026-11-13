@@ -118,9 +118,8 @@ async def test_userinfo_card_renders_full_and_degraded():
     }
     payload = await _build_and_render(bot, "utility.userinfo", full)
     texts = payload_texts(payload)
-    # The member's avatar is the thumbnail; the name is not a line of the
-    # card (the subtitle and the fields carry the identity).
-    assert not any("**Ana**" in t for t in texts), texts
+    # The member's name is the title; the picture is the thumbnail.
+    assert any(text == "**Ana**" for text in texts), texts
     assert payload_thumbnail(payload) == "https://a.b/ana.png"
     assert any("aninha" in t for t in texts), texts
     assert any("<@&7>" in t for t in texts)

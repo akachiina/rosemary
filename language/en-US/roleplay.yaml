@@ -9,6 +9,20 @@ roleplay:
   error_gone: A participant of this roleplay is no longer on the server.
   error_no_gif: '{error} No gif source is available for this roleplay (the API is down and nothing is configured).'
   regive: Give it back
+  regiven: Given back
+  regive_labels:
+    hug: Hug back
+    kiss: Kiss back
+    pat: Pat back
+    slap: Slap back
+    bite: Bite back
+    punch: Punch back
+    attack: Attack back
+    poke: Poke back
+    dance: Dance back
+    highfive: High-five back
+    stare: Stare back
+    cuddle: Cuddle back
   actions:
     hug: hugged
     kiss: kissed

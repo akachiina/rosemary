@@ -750,7 +750,7 @@ variables:
     description: Nome de exibição de quem agiu
   actor_avatar:
     label: Avatar de quem agiu
-    description: URL do avatar de quem agiu (thumbnail do card de roleplay)
+    description: URL do avatar de quem agiu
   winner:
     label: Vencedor
     description: Menção do vencedor

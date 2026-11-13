@@ -7,9 +7,7 @@ bump:
     ping_leaderboard: 'Congratulations, {winner_mention}!'
     anti_camping: '{warning} The channel is temporarily locked. Bump will be available shortly!'
     thank_you_title: '{tada} Bump Recorded!'
-    thank_you_description: 'Thank you for the bump, {mention}! Your dedication keeps the server shining. {cup}
-
-
+    thank_you_description: '
       **{clock} Next bump:** <t:{next_bump_timestamp}:R>
 
       **{hourglass} Reminder:** I''ll be back to remind you in **{cooldown}!**

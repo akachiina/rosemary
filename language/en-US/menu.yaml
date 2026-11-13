@@ -750,7 +750,7 @@ variables:
     description: Display name of the actor
   actor_avatar:
     label: Actor avatar
-    description: URL of the actor's avatar (roleplay card thumbnail)
+    description: URL of the actor's avatar
   winner:
     label: Winner
     description: Mention of the winner

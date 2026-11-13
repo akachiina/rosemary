@@ -171,9 +171,13 @@ def _item_snapshot(item: Any) -> dict[str, Any]:
     accent = getattr(item, "colour", None)
     if accent is not None:
         node["accent"] = str(accent)
-    children = list(getattr(item, "children", []) or []) + list(
-        getattr(item, "items", []) or []
-    )
+    children = list(getattr(item, "children", []) or []) + [
+        child
+        for child in (getattr(item, "items", []) or [])
+        # An ActionRow exposes the same list as ``children`` and ``items``:
+        # counting both would double every button in the fixture.
+        if not any(child is seen for seen in getattr(item, "children", []) or [])
+    ]
     if children:
         node["children"] = [_item_snapshot(child) for child in children]
     accessory = getattr(item, "accessory", None)
