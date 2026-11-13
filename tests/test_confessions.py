@@ -359,11 +359,11 @@ def test_card_specs_registered_with_exact_contracts():
     )
     assert get_card("confessions.card").variables == (
         "confession_number", "title", "body", "image_url", "color_hex",
-        "timestamp", "alias_name", "avatar_url", "op_emoji",
+        "timestamp", "alias_name", "op_emoji",
     )
     assert get_card("confessions.response").variables == (
         "confession_number", "reply_index", "title", "body", "parent_line",
-        "color_hex", "image_url", "alias_name", "avatar_url", "op_emoji",
+        "color_hex", "image_url", "alias_name", "op_emoji",
         "parent_link",
     )
     assert get_card("confessions.dm.approved").variables == (
@@ -539,12 +539,53 @@ async def test_reveal_author_line_in_review(tmp_path):
     assert any("<@7>" in text for text in _texts(view)), _texts(view)
 
 
+async def test_card_has_no_identicon(tmp_path):
+    """The public card shows the alias, the body and the image; no identicon."""
+    from rosemary.core.card_service import render_card_message
+
+    bot = FakeBot(tmp_path)
+    payload, _allowed = await render_card_message(
+        bot, 1, "confessions.card",
+        {
+            "confession_number": 1,
+            "title": "Confession (#1)",
+            "body": "segredo",
+            "image_url": "",
+            "color_hex": "#FFB7C5",
+            "timestamp": "",
+            "alias_name": "Maçã",
+            "op_emoji": "",
+        },
+    )
+    assert payload is not None
+    assert payload_thumbnail(payload) == ""
+    texts = payload_texts(payload)
+    assert "**Maçã**" in texts, texts
+    assert "segredo" in texts, texts
+
+
 async def test_start_registers_two_dispatchers(tmp_path):
     bot = FakeBot(tmp_path)
     cog = ConfessionsCog(bot)
     await cog.start()
     await cog.start()
     assert len(bot.views) == 2
+
+
+async def test_boot_reconciles_reveal_and_seal(tmp_path):
+    """The reveal and the seal are exclusive: a guild that has both on at
+    boot gets the seal off (the reveal needs the readable id)."""
+    from rosemary.core.settings import get_setting, set_setting
+
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    guild, *_ = make_cguild()
+    bot.guilds = [guild]
+    await set_setting(bot.storage, 1, "confessions.reveal_author", True)
+    await set_setting(bot.storage, 1, "confessions.sealed_author", True)
+    await cog.start()
+    assert await get_setting(bot.storage, 1, "confessions.sealed_author") is False
+    assert await get_setting(bot.storage, 1, "confessions.reveal_author") is True
 
 
 async def test_deleted_public_post_cascades(tmp_path):
@@ -718,8 +759,8 @@ async def test_modal_submit_with_image_attaches(tmp_path):
     interaction = make_click(guild, user_id=7)
     await cog._confess_submit(interaction, "with pic", [make_upload()])
     files = public.send.await_args.kwargs.get("files") or []
-    # The generated identicon rides with the message, plus the user's picture.
-    assert len(files) == 2, [f.filename for f in files]
+    # Only the user's picture rides with the message (no identicon).
+    assert [f.filename for f in files] == ["cat.png"], [f.filename for f in files]
     entry = await cog.store.get(1, 111)
     assert entry is not None
     assert entry["image_url"] == "https://cdn.discordapp.com/attachments/1/42/pic.png"
@@ -774,8 +815,9 @@ async def test_public_card_shows_the_identicon_but_not_the_real_avatar(tmp_path)
     await _enable_confessions(bot)
     await cog._confess_submit(make_click(guild, user_id=7), "secret", [])
     thumbnail = payload_thumbnail(sent(public.send.await_args))
-    assert thumbnail, "the generated identicon must be the card picture"
-    assert thumbnail.startswith("attachment://anonimo_"), thumbnail
+    assert thumbnail == "", "no identicon rides the card"
+    files = public.send.await_args.kwargs.get("files") or []
+    assert not any(f.filename.startswith("anonimo_") for f in files), "no identicon file"
     avatar = "https://cdn.discordapp.com/embed/avatars/0.png"
     assert avatar not in "\n".join(_sent_texts(public.send))
 
@@ -816,8 +858,8 @@ async def test_reply_with_image_attaches_and_persists(tmp_path):
     interaction = make_click(guild, user_id=9)
     await cog._reply_submit(interaction, "look", [make_upload()])
     files = thread.send.await_args.kwargs.get("files") or []
-    # The generated identicon rides with the message, plus the user's picture.
-    assert len(files) == 2, [f.filename for f in files]
+    # Only the user's picture rides with the message (no identicon).
+    assert [f.filename for f in files] == ["cat.png"], [f.filename for f in files]
     reply = await cog.store.get_reply(1, 901)
     assert reply is not None
     assert reply["image_url"] == "https://cdn.discordapp.com/attachments/1/42/reply.png"
@@ -870,7 +912,6 @@ async def test_card_shows_the_alias_as_title_and_the_number_as_footer(tmp_path):
             "color_hex": "#FFB7C5",
             "timestamp": "",
             "alias_name": "Anonymous K7Q",
-            "avatar_url": "attachment://anonimo_K7Q.png",
             "op_emoji": "",
         },
     )
@@ -878,10 +919,12 @@ async def test_card_shows_the_alias_as_title_and_the_number_as_footer(tmp_path):
     texts = payload_texts(payload)
     assert "**Anonymous K7Q**" in texts
     assert "o texto" in texts
-    assert payload_thumbnail(payload) == "attachment://anonimo_K7Q.png"
+    assert payload_thumbnail(payload) == ""
     assert "Confession (#55)" in payload_footer_lines(payload)
-    # The alias' own color is the accent (the identicon's color).
+    # The alias' own color is the accent.
     assert payload_accent(payload) == 0xFFB7C5
+    # No identicon: the card shows the sentence, the gif and the footer.
+    assert payload_thumbnail(payload) == ""
 
 
 async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
@@ -903,7 +946,6 @@ async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
             "color_hex": "#FFB7C5",
             "image_url": "",
             "alias_name": "Anonymous K7Q",
-            "avatar_url": "attachment://anonimo_K7Q.png",
             "op_emoji": "<:op_emoji:123>",
             "parent_link": "",
         },
@@ -912,6 +954,7 @@ async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
     texts = payload_texts(payload)
     assert "**Anonymous K7Q<:op_emoji:123>**" in texts
     assert "o texto" in texts
+    assert payload_thumbnail(payload) == ""
     # Only the reference and the number: the parent's own text never rides
     # the card (the reference links to it) and the OP emoji alone marks the
     # author.
@@ -956,18 +999,16 @@ async def test_public_card_attaches_the_identicon_and_keeps_the_text(tmp_path):
     await _enable_confessions(bot)
     await cog._confess_submit(make_click(guild, user_id=7), "my secret", [])
     files = public.send.await_args.kwargs.get("files") or []
-    identicon = _identicon_file(files)
-    assert identicon is not None, [f.filename for f in files]
-    assert _png_bytes([identicon]).startswith(b"\x89PNG")
+    assert _identicon_file(files) is None, [f.filename for f in files]
     texts = _sent_texts(public.send)
     # The body is plain text in the card, not a rendered image.
     assert any("my secret" in text for text in texts), texts
     # The alias is the heading of the card and the number is the footer.
-    assert any(text.startswith("**Anonymous") for text in texts), texts
+    assert any(text.startswith("**") for text in texts), texts
     assert any("Confession (#1)" in text for text in texts), texts
     entry = await cog.store.get(1, 111)
     assert entry is not None
-    assert len(entry["alias"]) == 3
+    assert entry["alias"].strip(), entry
     assert entry["alias_color"].startswith("#")
 
 
@@ -1043,6 +1084,8 @@ async def test_alias_is_stable_inside_one_thread(tmp_path):
     assert (await cog.post_reply(guild, 111, 901, replier, "two"))[0] == "ok"
     first_reply = await cog.store.get_reply(1, 901)
     second_reply = await cog.store.get_reply(1, 902)
+    # The same participant keeps the same alias for the thread (the reply
+    # carries it, so it survives the sealed mode and the restart).
     assert first_reply["alias"] == second_reply["alias"]
     confession = await cog.store.get(1, 111)
     assert first_reply["alias"] != confession["alias"]
@@ -1151,3 +1194,74 @@ async def test_reason_submit_with_a_dead_token_moderates_nothing(tmp_path):
     entry = await cog.store.get(1, 555)
     assert entry["status"] == "pending"
     interaction.followup.send.assert_not_awaited()
+
+
+async def test_sealed_store_never_writes_the_author_id(tmp_path):
+    """The sealed entry carries the sealed blob and the claim hash, never
+    the readable id (the store is what a leak would expose)."""
+    from rosemary.core.alias_identity import claim_hash, claim_token, generate_keypair, seal
+    from rosemary.core.confessions import ConfessionStore as Store
+
+    store = Store(tmp_path)
+    pub, _priv = generate_keypair()
+    token = claim_token()
+    await store.put(
+        1, 10, number=1, author_id=7, channel_id=5, body="s",
+        author_seal=seal(pub, "k1", "7"), claim_hash=claim_hash(token),
+    )
+    entry = await store.get(1, 10)
+    assert entry is not None
+    assert "author_id" not in entry
+    assert entry["author_seal"].startswith("k1:")
+    assert entry["claim_hash"] == claim_hash(token)
+    assert await store.claim(1, token) is not None
+    assert await store.claim(1, "wrong") is None
+
+
+async def test_sealed_ban_uses_the_hmac(tmp_path):
+    """The sealed ban list stores the HMAC (no id), and the check reads it."""
+    from rosemary.core.alias_identity import ban_hash
+    from rosemary.core.confessions import ConfessionStore as Store
+
+    store = Store(tmp_path)
+    await store.ban(1, 7, sealed=True)
+    data = await store._doc(1)
+    assert data["banned"] == [ban_hash(tmp_path, 1, 7)]
+    assert await store.is_banned(1, 7, sealed=True) is True
+    assert await store.is_banned(1, 8, sealed=True) is False
+
+
+async def test_confession_confirmation_carries_the_seal_proof(tmp_path):
+    """The "confession sent" confirmation is the member's proof: the
+    algorithm, the key fingerprint, the claim token and the repo."""
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    bot._cog = cog
+    guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
+    await _enable_confessions(bot)
+    from rosemary.core.alias_identity import KeyRing, generate_keypair
+    from rosemary.core.settings import set_setting
+
+    pub, _priv = generate_keypair()
+    await set_setting(bot.storage, 1, "confessions.sealed_author", True)
+    await set_setting(bot.storage, 1, "confessions.reveal_author", False)
+    await KeyRing(bot.storage.data_dir).add(1, pub, moderation_seconds=60)
+
+    interaction = make_click(guild, user_id=7)
+    await cog._confess_submit(interaction, "segredo", [])
+
+    confirmation = interaction.followup.send.await_args.args[0]
+    assert "X25519 + XSalsa20-Poly1305" in confirmation, confirmation
+    assert "claim key" in confirmation.lower(), confirmation
+    assert "code:" in confirmation.lower(), confirmation
+    # The token is shown once and matches the in-memory claim.
+    tokens = [
+        token
+        for token in cog._claim_tokens
+        if f"`{token}`" in confirmation
+    ]
+    assert len(tokens) == 1, confirmation
+    entry = await cog.store.get(1, 111)
+    assert entry is not None
+    assert "author_id" not in entry, entry
+    assert ":" in entry["author_seal"], entry["author_seal"]

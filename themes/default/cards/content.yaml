@@ -438,7 +438,6 @@ confessions.card:
   - 'info'
   title: '{alias_name}{op_emoji}'
   description: '{body}'
-  thumbnail: '{avatar_url}'
   image: '{image_url}'
   footer:
   - '{title} · {timestamp}'
@@ -452,7 +451,6 @@ confessions.card:
   - color_hex
   - timestamp
   - alias_name
-  - avatar_url
   - op_emoji
   category: confessions
 
@@ -466,7 +464,6 @@ confessions.response:
   - 'info'
   title: '{alias_name}{op_emoji}'
   description: '{body}'
-  thumbnail: '{avatar_url}'
   image: '{image_url}'
   footer:
   - '{parent_line} · {title}'
@@ -480,7 +477,6 @@ confessions.response:
   - color_hex
   - image_url
   - alias_name
-  - avatar_url
   - op_emoji
   - parent_link
   category: confessions

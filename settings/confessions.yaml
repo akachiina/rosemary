@@ -24,3 +24,17 @@ settings:
     category: confessions
     type: boolean
     default: true
+  confessions.sealed_author:
+    category: confessions
+    type: boolean
+    default: true
+  confessions.key_rotation_days:
+    category: confessions
+    type: integer
+    default: 2592000
+    duration: true
+  confessions.moderation_days:
+    category: confessions
+    type: integer
+    default: 604800
+    duration: true

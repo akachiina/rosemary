@@ -1490,5 +1490,41 @@
     "multiline": false,
     "default_catalog_key": null,
     "legacy_single_key": null
+  },
+  "confessions.sealed_author": {
+    "category": "confessions",
+    "type": "boolean",
+    "default": true,
+    "min": null,
+    "max": null,
+    "choices": [],
+    "duration": false,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
+  },
+  "confessions.key_rotation_days": {
+    "category": "confessions",
+    "type": "integer",
+    "default": 2592000,
+    "min": null,
+    "max": null,
+    "choices": [],
+    "duration": true,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
+  },
+  "confessions.moderation_days": {
+    "category": "confessions",
+    "type": "integer",
+    "default": 604800,
+    "min": null,
+    "max": null,
+    "choices": [],
+    "duration": true,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
   }
 }

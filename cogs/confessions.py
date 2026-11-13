@@ -6,19 +6,27 @@ on any public card); the post is anonymous everywhere except this guild's
 waits in the review channel (Approve / Deny / Ban, deny and ban through an
 optional-reason modal); otherwise it posts straight to the public channel.
 
-Approved posts carry a random stable color and two buttons (write another,
-reply anonymously); replies nest inside a lazily created thread as numbered
-``#N-M`` cards, each with its own reply button. The author is DM'd on
-approval, denial and every reply; staff sees authors only with
+Approved posts carry a random fruit alias and a random pastel accent, and
+two buttons (write another, reply anonymously); replies nest inside a
+lazily created thread as numbered ``#N-M`` cards, each with its own reply
+button. The author is DM'd on approval and denial, and every reply (unless
+the author wrote it themselves); staff sees authors only with
 ``confessions.reveal_author`` on.
 
-The public post is a plain Discord card: the alias name is the card's title
-(in bold) with the generated identicon beside it, exactly like the audit
-logs put the member's avatar next to the title. The confession text keeps
-its normal weight and the numbered title ("Confissão (#60)") moves to the
-footer. The reply written by the confession's own author carries the ``OP``
-emoji (``confessions.mark_op``), an application emoji shipped in
+The public post is a plain card: the alias (a fruit) is the title, the
+confession text is the body, the image rides the gallery (when there is
+one) and the numbered title ("Confissão (#60)") closes it. The reply
+written by the confession's own author carries the ``OP`` emoji
+(``confessions.mark_op``), an application emoji shipped in
 ``assets/emojis/`` and referenced as ``{emojis/op_emoji}``.
+
+With ``confessions.sealed_author`` (the default, and off while
+``confessions.reveal_author`` is on) the author id is encrypted to the
+staff's public key before it reaches the store: the bot cannot open it,
+and the member gets a claim token to answer the confession
+(``/confissao responder <token>``) without the bot linking the reply to an
+account. The private half lives offline; the ``confession_keys`` CLI opens a
+sealed blob only for a serious case.
 
 Note: this file intentionally does NOT import ``from __future__ import
 annotations``: py-cord inspects slash-command annotations with
@@ -30,17 +38,26 @@ import asyncio
 import contextlib
 import io
 import logging
+import os
 import re
 import secrets
 
 import discord
 from discord.ext import commands
 
+from rosemary.core.alias_identity import (
+    KeyRing,
+    claim_hash,
+    claim_token,
+    fingerprint,
+    random_alias,
+    random_color,
+    seal,
+)
 from rosemary.core.confessions import ConfessionStore
 from rosemary.core.debug import send_log
 from rosemary.core.interactions import ack
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
-from rosemary.core.pseudonym import PSEUDONYM_COLORS, Pseudonym, make_pseudonym, new_seed
 from rosemary.core.settings import get_setting
 from rosemary.ui.menu import MenuView
 
@@ -55,25 +72,29 @@ _APPROVE_ID = "confess_approve"
 _DENY_ID = "confess_deny"
 _BAN_ID = "confess_ban"
 
+#: How many claim tokens are remembered in memory (the store keeps only the
+#: hash; the token is shown once to the member and lives here until the
+#: process restarts, so the stateless ``/confissao responder <token>`` can
+#: tell which confession the caller wrote without ever storing a user id).
+_CLAIM_MEMORY = 2000
+
 #: The asset that marks the confession's own author (an application emoji
 #: shipped in ``assets/emojis/``): ``{emojis/op_emoji}``.
 OP_EMOJI_ASSET = "emojis/op_emoji"
 
-#: Stable pastel accents, one drawn per confession at post time and kept in
-#: the store so repaints never reshuffle the color. The same palette gives
-#: every pseudonymous participant its name color.
-_CONFESSION_COLORS = PSEUDONYM_COLORS
+
+def _repo_line() -> str:
+    """The repository and commit the confirmation points at (the proof)."""
+    commit = os.environ.get("ROSEMARY_COMMIT", "").strip()
+    if commit:
+        return f"rosemary@{commit[:12]}"
+    return "rosemary"
 
 
 def _safe_filename(name: str) -> str:
     """Attachment-safe filename (``attachment://`` URLs reject spaces)."""
     clean = re.sub(r"[^\w.\-]+", "_", (name or "").strip()).strip("._")
     return (clean or "confession.png")[:80]
-
-
-def _identicon_filename(seed: str) -> str:
-    """The filename of the generated identicon of an alias seed."""
-    return f"anonimo_{seed}.png"
 
 
 def _image_url_from(attachments) -> str:
@@ -375,7 +396,15 @@ class ConfessionsCog(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
         self.store = ConfessionStore(bot.storage.data_dir)
+        self._keys = KeyRing(bot.storage.data_dir)
         self._locks: dict[int, asyncio.Lock] = {}
+        #: The claim tokens handed out in this process (token -> context).
+        #: The store keeps only their hash: the token itself is shown once
+        #: to the member and lives here until the process restarts, so the
+        #: stateless ``/confissao responder <token>`` can tell which
+        #: confession the caller wrote without ever storing a user id.
+        self._claim_tokens: dict[str, dict] = {}
+        self._claim_order: list[str] = []
         #: Button-to-modal context (user id -> payload): component clicks and
         #: modal submits are separate interactions, so the resolve context
         #: travels here (consumed on submit; a second click overwrites).
@@ -388,7 +417,13 @@ class ConfessionsCog(commands.Cog):
         return self._locks[confession_id]
 
     async def start(self) -> None:
-        """Register the two persistent dispatchers once per process."""
+        """Register the two persistent dispatchers and reconcile the settings.
+
+        The boot is the safety net for the reveal/sealed pair: a guild that
+        somehow has both on (an old file, a manual edit) gets the reveal
+        turned off, because the reveal needs the readable id and the sealed
+        mode is the privacy promise.
+        """
         if self._started:
             return
         self._started = True
@@ -400,6 +435,22 @@ class ConfessionsCog(commands.Cog):
         review = ConfessionReviewView(self.bot, 0)
         review.add_item(await review.review_row())
         self.bot.add_view(review)
+        for guild in self.bot.guilds:
+            if await get_setting(
+                self.bot.storage, guild.id, "confessions.reveal_author"
+            ) and await get_setting(
+                self.bot.storage, guild.id, "confessions.sealed_author"
+            ):
+                from rosemary.core.settings import set_setting
+
+                await set_setting(
+                    self.bot.storage, guild.id, "confessions.sealed_author", False
+                )
+                log.warning(
+                    "Confessions of %s had reveal and seal on: the seal was "
+                    "turned off (the reveal needs the readable id)",
+                    guild.id,
+                )
 
     #: helpers ---------------------------------------------------------------
 
@@ -442,32 +493,79 @@ class ConfessionsCog(commands.Cog):
             return ""
         return assets.mention(OP_EMOJI_ASSET)
 
-    async def _alias_name(self, guild_id: int, seed: str) -> str:
-        """The localized pseudonym of a seed ("Anonymous K7Q")."""
-        return await self.bot.translator.t(guild_id, "confess.alias", seed=seed)
+    async def _alias_pool(self, guild_id: int) -> list[str]:
+        """The catalog's fruit list (empty when the catalog has none)."""
+        raw = await getattr(self.bot.translator, "raw", lambda *_: None)(
+            guild_id, "confess.identity.aliases"
+        )
+        if not isinstance(raw, list):
+            return []
+        return [str(item) for item in raw if str(item).strip()]
+
+    async def _sealed(self, guild_id: int) -> bool:
+        """Whether the guild seals the author (the reveal wins over it)."""
+        if await get_setting(self.bot.storage, guild_id, "confessions.reveal_author"):
+            return False
+        return bool(
+            await get_setting(self.bot.storage, guild_id, "confessions.sealed_author")
+        )
+
+    async def _reply_alias(
+        self, guild_id: int, confession_id: int, user_id: int
+    ) -> str:
+        """The alias a user already used in this thread (empty when none)."""
+        data = await self.store._doc(guild_id)
+        for reply in data.get("replies", {}).values():
+            if (
+                isinstance(reply, dict)
+                and reply.get("confession_id") == confession_id
+                and reply.get("author_id") == user_id
+                and str(reply.get("alias") or "").strip()
+            ):
+                return str(reply["alias"])
+        return ""
+
+    async def _seal_author(self, guild_id: int, author_id: int) -> tuple[str, str]:
+        """``(sealed, key_id)`` for the author id (empty when no key exists)."""
+        key = await self._keys.active(guild_id)
+        if key is None or not author_id:
+            return "", ""
+        return seal(key.public, key.key_id, str(author_id)), key.key_id
+
+    async def _alias_name(self, guild_id: int, alias: str) -> str:
+        """The alias as the member reads it.
+
+        A legacy seed (three characters, the old store) is translated with
+        the catalog; a fruit alias (the new store) is already the name.
+        """
+        if not alias:
+            return ""
+        if len(alias) <= 4 and alias.isalnum():
+            return await self.bot.translator.t(guild_id, "confess.alias", seed=alias)
+        return alias
+
+    async def _new_alias(self, guild_id: int) -> str:
+        """A fresh alias from the catalog list (or a legacy seed)."""
+        alias = random_alias(await self._alias_pool(guild_id))
+        if alias:
+            return alias
+        return "".join(
+            secrets.choice("ABCDEFGHJKLMNPQRTUVWXYZ2346789") for _ in range(3)
+        )
 
     async def _identity(
         self, guild_id: int, number: int, user_id: int
-    ) -> Pseudonym:
-        """The pseudonymous identity of a user inside one confession thread.
+    ) -> str:
+        """The pseudonymous alias of a user inside one confession thread.
 
-        The seed is stored per confession number: the same participant keeps
-        the same name and avatar for the whole thread (and gets a fresh one
-        in the next confession).
+        Get-or-create through the store: the same participant keeps the same
+        alias for the whole thread (legacy mode). The sealed mode never
+        calls this: the alias is generated per entry and the claim token
+        replaces the user link.
         """
-        seed = await self.store.assign_alias(guild_id, number, user_id, new_seed())
-        return make_pseudonym(seed)
-
-    def _identicon_file(self, identity: Pseudonym) -> discord.File | None:
-        """The generated identicon of an alias (uploaded with the message).
-
-        ``None`` when the image could not be generated: the card then shows
-        the alias name without the thumbnail.
-        """
-        if not identity.avatar:
-            return None
-        filename = _identicon_filename(identity.seed)
-        return discord.File(io.BytesIO(identity.avatar), filename=filename)
+        return await self.store.assign_alias(
+            guild_id, number, user_id, await self._new_alias(guild_id)
+        )
 
     def _message_link(self, guild_id: int, channel_id, message_id: int) -> str:
         """The jump link of a message (empty when the ids are unknown)."""
@@ -607,7 +705,10 @@ class ConfessionsCog(commands.Cog):
         t = self.bot.translator.t
         if not await ack(interaction, ephemeral=True):
             return
-        if await self.store.is_banned(guild.id, interaction.user.id):
+        sealed = await self._sealed(guild.id)
+        if await self.store.is_banned(
+            guild.id, interaction.user.id, sealed=sealed
+        ):
             return await interaction.followup.send(
                 await t(guild.id, "confess.error_banned"), ephemeral=True
             )
@@ -650,7 +751,7 @@ class ConfessionsCog(commands.Cog):
                 ephemeral=True,
             )
         try:
-            outcome, _message = await self.post_confession(
+            outcome, _message, token = await self.post_confession(
                 guild, member, body, image
             )
         except discord.Forbidden:
@@ -672,7 +773,49 @@ class ConfessionsCog(commands.Cog):
                 await t(guild.id, "confess.error_no_review"), ephemeral=True
             )
         key = "confess.sent" if outcome == "posted" else "confess.sent_review"
-        await interaction.followup.send(await t(guild.id, key), ephemeral=True)
+        await interaction.followup.send(
+            await self._sent_copy(guild.id, key, token),
+            ephemeral=True,
+        )
+
+    async def _sent_copy(self, guild_id: int, key: str, token: str) -> str:
+        """The "confession sent" confirmation (the proof, when sealed).
+
+        The member reads the algorithm, the fingerprint of the staff's
+        public key, the claim token (shown once) and the repository/commit.
+        The sealed blob is not repeated here (it is long and the member
+        cannot check it against the id): the token and the public key
+        fingerprint are what the member can actually verify, and the code is
+        the real proof.
+        """
+        base = await self.bot.translator.t(guild_id, key)
+        if not token:
+            return base
+        public = await self._active_public(guild_id)
+        lines = [base]
+        if public:
+            lines.append(
+                await self.bot.translator.t(
+                    guild_id,
+                    "confess.sent_sealed",
+                    fingerprint=fingerprint(public),
+                )
+            )
+        lines.append(
+            await self.bot.translator.t(
+                guild_id, "confess.sent_token", token=f"`{token}`"
+            )
+        )
+        lines.append(
+            await self.bot.translator.t(
+                guild_id, "confess.sent_repo", repo=_repo_line()
+            )
+        )
+        return "\n".join(line for line in lines if line)
+
+    async def _active_public(self, guild_id: int) -> str:
+        key = await self._keys.active(guild_id)
+        return key.public if key is not None else ""
 
     async def _reply_submit(
         self,
@@ -849,9 +992,6 @@ class ConfessionsCog(commands.Cog):
     async def _public_variables(
         self, guild: discord.Guild, entry: dict, *, timestamp: str
     ) -> dict:
-        seed = str(entry.get("alias") or "")
-        alias_name = await self._alias_name(guild.id, seed) if seed else ""
-        avatar_url = f"attachment://{_identicon_filename(seed)}" if seed else ""
         return {
             "confession_number": entry.get("number", 0),
             "title": await self.bot.translator.t(
@@ -859,10 +999,9 @@ class ConfessionsCog(commands.Cog):
             ),
             "body": entry.get("body") or "",
             "image_url": entry.get("image_url") or "",
-            "color_hex": entry.get("color_hex") or "",
+            "color_hex": entry.get("alias_color") or entry.get("color_hex") or "",
             "timestamp": timestamp,
-            "alias_name": alias_name,
-            "avatar_url": avatar_url,
+            "alias_name": await self._alias_name(guild.id, str(entry.get("alias") or "")),
             "op_emoji": str(entry.get("op_emoji") or ""),
         }
 
@@ -964,15 +1103,17 @@ class ConfessionsCog(commands.Cog):
         author: discord.Member,
         body: str,
         image: tuple[bytes, str] | None = None,
-    ) -> tuple[str, discord.Message | None]:
-        """Post straight to review or public. Returns ``(outcome, message)``.
+    ) -> tuple[str, discord.Message | None, str]:
+        """Post straight to review or public.
 
-        Outcomes: ``"posted"``, ``"review"``, ``"no_channel"``,
-        ``"no_review"``.
+        Returns ``(outcome, message, claim_token)``. Outcomes:
+        ``"posted"``, ``"review"``, ``"no_channel"``, ``"no_review"``.
+        In the sealed mode the author id is encrypted before it reaches the
+        store and the member gets a claim token (the caller answers with it).
         """
         channel = await self._public_channel(guild)
         if channel is None:
-            return "no_channel", None
+            return "no_channel", None, ""
         files: list[discord.File] = []
         image_url = ""
         image_name = ""
@@ -982,22 +1123,41 @@ class ConfessionsCog(commands.Cog):
             image_url = f"attachment://{name}"
             image_name = name
         number = await self.store.next_number(guild.id)
-        identity = await self._identity(guild.id, number, author.id)
+        sealed = await self._sealed(guild.id)
+        alias = await self._new_alias(guild.id)
+        token = claim_token()
+        author_seal = ""
+        if sealed:
+            author_seal, _key_id = await self._seal_author(guild.id, author.id)
         draft = {
             "number": number,
+            # With the seal on the id is still passed to the store, which
+            # replaces it with the sealed blob before it is written (the
+            # legacy mode keeps the plain id for the reveal and the DMs).
             "author_id": author.id,
             "channel_id": channel.id,
             "body": body,
-            "user_name": author.display_name,
-            "user_avatar": author.display_avatar.url,
+            "user_name": "" if sealed else author.display_name,
+            "user_avatar": "" if sealed else author.display_avatar.url,
             "image_url": image_url,
-            "alias": identity.seed,
-            "alias_color": identity.color,
+            "alias": alias,
+            "alias_color": random_color() if sealed else "",
+            "author_seal": author_seal,
+            "claim_hash": claim_hash(token),
         }
+        self._claim_tokens[token] = {
+            "guild_id": guild.id,
+            "number": number,
+            "user_id": author.id,
+        }
+        self._claim_order.append(token)
+        while len(self._claim_order) > _CLAIM_MEMORY:
+            old = self._claim_order.pop(0)
+            self._claim_tokens.pop(old, None)
         if await self._review_required(guild.id):
             review = await self._review_channel(guild)
             if review is None:
-                return "no_review", None
+                return "no_review", None, ""
             await self.store.put(guild.id, 0, status="pending", **draft)
             entry = await self.store.get(guild.id, 0)
             payload, allowed = await self._render_review(guild, entry or draft)
@@ -1009,12 +1169,11 @@ class ConfessionsCog(commands.Cog):
                 send_kwargs["files"] = files
             sent = await review.send(**send_kwargs, allowed_mentions=allowed)
             await self.store.rekey(guild.id, 0, sent.id)
-            return "review", sent
-        color_hex = secrets.choice(_CONFESSION_COLORS)
+            return "review", sent, token
         entry = {
             **draft,
             "body": body,
-            "color_hex": color_hex,
+            "color_hex": draft["alias_color"] or random_color(),
             "op_emoji": "",
         }
         payload, allowed = await self._render_public(guild, entry)
@@ -1022,10 +1181,8 @@ class ConfessionsCog(commands.Cog):
             payload, (await self._public_view(guild.id)).children[0]
         )
         send_kwargs = payload.message_kwargs()
-        identicon = self._identicon_file(identity)
-        all_files = [*([identicon] if identicon else []), *files]
-        if all_files:
-            send_kwargs["files"] = all_files
+        if files:
+            send_kwargs["files"] = files
         sent = await channel.send(**send_kwargs, allowed_mentions=allowed)
         stored_image_url = _image_url_for(sent.attachments, image_name)
         if files and not stored_image_url:
@@ -1036,9 +1193,9 @@ class ConfessionsCog(commands.Cog):
                 stored_image_url = ""
         draft["image_url"] = stored_image_url
         await self.store.put(
-            guild.id, sent.id, status="open", color_hex=color_hex, **draft,
+            guild.id, sent.id, status="open", color_hex=entry["color_hex"], **draft,
         )
-        return "posted", sent
+        return "posted", sent, token
 
     async def approve_confession(
         self, guild: discord.Guild, review_message_id: int, moderator: discord.Member
@@ -1054,8 +1211,9 @@ class ConfessionsCog(commands.Cog):
         if channel is None:
             return "no_channel", None
         number = int(entry.get("number") or 0)
+        # The author is only readable in the legacy mode: with the seal on
+        # the store has no id (the member checks the status with the token).
         author_id = int(entry.get("author_id") or 0)
-        color_hex = secrets.choice(_CONFESSION_COLORS)
         body = entry.get("body") or ""
         # The picture lives in the review post: fetch it before that post
         # is deleted, so the public message carries it too.
@@ -1066,15 +1224,13 @@ class ConfessionsCog(commands.Cog):
             data, name = picture
             files.append(discord.File(io.BytesIO(data), filename=name))
             image_url = f"attachment://{name}"
-        seed = str(entry.get("alias") or "")
-        if not seed and author_id:
-            identity = await self._identity(guild.id, number, author_id)
-        else:
-            identity = make_pseudonym(seed or new_seed())
+        alias = str(entry.get("alias") or "")
+        if not alias and author_id:
+            alias = await self._identity(guild.id, number, author_id)
         public_entry = {
             **entry,
             "body": body,
-            "color_hex": color_hex,
+            "color_hex": entry.get("alias_color") or random_color(),
             "image_url": image_url,
             "op_emoji": "",
         }
@@ -1083,10 +1239,8 @@ class ConfessionsCog(commands.Cog):
             payload, (await self._public_view(guild.id)).children[0]
         )
         send_kwargs = payload.message_kwargs()
-        identicon = self._identicon_file(identity)
-        all_files = [*([identicon] if identicon else []), *files]
-        if all_files:
-            send_kwargs["files"] = all_files
+        if files:
+            send_kwargs["files"] = files
         try:
             public = await channel.send(
                 **send_kwargs, allowed_mentions=allowed
@@ -1112,10 +1266,12 @@ class ConfessionsCog(commands.Cog):
             user_name=entry.get("user_name") or "",
             user_avatar=entry.get("user_avatar") or "",
             image_url=stored_image_url,
-            color_hex=color_hex,
+            color_hex=public_entry["color_hex"],
             status="open",
-            alias=identity.seed,
-            alias_color=identity.color,
+            alias=alias,
+            alias_color=entry.get("alias_color") or "",
+            author_seal=entry.get("author_seal") or "",
+            claim_hash=entry.get("claim_hash") or "",
         )
         await self.store.discard(guild.id, review_message_id)
         review_channel = await self._review_channel(guild)
@@ -1346,12 +1502,19 @@ class ConfessionsCog(commands.Cog):
         self,
         guild: discord.Guild,
         confession_id: int,
-        parent_id: int,
+        parent_id: int | None,
         author: discord.Member,
         body: str,
         image: tuple[bytes, str] | None = None,
+        *,
+        claim: str = "",
     ) -> tuple[str, discord.Message | None]:
-        """Post an anonymous reply. Returns ``(outcome, message)``.
+        """Post a reply in the confession's thread.
+
+        With ``claim`` (the stateless path) the caller is the confession's
+        own author: the token is matched against the in-memory context, the
+        reply is marked OP and no user id is stored. The legacy path (the
+        reply button) resolves the author by id and keeps the alias map.
 
         Outcomes: ``"ok"``, ``"gone"`` (confession deleted),
         ``"banned"``, ``"thread"`` (thread unavailable). A deleted parent
@@ -1360,7 +1523,9 @@ class ConfessionsCog(commands.Cog):
         entry = await self.store.get(guild.id, confession_id)
         if entry is None or entry.get("status") != "open":
             return "gone", None
-        if await self.store.is_banned(guild.id, author.id):
+        if await self.store.is_banned(
+            guild.id, author.id, sealed=bool(entry.get("author_seal"))
+        ):
             return "banned", None
         async with self._lock_for(confession_id):
             thread = await self._ensure_thread(guild, confession_id, entry)
@@ -1373,6 +1538,7 @@ class ConfessionsCog(commands.Cog):
                 entry = fresh_entry
             number = int(entry.get("number") or 0)
             author_id = int(entry.get("author_id") or 0)
+            sealed = bool(entry.get("author_seal"))
             parent_index = 0
             parent = None
             if parent_id:
@@ -1385,9 +1551,27 @@ class ConfessionsCog(commands.Cog):
             index = int(entry.get("reply_count") or 0) + 1
             # The confession's own author is flagged on their own reply: the
             # OP emoji is the only public trace of who wrote the confession.
-            is_op = bool(author_id) and author.id == author_id
+            # In the sealed mode the claim token is the only proof of
+            # authorship (the id was never stored).
+            claimed = self._claim_tokens.get(claim) if claim else None
+            is_op = bool(
+                claimed
+                and claimed.get("number") == number
+                and claimed.get("guild_id") == guild.id
+            )
+            if not sealed:
+                is_op = is_op or (bool(author_id) and author.id == author_id)
             parent_is_op = bool(parent and parent.get("is_op"))
-            identity = await self._identity(guild.id, number, author.id)
+            # A replier keeps the alias of their previous reply in this
+            # thread when they have one (the reply carries its own alias, so
+            # the identity survives the process and the sealed mode).
+            alias = await self._reply_alias(guild.id, confession_id, author.id)
+            if not alias:
+                alias = (
+                    str(entry.get("alias") or "")
+                    if is_op
+                    else await self._new_alias(guild.id)
+                )
             op_emoji = await self._op_emoji(guild.id) if is_op else ""
             parent_line = ""
             parent_link = ""
@@ -1420,6 +1604,10 @@ class ConfessionsCog(commands.Cog):
                 files.append(discord.File(io.BytesIO(data), filename=name))
                 image_url = f"attachment://{name}"
                 image_name = name
+            reply_color = entry.get("alias_color") or random_color()
+            reply_seal = ""
+            if sealed:
+                reply_seal, _key_id = await self._seal_author(guild.id, author.id)
             variables = {
                 "confession_number": number,
                 "reply_index": index,
@@ -1430,10 +1618,9 @@ class ConfessionsCog(commands.Cog):
                 ),
                 "body": body,
                 "parent_line": parent_line,
-                "color_hex": entry.get("color_hex") or "",
+                "color_hex": reply_color,
                 "image_url": image_url,
-                "alias_name": await self._alias_name(guild.id, identity.seed),
-                "avatar_url": f"attachment://{_identicon_filename(identity.seed)}",
+                "alias_name": await self._alias_name(guild.id, alias),
                 "op_emoji": op_emoji,
                 "parent_link": parent_link,
             }
@@ -1469,10 +1656,8 @@ class ConfessionsCog(commands.Cog):
             else:
                 payload.view.add_item(view.children[0])
             send_kwargs = payload.message_kwargs()
-            identicon = self._identicon_file(identity)
-            all_files = [*([identicon] if identicon else []), *files]
-            if all_files:
-                send_kwargs["files"] = all_files
+            if files:
+                send_kwargs["files"] = files
             sent = await thread.send(
                 **send_kwargs, allowed_mentions=allowed
             )
@@ -1488,12 +1673,16 @@ class ConfessionsCog(commands.Cog):
             stored = await self.store.add_reply(
                 guild.id, confession_id, sent.id,
                 parent_id=parent_id if parent_index else None,
-                parent_index=parent_index, author_id=author.id, body=body,
+                parent_index=parent_index,
+                author_id=author.id,
+                body=body,
                 image_url=stored_image_url,
-                alias=identity.seed,
-                alias_color=identity.color,
+                alias=alias,
+                alias_color=reply_color,
                 is_op=is_op,
                 parent_is_op=parent_is_op,
+                author_seal=reply_seal,
+                claim_hash=claim_hash(claim) if claim else "",
             )
             if stored is None:
                 return "gone", None

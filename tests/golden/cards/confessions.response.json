@@ -9,21 +9,12 @@
       "accent": "#ffb7c5",
       "children": [
         {
-          "accessory": {
-            "type": "Thumbnail",
-            "url": "attachment://anonimo_K7Q.png"
-          },
-          "children": [
-            {
-              "content": "**Anônimo K7Q<:op_emoji:123456789>**",
-              "type": "TextDisplay"
-            },
-            {
-              "content": "…",
-              "type": "TextDisplay"
-            }
-          ],
-          "type": "Section"
+          "content": "**Maçã<:op_emoji:123456789>**",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "…",
+          "type": "TextDisplay"
         },
         {
           "children": [

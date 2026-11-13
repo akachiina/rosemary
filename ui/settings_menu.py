@@ -459,6 +459,26 @@ class SettingsMenuView(Panel):
         from rosemary.core.panels import on_setting_changed
 
         await on_setting_changed(self.bot, self.guild_id, spec.key)
+        # The reveal and the seal are exclusive: the reveal reads the
+        # readable id, the seal keeps it unreadable. Saving one turns the
+        # other off, or the member would get both promises at once.
+        if spec.key in (
+            "confessions.reveal_author",
+            "confessions.sealed_author",
+        ):
+            reveal = await get_setting(
+                self.bot.storage, self.guild_id, "confessions.reveal_author"
+            )
+            sealed = await get_setting(
+                self.bot.storage, self.guild_id, "confessions.sealed_author"
+            )
+            if reveal and sealed:
+                await set_setting(
+                    self.bot.storage,
+                    self.guild_id,
+                    "confessions.sealed_author",
+                    False,
+                )
         # First-time setup hook: enabling colors (or pointing its channel at
         # a fresh guild) must seed entries + roles and post the panel right
         # away, not only on the next boot or manager open.

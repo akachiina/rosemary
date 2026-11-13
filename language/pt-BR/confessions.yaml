@@ -21,6 +21,68 @@ confess:
   alias: Anônimo {seed}
   card:
     title: Confissão (#{confession_number})
+  identity:
+    aliases:
+    - Maçã
+    - Banana
+    - Morango
+    - Uva
+    - Manga
+    - Abacaxi
+    - Melancia
+    - Cereja
+    - Laranja
+    - Limão
+    - Pêssego
+    - Kiwi
+    - Coco
+    - Figo
+    - Romã
+    - Ameixa
+    - Pera
+    - Mamão
+    - Goiaba
+    - Maracujá
+    - Framboesa
+    - Amora
+    - Mirtilo
+    - Lichia
+    - Physalis
+    - Carambola
+    - Jabuticaba
+    - Acerola
+    - Pitanga
+    - Caju
+    - Abacate
+    - Jaca
+    - Fruta-pão
+    - Tamarindo
+    - Tâmara
+    - Caqui
+    - Nectarina
+    - Damasco
+    - Groselha
+    - Cranberry
+    - Melão
+    - Bacuri
+    - Buriti
+    - Cupuaçu
+    - Açaí
+    - Guaraná
+    - Sapoti
+    - Abiu
+    - Biribá
+    - Graviola
+    - Fruta-do-conde
+    - Pinha
+    - Atemoia
+    - Siriguela
+    - Umbu
+    - Licuri
+    - Macaúba
+    - Pupunha
+    - Pequi
+    - Jenipapo
   review:
     title: Confissão (#{confession_number}) · Revisão
     author: '{user} escreveu esta confissão'
@@ -51,6 +113,9 @@ confess:
   review_denied: '{success} Confissão recusada.'
   sent: '{success} Sua confissão foi postada!'
   sent_review: '{success} Sua confissão foi enviada para revisão!'
+  sent_sealed: '• **Autor selado:** X25519 + XSalsa20-Poly1305 · chave `{fingerprint}`'
+  sent_token: '• **Sua chave de reivindicação:** {token} (guarde; ela prova que a confissão é sua)'
+  sent_repo: '• **Código:** `{repo}`'
   replied: '{success} Sua resposta anônima foi postada!'
   banned_confirm: '{success} {user} foi banido das confissões.'
   unbanned_confirm: '{success} {user} pode confessar de novo.'

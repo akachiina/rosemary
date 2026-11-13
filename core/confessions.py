@@ -4,20 +4,28 @@ One JSON file per guild (``confessions.json``). Entries cover both review
 messages (``status`` ``pending``) and public posts (``open``/``denied``):
 approval creates the public entry from the pending one. Replies live in
 their own map keyed by reply message id, with the parent link that renders
-the ``replies to`` line. Author ids stay in this file only: the public
-cards never carry them.
+the ``replies to`` line.
 
-The ``aliases`` map is the pseudonymous identity of every participant: one
-random seed per user per confession thread (``{number: {user_id: seed}}``).
-The public card shows the seed (never the user) as the alias name and
-generates the identicon from it, while the store keeps the link back to the
-account for the staff.
+The author is sealed: with ``confessions.sealed_author`` the entries carry
+``author_seal`` (the author id encrypted to the staff's public key) instead
+of ``author_id`` and the claim hash instead of a user-linked alias. The
+bot cannot open the seal (the private half is offline), so what is stored
+does not reveal who wrote the confession. The legacy mode (the setting off)
+keeps the plain ``author_id`` and the user-keyed ``aliases`` map.
+
+The ban list is the same idea: when the seal is on, the stored value is
+``HMAC(pepper, user_id)`` (the pepper lives in its own file), so the list
+does not carry the ids. The claim token is the member's proof of
+authorship: the store keeps only ``SHA-256(token)``, so the stateless
+``/confissao responder <token>`` can mark the OP without linking the reply
+to an account.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
+from rosemary.core.alias_identity import ban_hash
 from rosemary.core.storage import GuildStorage
 
 
@@ -25,6 +33,7 @@ class ConfessionStore:
     """CRUD for confession posts, anonymous replies and author bans."""
 
     def __init__(self, data_dir) -> None:
+        self.data_dir = data_dir
         self._storage = GuildStorage(
             data_dir, filename="confessions.json", use_defaults=False
         )
@@ -53,12 +62,13 @@ class ConfessionStore:
     async def assign_alias(
         self, guild_id: int, number: int, user_id: int, seed: str
     ) -> str:
-        """The alias seed of a user inside one confession thread.
+        """The alias of a user inside one confession thread (legacy mode).
 
-        Get-or-create: the stored seed wins, so a participant keeps the
-        same identity (and the same avatar) for the whole thread. The
-        mapping is keyed by the confession number, not by the message id,
-        so it survives the review-to-public move.
+        Get-or-create: the stored alias wins, so a participant keeps the
+        same pseudonymous name for the whole thread. The mapping is keyed by
+        the confession number, not by the message id, so it survives the
+        review-to-public move. The sealed mode never calls this: the alias is
+        stored on the entry and the claim token replaces the user link.
         """
         data = await self._doc(guild_id)
         aliases = data["aliases"]
@@ -73,13 +83,29 @@ class ConfessionStore:
         await self._storage.set_all(guild_id, data)
         return seed
 
+    async def claim(
+        self, guild_id: int, token: str
+    ) -> dict[str, Any] | None:
+        """The entry a claim token opens (the hash is the only stored form)."""
+        from rosemary.core.alias_identity import claim_hash
+
+        wanted = claim_hash(token)
+        data = await self._doc(guild_id)
+        for entry in data["entries"].values():
+            if isinstance(entry, dict) and entry.get("claim_hash") == wanted:
+                return dict(entry)
+        for reply in data["replies"].values():
+            if isinstance(reply, dict) and reply.get("claim_hash") == wanted:
+                return dict(reply)
+        return None
+
     async def put(
         self,
         guild_id: int,
         message_id: int,
         *,
         number: int,
-        author_id: int,
+        author_id: int = 0,
         channel_id: int,
         body: str = "",
         user_name: str = "",
@@ -90,14 +116,25 @@ class ConfessionStore:
         thread_id: int = 0,
         alias: str = "",
         alias_color: str = "",
+        author_seal: str = "",
+        claim_hash: str = "",
     ) -> None:
-        """Record a review or public confession message."""
+        """Record a review or public confession message.
+
+        With ``author_seal`` the entry carries the sealed id (and the claim
+        hash) instead of the plain ``author_id``: the caller has already
+        encrypted it (the store never sees the private half). ``alias`` is
+        the pseudonymous name (a fruit when the identity module is on), not
+        a seed; ``alias_color`` keeps the legacy per-participant color.
+        """
         if status not in ("pending", "open", "denied"):
             raise ValueError(f"unknown status {status!r}")
         data = await self._doc(guild_id)
-        data["entries"][str(message_id)] = {
+        entry = {
             "number": number,
-            "author_id": author_id,
+            # With the seal on the id is stored encrypted, never readable:
+            # the caller passes the plain id, the store seals it.
+            "author_id": int(author_id or 0),
             "channel_id": channel_id,
             "body": body,
             "user_name": user_name,
@@ -110,6 +147,19 @@ class ConfessionStore:
             "alias": alias,
             "alias_color": alias_color,
         }
+        if author_seal:
+            entry["author_seal"] = author_seal
+        else:
+            entry.pop("author_seal", None)
+        if claim_hash:
+            entry["claim_hash"] = claim_hash
+        else:
+            entry.pop("claim_hash", None)
+        if author_seal:
+            # The readable id never reaches the disk: the seal is the only
+            # copy (the private half is offline, so nobody can open it).
+            entry.pop("author_id", None)
+        data["entries"][str(message_id)] = entry
         await self._storage.set_all(guild_id, data)
 
     async def rekey(
@@ -184,21 +234,23 @@ class ConfessionStore:
         *,
         parent_id: int | None,
         parent_index: int,
-        author_id: int,
+        author_id: int = 0,
         body: str,
         image_url: str = "",
         alias: str = "",
         alias_color: str = "",
         is_op: bool = False,
         parent_is_op: bool = False,
+        author_seal: str = "",
+        claim_hash: str = "",
     ) -> tuple[int, dict[str, Any]] | None:
         """Record an anonymous reply; returns ``(index, reply)``.
 
         The index is the per-confession sequence feeding the ``#N-M``
         numbering; ``parent_index`` is 0 for direct replies. ``is_op`` marks
-        a reply written by the confession's own author and ``parent_is_op``
-        marks a reply whose parent was written by them: both drive the
-        public ``OP`` emoji.
+        a reply written by the confession's own author (resolved by the
+        claim token in the sealed mode, never by a stored user id).
+        ``author_seal`` carries the sealed author id, when the guild seals.
         """
         data = await self._doc(guild_id)
         entry = data["entries"].get(str(confession_message_id))
@@ -212,7 +264,7 @@ class ConfessionStore:
             "index": index,
             "parent_id": parent_id or 0,
             "parent_index": parent_index,
-            "author_id": author_id,
+            "author_id": int(author_id or 0),
             "body": body,
             "image_url": image_url,
             "alias": alias,
@@ -220,6 +272,16 @@ class ConfessionStore:
             "is_op": bool(is_op),
             "parent_is_op": bool(parent_is_op),
         }
+        if author_seal:
+            reply["author_seal"] = author_seal
+        else:
+            reply.pop("author_seal", None)
+        if claim_hash:
+            reply["claim_hash"] = claim_hash
+        else:
+            reply.pop("claim_hash", None)
+        if author_seal:
+            reply.pop("author_id", None)
         data["replies"][str(reply_message_id)] = reply
         await self._storage.set_all(guild_id, data)
         return index, dict(reply)
@@ -265,11 +327,25 @@ class ConfessionStore:
             }
         await self._storage.set_all(guild_id, data)
 
-    async def ban(self, guild_id: int, user_id: int) -> bool:
-        """Ban an author from confessing. Returns ``False`` when already banned."""
+    async def ban(self, guild_id: int, user_id: int, *, sealed: bool = False) -> bool:
+        """Ban an author from confessing. Returns ``False`` when already banned.
+
+        With ``sealed`` the stored value is the HMAC of the id (the pepper
+        lives in its own file), so the list never carries the ids; the
+        legacy mode keeps the plain ids for compatibility.
+        """
         if user_id <= 0:
             return False
         data = await self._doc(guild_id)
+        if sealed:
+            stored = ban_hash(self.data_dir, guild_id, user_id)
+            banned = [str(v) for v in data["banned"] if str(v)]
+            if stored in banned:
+                return False
+            banned.append(stored)
+            data["banned"] = banned
+            await self._storage.set_all(guild_id, data)
+            return True
         banned = [int(v) for v in data["banned"] if int(v) > 0]
         if user_id in banned:
             return False
@@ -278,9 +354,18 @@ class ConfessionStore:
         await self._storage.set_all(guild_id, data)
         return True
 
-    async def unban(self, guild_id: int, user_id: int) -> bool:
+    async def unban(self, guild_id: int, user_id: int, *, sealed: bool = False) -> bool:
         """Lift a confession ban. Returns ``False`` when not banned."""
         data = await self._doc(guild_id)
+        if sealed:
+            stored = ban_hash(self.data_dir, guild_id, user_id)
+            banned = [str(v) for v in data["banned"] if str(v)]
+            if stored not in banned:
+                return False
+            banned.remove(stored)
+            data["banned"] = banned
+            await self._storage.set_all(guild_id, data)
+            return True
         banned = [int(v) for v in data["banned"] if int(v) > 0]
         if user_id not in banned:
             return False
@@ -289,12 +374,35 @@ class ConfessionStore:
         await self._storage.set_all(guild_id, data)
         return True
 
-    async def is_banned(self, guild_id: int, user_id: int) -> bool:
-        """Whether an author is currently banned from confessing."""
+    async def is_banned(self, guild_id: int, user_id: int, *, sealed: bool = False) -> bool:
+        """Whether an author is currently banned from confessing.
+
+        The check reads the stored shape, not the caller's mode: a guild
+        whose list was written in the legacy shape (plain ids) still bans,
+        and a guild whose list was written with the HMAC (hashes) checks the
+        hash. That way a setting change or an old list never disables a ban.
+        """
         data = await self._doc(guild_id)
-        return user_id in {int(v) for v in data["banned"] if int(v) > 0}
+        raw = [str(v) for v in data["banned"] if str(v)]
+        if any(not value.isdigit() for value in raw):
+            return ban_hash(self.data_dir, guild_id, user_id) in set(raw)
+        if sealed:
+            # The list has ids but the guild wants hashes: both shapes must
+            # answer, or a legacy id would stop banning after the toggle.
+            return user_id in {int(value) for value in raw} or ban_hash(
+                self.data_dir, guild_id, user_id
+            ) in set(raw)
+        return user_id in {int(value) for value in raw}
 
     async def banned_list(self, guild_id: int) -> list[int]:
-        """Every banned author id (staff listing)."""
+        """Every banned author id (staff listing).
+
+        The legacy mode keeps the plain ids; the sealed mode stores hashes
+        (the pepper is the only link back, and it is not in the store), so
+        the listing shows the stored values without pretending they are ids.
+        """
         data = await self._doc(guild_id)
-        return sorted({int(v) for v in data["banned"] if int(v) > 0})
+        values = sorted({int(v) for v in data["banned"] if int(v) > 0})
+        if values:
+            return values
+        return [str(v) for v in data["banned"] if str(v)]

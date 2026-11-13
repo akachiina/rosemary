@@ -114,3 +114,25 @@ async def test_reset_removes_the_key_and_restores_the_localized_default():
     assert view.editing_key is None
     assert view.flash_color == "success"
     assert "voltou ao padrão" in view.flash
+
+
+async def test_reveal_and_seal_are_exclusive():
+    """The reveal reads the id, the seal hides it: saving one turns the
+    other off, so the member never gets both promises."""
+    bot = make_bot()
+    await set_setting(bot.storage, 1, "confessions.reveal_author", True)
+    view = SettingsMenuView(bot, 1, owner_id=1)
+    view._ack = AsyncMock(return_value=True)
+    view.rerender = AsyncMock()
+    interaction = SimpleNamespace(
+        custom_id="settings_value:confessions.reveal_author:true",
+        user=SimpleNamespace(mention="@you"),
+        response=SimpleNamespace(is_done=lambda: True),
+    )
+
+    await view._apply_value(
+        interaction, "confessions.reveal_author", True, stay_in_edit=True
+    )
+
+    assert await get_setting(bot.storage, 1, "confessions.reveal_author") is True
+    assert await get_setting(bot.storage, 1, "confessions.sealed_author") is False

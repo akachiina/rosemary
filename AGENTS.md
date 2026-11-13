@@ -34,7 +34,8 @@ interactive UI).
 - `asyncio_mode = "auto"`: async tests need no decorator.
   `tests/conftest.py` is the sys.path bootstrap; each test file builds its
   own fakes. The cards draw nothing (the subject's picture rides the native
-  thumbnail of Discord), so the suite never reaches the internet.
+  thumbnail of Discord, the confessions' alias has no picture at all), so
+  the suite never reaches the internet.
 - **Golden cards**: `tests/golden/cards/<key>.json` pins what every card
   renders (text, embed or V2 view), so a pipeline refactor cannot change what
   members see unnoticed. After a *deliberate* change to a card's visible
@@ -646,6 +647,27 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   subject card (the image rides the title, the body tells the story) and
   `panel` the frame of an interactive card (the components live in code, the
   document owns the heading, the color and the body).
+- The **confession identity** is a fruit alias and a random pastel
+  (`core/alias_identity.py`): the alias is drawn from
+  `confess.identity.aliases` (the catalog list, one per language) and the
+  accent from `random_color()` (random hue, saturation/lightness ranges
+  customizable per call). The card is the title (the alias), the body, the
+  image and the numbered footer; no identicon, no author line.
+- **Sealed confessions** (`confessions.sealed_author`, on by default): the
+  author id is encrypted with `SealedBox` (X25519 + XSalsa20-Poly1305) to
+  the staff's public key (the private half is offline, never in the bot or
+  the settings). The store keeps `author_seal`, `key_id` and the claim
+  hash, never the id. The member gets a claim token (shown once) and
+  answers with `/confissao responder <token>`: the reply is marked OP and
+  no user id is stored. The reveal, the approval/denial DM and the ban by
+  the review are unavailable while sealed (the staff uses the
+  `confession_keys` CLI to open a seal). The keys rotate
+  (`confessions.key_rotation_days`) and the old private half is destroyed
+  after `confessions.moderation_days`.
+- **The settings are exclusive**: `confessions.reveal_author` on forces
+  `confessions.sealed_author` off (the reveal needs the readable id), and
+  the sealed setting on forces the reveal off. The settings menu applies
+  the pair and the boot reconciles it, so the two can never both be on.
 - There is no **builder** left: every card is a document, so the document is
   the only source of truth (the shape, the category, the mention policy and
   the contract). A card that needs a new slot adds it to the document (and

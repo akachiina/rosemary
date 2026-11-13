@@ -491,6 +491,15 @@ settings:
   confessions.mark_op:
     label: Marcar o autor da confissão
     description: Marca as respostas escritas pelo autor da própria confissão.
+  confessions.sealed_author:
+    label: Criptografar o autor
+    description: Guarda o autor selado (o bot não consegue abrir). Desativa ao ligar "Revelar autor".
+  confessions.key_rotation_days:
+    label: Rotação da chave
+    description: De quanto em quanto tempo a chave de criptografia é trocada.
+  confessions.moderation_days:
+    label: Janela de moderação
+    description: Dias que a chave antiga fica disponível para a staff antes de ser destruída.
   birthdays.enabled:
     label: Aniversários ativados
     description: Registra aniversários e posta anúncios.

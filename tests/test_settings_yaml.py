@@ -40,7 +40,7 @@ def _normalized(spec) -> dict:
 
 
 def test_the_registry_has_the_expected_size():
-    assert len(SETTINGS) == 122
+    assert len(SETTINGS) == 125
 
 
 def test_the_registry_matches_the_baseline():
