@@ -439,16 +439,20 @@ async def test_static_gif_adds_source_link(tmp_path):
         if getattr(item, "custom_id", None) == "roleplay_regive"
     ]
     assert [button.label for button in regive] == ["Abraçar de volta"]
-    # The source link carries its label (a bare emoji is not discoverable).
-    assert link_buttons[0].label == "Fonte da imagem"
+    # The source link is the magnifier alone (no label).
+    assert link_buttons[0].label is None
 
 
 async def test_regive_disables_the_old_row(tmp_path):
-    """After the target re-gives, the old card's button is disabled.
+    """After the target re-gives, the old card's button is disabled in place.
 
-    The row is rebuilt from the stored source url (the link survives) and the
-    action keeps its name: the member reads what was answered.
+    The card itself stays (its text rides the edited view): the old code
+    cleared the view and left only the button, so the message looked deleted.
     """
+    from types import SimpleNamespace
+
+    from discord import components as dc
+
     from rosemary.cogs.roleplay import RegiveView, RoleplayCog
 
     bot = _bot(tmp_path)
@@ -459,14 +463,30 @@ async def test_regive_disables_the_old_row(tmp_path):
     bot.get_cog = MagicMock(return_value=cog)
     cog.send_interaction_card = AsyncMock(return_value=True)
 
+    # A message that carries the real V2 card: the conversion back must keep
+    # the container, the text and the row.
+    card = discord.ui.DesignerView(store=False)
+    card.add_item(
+        discord.ui.Container(
+            discord.ui.TextDisplay("the sentence"),
+            discord.ui.MediaGallery(discord.MediaGalleryItem("https://media.tenor.com/hug.gif")),
+            await RegiveView(bot, 1).build_row(
+                action="hug", source_url="https://media.tenor.com/hug.gif"
+            ),
+        )
+    )
+    payload = card.to_components()
+    message = SimpleNamespace(
+        id=999,
+        components=[dc.Container(payload[0])],
+        edit=AsyncMock(),
+    )
+
     member = _member(200)
     guild = _guild(_channel())
     guild.get_member = MagicMock(
         side_effect=lambda uid: _member(uid) if uid in (100, 200) else None
     )
-    message = MagicMock(spec=discord.Message)
-    message.id = 999
-    message.edit = AsyncMock()
     interaction = MagicMock()
     interaction.guild = guild
     interaction.user = member
@@ -481,12 +501,17 @@ async def test_regive_disables_the_old_row(tmp_path):
     cog.send_interaction_card.assert_awaited_once()
     message.edit.assert_awaited_once()
     edited = message.edit.await_args.kwargs["view"]
-    buttons = list(edited.walk_children())
-    regive = [item for item in buttons if getattr(item, "custom_id", None) == "roleplay_regive"]
+    items = list(edited.walk_children())
+    # The card stays: its text rides the edited view (the old code cleared
+    # the container and left the button alone).
+    assert any(getattr(item, "content", None) == "the sentence" for item in items)
+    regive = [item for item in items if getattr(item, "custom_id", None) == "roleplay_regive"]
     assert [button.label for button in regive] == ["Retribuído"]
     assert regive[0].disabled is True
-    link = [item for item in buttons if getattr(item, "url", None)]
+    # The source link is the magnifier alone (no label), and it survives.
+    link = [item for item in items if getattr(item, "url", None)]
     assert [button.url for button in link] == ["https://media.tenor.com/hug.gif"]
+    assert [button.label for button in link] == [None]
 
 
 # gif manager view =============================================================

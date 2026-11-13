@@ -5,10 +5,10 @@ V2 card: the action sentence as the body (``@A abraçou @B``, both members
 ping through the mention fields), a MediaGallery carrying the gif (URL only,
 no upload) and a relative-timestamp footer. The row carries **Retribuir**
 (target-only; sends a fresh card with the roles swapped, labelled with the
-action: "Abraçar de volta") plus **Fonte da imagem** linking the resolved
-gif (even when the gif came from the API: the resolved url IS the source).
-After a re-give the old card's row is rebuilt disabled: the action was
-answered, and the button would only repeat it.
+action: "Abraçar de volta") plus the **magnifier** linking the resolved gif
+(even when the gif came from the API: the resolved url IS the source).
+After a re-give the old card is edited in place: its components are
+converted back, the re-give button is disabled and the card stays.
 
 Gif resolution per action: the guild's ``roleplay.json`` override list
 when seeded (first manager edit), else the theme's ``roleplay.gifs``
@@ -146,28 +146,16 @@ async def _regive_row(
 
     The re-give label names the action ("Abraçar de volta"): a generic
     "Retribuir" would make every card look the same. After the action was
-    answered the row is rebuilt disabled ("Retribuído"): the button would
-    only repeat a card that already exists. The source link keeps its label
-    (a bare emoji is not discoverable) and disappears when no url arrived.
+    answered the button is disabled ("Retribuído"): it would only repeat a
+    card that already exists. The source link is the magnifier alone: the
+    card already has a footer, and a second label would crowd the row.
 
     ``handler`` is the dispatcher callback the button binds to (the
     dispatcher's own method); the row sent with the card passes it, the
-    rebuilt disabled row passes none (a disabled button never fires).
+    disabled row rebuilt in place passes none (a disabled button never fires).
     """
     theme = getattr(bot, "theme", None)
-
-    async def label(key: str) -> str:
-        text = await bot.translator.t(guild_id, key)
-        return key if text == key else text
-
-    if disabled:
-        text = await label("roleplay.regiven")
-    elif action:
-        text = await label(f"roleplay.regive_labels.{action}")
-        if text == f"roleplay.regive_labels.{action}":
-            text = await label("roleplay.regive")
-    else:
-        text = await label("roleplay.regive")
+    text = await _regive_label(bot, guild_id, action, disabled)
     items: list[discord.ui.ViewItem] = [
         discord.ui.Button(
             style=discord.ButtonStyle.primary,
@@ -184,11 +172,31 @@ async def _regive_row(
             discord.ui.Button(
                 style=discord.ButtonStyle.link,
                 url=source_url,
-                label=await label("roleplay.source"),
                 emoji=theme.emoji("search") if theme is not None else "🔍",
             )
         )
     return discord.ui.ActionRow(*items)
+
+
+async def _regive_label(
+    bot, guild_id: int, action: str | None = None, disabled: bool = False
+) -> str:
+    """The re-give label: the action's name, or the answered state.
+
+    A card whose action the catalog does not name falls back to the generic
+    "Retribuir": a raw key would ship to the member.
+    """
+    generic = "roleplay.regive"
+    if disabled:
+        key = "roleplay.regiven"
+    elif action:
+        key = f"roleplay.regive_labels.{action}"
+    else:
+        key = generic
+    text = await bot.translator.t(guild_id, key)
+    if text == key and key != generic:
+        text = await bot.translator.t(guild_id, generic)
+    return text
 
 
 class RegiveView(MenuView):
@@ -280,28 +288,40 @@ class RegiveView(MenuView):
                 )
             return
         # The action was answered: the old card's button has nothing left to
-        # do. Rebuild the row disabled (the source link stays); the message
-        # is the interaction's own, so this is a plain edit, not a response.
+        # do. Edit the message in place: its components are converted back
+        # into a view (the card's text, gif and footer included), and only the
+        # re-give button changes (disabled, "Retribuído"). Clearing the view
+        # and adding a fresh row would delete the card.
         if message is not None:
-            row = await _regive_row(
-                self.bot,
-                guild.id,
-                action,
-                str(context.get("source_url") or ""),
-                disabled=True,
-            )
-            disabled_view = discord.ui.DesignerView.from_message(message)
-            disabled_view.clear_items()
-            disabled_view.add_item(row)
-            try:
-                await message.edit(view=disabled_view)
-            except discord.HTTPException as exc:
+            edited = discord.ui.DesignerView.from_message(message)
+            found = False
+            for item in edited.walk_children():
+                if getattr(item, "custom_id", None) in (
+                    _REGIVE_PREFIX,
+                    _LEGACY_REGIVE_PREFIX,
+                ):
+                    item.disabled = True
+                    item.label = await _regive_label(
+                        self.bot, guild.id, disabled=True
+                    )
+                    found = True
+            if not found:
                 log.warning(
-                    "Could not disable the regive row of message %s in %s: %s",
+                    "The regive button of message %s in %s is gone; the card "
+                    "stays as it is",
                     getattr(message, "id", "?"),
                     guild.id,
-                    exc,
                 )
+            else:
+                try:
+                    await message.edit(view=edited)
+                except discord.HTTPException as exc:
+                    log.warning(
+                        "Could not disable the regive row of message %s in %s: %s",
+                        getattr(message, "id", "?"),
+                        guild.id,
+                        exc,
+                    )
 
 
 class RoleplayCog(commands.Cog):

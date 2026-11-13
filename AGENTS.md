@@ -609,10 +609,12 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   sentence would ship twice) and no thumbnail (the action is between two
   members: one face would mislead). Its row is code-owned: the re-give
   button is labelled with the action (`roleplay.regive_labels.<action>`,
-  "Abraçar de volta") and the source link carries `roleplay.source`. After
-  the target re-gives, the old row is rebuilt **disabled**
-  (`roleplay.regiven`): the button would only repeat a card that already
-  exists. The store keeps the card's `source_url` for that rebuild.
+  "Abraçar de volta") and the source link is the magnifier alone. After
+  the target re-gives, the old message is **edited in place**: its
+  components are converted back into a view, the re-give button is disabled
+  and relabelled (`roleplay.regiven`), and the card itself stays (clearing
+  the view would leave only the button and the card would look deleted). The
+  store keeps the card's `source_url` (the gif the card showed).
 - The boost invite is **one message**: the content line, the embed with the
   role and the accept/decline buttons. A Components V2 message cannot carry
   content nor an embed, so `BoostInviteView` is a classic `discord.ui.View`
