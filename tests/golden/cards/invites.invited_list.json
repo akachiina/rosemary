@@ -15,19 +15,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**Membros convidados por <@0>**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "…",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**Membros convidados por <@0>**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "…",
-          "type": "TextDisplay"
         }
       ],
       "type": "Container"

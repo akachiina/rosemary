@@ -12,10 +12,10 @@ import discord
 import pytest
 from card_forms import (
     payload_accent,
-    payload_author_icon,
     payload_footer_lines,
     payload_image,
     payload_texts,
+    payload_thumbnail,
 )
 from catalog import load_catalog
 
@@ -329,10 +329,10 @@ async def test_card_renders_title_body_counts_and_hint(tmp_path):
     assert any(text == "**Suggestion #1**" for text in texts), texts
     assert any("more emojis please" in text for text in texts), texts
     assert any("⬆️ 0 · ⬇️ 0" in text for text in texts), texts
-    # The subject owns the author line: the name in bold and the picture as
-    # the accessory; the hint names the localized command.
-    assert any(text == "**Author**" for text in texts), texts
-    assert payload_author_icon(payload) == "https://cdn.discordapp.com/embed/avatars/0.png"
+    # The subject's picture is the thumbnail; the name is not a line. The
+    # hint names the localized command.
+    assert not any(text == "**Author**" for text in texts), texts
+    assert payload_thumbnail(payload) == "https://cdn.discordapp.com/embed/avatars/0.png"
     footer = "\n".join(payload_footer_lines(payload))
     assert "/suggest" in footer
     assert "<@7>" not in footer and "<t:" not in footer

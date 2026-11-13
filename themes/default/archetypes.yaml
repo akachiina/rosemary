@@ -42,14 +42,13 @@ archetypes:
     rich: false
     legacy_body: false
 
-  # An event announcement (a member joined, left or got banned): the member
-  # owns the author line (name and avatar), the body tells the story and the
-  # footer names the server, the member count, the id and the date.
+  # An event announcement (a member joined, left or got banned): the member's
+  # avatar rides the thumbnail, the body tells the story and the footer names
+  # the server, the member count, the id and the date.
   event:
     form: card
     color: brand
-    author: '{user_name}'
-    author_icon: '{user_avatar}'
+    thumbnail: '{user_avatar}'
     footer: "{server} · #{count} · `{user_id}`\n{timestamp}"
     timestamp: true
     mention: single

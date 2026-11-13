@@ -54,8 +54,7 @@ bump.thank_you:
   title: '{bump.messages.thank_you_title}'
   description: '{bump.messages.thank_you_description}'
   ping_line: '{bump.messages.ping_thank_you}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   footer: '{timestamp}'
   timestamp: true
   variables:
@@ -81,8 +80,7 @@ bump.leaderboard:
   title: '{bump.messages.leaderboard_title}'
   description: '{bump.messages.leaderboard_description}'
   ping_line: '{bump.messages.ping_leaderboard}'
-  author: '{winner_name}'
-  author_icon: '{winner_avatar}'
+  thumbnail: '{winner_avatar}'
   footer: '{timestamp}'
   timestamp: true
   variables:
@@ -134,8 +132,7 @@ invites.stats:
   title: '{invites.stats.title}'
   description: '{body}'
   ping_line: '{invites.stats.ping}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   variables:
   - user
   - user_name
@@ -156,8 +153,7 @@ invites.personal:
   rich: false
   title: '{invites.personal.title}'
   description: '{body}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   variables:
   - user
   - user_name
@@ -176,8 +172,7 @@ invites.invited_list:
   rich: false
   title: '{invites.invited.title}'
   description: '{body}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   variables:
   - user
   - user_name
@@ -206,8 +201,7 @@ invites.invited_by:
   rich: false
   title: '{invites.inviter.title}'
   description: '{invites.inviter.body}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   variables:
   - user
   - user_name

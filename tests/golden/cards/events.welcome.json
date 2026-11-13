@@ -21,19 +21,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**🎉 Bem-vindo(a)!**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "<@0> acabou de entrar. Diga oi! Membro #1 do ….",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**🎉 Bem-vindo(a)!**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "<@0> acabou de entrar. Diga oi! Membro #1 do ….",
-          "type": "TextDisplay"
         },
         {
           "type": "Separator"

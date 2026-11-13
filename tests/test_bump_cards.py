@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 from card_forms import (
     payload_accent,
-    payload_author_icon,
     payload_footer_lines,
     payload_texts,
+    payload_thumbnail,
 )
 
 from rosemary.cogs.bump_leaderboard import _next_reset
@@ -119,8 +119,8 @@ async def test_bump_cards_build_with_avatar(bot):
     reminder, thanks = await _build_views(bot, GuildWithMember(True))
     assert reminder.view is not None
     assert thanks.view is not None
-    # The code fallback keeps the native author line.
-    assert payload_author_icon(thanks) == "https://example.com/avatar.png"
+    # The code fallback keeps the subject's picture as the thumbnail.
+    assert payload_thumbnail(thanks) == "https://example.com/avatar.png"
 
 
 async def test_bump_card_layout_valid(bot):
@@ -266,10 +266,9 @@ async def test_bump_card_document_layout_and_style(
 ):
     """The cards follow the theme styles and keep their frame.
 
-    The subject owns the author line (the name in bold and the avatar as the
-    accessory of the section) and the footer keeps the date only: the card
-    never repeats the avatar as a thumbnail, and the leaderboard no longer
-    credits the winner as if they had posted the ranking.
+    The subject's avatar is the thumbnail and the footer keeps the date only:
+    the card never repeats the name above the title, and the leaderboard no
+    longer credits the winner as if they had posted the ranking.
     """
     from rosemary.core.card_service import render_card_message
     from rosemary.core.themes import theme_for
@@ -286,10 +285,9 @@ async def test_bump_card_document_layout_and_style(
     # The title is a bold line (the size of the title of an embed).
     assert any(text.startswith("**") for text in texts), texts
     assert len(texts) > 1, texts
-    # The subject owns the author line: the name in bold and the avatar as
-    # the accessory of the section.
-    assert any(text == f"**{variables[name_var]}**" for text in texts), texts
-    assert payload_author_icon(payload) == variables[avatar_var]
+    # The subject's avatar is the thumbnail; the name is not a line.
+    assert not any(text == f"**{variables[name_var]}**" for text in texts), texts
+    assert payload_thumbnail(payload) == variables[avatar_var]
     footer = "\n".join(payload_footer_lines(payload))
     assert "<@" not in footer and "<t:" not in footer
 
@@ -301,10 +299,10 @@ async def test_bump_card_document_layout_and_style(
         ("bump.leaderboard", "winner_avatar", _LEADERBOARD_VARS),
     ],
 )
-async def test_bump_card_without_avatar_keeps_the_author_line(
+async def test_bump_card_without_avatar_has_no_thumbnail(
     key, avatar_var, variables, tmp_path
 ):
-    """A missing avatar leaves the name in bold, without an empty accessory."""
+    """A missing avatar leaves the card without a picture, never an empty one."""
     from rosemary.core.card_service import render_card_message
 
     bot = _card_bot(tmp_path)
@@ -313,7 +311,7 @@ async def test_bump_card_without_avatar_keeps_the_author_line(
         bot, 1, key, {**bare, "state_color": "brand"}
     )
     assert payload is not None
-    assert payload_author_icon(payload) == ""
+    assert payload_thumbnail(payload) == ""
 
 
 async def test_bump_card_colors_follow_theme_styles(tmp_path):

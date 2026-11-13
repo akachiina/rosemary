@@ -15,19 +15,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**🚫 Membro banido**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "@you (`123456789012345678`) foi banido do ….",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**🚫 Membro banido**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "@you (`123456789012345678`) foi banido do ….",
-          "type": "TextDisplay"
         },
         {
           "type": "Separator"

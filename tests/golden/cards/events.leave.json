@@ -15,19 +15,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**🚪 Até a próxima**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "@you saiu do servidor. Agora somos 1 membros.",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**🚪 Até a próxima**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "@you saiu do servidor. Agora somos 1 membros.",
-          "type": "TextDisplay"
         },
         {
           "type": "Separator"

@@ -33,7 +33,7 @@ interactive UI).
 - No CI workflows or pre-commit config here; these local commands are the gate.
 - `asyncio_mode = "auto"`: async tests need no decorator.
   `tests/conftest.py` is the sys.path bootstrap; each test file builds its
-  own fakes. The cards draw nothing (the author line rides the native
+  own fakes. The cards draw nothing (the subject's picture rides the native
   thumbnail of Discord), so the suite never reaches the internet.
 - **Golden cards**: `tests/golden/cards/<key>.json` pins what every card
   renders (text, embed or V2 view), so a pipeline refactor cannot change what
@@ -46,10 +46,10 @@ interactive UI).
   fills them. A message that carries a stack of embeds records the boxes in
   the `embeds` field (the `embed` field keeps the first one); the field only
   appears when there is more than one box. A file that rides the message is
-  recorded in the `files` field (no card draws one: the author line rides
-  the native thumbnail of Discord). The mentions the message may notify are
-  pinned too: `pings` holds the users and `role_pings` the roles (the field
-  only appears when there is one).
+  recorded in the `files` field (no card draws one: the subject's picture
+  rides the native thumbnail of Discord). The mentions the message may
+  notify are pinned too: `pings` holds the users and `role_pings` the roles
+  (the field only appears when there is one).
 - **Golden panels**: `tests/golden/panels/<name>.json` pins what every
   representative panel shows (the texts, the buttons and the selects, with the
   label, the description, the icon and the current default). After a
@@ -430,24 +430,28 @@ holds **only** the model and its two ends (the meta de 900 linhas):
   `resolve_embed`, `build_embed_view`): the text is final, so nothing is
   validated nor substituted twice.
 
-### The author line (the native thumbnail)
+### The subject's picture (the native thumbnail)
 
-A card that names an author (the `author`/`author_icon` slots) draws the
-author line the way the embed does: the name in bold and the picture as the
-**accessory** of a section (the native `Thumbnail` of the Components V2). The
-YAML of the cards says nothing new, and a theme removes the line by removing
-the author (`cards.<key>.author: null`).
+A content card (Components V2) shows the subject's picture as the **native
+`Thumbnail`** of Discord: the accessory of the section that carries the title
+and the body. The document names it with the `thumbnail` slot
+(`thumbnail: '{user_avatar}'`), so the card carries the face without repeating
+the name above the title. A theme removes the picture by removing the slot
+(`cards.<key>.thumbnail: null`).
 
-- `core/design/serialize.py::card_to_v2` writes the section: the name in
-  bold, the picture as the accessory when the `author_icon` resolved. A
-  missing picture leaves the name alone (never an empty accessory, which
-  Discord would reject).
+- `core/design/serialize.py::card_to_v2` writes the section: the title and the
+  body beside the picture, the `thumbnail` as the accessory when it resolved.
+  A missing picture leaves the card without one (never an empty accessory,
+  which Discord would reject).
 - The picture is the **native** one (the URL of the member's avatar): the
   card never rasterizes anything, never downloads the avatar and never
   attaches a file. The rendering is Discord's, so it looks the same on the
   phone and on the desktop.
-- The author line is the **first block of the frame**, before the title and
-  the body, and it is a line of the card: the name is readable text.
+- The **author line** (`author`/`author_icon`, the name in bold above the
+  title) belongs to the classic embed: the staff logs, the audit cards and
+  the DMs. A content card never declares it, or the name would ride twice
+  (above the title and in the body). The embed draws the same picture in its
+  own author frame.
 - The removal of the author survives the resolution of the layers
   (`core/documents/merge.py::keep_removals`), so it also removes the slot of
   the packaged document.

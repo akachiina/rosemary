@@ -123,19 +123,6 @@ def payload_image(payload: Any) -> str:
     return _first_gallery(payload)
 
 
-def payload_author_icon(payload: Any) -> str:
-    """The author icon URL of a rendered payload (empty when there is none).
-
-    The V2 card draws the author line as a section of its own: the name in
-    bold and the picture as the accessory (the native thumbnail). The embed
-    draws the same picture in its own author frame.
-    """
-    embed = getattr(payload, "embed", None)
-    if embed is not None and embed.author and embed.author.icon_url:
-        return embed.author.icon_url
-    return _first_accessory(payload)
-
-
 def payload_accent(payload: Any) -> int:
     """The accent colour of a rendered payload (the container of the V2)."""
     embed = getattr(payload, "embed", None)

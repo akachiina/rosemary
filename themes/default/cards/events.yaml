@@ -58,16 +58,15 @@ events.ban:
   mention: single
   category: events
 
-# The birthday announcement: the celebrant's avatar rides the title and
-# the standard author footer attributes the card to them.
+# The birthday announcement: the celebrant's avatar rides the thumbnail and
+# the footer closes the card with the date.
 birthdays.announce:
   form: card
   color: warning
   title: '{birthdays.announce.title}'
   description: '{birthdays.announce.body}'
   ping_line: '{birthdays.ping}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   footer: '{timestamp}'
   timestamp: true
   variables:

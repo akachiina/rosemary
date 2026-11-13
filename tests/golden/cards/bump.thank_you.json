@@ -21,19 +21,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**🎉 Bump Registrado!**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "Muito obrigada pelo bump, <@0>! Sua dedicação mantém o servidor brilhando. 🍵\n\n**⏰ Próximo bump:** <t:1111111111:R>\n**⏳ Lembrete:** volto para te avisar em **…!**\n\n🏆 Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!\n",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**🎉 Bump Registrado!**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "Muito obrigada pelo bump, <@0>! Sua dedicação mantém o servidor brilhando. 🍵\n\n**⏰ Próximo bump:** <t:1111111111:R>\n**⏳ Lembrete:** volto para te avisar em **…!**\n\n🏆 Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!\n",
-          "type": "TextDisplay"
         },
         {
           "type": "Separator"

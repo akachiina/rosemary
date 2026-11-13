@@ -15,19 +15,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**…**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "…",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**…**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "…",
-          "type": "TextDisplay"
         },
         {
           "children": [

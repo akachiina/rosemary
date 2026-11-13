@@ -15,19 +15,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**Convidado por**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "Membro: <@0>\nConvidado por: <@0>\nCódigo: `abc123`\nEntrou: …\nStatus: …",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**Convidado por**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "Membro: <@0>\nConvidado por: <@0>\nCódigo: `abc123`\nEntrou: …\nStatus: …",
-          "type": "TextDisplay"
         }
       ],
       "type": "Container"

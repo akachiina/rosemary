@@ -12,10 +12,10 @@ from unittest.mock import MagicMock
 import discord
 from card_forms import (
     payload_accent,
-    payload_author_icon,
     payload_image,
     payload_pictures,
     payload_texts,
+    payload_thumbnail,
 )
 from catalog import load_catalog
 
@@ -264,10 +264,9 @@ async def test_starboard_card_resolves_via_document():
     )
     texts = payload_texts(payload)
     assert any("mensagem estrelada" in text for text in texts)
-    # The attribution is the author line: the name in bold and the picture
-    # as the accessory of the section.
-    assert any(text == "**Ana**" for text in texts), texts
-    assert payload_author_icon(payload) == "https://a.b/c.png"
+    # The subject's picture is the thumbnail; the name is not a line.
+    assert not any(text == "**Ana**" for text in texts), texts
+    assert payload_thumbnail(payload) == "https://a.b/c.png"
     assert not any("<@" in text for text in texts)
 
 
@@ -312,16 +311,16 @@ async def test_serverinfo_card_resolves_via_document():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    # The name of the server lives in the author line (the name in bold and
-    # the picture as the accessory of the section).
-    assert any("**Overdose Community**" in text for text in texts), texts
+    # The server's name is not a line of the card: its picture is the
+    # thumbnail.
+    assert not any("**Overdose Community**" in text for text in texts), texts
     # The document carries the stat rows (channel breakdown, verification).
     assert any("34" in text and "12" in text for text in texts), texts
     assert any("120" in text and "10" in text for text in texts), texts
     assert any("Médio" in text for text in texts), texts
-    # Exactly one icon: the server icon rides the author line, the banner
+    # Exactly one icon: the server icon rides the thumbnail, the banner
     # rides the image.
-    assert payload_author_icon(payload) == "https://a.b/icon.png"
+    assert payload_thumbnail(payload) == "https://a.b/icon.png"
     assert payload_pictures(payload) == [
         "https://a.b/icon.png",
         "https://a.b/banner.png",
@@ -365,10 +364,9 @@ async def test_serverinfo_card_degrades_without_banner_and_icon():
     texts = payload_texts(payload)
     assert any("Serv" in text for text in texts)
     assert not any("servidor de testes" in text for text in texts)
-    # No icon, no banner: no empty image rides the card (the author line
-    # keeps the name and drops the picture).
-    assert any("**Serv**" in text for text in texts), texts
-    assert payload_author_icon(payload) == ""
+    # No icon, no banner: no empty picture rides the card.
+    assert not any("**Serv**" in text for text in texts), texts
+    assert payload_thumbnail(payload) == ""
     assert payload_pictures(payload) == []
     assert payload_image(payload) == ""
 

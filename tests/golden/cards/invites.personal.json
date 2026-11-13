@@ -15,19 +15,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**Seu link de convite**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "…",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**Seu link de convite**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "…",
-          "type": "TextDisplay"
         }
       ],
       "type": "Container"

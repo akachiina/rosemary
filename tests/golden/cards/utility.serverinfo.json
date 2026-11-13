@@ -15,23 +15,19 @@
           },
           "children": [
             {
-              "content": "**…**",
+              "content": "**Informações do Servidor**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "👑 <@0> · 👥 1 membros",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "…",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**Informações do Servidor**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "👑 <@0> · 👥 1 membros",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "…",
-          "type": "TextDisplay"
         },
         {
           "children": [

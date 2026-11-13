@@ -155,10 +155,12 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
 
     A blocks-native card keeps its body. A slots-native card gets the standard
     frame: the opening line (the event sentence or the notification phrase)
-    above the frame, the author line in a section of its own (the name in
-    bold, the picture as the accessory), the title and the description in a
-    section (with the picture as the accessory), the fields as labelled
-    lines, the footer as a small (``-#``) line and the actions as a row.
+    above the frame, the title and the description in a section (the
+    thumbnail as its accessory), the fields as labelled lines, the footer as
+    a small (``-#``) line and the actions as a row. The author line (the name
+    in bold above the title) is drawn only when the document declares it: the
+    content documents show the subject's picture as the thumbnail instead,
+    and the author belongs to the classic embed.
 
     ``theme`` gives the title preset (the theme owns the markdown dialect);
     without it the heading is the plain ``# title``.

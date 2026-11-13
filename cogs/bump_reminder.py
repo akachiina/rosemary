@@ -751,8 +751,7 @@ class BumpReminderCog(commands.Cog):
             title=title,
             body=description,
             color=self.bot.theme.style("bump_reminder").color,
-            author=member.display_name if member is not None else "",
-            author_icon=avatar or "",
+            thumbnail=avatar or "",
         )
 
     #: Listeners -----------------------------------------------------------

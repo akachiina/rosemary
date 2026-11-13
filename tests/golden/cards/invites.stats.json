@@ -21,19 +21,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**📊 Convites de <@0>**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "…",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**📊 Convites de <@0>**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "…",
-          "type": "TextDisplay"
         }
       ],
       "type": "Container"

@@ -104,9 +104,9 @@ async def test_event_titles_are_not_double_decorated():
         },
     )
     assert payload is not None
-    # The event card is a Components V2: the title is the bold line (the
-    # author line is a bold line too, so the emoji is counted in every
-    # bold line of the card).
+    # The event card is a Components V2: the title is the bold line. The
+    # card may carry other bold lines, so the emoji is counted in every
+    # bold line of the card.
     bold = [text for text in payload_texts(payload) if text.startswith("**")]
     assert sum(text.count(ban_emoji) for text in bold) == 1, bold
 
@@ -118,13 +118,13 @@ async def test_event_titles_are_not_double_decorated():
     assert payload.embed.title.count(ban_emoji) == 1, payload.embed.title
 
 
-async def test_event_document_has_avatar_author_and_footer():
-    """The event documents: the member owns the author line and the footer
-    names the server, the count and the id (the id in inline code)."""
+async def test_event_document_has_avatar_thumbnail_and_footer():
+    """The event documents: the member's avatar is the thumbnail and the
+    footer names the server, the count and the id (the id in inline code)."""
     from card_forms import (
-        payload_author_icon,
         payload_footer_lines,
         payload_texts,
+        payload_thumbnail,
     )
     from golden_cards import make_bot
 
@@ -133,9 +133,9 @@ async def test_event_document_has_avatar_author_and_footer():
 
     document = default_package().document("events.welcome")
     assert document is not None
-    assert document["author"] == "{user_name}"
-    assert document["author_icon"] == "{user_avatar}"
-    assert "thumbnail" not in document
+    assert document["thumbnail"] == "{user_avatar}"
+    assert "author" not in document
+    assert "author_icon" not in document
     assert "`{user_id}`" in document["footer"]
 
     bot = make_bot()
@@ -155,9 +155,9 @@ async def test_event_document_has_avatar_author_and_footer():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    # The author line: the name in bold and the picture as the accessory.
-    assert "**Ana**" in texts, texts
-    assert payload_author_icon(payload) == "https://a.b/ana.png"
+    # The subject's picture is the thumbnail; the name is not a line.
+    assert "**Ana**" not in texts, texts
+    assert payload_thumbnail(payload) == "https://a.b/ana.png"
     # The footer names the server, the count and the id (in inline code).
     assert "Serv · #3 · `5`" in payload_footer_lines(payload)
 

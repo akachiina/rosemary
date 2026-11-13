@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 from card_forms import (
-    payload_author_icon,
     payload_image,
     payload_pictures,
     payload_texts,
@@ -119,13 +118,13 @@ async def test_userinfo_card_renders_full_and_degraded():
     }
     payload = await _build_and_render(bot, "utility.userinfo", full)
     texts = payload_texts(payload)
-    # The name of the member lives in the author line (the name in bold and
-    # the picture as the accessory of the section).
-    assert any("**Ana**" in t for t in texts), texts
-    assert payload_author_icon(payload) == "https://a.b/ana.png"
+    # The member's avatar is the thumbnail; the name is not a line of the
+    # card (the subtitle and the fields carry the identity).
+    assert not any("**Ana**" in t for t in texts), texts
+    assert payload_thumbnail(payload) == "https://a.b/ana.png"
     assert any("aninha" in t for t in texts), texts
     assert any("<@&7>" in t for t in texts)
-    # The avatar rides the author line and the banner the image: two
+    # The avatar rides the thumbnail and the banner the image: two
     # pictures, one of each.
     assert "banner.png" in payload_image(payload)
     assert payload_pictures(payload) == [
@@ -149,10 +148,10 @@ async def test_userinfo_card_renders_full_and_degraded():
     assert not any("aninha" in t for t in texts)
     assert not any("<@&7>" in t for t in texts)
     assert payload_image(payload) == ""
-    # No avatar -> the name in bold, never an empty accessory.
+    # No avatar -> no picture, never an empty accessory.
     plain = {**bare, "user_avatar": ""}
     payload = await _build_and_render(bot, "utility.userinfo", plain)
-    assert payload_author_icon(payload) == ""
+    assert payload_thumbnail(payload) == ""
 
 
 async def test_emojiinfo_card_custom_and_unicode():

@@ -21,19 +21,15 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "**Feliz aniversário! 🎁**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "<@0> está comemorando hoje. Participe da festa!",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "**Feliz aniversário! 🎁**",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "<@0> está comemorando hoje. Participe da festa!",
-          "type": "TextDisplay"
         },
         {
           "type": "Separator"

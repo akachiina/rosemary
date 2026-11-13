@@ -1,22 +1,22 @@
-"""The Components V2 dialect of a card: the opening phrase and the author.
+"""The Components V2 dialect of a card: the opening phrase and the avatar.
 
 A card says what it is; every form writes it in its own dialect. The V2 had
-two gaps (the notification phrase and the author line) and one policy gap (a
-mention in the text of a V2 card did not notify). These tests pin the dialect
-the engine draws and the policy it applies, so a card that ships as a V2 keeps
-saying the same thing as the embed it replaced.
+two gaps (the notification phrase and the subject's picture) and one policy
+gap (a mention in the text of a V2 card did not notify). These tests pin the
+dialect the engine draws and the policy it applies, so a card that ships as a
+V2 keeps saying the same thing as the embed it replaced.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from card_forms import payload_author_icon, payload_texts
+from card_forms import payload_texts, payload_thumbnail
 from golden_cards import GUILD_ID, make_bot
 
 from rosemary.core.card_service import render_card_message
 
-#: The variables of the welcome event (the card with a phrase and an author).
+#: The variables of the welcome event (the card with a phrase and an avatar).
 WELCOME = {
     "user": "<@42>",
     "user_name": "Ana",
@@ -189,12 +189,12 @@ async def test_the_opening_line_rides_above_the_frame():
     assert isinstance(children[1], discord.ui.Container), type(children[1])
 
 
-async def test_the_author_line_rides_the_v2_card():
-    """The author line of the V2 card is a section of its own.
+async def test_the_avatar_rides_the_v2_thumbnail():
+    """The V2 card has no author line: the picture is the thumbnail.
 
-    The embed has a frame for it (the author line); the V2 draws the name
-    in bold and the picture as the accessory of the section (the native
-    thumbnail), so the card keeps the attribution the way the embed does.
+    The embed had a frame for the author; the V2 draws the subject's picture
+    as the accessory of the title section (the native thumbnail), so the card
+    keeps the identity without repeating the name above the title.
     """
     bot = make_bot()
     payload, _allowed = await render_card_message(
@@ -202,10 +202,10 @@ async def test_the_author_line_rides_the_v2_card():
     )
     assert payload is not None
     texts = payload_texts(payload)
-    # The name lives in the section, in bold.
-    assert "**Ana**" in texts, texts
-    # The picture is the accessory of that section (the native thumbnail).
-    assert payload_author_icon(payload) == "https://a.b/ana.png"
+    # The name is not a line of the card: the body mentions the member.
+    assert "**Ana**" not in texts, texts
+    # The picture is the accessory of the title section (the thumbnail).
+    assert payload_thumbnail(payload) == "https://a.b/ana.png"
     # The card draws no picture of its own: nothing rides the message.
     assert payload.files == []
     assert _pictures(payload.view) == ["https://a.b/ana.png"]

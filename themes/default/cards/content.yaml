@@ -13,8 +13,7 @@
 utility.serverinfo:
   archetype: info_card
   title: '{serverinfo.title}'
-  author: '{server}'
-  author_icon: '{server_icon}'
+  thumbnail: '{server_icon}'
   image: '{banner_url}'
   paragraphs:
   - '{card.utility.serverinfo.subtitle}'
@@ -61,8 +60,7 @@ utility.serverinfo:
 utility.userinfo:
   archetype: info_card
   title: '{card.utility.userinfo.title}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   image: '{banner_url}'
   description: '{card.utility.userinfo.subtitle}'
   fields:
@@ -291,8 +289,7 @@ starboard.card:
   - 'warning'
   title: '{title}'
   description: '{body}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   image: '{image_url}'
   footer: '{timestamp}'
   timestamp: true
@@ -330,8 +327,7 @@ suggestions.card:
   - '{body}'
   - '{up} {upvotes} · {down} {downvotes}'
   - '{status_line}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   image: '{image_url}'
   footer:
   - '{timestamp} · {suggest.card.hint}'
@@ -764,8 +760,7 @@ partnerships.dm.expired_admin:
 roleplay.card:
   form: card
   color: brand
-  author: '{actor_name}'
-  author_icon: '{actor_avatar}'
+  thumbnail: '{actor_avatar}'
   description: '{love_letter} {@actor} {action} {@target}'
   ping_line: '{roleplay.card.ping}'
   image: '{gif_url}'
@@ -825,8 +820,7 @@ moderation.warnings:
   - 'warning'
   title: '{title}'
   description: '{body}'
-  author: '{user_name}'
-  author_icon: '{user_avatar}'
+  thumbnail: '{user_avatar}'
   footer: '{timestamp}'
   timestamp: true
   variables:

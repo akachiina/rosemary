@@ -17,9 +17,9 @@ import pytest
 import yaml
 from card_forms import (
     payload_accent,
-    payload_author_icon,
     payload_footer_lines,
     payload_texts,
+    payload_thumbnail,
 )
 
 import rosemary.core.card_specs  # noqa: F401  (fills the card registry)
@@ -126,16 +126,16 @@ async def test_warnings_card_layout_and_state_color(variables, style, tmp_path):
     # The title is a bold line (the size of the title of an embed).
     assert any(text == f"**{variables['title']}**" for text in texts), texts
     assert any(variables["body"] in text for text in texts), texts
-    # The author line: the name in bold and the picture as the accessory.
-    assert any(text == f"**{variables['user_name']}**" for text in texts), texts
-    assert payload_author_icon(payload) == variables["user_avatar"]
+    # The subject's picture is the thumbnail; the name is not a line.
+    assert not any(text == f"**{variables['user_name']}**" for text in texts), texts
+    assert payload_thumbnail(payload) == variables["user_avatar"]
     # The date closes the card, readable and free of raw tokens.
     footer = "\n".join(payload_footer_lines(payload))
     assert "<@" not in footer and "<t:" not in footer
 
 
-async def test_warnings_card_without_avatar_keeps_the_author_line(tmp_path):
-    """A missing avatar leaves the name in bold, without an empty accessory."""
+async def test_warnings_card_without_avatar_has_no_thumbnail(tmp_path):
+    """A missing avatar leaves the card without a picture, never an empty one."""
     from rosemary.core.card_service import render_card_message
 
     bot = _card_bot(tmp_path)
@@ -145,8 +145,8 @@ async def test_warnings_card_without_avatar_keeps_the_author_line(tmp_path):
     )
     assert payload is not None
     texts = payload_texts(payload)
-    assert any(text == f"**{bare['user_name']}**" for text in texts), texts
-    assert payload_author_icon(payload) == ""
+    assert not any(text == f"**{bare['user_name']}**" for text in texts), texts
+    assert payload_thumbnail(payload) == ""
 
 
 async def test_warnings_card_color_follows_theme_style(tmp_path):

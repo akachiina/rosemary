@@ -21,15 +21,11 @@
           },
           "children": [
             {
-              "content": "**@you**",
+              "content": "💌 <@0> … <@0>",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
-        },
-        {
-          "content": "💌 <@0> … <@0>",
-          "type": "TextDisplay"
         },
         {
           "children": [

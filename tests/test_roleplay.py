@@ -12,9 +12,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import discord
 from card_forms import (
-    payload_author_icon,
     payload_image,
     payload_texts,
+    payload_thumbnail,
     sent,
 )
 from catalog import load_catalog
@@ -721,8 +721,8 @@ async def test_send_with_no_repeat_avoids_last_gif(tmp_path):
     ]
 
 
-async def test_default_card_has_no_avatar(tmp_path):
-    """The default roleplay card shows no user image (no thumbnail)."""
+async def test_default_card_has_the_avatar_as_thumbnail(tmp_path):
+    """The default roleplay card shows the actor's picture as the thumbnail."""
     from rosemary.core.card_service import render_card_message
 
     bot = _bot(tmp_path)
@@ -740,8 +740,7 @@ async def test_default_card_has_no_avatar(tmp_path):
         },
     )
     assert payload is not None
-    # The card shows the gif and nothing else: the author line has no name
-    # to show, so no avatar rides it.
+    # The gif is the image of the card; the actor's avatar is the thumbnail.
     assert payload_image(payload) == "https://media.tenor.com/hug.gif"
-    assert payload_author_icon(payload) == ""
+    assert payload_thumbnail(payload) == "https://a.b/x.png"
     assert not any("actor_avatar" in text for text in payload_texts(payload))
