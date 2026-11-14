@@ -24,29 +24,3 @@ settings:
     category: confessions
     type: boolean
     default: true
-  confessions.sealed_author:
-    category: confessions
-    type: boolean
-    default: true
-  confessions.key_rotation_days:
-    category: confessions
-    type: integer
-    default: 2592000
-    duration: true
-  confessions.moderation_days:
-    category: confessions
-    type: integer
-    default: 604800
-    duration: true
-  confessions.shamir_threshold:
-    category: confessions
-    type: integer
-    default: 3
-    min: 2
-    max: 10
-  confessions.shamir_shares:
-    category: confessions
-    type: integer
-    default: 5
-    min: 2
-    max: 20

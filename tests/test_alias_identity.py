@@ -7,17 +7,7 @@ guild can ask for a lighter or a stronger pastel without touching code).
 
 from __future__ import annotations
 
-from rosemary.core.alias_identity import (
-    ban_hash,
-    claim_hash,
-    claim_token,
-    fingerprint,
-    generate_keypair,
-    open_seal,
-    random_alias,
-    random_color,
-    seal,
-)
+from rosemary.core.alias_identity import random_alias, random_color
 
 
 def test_random_alias_picks_from_the_list():
@@ -40,43 +30,3 @@ def test_random_color_takes_custom_ranges():
     assert random_color(hue=0.0, saturation=(0.5, 0.5), lightness=(0.5, 0.5)) == random_color(
         hue=0.0, saturation=(0.5, 0.5), lightness=(0.5, 0.5)
     )
-
-
-def test_seal_and_open_roundtrip():
-    pub, priv = generate_keypair()
-    blob = seal(pub, "k1", "42")
-    assert blob.startswith("k1:")
-    assert open_seal(priv, blob) == "42"
-    assert fingerprint(pub) == fingerprint(pub)
-    assert len(fingerprint(pub)) == 16
-
-
-def test_claim_token_is_random_and_hashed():
-    token = claim_token()
-    assert token and claim_hash(token) == claim_hash(token)
-    assert token not in claim_hash(token)
-    assert claim_token() != token
-
-
-def test_ban_hash_is_stable_per_guild_and_id(tmp_path):
-    first = ban_hash(tmp_path, 1, 7)
-    assert first == ban_hash(tmp_path, 1, 7)
-    assert first != ban_hash(tmp_path, 1, 8)
-    assert first != ban_hash(tmp_path, 2, 7)
-
-
-def test_shamir_split_reopens_with_the_threshold():
-    """Any ``threshold`` shares rebuild the private half; fewer do not."""
-    import pytest
-    from shamir_mnemonic import MnemonicError
-
-    from rosemary.core.alias_identity import shamir_open, shamir_split
-
-    _pub, priv = generate_keypair()
-    shares = shamir_split(priv, 3, 5)
-    assert shares is not None and len(shares) == 5
-    assert shamir_open(shares[:3]) == priv
-    # The order of the shares never matters.
-    assert shamir_open([shares[4], shares[1], shares[3]]) == priv
-    with pytest.raises(MnemonicError):
-        shamir_open(shares[:2])

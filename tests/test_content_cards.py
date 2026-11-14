@@ -172,8 +172,8 @@ async def test_the_notices_are_documents():
     ]
     # The plain-text layer shrank when the event DMs became embeds (the
     # boost invite, the bump winners and the partnership notices), and it
-    # grew with the confession ban and key share DMs.
-    assert len(notices) == 31
+    # grew with the confession ban DMs.
+    assert len(notices) == 30
     for key in notices:
         assert package.document(key) is not None, key
 

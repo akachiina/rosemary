@@ -156,7 +156,7 @@ def make_upload(
     return upload
 
 
-async def _enable_confessions(bot, *, review=False, reveal=False, mark_op=True, sealed=False):
+async def _enable_confessions(bot, *, review=False, reveal=False, mark_op=True):
     from rosemary.core.settings import set_setting
 
     await set_setting(bot.storage, 1, "confessions.enabled", True)
@@ -165,7 +165,6 @@ async def _enable_confessions(bot, *, review=False, reveal=False, mark_op=True, 
     await set_setting(bot.storage, 1, "confessions.review_required", review)
     await set_setting(bot.storage, 1, "confessions.reveal_author", reveal)
     await set_setting(bot.storage, 1, "confessions.mark_op", mark_op)
-    await set_setting(bot.storage, 1, "confessions.sealed_author", sealed)
 
 
 def _texts(view):
@@ -363,8 +362,8 @@ def test_card_specs_registered_with_exact_contracts():
         "alias_name", "op_emoji", "title_emoji",
     )
     assert get_card("confessions.response").variables == (
-        "confession_number", "reply_index", "title", "body", "color_hex",
-        "image_url", "alias_name", "op_emoji", "title_emoji",
+        "confession_number", "reply_index", "title", "body", "parent_line",
+        "color_hex", "image_url", "alias_name", "op_emoji", "title_emoji",
     )
     assert get_card("confessions.dm.approved").variables == (
         "confession_number", "body", "message_link",
@@ -572,22 +571,6 @@ async def test_start_registers_two_dispatchers(tmp_path):
     await cog.start()
     await cog.start()
     assert len(bot.views) == 2
-
-
-async def test_boot_reconciles_reveal_and_seal(tmp_path):
-    """The reveal and the seal are exclusive: a guild that has both on at
-    boot gets the seal off (the reveal needs the readable id)."""
-    from rosemary.core.settings import get_setting, set_setting
-
-    bot = FakeBot(tmp_path)
-    cog = ConfessionsCog(bot)
-    guild, *_ = make_cguild()
-    bot.guilds = [guild]
-    await set_setting(bot.storage, 1, "confessions.reveal_author", True)
-    await set_setting(bot.storage, 1, "confessions.sealed_author", True)
-    await cog.start()
-    assert await get_setting(bot.storage, 1, "confessions.sealed_author") is False
-    assert await get_setting(bot.storage, 1, "confessions.reveal_author") is True
 
 
 async def test_deleted_public_post_cascades(tmp_path):
@@ -929,11 +912,9 @@ async def test_card_shows_the_alias_as_title_and_the_number_in_the_title(tmp_pat
     assert payload_thumbnail(payload) == ""
 
 
-async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
-    """The reply keeps the alias as its title; the footer carries the number.
-
-    The parent reference rides Discord's native reply line, never the card.
-    """
+async def test_reply_card_footer_names_the_parent(tmp_path):
+    """The reply keeps the alias as its title; the footer carries the number
+    and the answer it answers, linked."""
     from rosemary.core.card_service import render_card_message
 
     bot = FakeBot(tmp_path)
@@ -946,6 +927,7 @@ async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
             "reply_index": 1,
             "title": "Confession #55-1",
             "body": "o texto",
+            "parent_line": "in reply to [#55-1](https://discord.com/channels/1/2/55)",
             "color_hex": "#FFB7C5",
             "image_url": "",
             "alias_name": "Anonymous K7Q",
@@ -958,9 +940,11 @@ async def test_reply_card_moves_the_reference_to_the_footer(tmp_path):
     assert "**Anonymous K7Q<:op_emoji:123> ✨ (Confession #55-1)**" in texts
     assert "o texto" in texts
     assert payload_thumbnail(payload) == ""
-    # Only the number: the parent's own text never rides the card (the native
-    # reply points at it) and the OP emoji alone marks the author.
-    assert payload_footer_lines(payload) == ["Confession #55-1"]
+    footer = payload_footer_lines(payload)
+    assert footer == [
+        "Confession #55-1 · in reply to "
+        "[#55-1](https://discord.com/channels/1/2/55)"
+    ], footer
 
 
 async def test_review_card_closes_with_the_standard_footer(tmp_path):
@@ -1095,10 +1079,10 @@ async def test_alias_is_stable_inside_one_thread(tmp_path):
 
 
 async def test_nested_reply_links_to_the_parent_without_quoting_it(tmp_path):
-    """The reply points at the parent comment through Discord's native reply.
+    """The reply names the parent in its footer and links to it.
 
-    The card carries only the number of the answer, never a copy of what the
-    parent said nor a hand-written "in reply to" line.
+    The card never copies what the parent said; the footer carries the
+    parent's number as a link.
     """
     bot = FakeBot(tmp_path)
     cog = ConfessionsCog(bot)
@@ -1136,9 +1120,12 @@ async def test_nested_reply_links_to_the_parent_without_quoting_it(tmp_path):
     assert first_send.kwargs.get("reference") is None
     # The nested reply carries the parent message; the copy does not.
     assert second_send.kwargs.get("reference") is parent
-    assert not any(
-        "discord.com/channels/1/777/901" in text for text in texts
-    ), texts
+    # The top-level footer links back to the confession in the public channel.
+    first_texts = _call_texts(first_send)
+    assert any("discord.com/channels/1/42/111" in text for text in first_texts), first_texts
+    # The nested footer links to the parent inside the thread.
+    second_texts = _call_texts(second_send)
+    assert any("discord.com/channels/1/777/901" in text for text in second_texts), second_texts
     # The parent's own text is not copied into the reply card.
     assert not any("parent comment" in text for text in texts), texts
 
@@ -1210,169 +1197,6 @@ async def test_reason_submit_with_a_dead_token_moderates_nothing(tmp_path):
     entry = await cog.store.get(1, 555)
     assert entry["status"] == "pending"
     interaction.followup.send.assert_not_awaited()
-
-
-async def test_sealed_store_never_writes_the_author_id(tmp_path):
-    """The sealed entry carries the sealed blob and the claim hash, never
-    the readable id (the store is what a leak would expose)."""
-    from rosemary.core.alias_identity import claim_hash, claim_token, generate_keypair, seal
-    from rosemary.core.confessions import ConfessionStore as Store
-
-    store = Store(tmp_path)
-    pub, _priv = generate_keypair()
-    token = claim_token()
-    await store.put(
-        1, 10, number=1, author_id=7, channel_id=5, body="s",
-        author_seal=seal(pub, "k1", "7"), claim_hash=claim_hash(token),
-    )
-    entry = await store.get(1, 10)
-    assert entry is not None
-    assert "author_id" not in entry
-    assert entry["author_seal"].startswith("k1:")
-    assert entry["claim_hash"] == claim_hash(token)
-    assert await store.claim(1, token) is not None
-    assert await store.claim(1, "wrong") is None
-
-
-async def test_sealed_ban_uses_the_hmac(tmp_path):
-    """The sealed ban list stores the HMAC (no id), and the check reads it."""
-    from rosemary.core.alias_identity import ban_hash
-    from rosemary.core.confessions import ConfessionStore as Store
-
-    store = Store(tmp_path)
-    await store.ban(1, 7, sealed=True)
-    data = await store._doc(1)
-    assert data["banned"] == [ban_hash(tmp_path, 1, 7)]
-    assert await store.is_banned(1, 7, sealed=True) is True
-    assert await store.is_banned(1, 8, sealed=True) is False
-
-
-async def test_confession_confirmation_carries_the_seal_proof(tmp_path):
-    """The "confession sent" confirmation is the member's proof: the
-    algorithm, the key fingerprint, the claim token and the repo."""
-    bot = FakeBot(tmp_path)
-    cog = ConfessionsCog(bot)
-    bot._cog = cog
-    guild, public, _review, _author, _mod, _sent, _sent_review = make_cguild()
-    await _enable_confessions(bot)
-    from rosemary.core.alias_identity import KeyRing, generate_keypair
-    from rosemary.core.settings import set_setting
-
-    pub, _priv = generate_keypair()
-    await set_setting(bot.storage, 1, "confessions.sealed_author", True)
-    await set_setting(bot.storage, 1, "confessions.reveal_author", False)
-    await KeyRing(bot.storage.data_dir).add(1, pub, moderation_seconds=60)
-
-    interaction = make_click(guild, user_id=7)
-    await cog._confess_submit(interaction, "segredo", [])
-
-    confirmation = interaction.followup.send.await_args.args[0]
-    assert "X25519 + XSalsa20-Poly1305" in confirmation, confirmation
-    assert "claim key" in confirmation.lower(), confirmation
-    assert "code:" in confirmation.lower(), confirmation
-    # The member can check the exact key period and public fingerprint.
-    from rosemary.core.alias_identity import fingerprint
-
-    active = await cog._keys.active(1)
-    assert active is not None
-    assert f"`{active.key_id}`" in confirmation, confirmation
-    assert f"`{fingerprint(active.public)}`" in confirmation, confirmation
-    # The token is shown once and matches the in-memory claim.
-    tokens = [
-        token
-        for token in cog._claim_tokens
-        if f"`{token}`" in confirmation
-    ]
-    assert len(tokens) == 1, confirmation
-    entry = await cog.store.get(1, 111)
-    assert entry is not None
-    assert "author_id" not in entry, entry
-    assert ":" in entry["author_seal"], entry["author_seal"]
-
-
-async def test_sealed_send_splits_the_key_among_the_admins(tmp_path, monkeypatch):
-    """The first sealed send generates the pair and DMs the Shamir shares.
-
-    The bot keeps the public half only; three of the five DMs rebuild the
-    private half and open the stored seal back to the author id. The staff
-    log names the key and the quorum, never the recipients.
-    """
-    import re
-
-    from rosemary.core.alias_identity import open_seal, shamir_open
-
-    logged = []
-
-    async def fake_send_log(_bot, guild_id, event, **variables):
-        logged.append((event, variables))
-        return True
-
-    monkeypatch.setattr("rosemary.cogs.confessions.send_log", fake_send_log)
-    bot = FakeBot(tmp_path)
-    cog = ConfessionsCog(bot)
-    bot._cog = cog
-    guild, _public, _review, _author, _mod, _sent, _sent_review = make_cguild()
-    await _enable_confessions(bot, sealed=True)
-
-    owner = make_member(1, staff=True)
-    mods = [make_member(uid, staff=True) for uid in (2, 3, 4, 5)]
-    for position, member in enumerate(mods, start=1):
-        member.top_role.position = position
-    for member in [owner, *mods]:
-        member.bot = False
-        member.guild_permissions.administrator = True
-    guild.owner_id = owner.id
-    guild.members = [owner, *mods]
-    everyone = {member.id: member for member in [owner, *mods]}
-    everyone[_author.id] = _author
-    guild.get_member.side_effect = lambda uid: everyone.get(uid)
-
-    await cog._confess_submit(make_click(guild, user_id=7), "segredo", [])
-
-    keys = await cog._keys.keys(1)
-    assert len(keys) == 1 and keys[0].public
-    # One share per holder, the owner included: 3 of 5 opens the seal.
-    shares = []
-    for member in [owner, *mods]:
-        member.send.assert_awaited_once()
-        content = member.send.await_args.kwargs["content"]
-        match = re.search(r"`([^`]+)`", content)
-        assert match is not None, content
-        shares.append(match.group(1))
-    private = shamir_open(shares[:3])
-    entry = await cog.store.get(1, 111)
-    assert entry is not None
-    assert open_seal(private, entry["author_seal"]) == "7"
-    assert "author_id" not in entry
-    events = [event for event, _variables in logged]
-    assert "confessions.logs.key_split" in events
-    split = next(
-        variables
-        for event, variables in logged
-        if event == "confessions.logs.key_split"
-    )
-    assert (split["threshold"], split["total"], split["delivered"]) == (3, 5, 5)
-    assert "user_id" not in split and "holders" not in split
-
-
-async def test_single_admin_gets_the_private_half_directly(tmp_path):
-    """With one admin the quorum is 1 of 1: the private goes to the owner."""
-    bot = FakeBot(tmp_path)
-    cog = ConfessionsCog(bot)
-    owner = make_member(1, staff=True)
-    owner.bot = False
-    guild = MagicMock()
-    guild.id = 1
-    guild.name = "Guild"
-    guild.owner_id = owner.id
-    guild.members = [owner]
-    guild.get_member.side_effect = lambda uid: owner if uid == owner.id else None
-
-    threshold, total, delivered = await cog._send_shares(guild, "private-half")
-
-    assert (threshold, total, delivered) == (1, 1, 1)
-    content = owner.send.await_args.kwargs["content"]
-    assert "`private-half`" in content
 
 
 async def test_panel_is_posted_and_the_write_button_opens_the_modal(tmp_path):

@@ -656,34 +656,18 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   draws its own color and title emoji; the store keeps `color_hex` and
   `title_emoji`, so the review and the public post match. The title is
   `{alias}{op_emoji} {title_emoji} ({Confissão #N})` (the serializer writes the
-  bold); the public card has no footer and no picture (the identicon is gone),
-  and the reply keeps only the numbered title (`Confissão #N-M`) in its footer.
-  The "in reply to" line is Discord's native reply (`reference` on the send),
-  never copy in the card.
-- **Sealed confessions** (`confessions.sealed_author`, on by default): the
-  author id is encrypted with `SealedBox` (X25519 + XSalsa20-Poly1305) to
-  the staff's public key (the private half is offline, never in the bot or
-  the settings). The key pair is generated automatically on the first sealed
-  send (`_ensure_key`), no manual `generate`: the private half is split with
-  Shamir (`shamir-mnemonic`) into `confessions.shamir_threshold` of
-  `confessions.shamir_shares` (3 of 5 by default), and each share is DMed to
-  the owner plus the admins (`administrator`); the quorum adapts to the
-  holders (two admins mean 2 of 2, one means the private half goes to the
-  owner alone). The public key is only stored after the quorum received the
-  shares, and the `confessions.logs.key_split` staff log names the key and
-  the counts, never the recipients. The bot keeps only the public half. The
-  store keeps `author_seal`, `key_id` and the claim hash, never the id. The
-  member gets a claim token (shown once, with the algorithm, the `key_id`, the
-  public fingerprint and `repo@commit`) and answers with
-  `/confissao responder <token>`: the reply is marked OP and no user id is
-  stored. The reveal, the approval/denial DM and the ban by the review are
-  unavailable while sealed (the staff uses the `confession_keys` CLI to open
-  a seal). The keys rotate (`confessions.key_rotation_days`) and the old
-  private half is destroyed after `confessions.moderation_days`.
-- **The settings are exclusive**: `confessions.reveal_author` on forces
-  `confessions.sealed_author` off (the reveal needs the readable id), and
-  the sealed setting on forces the reveal off. The settings menu applies
-  the pair and the boot reconciles it, so the two can never both be on.
+  bold); the public card has no footer and no picture (the identicon is gone).
+  The reply footer carries the numbered title (`Confissão #N-M`) and the answer
+  it answers, linked (`em resposta a [#N-M](link)`); a top-level reply points
+  at the confession in the public channel, a nested one at its parent inside
+  the thread. The reply card never copies the parent's text.
+- **The author is stored**: the store keeps the plain `author_id` (no sealing,
+  no key ring, no claim token). The reply written by the confession's own
+  author is marked OP (`confessions.mark_op`) and keeps the same fruit alias
+  for the whole thread (`assign_alias`, keyed by the confession number and the
+  user id). The reveal, the approval/denial DM and the ban by the review all
+  read that id. `confessions.reveal_author` only toggles the author line in the
+  staff review card.
 - **The posted panels are the no-typing path**: `confessions.panel` (a
   write button that opens the intake modal) and `roleplay.panel` (a native
   user select plus the action buttons, "Abraçar", "Beijar"...) are posted

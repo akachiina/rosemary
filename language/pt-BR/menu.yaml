@@ -82,12 +82,6 @@ card:
         title: 'Log: resposta de confissão'
       banned:
         title: 'Log: ban de confissão'
-      key_split:
-        title: 'Log: chave de confissões dividida'
-      key_split_failed:
-        title: 'Log: chave de confissões descartada'
-      key_pruned:
-        title: 'Log: chaves de confissões removidas'
     dm:
       approved:
         title: DM de confissão aprovada
@@ -97,8 +91,6 @@ card:
         title: DM de resposta de confissão
       banned:
         title: DM de banimento das confissões
-      key_share:
-        title: DM com a parte da chave de confissão
   utility:
     ping:
       title: Card de latência
@@ -1285,24 +1277,6 @@ variables:
   title_emoji:
     label: Emoji do título
     description: Emoji sorteado que acompanha o nome da fruta no título da confissão
-  share:
-    label: Parte da chave
-    description: Parte Shamir da chave enviada por DM a um guardião
-  threshold:
-    label: Limite de partes
-    description: Quantas partes da chave abrem o selo do autor
-  key_id:
-    label: ID da chave
-    description: Identificador curto da chave de confissões
-  fingerprint:
-    label: Fingerprint
-    description: Impressão digital da chave pública
-  delivered:
-    label: Entregues
-    description: Quantas partes da chave chegaram aos destinatários
-  old_key_id:
-    label: Chave anterior
-    description: ID da chave que foi substituída na rotação
   op_emoji:
     label: Emoji de autor
     description: Emoji que marca o autor da confissão

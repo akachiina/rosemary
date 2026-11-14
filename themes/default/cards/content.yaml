@@ -458,8 +458,9 @@ confessions.card:
   category: confessions
 
 # The reply card: the same frame as the confession (the alias, the emoji and
-# the number of the reply). The parent rides Discord's own reply line, so
-# the card keeps only the number of the answer in its footer.
+# the number of the reply). The footer names the answer it answers and links
+# to it (the first-level reply points at the confession in the public
+# channel; a nested one at its parent inside the thread).
 confessions.response:
   archetype: info_card
   color:
@@ -468,12 +469,15 @@ confessions.response:
   title: '{alias_name}{op_emoji} {title_emoji} ({title})'
   description: '{body}'
   image: '{image_url}'
-  footer: '{title}'
+  footer:
+  - '{title} · {parent_line}'
+  - '{title}'
   variables:
   - confession_number
   - reply_index
   - title
   - body
+  - parent_line
   - color_hex
   - image_url
   - alias_name

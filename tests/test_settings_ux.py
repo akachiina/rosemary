@@ -116,9 +116,8 @@ async def test_reset_removes_the_key_and_restores_the_localized_default():
     assert "voltou ao padrão" in view.flash
 
 
-async def test_reveal_and_seal_are_exclusive():
-    """The reveal reads the id, the seal hides it: saving one turns the
-    other off, so the member never gets both promises."""
+async def test_reveal_author_is_saved_without_a_seal():
+    """Saving the reveal applies it: there is no seal to turn off."""
     bot = make_bot()
     await set_setting(bot.storage, 1, "confessions.reveal_author", True)
     view = SettingsMenuView(bot, 1, owner_id=1)
@@ -135,4 +134,3 @@ async def test_reveal_and_seal_are_exclusive():
     )
 
     assert await get_setting(bot.storage, 1, "confessions.reveal_author") is True
-    assert await get_setting(bot.storage, 1, "confessions.sealed_author") is False

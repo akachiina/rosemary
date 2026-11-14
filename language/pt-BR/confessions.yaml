@@ -286,6 +286,7 @@ confess:
     title: 'Confissão #{confession_number}-{reply_index}'
     parent: em resposta a {parent_ref}
     parent_ref: '#{confession_number}-{parent_index}'
+    parent_root_ref: '#{confession_number}'
     parent_op: em resposta a {parent_ref} (autor da confissão)
   thread_name: 'Respostas da confissão #{confession_number}'
   buttons:
@@ -295,7 +296,6 @@ confess:
     deny: Recusar
     ban: Banir
   dm:
-    key_share: "{lock} **Sua parte da chave**\n• Servidor: **{guild}**\n• Sua parte: `{share}`\n\nEssa é uma das {total} partes da chave que protege a privacidade de quem usa o comando `/confissão`. Com ela, o id do usuário fica selado, e nem o bot nem o host do bot conseguem ver os autores das confissões anônimas.\n\nExceções: código-fonte do bot adulterado (ou host comprometido na geração da chave), ou {threshold} das {total} pessoas que receberam a chave se juntarem para descriptografar o id.\n\n**Nunca compartilhe a chave com ninguém.**"
     approved: '{check} Sua confissão **#{confession_number}** foi aprovada!'
     rejected: '{error} Sua confissão **#{confession_number}** foi recusada.'
     reason: 'Motivo: {reason}'
@@ -310,9 +310,6 @@ confess:
   review_denied: '{success} Confissão recusada.'
   sent: '{success} Sua confissão foi postada!'
   sent_review: '{success} Sua confissão foi enviada para revisão!'
-  sent_sealed: '• **Autor selado:** X25519 + XSalsa20-Poly1305 · chave `{fingerprint}` · id `{key_id}`'
-  sent_token: '• **Sua chave de reivindicação:** {token} (guarde; ela prova que a confissão é sua)'
-  sent_repo: '• **Código:** `{repo}`'
   replied: '{success} Sua resposta anônima foi postada!'
   banned_confirm: '{success} {user} foi banido das confissões.'
   unbanned_confirm: '{success} {user} pode confessar de novo.'
@@ -331,7 +328,6 @@ confess:
   error_staff_only: '{error} Só a staff pode fazer isso.'
   error_failed: '{error} Não foi possível postar. Tente de novo.'
   error_thread: '{error} Não foi possível abrir a thread de discussão.'
-  error_seal: '{error} Não foi possível selar sua confissão agora. Tente de novo em instantes.'
   banned_list:
     title: Banidos das confissões
     empty: Nenhum membro banido.
@@ -385,14 +381,3 @@ confessions:
     banned:
       title: '{ban} Ban de confissão'
       description: '{moderator} baniu {user} das confissões ({reason}).'
-    key_split:
-      title: '{lock} Chave de confissões dividida'
-      description: 'Chave `{key_id}` gerada. Quórum: **{threshold} de {total}**. Entregues: **{delivered} de {total}**.'
-      fingerprint_label: Fingerprint
-      previous_label: Chave anterior
-    key_split_failed:
-      title: '{error} Chave de confissões descartada'
-      description: 'Chave `{key_id}` gerada, mas as partes não chegaram ao quórum. Entregues: **{delivered} de {total}**. A chave foi descartada.'
-    key_pruned:
-      title: '{lock} Chaves de confissões removidas'
-      description: 'Chaves aposentadas removidas do keyring: **{count}**.'

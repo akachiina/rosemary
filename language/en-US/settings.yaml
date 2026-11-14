@@ -491,21 +491,6 @@ settings:
   confessions.mark_op:
     label: Mark the confession author
     description: Tag the replies written by the confession's own author.
-  confessions.sealed_author:
-    label: Seal the author
-    description: Store the author sealed (the bot cannot open it). Turns off when Reveal author is on.
-  confessions.key_rotation_days:
-    label: Key rotation
-    description: How often the encryption key is rotated.
-  confessions.moderation_days:
-    label: Moderation window
-    description: Days the old key stays available to staff before it is destroyed.
-  confessions.shamir_threshold:
-    label: Shares to open
-    description: How many key shares are needed to open a sealed author.
-  confessions.shamir_shares:
-    label: Total shares
-    description: How many shares the private key is split into for the staff.
   birthdays.enabled:
     label: Birthdays enabled
     description: Track birthdays and post announcements.

@@ -32,7 +32,7 @@ def test_every_log_event_has_a_document():
         for key in package.card_keys()
         if ".logs." in key or key in ("settings.log", "debug.trace")
     ]
-    assert len(events) == 78
+    assert len(events) == 75
     for key in events:
         spec = get_card(key)
         assert spec is not None, key
