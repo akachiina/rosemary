@@ -215,7 +215,7 @@ trap:
   logs:
     failed:
       title: '{error} Armadilha Falhou'
-      description: '**{people} Alvo:** {user}\n**{gear} Consequência:** {action}\n**{scroll} Motivo:** {reason}'
+      description: "**{people} Alvo:** {user}\n**{gear} Consequência:** {action}\n**{scroll} Motivo:** {reason}"
   dm:
     text: '{warning} **Você postou no canal armadilha de {server}**
 

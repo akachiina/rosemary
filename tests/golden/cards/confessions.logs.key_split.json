@@ -1,0 +1,24 @@
+{
+  "content": null,
+  "embed": {
+    "color": 3447003,
+    "description": "Chave `a1b2c3` gerada. Quórum: **3 de 5**. Entregues: **5 de 5**.",
+    "fields": [
+      {
+        "inline": false,
+        "name": "Fingerprint",
+        "value": "`0123456789abcdef`"
+      }
+    ],
+    "footer": {
+      "text": "01/01/2026 00:00"
+    },
+    "timestamp": "<iso>",
+    "title": "🔒 Chave de confissões dividida",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "confessions.logs.key_split",
+  "pings": [],
+  "view": []
+}

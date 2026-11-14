@@ -53,6 +53,7 @@ from rosemary.core.alias_identity import (
     claim_token,
     fingerprint,
     generate_keypair,
+    new_key_id,
     random_alias,
     random_color,
     seal,
@@ -586,60 +587,105 @@ class ConfessionsCog(commands.Cog):
         """The guild's active public key, generated (and split) on first use.
 
         The bot generates the X25519 pair, keeps only the public half and
-        sends the private half to the staff in Shamir shares (the default
-        is 3 of 5: the owner + four moderators). The private half never
-        reaches the bot's disk, and a rotated key retires after the
-        moderation window.
+        sends the private half to the admins in Shamir shares. The private
+        half never reaches the bot's disk. The public key is only stored
+        after the quorum received the shares: a split that fails leaves no
+        unopenable key behind.
         """
         key = await self._keys.active(guild.id)
+        previous = key
         if key is not None:
             now = time.time()
             if now - key.created_at < await self._rotation_seconds(guild.id):
-                await self._keys.prune(guild.id)
+                dropped = await self._keys.prune(guild.id)
+                if dropped:
+                    await send_log(
+                        self.bot,
+                        guild.id,
+                        "confessions.logs.key_pruned",
+                        count=len(dropped),
+                    )
                 return key
         public, private = generate_keypair()
+        key_id = new_key_id()
+        threshold, total, delivered = await self._send_shares(guild, private)
+        if not total or delivered < threshold:
+            await send_log(
+                self.bot,
+                guild.id,
+                "confessions.logs.key_split_failed",
+                key_id=key_id,
+                total=total,
+                delivered=delivered,
+            )
+            return None
         key = await self._keys.add(
             guild.id,
             public,
             moderation_seconds=await self._moderation_seconds(guild.id),
+            key_id=key_id,
         )
-        await self._send_shares(guild, private)
+        await send_log(
+            self.bot,
+            guild.id,
+            "confessions.logs.key_split",
+            key_id=key.key_id,
+            fingerprint=fingerprint(public),
+            threshold=threshold,
+            total=total,
+            delivered=delivered,
+            old_key_id=previous.key_id if previous else "",
+        )
         return key
 
-    async def _send_shares(self, guild: discord.Guild, private: str) -> None:
-        """Split the private half and DM one share per holder.
+    async def _send_shares(
+        self, guild: discord.Guild, private: str
+    ) -> tuple[int, int, int]:
+        """Split the private half and DM one share per admin.
 
-        The bot holds no private half: the shares go to the owner and the
-        moderators (the default is 3 of 5). The owner's share is the first,
-        so a single admin never opens a seal alone. If ``shamir-mnemonic`` is
-        missing, the private goes to the owner only and the log says so: the
-        seal still works, the quorum is not enforced.
+        The recipients are the owner and the members with ``administrator``
+        (never bots). The quorum adapts to the number of holders: two admins
+        mean 2 of 2, one means the private half goes to the owner alone. The
+        return is ``(threshold, total, delivered)``; the caller only stores
+        the public key when ``delivered >= threshold``. If
+        ``shamir-mnemonic`` is missing, the private goes to the owner only
+        and the log says so: the seal still works, the quorum is not enforced.
         """
         threshold, total = await self._shamir(guild.id)
-        shares = shamir_split(private, threshold, total)
-        if shares is None:
-            log.warning(
-                "shamir-mnemonic is not installed in %s: the private half "
-                "went to the owner only (no quorum)",
-                guild.id,
-            )
-            shares = [private]
-            threshold, total = 1, 1
         recipients: list[discord.Member] = []
         owner = guild.get_member(guild.owner_id) if guild.owner_id else None
         if owner is not None:
             recipients.append(owner)
-        mods = [
+        admins = [
             member
             for member in guild.members
             if member.id != guild.owner_id
             and not member.bot
-            and getattr(member.guild_permissions, "moderate_members", False)
+            and getattr(member.guild_permissions, "administrator", False)
         ]
-        mods.sort(key=lambda member: getattr(member.top_role, "position", 0), reverse=True)
-        recipients.extend(mods[: max(total - 1, 0)])
-        for member, share in zip(recipients, shares, strict=False):
-            await self._dm_card_send(
+        admins.sort(key=lambda member: getattr(member.top_role, "position", 0), reverse=True)
+        recipients.extend(admins)
+        total = min(total, len(recipients))
+        threshold = min(threshold, total)
+        if total <= 0:
+            log.warning("No confession key holder in %s", guild.id)
+            return 0, 0, 0
+        if total == 1:
+            shares = [private]
+            threshold = 1
+        else:
+            shares = shamir_split(private, threshold, total)
+            if shares is None:
+                log.warning(
+                    "shamir-mnemonic is not installed in %s: the private half "
+                    "went to the owner only (no quorum)",
+                    guild.id,
+                )
+                shares = [private]
+                threshold = total = 1
+        delivered = 0
+        for member, share in zip(recipients[:total], shares, strict=False):
+            if await self._dm_card_send(
                 guild,
                 member.id,
                 "confessions.dm.key_share",
@@ -651,7 +697,9 @@ class ConfessionsCog(commands.Cog):
                     "total": total,
                 },
                 "confess.dm.key_share",
-            )
+            ):
+                delivered += 1
+        return threshold, total, delivered
 
     #: panel -----------------------------------------------------------------
 
@@ -1001,6 +1049,10 @@ class ConfessionsCog(commands.Cog):
             return await interaction.followup.send(
                 await t(guild.id, "confess.error_no_review"), ephemeral=True
             )
+        if outcome == "no_seal":
+            return await interaction.followup.send(
+                await t(guild.id, "confess.error_seal"), ephemeral=True
+            )
         key = "confess.sent" if outcome == "posted" else "confess.sent_review"
         await interaction.followup.send(
             await self._sent_copy(guild.id, key, token),
@@ -1138,6 +1190,10 @@ class ConfessionsCog(commands.Cog):
         if outcome == "thread":
             return await interaction.followup.send(
                 await t(guild.id, "confess.error_thread"), ephemeral=True
+            )
+        if outcome == "no_seal":
+            return await interaction.followup.send(
+                await t(guild.id, "confess.error_seal"), ephemeral=True
             )
         await interaction.followup.send(
             await t(guild.id, "confess.replied"), ephemeral=True
@@ -1343,9 +1399,10 @@ class ConfessionsCog(commands.Cog):
         """Post straight to review or public.
 
         Returns ``(outcome, message, claim_token)``. Outcomes:
-        ``"posted"``, ``"review"``, ``"no_channel"``, ``"no_review"``.
-        In the sealed mode the author id is encrypted before it reaches the
-        store and the member gets a claim token (the caller answers with it).
+        ``"posted"``, ``"review"``, ``"no_channel"``, ``"no_review"``,
+        ``"no_seal"`` (the key split did not reach the quorum). In the sealed
+        mode the author id is encrypted before it reaches the store and the
+        member gets a claim token (the caller answers with it).
         """
         channel = await self._public_channel(guild)
         if channel is None:
@@ -1358,13 +1415,15 @@ class ConfessionsCog(commands.Cog):
             files.append(discord.File(io.BytesIO(data), filename=name))
             image_url = f"attachment://{name}"
             image_name = name
-        number = await self.store.next_number(guild.id)
         sealed = await self._sealed(guild.id)
         alias = await self._new_alias(guild.id)
         title_emoji = await self._random_title_emoji(guild.id)
         author_seal = ""
         if sealed:
             author_seal, _key_id = await self._seal_author(guild, author.id)
+            if not author_seal:
+                return "no_seal", None, ""
+        number = await self.store.next_number(guild.id)
         # The claim token is the proof of authorship only in the sealed mode
         # (the readable id is gone); with the id stored it would be noise.
         token = claim_token() if author_seal else ""
@@ -1636,32 +1695,22 @@ class ConfessionsCog(commands.Cog):
             return True
         return False
 
-    async def _parent_message(
-        self,
-        guild: discord.Guild,
-        thread,
-        entry: dict,
-        confession_id: int,
-        parent_id: int | None,
-    ):
-        """The message the reply answers (the confession or the parent reply).
+    async def _parent_message(self, thread, parent_id: int | None):
+        """The parent reply the new reply answers, or None for a top-level one.
 
-        The reply is posted with this reference so Discord shows the native
-        "replying to" line above the card; the copy no longer repeats it.
-        A parent that cannot be fetched (deleted, or a fake without a real
-        message) degrades to no reference: the reply still posts.
+        The confession message lives in the public channel, not in the
+        thread: Discord rejects a reference to a message in another channel,
+        so a top-level reply carries no native reference (the thread itself
+        is the context). A reply to a reply points at the parent inside the
+        thread, and a parent that cannot be fetched degrades to no
+        reference: the reply still posts.
         """
         from inspect import isawaitable
 
+        if not parent_id:
+            return None
         try:
-            if parent_id:
-                partial = thread.get_partial_message(int(parent_id))
-            else:
-                channel_id = int(entry.get("channel_id") or 0)
-                channel = guild.get_channel(channel_id) if channel_id else None
-                if channel is None:
-                    return None
-                partial = channel.get_partial_message(confession_id)
+            partial = thread.get_partial_message(int(parent_id))
             if isawaitable(partial):
                 partial = await partial
             fetched = partial.fetch()
@@ -1795,8 +1844,9 @@ class ConfessionsCog(commands.Cog):
         reply button) resolves the author by id and keeps the alias map.
 
         Outcomes: ``"ok"``, ``"gone"`` (confession deleted),
-        ``"banned"``, ``"thread"`` (thread unavailable). A deleted parent
-        degrades to a direct reply instead of failing.
+        ``"banned"``, ``"thread"`` (thread unavailable), ``"no_seal"`` (the
+        key split did not reach the quorum). A deleted parent degrades to a
+        direct reply instead of failing.
         """
         entry = await self.store.get(guild.id, confession_id)
         if entry is None or entry.get("status") != "open":
@@ -1887,6 +1937,8 @@ class ConfessionsCog(commands.Cog):
             reply_seal = ""
             if sealed:
                 reply_seal, _key_id = await self._seal_author(guild, author.id)
+                if not reply_seal:
+                    return "no_seal", None
             variables = {
                 "confession_number": number,
                 "reply_index": index,
@@ -1936,14 +1988,10 @@ class ConfessionsCog(commands.Cog):
             send_kwargs = payload.message_kwargs()
             if files:
                 send_kwargs["files"] = files
-            parent_message = await self._parent_message(
-                guild, thread, entry, confession_id, parent_id
-            )
-            sent = await thread.send(
-                **send_kwargs,
-                allowed_mentions=allowed,
-                reference=parent_message,
-            )
+            parent_message = await self._parent_message(thread, parent_id)
+            if parent_message is not None:
+                send_kwargs["reference"] = parent_message
+            sent = await thread.send(**send_kwargs, allowed_mentions=allowed)
             stored_image_url = _image_url_for(sent.attachments, image_name)
             if files and not stored_image_url:
                 # Same live gap as confession posts: the send response may

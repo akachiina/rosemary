@@ -1130,8 +1130,12 @@ async def test_nested_reply_links_to_the_parent_without_quoting_it(tmp_path):
     assert (await cog.post_reply(guild, 111, 901, other, "child comment"))[0] == "ok"
     texts = _sent_texts(thread.send)
     assert any("Confession #1-2" in text for text in texts), texts
-    # The native reply carries the parent message; the copy does not.
-    assert thread.send.await_args.kwargs.get("reference") is parent
+    # The top-level reply lives in the thread and cannot reference the
+    # confession in the public channel: Discord rejects cross-channel refs.
+    first_send, second_send = thread.send.await_args_list
+    assert first_send.kwargs.get("reference") is None
+    # The nested reply carries the parent message; the copy does not.
+    assert second_send.kwargs.get("reference") is parent
     assert not any(
         "discord.com/channels/1/777/901" in text for text in texts
     ), texts
@@ -1286,16 +1290,24 @@ async def test_confession_confirmation_carries_the_seal_proof(tmp_path):
     assert ":" in entry["author_seal"], entry["author_seal"]
 
 
-async def test_sealed_send_splits_the_key_among_the_staff(tmp_path):
+async def test_sealed_send_splits_the_key_among_the_admins(tmp_path, monkeypatch):
     """The first sealed send generates the pair and DMs the Shamir shares.
 
     The bot keeps the public half only; three of the five DMs rebuild the
-    private half and open the stored seal back to the author id.
+    private half and open the stored seal back to the author id. The staff
+    log names the key and the quorum, never the recipients.
     """
     import re
 
     from rosemary.core.alias_identity import open_seal, shamir_open
 
+    logged = []
+
+    async def fake_send_log(_bot, guild_id, event, **variables):
+        logged.append((event, variables))
+        return True
+
+    monkeypatch.setattr("rosemary.cogs.confessions.send_log", fake_send_log)
     bot = FakeBot(tmp_path)
     cog = ConfessionsCog(bot)
     bot._cog = cog
@@ -1308,7 +1320,7 @@ async def test_sealed_send_splits_the_key_among_the_staff(tmp_path):
         member.top_role.position = position
     for member in [owner, *mods]:
         member.bot = False
-        member.guild_permissions.moderate_members = True
+        member.guild_permissions.administrator = True
     guild.owner_id = owner.id
     guild.members = [owner, *mods]
     everyone = {member.id: member for member in [owner, *mods]}
@@ -1332,6 +1344,35 @@ async def test_sealed_send_splits_the_key_among_the_staff(tmp_path):
     assert entry is not None
     assert open_seal(private, entry["author_seal"]) == "7"
     assert "author_id" not in entry
+    events = [event for event, _variables in logged]
+    assert "confessions.logs.key_split" in events
+    split = next(
+        variables
+        for event, variables in logged
+        if event == "confessions.logs.key_split"
+    )
+    assert (split["threshold"], split["total"], split["delivered"]) == (3, 5, 5)
+    assert "user_id" not in split and "holders" not in split
+
+
+async def test_single_admin_gets_the_private_half_directly(tmp_path):
+    """With one admin the quorum is 1 of 1: the private goes to the owner."""
+    bot = FakeBot(tmp_path)
+    cog = ConfessionsCog(bot)
+    owner = make_member(1, staff=True)
+    owner.bot = False
+    guild = MagicMock()
+    guild.id = 1
+    guild.name = "Guild"
+    guild.owner_id = owner.id
+    guild.members = [owner]
+    guild.get_member.side_effect = lambda uid: owner if uid == owner.id else None
+
+    threshold, total, delivered = await cog._send_shares(guild, "private-half")
+
+    assert (threshold, total, delivered) == (1, 1, 1)
+    content = owner.send.await_args.kwargs["content"]
+    assert "`private-half`" in content
 
 
 async def test_panel_is_posted_and_the_write_button_opens_the_modal(tmp_path):

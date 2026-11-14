@@ -1203,6 +1203,52 @@ confessions.logs.banned:
   - actor_avatar
   mention: none
   category: confessions
+confessions.logs.key_split:
+  archetype: log_named
+  form: embed
+  color: info
+  title: '{confessions.logs.key_split.title}'
+  description: '{confessions.logs.key_split.description}'
+  fields:
+  - label: '{confessions.logs.key_split.fingerprint_label}'
+    value: '`{fingerprint}`'
+  - label: '{confessions.logs.key_split.previous_label}'
+    value: '`{old_key_id}`'
+    gate: old_key_id
+  variables:
+  - key_id
+  - fingerprint
+  - threshold
+  - total
+  - delivered
+  - old_key_id
+  - timestamp
+  mention: none
+  category: confessions
+confessions.logs.key_split_failed:
+  archetype: log_named
+  form: embed
+  color: danger
+  title: '{confessions.logs.key_split_failed.title}'
+  description: '{confessions.logs.key_split_failed.description}'
+  variables:
+  - key_id
+  - total
+  - delivered
+  - timestamp
+  mention: none
+  category: confessions
+confessions.logs.key_pruned:
+  archetype: log_named
+  form: embed
+  color: neutral
+  title: '{confessions.logs.key_pruned.title}'
+  description: '{confessions.logs.key_pruned.description}'
+  variables:
+  - count
+  - timestamp
+  mention: none
+  category: confessions
 partnerships.logs.added:
   archetype: log_event
   form: embed

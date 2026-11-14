@@ -82,6 +82,12 @@ card:
         title: 'Log: confession reply'
       banned:
         title: 'Log: confession ban'
+      key_split:
+        title: 'Log: confession key split'
+      key_split_failed:
+        title: 'Log: confession key discarded'
+      key_pruned:
+        title: 'Log: confession keys removed'
     dm:
       approved:
         title: Confession approved DM
@@ -1285,6 +1291,18 @@ variables:
   threshold:
     label: Share threshold
     description: How many key shares open the author seal
+  key_id:
+    label: Key id
+    description: Short identifier of the confession key
+  fingerprint:
+    label: Fingerprint
+    description: Fingerprint of the public key
+  delivered:
+    label: Delivered
+    description: How many key shares reached the recipients
+  old_key_id:
+    label: Previous key
+    description: Id of the key replaced by the rotation
   op_emoji:
     label: OP emoji
     description: Emoji that marks the author of the confession

@@ -295,7 +295,7 @@ confess:
     deny: Recusar
     ban: Banir
   dm:
-    key_share: '{lock} **Sua parte da chave**\n• Servidor: **{guild}**\n• Sua parte: `{share}`\n• Guarde esta DM: {threshold} de {total} partes abrem um selado.'
+    key_share: "{lock} **Sua parte da chave**\n• Servidor: **{guild}**\n• Sua parte: `{share}`\n\nEssa é uma das {total} partes da chave que protege a privacidade de quem usa o comando `/confissão`. Com ela, o id do usuário fica selado, e nem o bot nem o host do bot conseguem ver os autores das confissões anônimas.\n\nExceções: código-fonte do bot adulterado (ou host comprometido na geração da chave), ou {threshold} das {total} pessoas que receberam a chave se juntarem para descriptografar o id.\n\n**Nunca compartilhe a chave com ninguém.**"
     approved: '{check} Sua confissão **#{confession_number}** foi aprovada!'
     rejected: '{error} Sua confissão **#{confession_number}** foi recusada.'
     reason: 'Motivo: {reason}'
@@ -331,6 +331,7 @@ confess:
   error_staff_only: '{error} Só a staff pode fazer isso.'
   error_failed: '{error} Não foi possível postar. Tente de novo.'
   error_thread: '{error} Não foi possível abrir a thread de discussão.'
+  error_seal: '{error} Não foi possível selar sua confissão agora. Tente de novo em instantes.'
   banned_list:
     title: Banidos das confissões
     empty: Nenhum membro banido.
@@ -384,3 +385,14 @@ confessions:
     banned:
       title: '{ban} Ban de confissão'
       description: '{moderator} baniu {user} das confissões ({reason}).'
+    key_split:
+      title: '{lock} Chave de confissões dividida'
+      description: 'Chave `{key_id}` gerada. Quórum: **{threshold} de {total}**. Entregues: **{delivered} de {total}**.'
+      fingerprint_label: Fingerprint
+      previous_label: Chave anterior
+    key_split_failed:
+      title: '{error} Chave de confissões descartada'
+      description: 'Chave `{key_id}` gerada, mas as partes não chegaram ao quórum. Entregues: **{delivered} de {total}**. A chave foi descartada.'
+    key_pruned:
+      title: '{lock} Chaves de confissões removidas'
+      description: 'Chaves aposentadas removidas do keyring: **{count}**.'

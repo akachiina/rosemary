@@ -102,6 +102,17 @@ STATE_BY_KEY = {
         "threshold": 3,
         "total": 5,
     },
+    # The split logs show the same quorum the key share DM shows; the failed
+    # one shows a split that fell short of it.
+    "confessions.logs.key_split": lambda theme, variables: {
+        "threshold": 3,
+        "total": 5,
+        "delivered": 5,
+    },
+    "confessions.logs.key_split_failed": lambda theme, variables: {
+        "total": 5,
+        "delivered": 2,
+    },
 }
 
 

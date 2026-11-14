@@ -215,7 +215,7 @@ trap:
   logs:
     failed:
       title: '{error} Trap Failed'
-      description: '**{people} Target:** {user}\n**{gear} Consequence:** {action}\n**{scroll} Reason:** {reason}'
+      description: "**{people} Target:** {user}\n**{gear} Consequence:** {action}\n**{scroll} Reason:** {reason}"
   dm:
     text: '{warning} **You posted in the trap channel of {server}**
 

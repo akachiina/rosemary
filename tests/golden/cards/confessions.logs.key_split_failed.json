@@ -1,0 +1,18 @@
+{
+  "content": null,
+  "embed": {
+    "color": 15158332,
+    "description": "Chave `a1b2c3` gerada, mas as partes não chegaram ao quórum. Entregues: **2 de 5**. A chave foi descartada.",
+    "fields": [],
+    "footer": {
+      "text": "01/01/2026 00:00"
+    },
+    "timestamp": "<iso>",
+    "title": "❌ Chave de confissões descartada",
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "confessions.logs.key_split_failed",
+  "pings": [],
+  "view": []
+}

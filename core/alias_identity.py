@@ -174,12 +174,17 @@ class KeyRing:
         return max(active, key=lambda key: key.created_at, default=None)
 
     async def add(
-        self, guild_id: int, public_b64: str, *, moderation_seconds: int
+        self,
+        guild_id: int,
+        public_b64: str,
+        *,
+        moderation_seconds: int,
+        key_id: str | None = None,
     ) -> Key:
         """Add a public key (the active one), rotating the previous one."""
         now = time.time()
         key = Key(
-            key_id=new_key_id(),
+            key_id=key_id or new_key_id(),
             public=public_b64,
             created_at=now,
             retire_at=now + max(int(moderation_seconds), 0),

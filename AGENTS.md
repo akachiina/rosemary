@@ -666,8 +666,12 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   the settings). The key pair is generated automatically on the first sealed
   send (`_ensure_key`), no manual `generate`: the private half is split with
   Shamir (`shamir-mnemonic`) into `confessions.shamir_threshold` of
-  `confessions.shamir_shares` (3 of 5 by default) and each share is DMed to
-  the owner plus the top moderators; the bot keeps only the public half. The
+  `confessions.shamir_shares` (3 of 5 by default), and each share is DMed to
+  the owner plus the admins (`administrator`); the quorum adapts to the
+  holders (two admins mean 2 of 2, one means the private half goes to the
+  owner alone). The public key is only stored after the quorum received the
+  shares, and the `confessions.logs.key_split` staff log names the key and
+  the counts, never the recipients. The bot keeps only the public half. The
   store keeps `author_seal`, `key_id` and the claim hash, never the id. The
   member gets a claim token (shown once, with the algorithm, the `key_id`, the
   public fingerprint and `repo@commit`) and answers with

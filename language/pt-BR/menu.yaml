@@ -82,6 +82,12 @@ card:
         title: 'Log: resposta de confissão'
       banned:
         title: 'Log: ban de confissão'
+      key_split:
+        title: 'Log: chave de confissões dividida'
+      key_split_failed:
+        title: 'Log: chave de confissões descartada'
+      key_pruned:
+        title: 'Log: chaves de confissões removidas'
     dm:
       approved:
         title: DM de confissão aprovada
@@ -1285,6 +1291,18 @@ variables:
   threshold:
     label: Limite de partes
     description: Quantas partes da chave abrem o selo do autor
+  key_id:
+    label: ID da chave
+    description: Identificador curto da chave de confissões
+  fingerprint:
+    label: Fingerprint
+    description: Impressão digital da chave pública
+  delivered:
+    label: Entregues
+    description: Quantas partes da chave chegaram aos destinatários
+  old_key_id:
+    label: Chave anterior
+    description: ID da chave que foi substituída na rotação
   op_emoji:
     label: Emoji de autor
     description: Emoji que marca o autor da confissão

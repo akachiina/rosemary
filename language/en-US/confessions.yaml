@@ -295,7 +295,7 @@ confess:
     deny: Deny
     ban: Ban
   dm:
-    key_share: '{lock} **Your key share**\n• Server: **{guild}**\n• Your share: `{share}`\n• Keep this DM: {threshold} of {total} shares open a seal.'
+    key_share: "{lock} **Your key share**\n• Server: **{guild}**\n• Your share: `{share}`\n\nThis is one of {total} shares of the key that protects the privacy of anyone using `/confess`. With it, the user id is sealed, and neither the bot nor the bot's host can see the authors of anonymous confessions.\n\nExceptions: tampered bot source code (or a compromised host when the key is generated), or {threshold} of the {total} people who received the key joining forces to decrypt the id.\n\n**Never share the key with anyone.**"
     approved: '{check} Your confession **#{confession_number}** was approved!'
     rejected: '{error} Your confession **#{confession_number}** was denied.'
     reason: 'Reason: {reason}'
@@ -331,6 +331,7 @@ confess:
   error_staff_only: '{error} Only staff can do that.'
   error_failed: '{error} Could not post. Try again.'
   error_thread: '{error} Could not open the discussion thread.'
+  error_seal: '{error} Your confession could not be sealed right now. Try again in a moment.'
   banned_list:
     title: Banned from confessions
     empty: No banned members.
@@ -384,3 +385,14 @@ confessions:
     banned:
       title: '{ban} Confession Ban'
       description: '{moderator} banned {user} from confessions ({reason}).'
+    key_split:
+      title: '{lock} Confession key split'
+      description: 'Key `{key_id}` generated. Quorum: **{threshold} of {total}**. Delivered: **{delivered} of {total}**.'
+      fingerprint_label: Fingerprint
+      previous_label: Previous key
+    key_split_failed:
+      title: '{error} Confession key discarded'
+      description: 'Key `{key_id}` generated, but the shares did not reach the quorum. Delivered: **{delivered} of {total}**. The key was discarded.'
+    key_pruned:
+      title: '{lock} Confession keys removed'
+      description: 'Retired keys removed from the keyring: **{count}**.'
