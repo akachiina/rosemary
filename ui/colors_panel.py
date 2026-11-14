@@ -107,7 +107,7 @@ def chunk_containers(
             children.extend(_picker_rows(chunk))
         if children:
             documents.append(
-                {"type": "container", "color": "brand", "children": children}
+                {"type": "container", "color": "support", "children": children}
             )
     return files, documents
 

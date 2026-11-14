@@ -70,6 +70,8 @@ class SettingsMenuView(Panel):
         "next": "settings_next",
         "close": "settings_close",
     }
+    #: The support accent (the family of the panels that help).
+    color: str = "support"
     nav_labels = {
         "back": "settings.back",
         "previous": "settings.prev",

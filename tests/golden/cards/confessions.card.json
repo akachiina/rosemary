@@ -9,7 +9,7 @@
       "accent": "#ffb7c5",
       "children": [
         {
-          "content": "**Maçã<:op_emoji:123456789>**",
+          "content": "**Maçã<:op_emoji:123456789> ✨ (…)**",
           "type": "TextDisplay"
         },
         {
@@ -24,13 +24,6 @@
             }
           ],
           "type": "MediaGallery"
-        },
-        {
-          "type": "Separator"
-        },
-        {
-          "content": "-# … · 01/01/2026 00:00",
-          "type": "TextDisplay"
         }
       ],
       "type": "Container"

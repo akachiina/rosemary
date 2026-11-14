@@ -650,21 +650,32 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   document owns the heading, the color and the body).
 - The **confession identity** is a fruit alias and a random pastel
   (`core/alias_identity.py`): the alias is drawn from
-  `confess.identity.aliases` (the catalog list, one per language) and the
-  accent from `random_color()` (random hue, saturation/lightness ranges
-  customizable per call). The card is the title (the alias), the body, the
-  image and the numbered footer; no identicon, no author line.
+  `confess.identity.aliases` (the catalog list, one per language, 215 fruit
+  names) and the accent from `random_color()` (random hue, saturation/lightness
+  ranges customizable per call). Each entry (the confession and every reply)
+  draws its own color and title emoji; the store keeps `color_hex` and
+  `title_emoji`, so the review and the public post match. The title is
+  `{alias}{op_emoji} {title_emoji} ({Confissão #N})` (the serializer writes the
+  bold); the public card has no footer and no picture (the identicon is gone),
+  and the reply keeps only the numbered title (`Confissão #N-M`) in its footer.
+  The "in reply to" line is Discord's native reply (`reference` on the send),
+  never copy in the card.
 - **Sealed confessions** (`confessions.sealed_author`, on by default): the
   author id is encrypted with `SealedBox` (X25519 + XSalsa20-Poly1305) to
   the staff's public key (the private half is offline, never in the bot or
-  the settings). The store keeps `author_seal`, `key_id` and the claim
-  hash, never the id. The member gets a claim token (shown once) and
-  answers with `/confissao responder <token>`: the reply is marked OP and
-  no user id is stored. The reveal, the approval/denial DM and the ban by
-  the review are unavailable while sealed (the staff uses the
-  `confession_keys` CLI to open a seal). The keys rotate
-  (`confessions.key_rotation_days`) and the old private half is destroyed
-  after `confessions.moderation_days`.
+  the settings). The key pair is generated automatically on the first sealed
+  send (`_ensure_key`), no manual `generate`: the private half is split with
+  Shamir (`shamir-mnemonic`) into `confessions.shamir_threshold` of
+  `confessions.shamir_shares` (3 of 5 by default) and each share is DMed to
+  the owner plus the top moderators; the bot keeps only the public half. The
+  store keeps `author_seal`, `key_id` and the claim hash, never the id. The
+  member gets a claim token (shown once, with the algorithm, the `key_id`, the
+  public fingerprint and `repo@commit`) and answers with
+  `/confissao responder <token>`: the reply is marked OP and no user id is
+  stored. The reveal, the approval/denial DM and the ban by the review are
+  unavailable while sealed (the staff uses the `confession_keys` CLI to open
+  a seal). The keys rotate (`confessions.key_rotation_days`) and the old
+  private half is destroyed after `confessions.moderation_days`.
 - **The settings are exclusive**: `confessions.reveal_author` on forces
   `confessions.sealed_author` off (the reveal needs the readable id), and
   the sealed setting on forces the reveal off. The settings menu applies
@@ -731,6 +742,13 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   leaves it half-dressed: without the baseline, a partial theme would take
   every card's accent away (the color token unknown) and ship raw
   `{emoji}` placeholders. The theme's own tokens always win.
+- **The built-in palette has four families**: `neutral` (#949BA4) for the
+  utility cards and the listings, `support` (#5865F2) for the tickets,
+  settings, themes and colors panels, `social` (#EB459E) for roleplay, and
+  `partnership` (#1ABC9C) for the partnerships. The confessions stay outside
+  the palette: each entry draws its own random pastel. A document and its
+  code fallback name the same token, so the accent never changes with the
+  pipeline.
 - New customizable card = a document in `themes/default/cards/*.yaml` (the
   shape, the category, the mention policy and the contract) + the copy in
   BOTH catalogs. Labels in `variables.<name>.label`/`.description` (both

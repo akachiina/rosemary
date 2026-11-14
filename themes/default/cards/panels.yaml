@@ -14,6 +14,7 @@
 # The settings menu: the heading names the menu, the body is the page.
 settings.title:
   archetype: panel
+  color: support
   title: '{settings.title}'
   description: '{body}'
   variables:
@@ -23,6 +24,7 @@ settings.title:
 # The themes menu: the heading names the menu, the body is the page.
 themes.title:
   archetype: panel
+  color: support
   title: '{themes.title}'
   description: '{body}'
   variables:
@@ -48,6 +50,7 @@ boost.home:
 # The gif manager: the heading names the manager, the body is the list.
 roleplay.manager:
   archetype: panel
+  color: social
   title: '{roleplay.manager.title}'
   description: '{body}'
   rich: false
@@ -61,7 +64,7 @@ roleplay.manager:
 # callbacks are registered), the document owns the frame only.
 roleplay.panel:
   archetype: panel
-  color: brand
+  color: social
   title: '{roleplay.panel.title}'
   description: '{roleplay.panel.text}'
   category: roleplay
@@ -69,6 +72,7 @@ roleplay.panel:
 # The ticket panel: the heading asks for a ticket, the body explains how.
 tickets.panel:
   archetype: panel
+  color: support
   title: '{tickets.panel.title}'
   description: '{tickets.panel.text}'
 
@@ -84,6 +88,7 @@ confessions.panel:
 # The color manager: the heading names the manager, the body is the hint.
 colors.manager:
   archetype: panel
+  color: support
   title: '{colors.manager.title}'
   description: '{colors.manager.hint}'
   rich: false
@@ -98,7 +103,7 @@ colors.manager:
 # callbacks the document cannot own.
 colors.panel:
   archetype: panel
-  color: brand
+  color: support
   title: '{colors.panel.title}'
   description: '{colors.panel.text}'
   variables:

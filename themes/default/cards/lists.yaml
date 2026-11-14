@@ -10,7 +10,7 @@
 
 about.card:
   archetype: listing
-  color: brand
+  color: neutral
   title: '{about.title}'
   paragraphs:
   - '{about.text}'
@@ -119,6 +119,7 @@ bump.status:
 
 invites.leaderboard:
   archetype: listing
+  color: neutral
   title: '{invites.leaderboard.title}'
   description: '{body}'
   variables:
@@ -128,6 +129,7 @@ invites.leaderboard:
 
 invites.stats:
   archetype: listing
+  color: neutral
   rich: false
   title: '{invites.stats.title}'
   description: '{body}'
@@ -150,6 +152,7 @@ invites.stats:
 
 invites.personal:
   archetype: listing
+  color: neutral
   rich: false
   title: '{invites.personal.title}'
   description: '{body}'
@@ -169,6 +172,7 @@ invites.personal:
 
 invites.invited_list:
   archetype: listing
+  color: neutral
   rich: false
   title: '{invites.invited.title}'
   description: '{body}'
@@ -183,6 +187,7 @@ invites.invited_list:
 
 invites.server_stats:
   archetype: listing
+  color: neutral
   rich: false
   title: '{invites.server.title}'
   description: '{body}'
@@ -198,6 +203,7 @@ invites.server_stats:
 
 invites.invited_by:
   archetype: listing
+  color: neutral
   rich: false
   title: '{invites.inviter.title}'
   description: '{invites.inviter.body}'
@@ -216,6 +222,7 @@ invites.invited_by:
 
 invites.codes:
   archetype: listing
+  color: neutral
   title: '{title}'
   description: '{body}'
   variables:
@@ -225,6 +232,7 @@ invites.codes:
 
 invites.blacklist:
   archetype: listing
+  color: neutral
   title: '{title}'
   description: '{body}'
   variables:
@@ -234,6 +242,7 @@ invites.blacklist:
 
 birthdays.list:
   archetype: listing
+  color: neutral
   title: '{birthdays.list_title}'
   description: '{body}'
   variables:
@@ -242,6 +251,7 @@ birthdays.list:
 
 partnerships.list:
   archetype: listing
+  color: partnership
   title: '{partnerships.list_title}'
   description: '{body}'
   variables:
@@ -262,6 +272,7 @@ partnerships.audit:
 
 colors.list:
   archetype: listing
+  color: support
   title: '{title}'
   description: '{body}'
   variables:
@@ -271,6 +282,7 @@ colors.list:
 
 reminders.list:
   archetype: listing
+  color: neutral
   title: '{title}'
   description: '{body}'
   variables:
@@ -281,7 +293,7 @@ reminders.list:
 tickets.created:
   archetype: listing
   rich: false
-  color: brand
+  color: support
   title: '{tickets.created.title}'
   description: '{tickets.created.text}'
   variables:

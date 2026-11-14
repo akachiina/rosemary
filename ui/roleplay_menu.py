@@ -19,6 +19,9 @@ from rosemary.ui.kit import ActionRow, EmptyState, Panel, TextDisplay
 class RoleplayManagerView(Panel):
     """Manage the guild's gif lists per action."""
 
+    #: The social accent (the family of the roleplay cards).
+    color: str = "social"
+
     nav_ids = {"back": "rp_mgr_exit"}
     nav_labels = {"back": "settings.back"}
 
@@ -109,7 +112,7 @@ class RoleplayManagerView(Panel):
         gifs.append(entry)
         await self.store.set_gifs(self.guild_id, self.action, gifs)
         self.flash = await self.t("roleplay.manager.added")
-        self.flash_color = "brand"
+        self.flash_color = "social"
         await self._ack(interaction)
         await self.rerender(interaction)
 
@@ -136,7 +139,7 @@ class RoleplayManagerView(Panel):
         gifs = theme.roleplay_gifs(self.action) if theme else []
         await self.store.set_gifs(self.guild_id, self.action, gifs)
         self.flash = await self.t("roleplay.manager.restored")
-        self.flash_color = "brand"
+        self.flash_color = "social"
         await self.rerender(interaction)
 
     #: rendering --------------------------------------------------------------

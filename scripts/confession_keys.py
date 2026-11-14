@@ -1,10 +1,11 @@
 """CLI of the confession key ring: generate, rotate, prune and open seals.
 
-The bot holds only the public halves (the key ring); the private half is
-printed here for the staff to store offline (a password manager, another
-machine, a safe), never in the bot's data directory. The seal is
-``SealedBox`` (X25519 + XSalsa20-Poly1305): the bot can seal the author id
-but cannot open it.
+The bot holds only the public halves (the key ring); on the first sealed
+confession it generates the pair and DMs the Shamir shares to the staff, so
+this CLI is for inspection, rotation and opening a seal. The private half is
+never in the bot's data directory: it lives in the staff's DMs (or offline).
+The seal is ``SealedBox`` (X25519 + XSalsa20-Poly1305): the bot can seal the
+author id but cannot open it.
 
 Usage (run from the repository root)::
 
@@ -15,12 +16,13 @@ Usage (run from the repository root)::
     python scripts/confession_keys.py open <key_id:base64> --private <base64>
     python scripts/confession_keys.py open <key_id:base64> --shares "..." "..."
 
-``generate`` adds the new public key to the ring and prints the private
-half (or the Shamir shares when ``--shamir`` is given, via the optional
-``shamir-mnemonic`` package). ``rotate`` adds a new key and schedules the
-old one for retirement after the guild's moderation window. ``prune`` drops
-the retired keys from the ring (the private half must be destroyed by the
-staff after the same window). ``open`` decrypts one sealed blob with the
+``generate`` adds a new public key to the ring and prints the private half
+(or the Shamir shares when ``--shamir`` is given, via ``shamir-mnemonic``).
+The automatic path in the cog is the normal one: this command is for a
+manual rotation or a recovery drill. ``rotate`` adds a new key and schedules
+the old one for retirement after the guild's moderation window. ``prune``
+drops the retired keys from the ring (the private half must be destroyed by
+the staff after the same window). ``open`` decrypts one sealed blob with the
 private half or with enough Shamir shares.
 """
 
@@ -28,14 +30,19 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import base64
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from rosemary.core.alias_identity import KeyRing, generate_keypair, open_seal  # noqa: E402
+from rosemary.core.alias_identity import (  # noqa: E402
+    KeyRing,
+    generate_keypair,
+    open_seal,
+    shamir_open,
+    shamir_split,
+)
 from rosemary.core.settings import get_setting  # noqa: E402
 from rosemary.core.storage import GuildStorage  # noqa: E402
 
@@ -68,13 +75,11 @@ async def generate(guild_id: int, shamir: tuple[int, int] | None) -> None:
     )
     _print_key(key.key_id, public, private)
     if shamir is not None:
-        try:
-            from shamir_mnemonic import generate_mnemonics
-        except ImportError:
+        threshold, parts = shamir
+        shares = shamir_split(private, threshold, parts)
+        if shares is None:
             print("shamir-mnemonic is not installed (pip install shamir-mnemonic)")
             return
-        threshold, parts = shamir
-        shares = generate_mnemonics(threshold, parts, base64.b64decode(private))
         for index, share in enumerate(shares, start=1):
             print(f"share {index}: {share}")
 
@@ -95,13 +100,7 @@ async def prune(guild_id: int) -> None:
 
 def open_seal_command(seal: str, private: str, shares: list[str]) -> None:
     if shares:
-        try:
-            from shamir_mnemonic import combine_mnemonics
-        except ImportError:
-            print("shamir-mnemonic is not installed (pip install shamir-mnemonic)")
-            return
-        secret = combine_mnemonics(shares)
-        private = base64.b64encode(secret).decode()
+        private = shamir_open(shares)
     print(open_seal(private, seal))
 
 

@@ -24,74 +24,266 @@ confess:
     placeholder: Por quê? (opcional, mostrado ao autor)
   alias: Anônimo {seed}
   card:
-    title: Confissão (#{confession_number})
+    title: 'Confissão #{confession_number}'
   identity:
     aliases:
-    - Maçã
-    - Banana
-    - Morango
-    - Uva
-    - Manga
-    - Abacaxi
-    - Melancia
-    - Cereja
-    - Laranja
-    - Limão
-    - Pêssego
-    - Kiwi
-    - Coco
-    - Figo
-    - Romã
-    - Ameixa
+    - Maçã Fuji
+    - Maçã Verde
+    - Maçã Gala
+    - Maçã Eva
+    - Maçã Pink Lady
+    - Maçã Golden
     - Pera
-    - Mamão
-    - Goiaba
-    - Maracujá
+    - Pera Williams
+    - Pera Asiática
+    - Pera Packham
+    - Pera Abate
+    - Pera Rocha
+    - Marmelo
+    - Nêspera
+    - Banana Prata
+    - Banana Nanica
+    - Banana Maçã
+    - Banana Ouro
+    - Banana-da-Terra
+    - Banana Roxa
+    - Banana Figo
+    - Morango
+    - Morango Silvestre
     - Framboesa
+    - Framboesa Preta
     - Amora
+    - Amora Preta
     - Mirtilo
-    - Lichia
+    - Cranberry
+    - Groselha
+    - Groselha Preta
+    - Groselha Espinhosa
+    - Goji
+    - Uvaia
     - Physalis
+    - Physalis Dourada
+    - Uva
+    - Uva Itália
+    - Uva Niágara
+    - Uva Rubi
+    - Uva Thompson
+    - Uva Isabel
+    - Uva Moscatel
+    - Uva Crimson
+    - Laranja
+    - Laranja Pera
+    - Laranja Bahia
+    - Laranja Lima
+    - Laranja Seleta
+    - Laranja Valência
+    - Laranja Sanguínea
+    - Limão
+    - Limão Tahiti
+    - Limão Galego
+    - Limão Siciliano
+    - Limão Cravo
+    - Lima da Pérsia
+    - Tangerina
+    - Tangerina Ponkan
+    - Tangerina Murcote
+    - Clementina
+    - Tangelo
+    - Bergamota
+    - Mexerica
+    - Kinkan
+    - Toranja
+    - Pomelo
+    - Cidra
+    - Yuzu
+    - Pêssego
+    - Pêssego Branco
+    - Pêssego Amarelo
+    - Nectarina
+    - Nectarina Branca
+    - Ameixa
+    - Ameixa Negra
+    - Ameixa Amarela
+    - Ameixa Vermelha
+    - Damasco
+    - Cereja
+    - Cereja Doce
+    - Cereja Azeda
+    - Abricó-do-Pará
+    - Kiwi
+    - Kiwi Dourado
+    - Kiwano
     - Carambola
-    - Jabuticaba
-    - Acerola
-    - Pitanga
-    - Caju
-    - Abacate
-    - Jaca
-    - Fruta-pão
-    - Tamarindo
+    - Lichia
+    - Longan
+    - Rambutã
+    - Mangostão
+    - Pitaya
+    - Pitaya Vermelha
+    - Pitaya Branca
+    - Pitaya Amarela
+    - Durião
+    - Salak
+    - Noni
+    - Jujuba
     - Tâmara
     - Caqui
-    - Nectarina
-    - Damasco
-    - Groselha
-    - Cranberry
-    - Melão
+    - Caqui Fuyu
+    - Caqui Rama Forte
+    - Tamarilo
+    - Pepino
+    - Maracujá
+    - Maracujá Amarelo
+    - Maracujá Doce
+    - Maracujá Roxo
+    - Granadilla
+    - Açaí
+    - Açaí Branco
+    - Cupuaçu
+    - Cupuí
     - Bacuri
     - Buriti
-    - Cupuaçu
-    - Açaí
-    - Guaraná
+    - Tucumã
+    - Pupunha
+    - Bacaba
+    - Patauá
+    - Murici
+    - Camu-camu
+    - Araçá-Boi
+    - Biribá
+    - Pajurá
+    - Uxi
+    - Taperebá
+    - Cajá
+    - Cajá-Manga
+    - Umbu
+    - Umbu-Cajá
+    - Siriguela
+    - Siriguela Vermelha
+    - Caju
+    - Cajuí
+    - Acerola
+    - Pitanga
+    - Pitanga Roxa
+    - Mangaba
+    - Licuri
+    - Macaúba
+    - Jenipapo
+    - Pequi
+    - Cagaita
+    - Baru
+    - Jatobá
+    - Ingá
     - Sapoti
     - Abiu
-    - Biribá
+    - Pitomba
+    - Bacupari
+    - Cabeludinha
+    - Cambuci
+    - Cambuí
+    - Grumixama
+    - Guabiroba
+    - Araçá
+    - Jabuticaba
+    - Jabuticaba Sabará
+    - Jabuticaba Paulista
+    - Jambo
+    - Jambo Rosa
+    - Jambo Vermelho
+    - Jambo Amarelo
+    - Jamelão
     - Graviola
     - Fruta-do-conde
     - Pinha
     - Atemoia
-    - Siriguela
-    - Umbu
-    - Licuri
-    - Macaúba
-    - Pupunha
-    - Pequi
-    - Jenipapo
+    - Cherimoia
+    - Fruta-pão
+    - Jaca
+    - Jaca Dura
+    - Jaca Mole
+    - Goiaba
+    - Goiaba Vermelha
+    - Goiaba Branca
+    - Goiaba Serrana
+    - Melão
+    - Melão Cantalupo
+    - Melão Pele de Sapo
+    - Melão Amarelo
+    - Melão Gália
+    - Melancia
+    - Melancia Crimson
+    - Melancia Amarela
+    - Mamão
+    - Mamão Formosa
+    - Mamão Papaia
+    - Mamão Havaí
+    - Abacaxi
+    - Abacaxi Pérola
+    - Abacaxi Havaí
+    - Manga
+    - Manga Palmer
+    - Manga Tommy
+    - Manga Espada
+    - Manga Rosa
+    - Manga Haden
+    - Manga Keitt
+    - Manga Kent
+    - Manga Ubá
+    - Coco
+    - Coco Verde
+    - Coco Baía
+    - Abacate
+    - Abacate Hass
+    - Abacate Breda
+    - Abacate Manteiga
+    - Figo
+    - Figo Roxo
+    - Figo-da-Índia
+    - Romã
+    - Tamarindo
+    - Cacau
+    emojis:
+    - star
+    - love_letter
+    - tada
+    - speech
+    - scroll
+    - palette
+    - gift
+    - crown
+    - rocket
+    - trophy
+    - bar_chart
+    - calendar
+    - envelope
+    - door
+    - gear
+    - info
+    - success
+    - warning
+    - search
+    - frame
+    - cup
+    - numbers
+    - clock
+    - lock
+    - secret
+    - cards
+    - bulb
+    - cake
+    - chart
+    - megaphone
+    - handshake
+    - ticket
+    - shuffle
+    - hourglass
+    - pencil
+    - people
   review:
     title: Confissão (#{confession_number}) · Revisão
     author: '{user} escreveu esta confissão'
   response:
-    title: Confissão (#{confession_number}-{reply_index})
+    title: 'Confissão #{confession_number}-{reply_index}'
     parent: em resposta a {parent_ref}
     parent_ref: '#{confession_number}-{parent_index}'
     parent_op: em resposta a {parent_ref} (autor da confissão)
@@ -103,6 +295,7 @@ confess:
     deny: Recusar
     ban: Banir
   dm:
+    key_share: '{lock} **Sua parte da chave**\n• Servidor: **{guild}**\n• Sua parte: `{share}`\n• Guarde esta DM: {threshold} de {total} partes abrem um selado.'
     approved: '{check} Sua confissão **#{confession_number}** foi aprovada!'
     rejected: '{error} Sua confissão **#{confession_number}** foi recusada.'
     reason: 'Motivo: {reason}'
@@ -117,7 +310,7 @@ confess:
   review_denied: '{success} Confissão recusada.'
   sent: '{success} Sua confissão foi postada!'
   sent_review: '{success} Sua confissão foi enviada para revisão!'
-  sent_sealed: '• **Autor selado:** X25519 + XSalsa20-Poly1305 · chave `{fingerprint}`'
+  sent_sealed: '• **Autor selado:** X25519 + XSalsa20-Poly1305 · chave `{fingerprint}` · id `{key_id}`'
   sent_token: '• **Sua chave de reivindicação:** {token} (guarde; ela prova que a confissão é sua)'
   sent_repo: '• **Código:** `{repo}`'
   replied: '{success} Sua resposta anônima foi postada!'

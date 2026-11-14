@@ -646,7 +646,7 @@ class PartnershipsCog(commands.Cog):
                 "partnerships.list",
                 title=title,
                 body=body,
-                color="info",
+                color="partnership",
             )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 

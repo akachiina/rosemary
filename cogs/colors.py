@@ -288,7 +288,7 @@ class ColorsCog(commands.Cog):
                 "colors.panel",
                 title=await t(guild_id, "colors.panel.title"),
                 body=await t(guild_id, "colors.panel.text", count=len(entries)),
-                color="brand",
+                color="support",
             )
         picker = ColorPickerView(self.bot, guild_id, entries)
         if payload.embed is not None:

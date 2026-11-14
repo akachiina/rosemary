@@ -381,7 +381,7 @@ class ThemesMenuView(Panel):
         )
         await self.set_screen("themes.title", heading="themes.title")
         self.lines = [TextDisplay(active_label)]
-        self.color = self.flash_color if self.flash else "brand"
+        self.color = self.flash_color if self.flash else "support"
 
         sections: list[discord.ui.ViewItem] = [divider("large")]
 

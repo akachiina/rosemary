@@ -1526,5 +1526,29 @@
     "multiline": false,
     "default_catalog_key": null,
     "legacy_single_key": null
+  },
+  "confessions.shamir_threshold": {
+    "category": "confessions",
+    "type": "integer",
+    "default": 3,
+    "min": 2,
+    "max": 10,
+    "choices": [],
+    "duration": false,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
+  },
+  "confessions.shamir_shares": {
+    "category": "confessions",
+    "type": "integer",
+    "default": 5,
+    "min": 2,
+    "max": 20,
+    "choices": [],
+    "duration": false,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
   }
 }

@@ -500,6 +500,12 @@ settings:
   confessions.moderation_days:
     label: Moderation window
     description: Days the old key stays available to staff before it is destroyed.
+  confessions.shamir_threshold:
+    label: Shares to open
+    description: How many key shares are needed to open a sealed author.
+  confessions.shamir_shares:
+    label: Total shares
+    description: How many shares the private key is split into for the staff.
   birthdays.enabled:
     label: Birthdays enabled
     description: Track birthdays and post announcements.

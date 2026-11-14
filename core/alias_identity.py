@@ -257,6 +257,35 @@ def parse_seal(sealed: str) -> tuple[str, str]:
     return key_id, blob
 
 
+def shamir_split(private_b64: str, threshold: int, shares: int) -> list[str] | None:
+    """The Shamir shares of a private half (None when the package is absent).
+
+    The shares are mnemonics the staff keeps in their DMs; ``threshold`` of
+    ``shares`` combine back into the private half. The package is optional:
+    without it the bot falls back to the owner-only delivery.
+    """
+    try:
+        from shamir_mnemonic import generate_mnemonics
+    except ImportError:
+        return None
+    try:
+        groups = generate_mnemonics(
+            1, [(max(int(threshold), 1), max(int(shares), 1))], base64.b64decode(private_b64)
+        )
+    except (ValueError, TypeError):
+        return None
+    if not groups:
+        return None
+    return [str(mnemonic) for mnemonic in groups[0]]
+
+
+def shamir_open(shares) -> str:
+    """Combine Shamir shares back into the private half (base64)."""
+    from shamir_mnemonic import combine_mnemonics
+
+    return base64.b64encode(combine_mnemonics(list(shares))).decode()
+
+
 __all__ = [
     "DEFAULT_MODERATION_SECONDS",
     "Key",
@@ -272,6 +301,8 @@ __all__ = [
     "random_alias",
     "random_color",
     "seal",
+    "shamir_open",
+    "shamir_split",
 ]
 
 

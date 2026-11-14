@@ -91,6 +91,8 @@ card:
         title: Confession reply DM
       banned:
         title: Confession ban DM
+      key_share:
+        title: Confession key share DM
   utility:
     ping:
       title: Latency card
@@ -1274,9 +1276,15 @@ variables:
   alias_name:
     label: Anonymous name
     description: Pseudonymous name shown as the confession card title
-  avatar_url:
-    label: Generated avatar
-    description: Generated identicon shown beside the anonymous name
+  title_emoji:
+    label: Title emoji
+    description: Random emoji that rides the fruit name in the confession title
+  share:
+    label: Key share
+    description: Shamir share of the key sent by DM to a holder
+  threshold:
+    label: Share threshold
+    description: How many key shares open the author seal
   op_emoji:
     label: OP emoji
     description: Emoji that marks the author of the confession

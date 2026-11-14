@@ -96,6 +96,12 @@ STATE_BY_KEY = {
     "bump.leaderboard": lambda theme, variables: {
         "state_color": theme.style("bump_leaderboard").color
     },
+    # The key share shows the default quorum the settings deliver (3 of 5),
+    # not the generic single-item sample of the contract.
+    "confessions.dm.key_share": lambda theme, variables: {
+        "threshold": 3,
+        "total": 5,
+    },
 }
 
 

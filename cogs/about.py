@@ -101,7 +101,7 @@ class AboutCog(commands.Cog):
                         ),
                     ]
                 ),
-                color="brand",
+                color="neutral",
             )
         await ctx.respond(**payload.message_kwargs())
 
@@ -184,7 +184,7 @@ class AboutCog(commands.Cog):
                 "help.card",
                 title=variables["title"],
                 body=variables["body"],
-                color="brand",
+                color="neutral",
             )
         await ctx.reply(
             **payload.message_kwargs(), allowed_mentions=allowed, mention_author=False

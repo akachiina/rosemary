@@ -550,7 +550,7 @@ class RoleplayCog(commands.Cog):
                 "roleplay.panel",
                 title=await self.bot.translator.t(guild_id, "roleplay.panel.title"),
                 body=await self.bot.translator.t(guild_id, "roleplay.panel.text"),
-                color="brand",
+                color="social",
             )
         panel = RoleplayPanelView(self.bot, guild_id)
         items = await panel.panel_items()
@@ -721,7 +721,7 @@ class RoleplayCog(commands.Cog):
             guild_id,
             "roleplay.card",
             body=sentence,
-            color="brand",
+            color="social",
         )
 
     #: prefix trigger ----------------------------------------------------------

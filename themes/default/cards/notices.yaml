@@ -281,4 +281,18 @@ confessions.dm.banned:
   - reason
   category: confessions
 
+# The staff's key share (a sealed guild): the bot cannot read the author, so
+# it sends one Shamir share per holder by DM. The share is the only proof the
+# member keeps; the public card carries the fingerprint and the claim token.
+confessions.dm.key_share:
+  archetype: notice
+  style: info
+  description: '{confess.dm.key_share}'
+  variables:
+  - guild
+  - share
+  - threshold
+  - total
+  category: confessions
+
 # The partnership notices are embeds now: see themes/default/cards/content.yaml.

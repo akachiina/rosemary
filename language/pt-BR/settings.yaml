@@ -500,6 +500,12 @@ settings:
   confessions.moderation_days:
     label: Janela de moderação
     description: Dias que a chave antiga fica disponível para a staff antes de ser destruída.
+  confessions.shamir_threshold:
+    label: Partes para abrir
+    description: Quantas partes da chave são necessárias para abrir um autor selado.
+  confessions.shamir_shares:
+    label: Total de partes
+    description: Em quantas partes a chave privada é dividida entre a staff.
   birthdays.enabled:
     label: Aniversários ativados
     description: Registra aniversários e posta anúncios.

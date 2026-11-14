@@ -55,6 +55,8 @@ class ColorsManagerView(Panel):
         "previous": "settings.prev",
         "next": "settings.next",
     }
+    #: The support accent (the family of the panels that help).
+    color: str = "support"
 
     def __init__(self, bot, guild_id: int, author_id: int) -> None:
         super().__init__(bot, guild_id, author_id=author_id)
@@ -257,7 +259,7 @@ class ColorsManagerView(Panel):
         await self.set_screen(
             "colors.manager.attach_title",
             "colors.manager.attach_hint",
-            color="brand",
+            color="support",
         )
         if pending:
             shown = " ".join(f"<@&{p}>" for p in pending[:25])
@@ -368,7 +370,7 @@ class ColorsManagerView(Panel):
             await self.store.update_color(self.guild_id, color_id, **updates)
             await self._panel_repaint()
             self.flash = await self._t("colors.manager.saved")
-            self.flash_color = "brand"
+            self.flash_color = "support"
         await self._ack(interaction)
         await self.rerender(interaction)
 

@@ -95,9 +95,9 @@ def test_promoted_content_specs_registered():
 
 def test_promoted_spec_titles_in_both_catalogs():
     missing = []
+    catalogs = {lang: load_catalog(lang) for lang in ("en-US", "pt-BR")}
     for spec in all_cards():
-        for lang in ("en-US", "pt-BR"):
-            data = load_catalog(lang)
+        for lang, data in catalogs.items():
             node = data["card"]
             try:
                 for part in spec.key.split("."):
@@ -172,8 +172,8 @@ async def test_the_notices_are_documents():
     ]
     # The plain-text layer shrank when the event DMs became embeds (the
     # boost invite, the bump winners and the partnership notices), and it
-    # grew with the confession ban DM.
-    assert len(notices) == 30
+    # grew with the confession ban and key share DMs.
+    assert len(notices) == 31
     for key in notices:
         assert package.document(key) is not None, key
 

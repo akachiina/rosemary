@@ -260,7 +260,7 @@ class BirthdayCog(commands.Cog):
                 "birthdays.list",
                 title=await t(ctx.guild_id, "birthdays.list_title"),
                 body=body,
-                color="info",
+                color="neutral",
             )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 

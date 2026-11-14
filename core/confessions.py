@@ -115,9 +115,9 @@ class ConfessionStore:
         status: str = "open",
         thread_id: int = 0,
         alias: str = "",
-        alias_color: str = "",
         author_seal: str = "",
         claim_hash: str = "",
+        title_emoji: str = "",
     ) -> None:
         """Record a review or public confession message.
 
@@ -125,7 +125,8 @@ class ConfessionStore:
         hash) instead of the plain ``author_id``: the caller has already
         encrypted it (the store never sees the private half). ``alias`` is
         the pseudonymous name (a fruit when the identity module is on), not
-        a seed; ``alias_color`` keeps the legacy per-participant color.
+        a seed; ``color_hex`` is the entry's own pastel and ``title_emoji``
+        the emoji of its title.
         """
         if status not in ("pending", "open", "denied"):
             raise ValueError(f"unknown status {status!r}")
@@ -134,7 +135,7 @@ class ConfessionStore:
             "number": number,
             # With the seal on the id is stored encrypted, never readable:
             # the caller passes the plain id, the store seals it.
-            "author_id": int(author_id or 0),
+            "author_id": int(author_id or 0) if not author_seal else 0,
             "channel_id": channel_id,
             "body": body,
             "user_name": user_name,
@@ -145,8 +146,11 @@ class ConfessionStore:
             "thread_id": thread_id,
             "reply_count": 0,
             "alias": alias,
-            "alias_color": alias_color,
         }
+        if title_emoji:
+            entry["title_emoji"] = title_emoji
+        else:
+            entry.pop("title_emoji", None)
         if author_seal:
             entry["author_seal"] = author_seal
         else:
@@ -250,11 +254,12 @@ class ConfessionStore:
         body: str,
         image_url: str = "",
         alias: str = "",
-        alias_color: str = "",
+        color_hex: str = "",
         is_op: bool = False,
         parent_is_op: bool = False,
         author_seal: str = "",
         claim_hash: str = "",
+        title_emoji: str = "",
     ) -> tuple[int, dict[str, Any]] | None:
         """Record an anonymous reply; returns ``(index, reply)``.
 
@@ -263,6 +268,8 @@ class ConfessionStore:
         a reply written by the confession's own author (resolved by the
         claim token in the sealed mode, never by a stored user id).
         ``author_seal`` carries the sealed author id, when the guild seals.
+        ``color_hex`` is the reply's own pastel (every entry has one) and
+        ``title_emoji`` the emoji of its title.
         """
         data = await self._doc(guild_id)
         entry = data["entries"].get(str(confession_message_id))
@@ -276,14 +283,18 @@ class ConfessionStore:
             "index": index,
             "parent_id": parent_id or 0,
             "parent_index": parent_index,
-            "author_id": int(author_id or 0),
+            "author_id": int(author_id or 0) if not author_seal else 0,
             "body": body,
             "image_url": image_url,
             "alias": alias,
-            "alias_color": alias_color,
+            "color_hex": color_hex,
             "is_op": bool(is_op),
             "parent_is_op": bool(parent_is_op),
         }
+        if title_emoji:
+            reply["title_emoji"] = title_emoji
+        else:
+            reply.pop("title_emoji", None)
         if author_seal:
             reply["author_seal"] = author_seal
         else:

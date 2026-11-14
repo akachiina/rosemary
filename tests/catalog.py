@@ -35,8 +35,13 @@ def read_catalog(path: Path) -> dict[str, Any]:
     return data
 
 
+@cache
 def load_catalog(code: str) -> dict[str, Any]:
-    """One catalog as a mapping (the feature files merged)."""
+    """One catalog as a mapping (the feature files merged).
+
+    Cached: the catalogs never change during a test run, and a single
+    catalog is read by many tests (the parse used to dominate the suite).
+    """
     merged: dict[str, Any] = {}
     for path in catalog_files(code):
         merged = deep_merge(merged, read_catalog(path))
@@ -69,7 +74,7 @@ def deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
 
 @cache
 def _cached_catalog(code: str) -> dict[str, Any]:
-    """One catalog, cached (the files never change during a test run)."""
+    """One catalog, cached (kept as the named helper of ``catalog_text``)."""
     return load_catalog(code)
 
 

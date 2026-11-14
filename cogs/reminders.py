@@ -129,7 +129,7 @@ class RemindersCog(commands.Cog):
                 "reminders.list",
                 title=title,
                 body=body,
-                color="info",
+                color="neutral",
             )
         await ctx.respond(**payload.message_kwargs(), ephemeral=True)
 

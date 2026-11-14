@@ -24,73 +24,266 @@ confess:
     placeholder: Why? (optional, shown to the author)
   alias: Anonymous {seed}
   card:
-    title: Confession (#{confession_number})
+    title: 'Confession #{confession_number}'
   identity:
     aliases:
-    - Apple
-    - Banana
-    - Strawberry
-    - Grape
-    - Mango
-    - Pineapple
-    - Watermelon
-    - Cherry
-    - Orange
-    - Lemon
-    - Peach
-    - Kiwi
-    - Coconut
-    - Fig
-    - Pomegranate
-    - Plum
+    - Fuji Apple
+    - Green Apple
+    - Gala Apple
+    - Eva Apple
+    - Pink Lady Apple
+    - Golden Apple
     - Pear
-    - Papaya
-    - Guava
-    - Passion Fruit
+    - Williams Pear
+    - Asian Pear
+    - Packham Pear
+    - Abate Pear
+    - Rocha Pear
+    - Quince
+    - Loquat
+    - Prata Banana
+    - Lady Finger Banana
+    - Apple Banana
+    - Golden Banana
+    - Plantain
+    - Red Banana
+    - Fig Banana
+    - Strawberry
+    - Wild Strawberry
     - Raspberry
+    - Black Raspberry
     - Blackberry
+    - Mulberry
     - Blueberry
-    - Lychee
+    - Cranberry
+    - Redcurrant
+    - Blackcurrant
+    - Gooseberry
+    - Goji Berry
+    - Uvaia
     - Physalis
-    - Star Fruit
-    - Jabuticaba
-    - Acerola
-    - Pitanga
-    - Cashew
-    - Avocado
-    - Jackfruit
-    - Breadfruit
-    - Tamarind
+    - Golden Physalis
+    - Grape
+    - Italia Grape
+    - Niagara Grape
+    - Ruby Grape
+    - Thompson Grape
+    - Isabel Grape
+    - Muscat Grape
+    - Crimson Grape
+    - Orange
+    - Pear Orange
+    - Bahia Orange
+    - Lima Orange
+    - Seleta Orange
+    - Valencia Orange
+    - Blood Orange
+    - Lemon
+    - Tahiti Lemon
+    - Galician Lemon
+    - Sicilian Lemon
+    - Bitter Orange
+    - Persian Lime
+    - Tangerine
+    - Ponkan Tangerine
+    - Murcote Tangerine
+    - Clementine
+    - Tangelo
+    - Bergamot
+    - Mexican Mandarin
+    - Kumquat
+    - Grapefruit
+    - Pomelo
+    - Citron
+    - Yuzu
+    - Peach
+    - White Peach
+    - Yellow Peach
+    - Nectarine
+    - White Nectarine
+    - Plum
+    - Black Plum
+    - Yellow Plum
+    - Red Plum
+    - Apricot
+    - Cherry
+    - Sweet Cherry
+    - Sour Cherry
+    - Pará Apricot
+    - Kiwi
+    - Golden Kiwi
+    - Kiwano
+    - Starfruit
+    - Lychee
+    - Longan
+    - Rambutan
+    - Mangosteen
+    - Dragon Fruit
+    - Red Dragon Fruit
+    - White Dragon Fruit
+    - Yellow Dragon Fruit
+    - Durian
+    - Salak
+    - Noni
+    - Jujube
     - Date
     - Persimmon
-    - Nectarine
-    - Apricot
-    - Redcurrant
-    - Cranberry
-    - Melon
+    - Fuyu Persimmon
+    - Rama Forte Persimmon
+    - Tamarillo
+    - Cucumber
+    - Passion Fruit
+    - Yellow Passion Fruit
+    - Sweet Passion Fruit
+    - Purple Passion Fruit
+    - Granadilla
+    - Acai
+    - White Acai
+    - Cupuacu
+    - Cupui
     - Bacuri
     - Buriti
-    - Cupuacu
-    - Acai
-    - Guarana
-    - Sapodilla
-    - Abiu
-    - Rollinia
-    - Soursop
-    - Sugar Apple
-    - Atemoya
-    - Siriguela
+    - Tucuma
+    - Pupunha
+    - Bacaba
+    - Pataua
+    - Murici
+    - Camu Camu
+    - Boi Acara
+    - Biriba
+    - Pajura
+    - Uxi
+    - Tapereba
+    - Cashew Apple
+    - Caja-Manga
     - Umbu
+    - Umbu-Caja
+    - Spanish Plum
+    - Red Spanish Plum
+    - Cashew
+    - Cajui
+    - Acerola
+    - Pitanga
+    - Purple Pitanga
+    - Mangaba
     - Licuri
     - Macauba
-    - Pejibaye
-    - Pequi
     - Jenipapo
+    - Pequi
+    - Cagaita
+    - Baru
+    - Jatoba
+    - Inga
+    - Sapote
+    - Abiu
+    - Pitomba
+    - Bacupari
+    - Cabeludinha
+    - Cambuci
+    - Cambuí
+    - Grumixama
+    - Guabiroba
+    - Aracá
+    - Jabuticaba
+    - Jabuticaba Sabará
+    - Jabuticaba Paulista
+    - Guava
+    - Pink Guava
+    - Ruby Guava
+    - Yellow Guava
+    - Java Plum
+    - Soursop
+    - Custard Apple
+    - Sugar Apple
+    - Atemoya
+    - Cherimoya
+    - Breadfruit
+    - Jackfruit
+    - Hard Jackfruit
+    - Soft Jackfruit
+    - Common Guava
+    - Red Guava
+    - White Guava
+    - Mountain Guava
+    - Melon
+    - Cantaloupe
+    - Honeydew Melon
+    - Yellow Melon
+    - Galia Melon
+    - Watermelon
+    - Crimson Watermelon
+    - Yellow Watermelon
+    - Papaya
+    - Formosa Papaya
+    - Papaia Papaya
+    - Hawaiian Papaya
+    - Pineapple
+    - Pearl Pineapple
+    - Hawaiian Pineapple
+    - Mango
+    - Palmer Mango
+    - Tommy Atkins Mango
+    - Sword Mango
+    - Rose Mango
+    - Haden Mango
+    - Keitt Mango
+    - Kent Mango
+    - Uba Mango
+    - Coconut
+    - Green Coconut
+    - Bay Coconut
+    - Avocado
+    - Hass Avocado
+    - Breda Avocado
+    - Butter Avocado
+    - Fig
+    - Purple Fig
+    - Indian Fig
+    - Pomegranate
+    - Tamarind
+    - Cocoa
+    emojis:
+    - star
+    - love_letter
+    - tada
+    - speech
+    - scroll
+    - palette
+    - gift
+    - crown
+    - rocket
+    - trophy
+    - bar_chart
+    - calendar
+    - envelope
+    - door
+    - gear
+    - info
+    - success
+    - warning
+    - search
+    - frame
+    - cup
+    - numbers
+    - clock
+    - lock
+    - secret
+    - cards
+    - bulb
+    - cake
+    - chart
+    - megaphone
+    - handshake
+    - ticket
+    - shuffle
+    - hourglass
+    - pencil
+    - people
   review:
     title: Confession (#{confession_number}) · Review
     author: '{user} wrote this confession'
   response:
-    title: Confession (#{confession_number}-{reply_index})
+    title: 'Confession #{confession_number}-{reply_index}'
     parent: in reply to {parent_ref}
     parent_ref: '#{confession_number}-{parent_index}'
     parent_op: in reply to {parent_ref} (confession author)
@@ -102,6 +295,7 @@ confess:
     deny: Deny
     ban: Ban
   dm:
+    key_share: '{lock} **Your key share**\n• Server: **{guild}**\n• Your share: `{share}`\n• Keep this DM: {threshold} of {total} shares open a seal.'
     approved: '{check} Your confession **#{confession_number}** was approved!'
     rejected: '{error} Your confession **#{confession_number}** was denied.'
     reason: 'Reason: {reason}'
@@ -116,7 +310,7 @@ confess:
   review_denied: '{success} Confession denied.'
   sent: '{success} Your confession was posted!'
   sent_review: '{success} Your confession was sent for review!'
-  sent_sealed: '• **Author sealed:** X25519 + XSalsa20-Poly1305 · key `{fingerprint}`'
+  sent_sealed: '• **Author sealed:** X25519 + XSalsa20-Poly1305 · key `{fingerprint}` · id `{key_id}`'
   sent_token: '• **Your claim key:** {token} (keep it; it proves the confession is yours)'
   sent_repo: '• **Code:** `{repo}`'
   replied: '{success} Your anonymous reply was posted!'

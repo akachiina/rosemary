@@ -450,7 +450,7 @@ class InvitesCog(commands.Cog):
             key,
             title=title,
             body=body,
-            color="info",
+            color="neutral",
         )
 
     @invites_group.command(

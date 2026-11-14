@@ -169,7 +169,7 @@ class TicketsCog(commands.Cog):
                 "tickets.panel",
                 title=await self.bot.translator.t(guild_id, "tickets.panel.title"),
                 body=await self.bot.translator.t(guild_id, "tickets.panel.text"),
-                color="brand",
+                color="support",
             )
         if payload.embed is not None:
             # Embed form: no V2 layout: the type picker rides as classic rows.
@@ -325,7 +325,7 @@ class TicketsCog(commands.Cog):
                 "tickets.created",
                 title=await t(guild.id, "tickets.created.title"),
                 body=await t(guild.id, "tickets.created.text", **variables),
-                color="brand",
+                color="support",
             )
         if payload.embed is not None:
             # Embed form has no V2 layout; the action row rides as classic view.

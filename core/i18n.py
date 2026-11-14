@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -180,8 +181,13 @@ class Translator:
             return template
 
 
+@cache
 def _read_yaml(path: Path) -> dict[str, Any]:
-    """One YAML file of a catalog (an empty file is an empty section)."""
+    """One YAML file of a catalog (an empty file is an empty section).
+
+    Cached by path: a test run constructs many translators, and the files
+    never change while the process runs. The caller only reads the result.
+    """
     with path.open("r", encoding="utf-8") as fh:
         data = yaml.safe_load(fh) or {}
     if not isinstance(data, dict):

@@ -105,7 +105,7 @@ class InfoCog(commands.Cog):
                 ctx.guild_id,
                 "utility.serverinfo",
                 title=guild.name,
-                color="brand",
+                color="neutral",
             )
             allowed = discord.AllowedMentions.none()
         await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
@@ -119,7 +119,7 @@ class InfoCog(commands.Cog):
             guild_id,
             card_key,
             title=title,
-            color="brand",
+            color="neutral",
         )
 
     @info_group.command(

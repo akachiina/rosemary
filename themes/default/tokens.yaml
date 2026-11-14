@@ -36,6 +36,18 @@ colors:
   info: "#3498DB"
   gold: "#FFD700"
   orange: "#FF8C00"
+  # The family accents: every card of a family shares one tone, so the
+  # member reads the family before the content.
+  #   neutral    - the informational cards (utility and the plain listings)
+  #   support    - the panels that help (tickets, settings, themes, colors)
+  #   social     - the social cards (roleplay)
+  #   partnership - the partnerships
+  # The confessions stay out of the palette: each card carries its own
+  # random pastel.
+  neutral: "#949BA4"
+  support: "#5865F2"
+  social: "#EB459E"
+  partnership: "#1ABC9C"
 
 # NOTE: `user` and `tag` collide with common template variable names. Template
 # variables always win over emoji tokens, so `{user}` renders a mention (never

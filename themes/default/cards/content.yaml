@@ -12,6 +12,7 @@
 
 utility.serverinfo:
   archetype: info_card
+  color: neutral
   title: '{server}'
   thumbnail: '{server_icon}'
   image: '{banner_url}'
@@ -59,6 +60,7 @@ utility.serverinfo:
 
 utility.userinfo:
   archetype: info_card
+  color: neutral
   title: '{user_name}'
   thumbnail: '{user_avatar}'
   image: '{banner_url}'
@@ -110,6 +112,7 @@ utility.userinfo:
 
 utility.emojiinfo:
   archetype: info_card
+  color: neutral
   title: '{emoji}'
   thumbnail: '{emoji_url}'
   description: '{card.utility.emojiinfo.subtitle}'
@@ -141,6 +144,7 @@ utility.emojiinfo:
 
 utility.stickerinfo:
   archetype: info_card
+  color: neutral
   title: '{sticker_name}'
   image: '{sticker_url}'
   fields:
@@ -179,6 +183,7 @@ utility.stickerinfo:
 
 utility.roleinfo:
   archetype: info_card
+  color: neutral
   title: '{role_name}'
   thumbnail: '{role_icon}'
   description: '{card.utility.roleinfo.subtitle}'
@@ -221,6 +226,7 @@ utility.roleinfo:
 
 utility.channelinfo:
   archetype: info_card
+  color: neutral
   title: '{channel_name}'
   fields:
   - label: '{card.utility.channelinfo.channel_type_label}'
@@ -420,65 +426,59 @@ suggestions.dm.rejected:
   rich: false
   category: suggestions
 
-# The public confession: the alias is the card's title (the OP emoji rides
-# beside it when the author wrote their own confession), the generated
-# identicon is the thumbnail and the confession text is the body. The
-# picture rides the image and the numbered title closes the card.
+# The public confession: the title is the fruit alias (the OP emoji rides
+# beside it when the author wrote their own confession), a random emoji and
+# the number of the confession. The confession text is the body and the
+# picture rides the image.
 #
-# Deliberately no real avatar anywhere: the post is anonymous and the
-# author's own picture would identify them.
+# Deliberately no avatar and no identicon anywhere: the post is anonymous
+# and the author's own picture would identify them. Deliberately no footer
+# either: the card says only what the confession says.
 #
-# The accent is the alias' own color (a hex the send site stored); the
-# neutral tone is the fallback (the alternatives: the first one whose
-# variable arrived wins).
+# The accent is the entry's own pastel (a hex the send site stored); the
+# info tone is the fallback (the alternatives: the first one whose variable
+# arrived wins).
 confessions.card:
   archetype: info_card
   color:
   - '{color_hex}'
   - 'info'
-  title: '{alias_name}{op_emoji}'
+  title: '{alias_name}{op_emoji} {title_emoji} ({title})'
   description: '{body}'
   image: '{image_url}'
-  footer:
-  - '{title} · {timestamp}'
-  - '{title}'
-  timestamp: true
   variables:
   - confession_number
   - title
   - body
   - image_url
   - color_hex
-  - timestamp
   - alias_name
   - op_emoji
+  - title_emoji
   category: confessions
 
-# The reply card: the same frame as the confession, plus the reference to
-# the parent comment in the footer (the parent's own text never rides the
-# card: the reference links to it).
+# The reply card: the same frame as the confession (the alias, the emoji and
+# the number of the reply). The parent rides Discord's own reply line, so
+# the card keeps only the number of the answer in its footer.
 confessions.response:
   archetype: info_card
   color:
   - '{color_hex}'
   - 'info'
-  title: '{alias_name}{op_emoji}'
+  title: '{alias_name}{op_emoji} {title_emoji} ({title})'
   description: '{body}'
   image: '{image_url}'
-  footer:
-  - '{parent_line} · {title}'
-  - '{title}'
+  footer: '{title}'
   variables:
   - confession_number
   - reply_index
   - title
   - body
-  - parent_line
   - color_hex
   - image_url
   - alias_name
   - op_emoji
-  - parent_link
+  - title_emoji
   category: confessions
 
 # The approval notice DM: the content line carries the decision, the embed
@@ -654,7 +654,7 @@ bump.dm.winner_lost:
 # rewriting the whole notice.
 partnerships.dm.added:
   form: embed
-  color: success
+  color: partnership
   content_line: '{partnerships.dm.added}'
   paragraphs:
   - '{partnerships.dm.added_greeting}'
@@ -669,7 +669,7 @@ partnerships.dm.added:
 
 partnerships.dm.removed:
   form: embed
-  color: info
+  color: partnership
   content_line: '{partnerships.dm.removed}'
   paragraphs:
   - '{partnerships.dm.removed_greeting}'
@@ -683,7 +683,7 @@ partnerships.dm.removed:
 
 partnerships.dm.rep_changed:
   form: embed
-  color: info
+  color: partnership
   content_line: '{partnerships.dm.rep_changed}'
   paragraphs:
   - '{partnerships.dm.rep_changed_greeting}'
@@ -755,7 +755,7 @@ partnerships.dm.expired_admin:
 # fields ping them), the gif rides the card and the timestamp closes it.
 roleplay.card:
   form: card
-  color: brand
+  color: social
   description: '{@actor} {action} {@target}'
   image: '{gif_url}'
   footer: '{timestamp}'

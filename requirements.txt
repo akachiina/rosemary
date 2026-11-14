@@ -4,6 +4,7 @@ aiosqlite
 aiohttp
 python-dotenv
 PyNaCl
+shamir-mnemonic
 WeasyPrint
 PyMuPDF
 Pillow

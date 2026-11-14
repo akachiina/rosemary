@@ -38,3 +38,15 @@ settings:
     type: integer
     default: 604800
     duration: true
+  confessions.shamir_threshold:
+    category: confessions
+    type: integer
+    default: 3
+    min: 2
+    max: 10
+  confessions.shamir_shares:
+    category: confessions
+    type: integer
+    default: 5
+    min: 2
+    max: 20
