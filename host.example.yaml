@@ -1,0 +1,29 @@
+# Rosemary host configuration.
+# Only the person running the process edits this file. Copy
+# host.example.yaml to host.yaml and restart the bot after changing it.
+# host.yaml is git-ignored, so updates never overwrite it.
+
+host:
+  # Discord user ids allowed to run the host commands (/update, /restart).
+  # The bot hides those commands from everyone else when it can; the runtime
+  # check always applies, even if a server admin changes the overrides.
+  owner_ids: []
+  # Message shown on /about. {primary_host} is the first owner mention and
+  # {hosts} is the whole list. This is a custom message, not a verification.
+  identity_message: ""
+
+update:
+  command: false          # register /update
+  restart: false          # register /restart
+  auto: false             # release watcher loop (no slash command needed)
+  channel: stable         # stable (GitHub releases) | git (branch commits)
+  branch: main            # branch for the git channel and manual updates
+  check_hours: 24         # watcher interval (1..168)
+  backup: true            # back up data/ before updating
+  keep_backups: 5         # 0 = keep all
+  restart_after: true     # restart the process after a successful update
+  sync_after: true        # re-sync the slash commands after the update
+
+convert:
+  max_mb: 25              # maximum input file size
+  timeout_seconds: 120    # conversion timeout

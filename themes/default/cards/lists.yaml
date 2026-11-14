@@ -12,12 +12,20 @@ about.card:
   archetype: listing
   color: neutral
   title: '{about.title}'
+  thumbnail: '{bot_avatar}'
+  image: '{bot_banner}'
   paragraphs:
   - '{about.text}'
   - '{about.version}'
+  - '{about.build}'
+  - '{host_line}'
   variables:
   - version
   - channel
+  - build
+  - host_line
+  - bot_avatar
+  - bot_banner
   category: general
 
 bump.reminder:

@@ -7,3 +7,4 @@ PyNaCl
 WeasyPrint
 PyMuPDF
 Pillow
+imageio-ffmpeg

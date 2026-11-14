@@ -15,22 +15,19 @@ settings:
     min: 60
     max: 900
     duration: true
-  updater.enabled:
+  updater.notify_admins:
     category: general
     type: boolean
-    default: false
-  updater.check_interval_hours:
-    category: general
-    type: integer
-    default: 24
-    min: 1
-    max: 168
-  updater.channel:
-    category: general
-    type: choice
-    default: "stable"
-    choices: ["stable", "git"]
-  updater.branch:
+    default: true
+  bot.nickname:
     category: general
     type: string
-    default: "main"
+    default: ""
+  bot.avatar:
+    category: general
+    type: image
+    default: false
+  bot.banner:
+    category: general
+    type: image
+    default: false

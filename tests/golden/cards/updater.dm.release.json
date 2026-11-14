@@ -1,0 +1,20 @@
+{
+  "content": "✅ **Rosemary foi atualizado para a versão `v1.0.0`!!** Confira o que há de novo:",
+  "embed": {
+    "color": 3066993,
+    "description": "Novidades desta versão.",
+    "fields": [],
+    "type": "rich"
+  },
+  "form": "embed",
+  "key": "updater.dm.release",
+  "pings": [],
+  "view": [
+    {
+      "label": "Abrir release",
+      "style": "link",
+      "type": "Button",
+      "url": "https://example.com"
+    }
+  ]
+}

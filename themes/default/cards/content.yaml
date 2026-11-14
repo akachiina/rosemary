@@ -830,3 +830,37 @@ moderation.warnings:
   - body
   - timestamp
   category: moderation
+
+# The post-update DM: the content line announces the version, the embed
+# carries the release notes and a button to the release page.
+updater.dm.release:
+  form: embed
+  color: success
+  content_line: '{updater.dm.release}'
+  description: '{notes}'
+  actions:
+  - label: '{updater.dm.release_button}'
+    url: '{url}'
+  variables:
+  - version
+  - previous
+  - release_name
+  - notes
+  - url
+  rich: false
+  category: general
+
+# The conversion result: an ephemeral card with the converted file attached.
+# The picture preview rides the image slot when the target is an image.
+convert.result:
+  form: card
+  color: success
+  title: '{convert.result.title}'
+  description: '{convert.result.body}'
+  image: '{preview}'
+  variables:
+  - filename
+  - format
+  - size
+  - preview
+  category: general

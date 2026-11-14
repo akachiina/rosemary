@@ -1383,10 +1383,19 @@ updater.logs.updated:
   color: success
   title: '{updater.logs.updated.title}'
   description: '{updater.logs.updated.description}'
+  fields:
+  - label: '{updater.logs.updated.release_label}'
+    value: '{url}'
+    gate: url
+  - label: '{updater.logs.updated.notes_label}'
+    value: '{notes}'
+    gate: notes
   timestamp: true
   variables:
   - previous
   - current
+  - url
+  - notes
   - timestamp
   mention: none
   category: general

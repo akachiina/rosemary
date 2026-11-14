@@ -12,12 +12,14 @@ the same and restyling them all is one edit.
 
 from __future__ import annotations
 
+import io
 import logging
 import unicodedata
 from datetime import timedelta
 from typing import Any
 
 import discord
+from PIL import Image
 
 from rosemary.core.cards import safe_format
 from rosemary.core.debug import SETTINGS_LOG_EVENT, send_log
@@ -36,7 +38,7 @@ from rosemary.core.settings import (
 )
 from rosemary.core.time_parser import TimeParser, localized_aliases
 from rosemary.ui.kit import ActionRow, EmptyState, Panel, Section, TextDisplay, divider
-from rosemary.ui.modals import make_text_modal
+from rosemary.ui.modals import make_file_modal, make_text_modal
 
 log = logging.getLogger(__name__)
 
@@ -114,6 +116,9 @@ class SettingsMenuView(Panel):
             if spec.value_type is SettingType.BOOLEAN:
                 self.register(f"settings_set_value:{key}:true", self._set_value_button)
                 self.register(f"settings_set_value:{key}:false", self._set_value_button)
+            elif spec.value_type is SettingType.IMAGE:
+                self.register(f"settings_image_upload:{key}", self._image_upload)
+                self.register(f"settings_image_remove:{key}", self._image_remove)
             elif spec.value_type in (
                 SettingType.CHOICE,
                 SettingType.CHANNEL,
@@ -297,6 +302,117 @@ class SettingsMenuView(Panel):
         self.editing_key = None
         await self.rerender(interaction)
 
+    def _bot_member(self):
+        """The bot's own member in this guild (None in a DM or a fake bot)."""
+        get_guild = getattr(self.bot, "get_guild", None)
+        guild = get_guild(self.guild_id) if get_guild else None
+        if guild is None:
+            return None
+        get_member = getattr(guild, "get_member", None)
+        return get_member(self.bot.user.id) if get_member else None
+
+    #: bot avatar/banner (the per-guild member profile) ------------------
+
+    async def _image_upload(self, interaction: discord.Interaction) -> None:
+        """Open the native file-upload modal for the bot's per-guild image."""
+        key = interaction.custom_id.split(":", 1)[1]
+        modal = make_file_modal(
+            title=await self.t("settings.image_title"),
+            custom_id=f"settings_image_modal:{key}",
+            label=await self.t("settings.image_label"),
+            description=await self.t("settings.image_hint"),
+            required=True,
+            on_submit=lambda submit, files: self._image_submit(key, submit, files),
+        )
+        await interaction.response.send_modal(modal)
+
+    async def _image_submit(
+        self,
+        key: str,
+        interaction: discord.Interaction,
+        files: list[discord.Attachment],
+    ) -> None:
+        """Apply the uploaded image to the bot's own member in this guild."""
+        spec = SETTINGS[key]
+        label = await self.t(f"settings.{spec.key}.label")
+        if not await self._ack(interaction):
+            return
+        me = self._bot_member()
+        attachment = files[0] if files else None
+        if me is None or attachment is None:
+            self.flash = await self.t("settings.image_failed")
+            self.flash_color = "danger"
+            self.editing_key = spec.key
+            await self.rerender(interaction)
+            return
+        try:
+            data = await attachment.read()
+        except (discord.Forbidden, discord.HTTPException):
+            data = b""
+        if not data or len(data) > 10 * 1024 * 1024:
+            self.flash = await self.t("settings.image_too_large")
+            self.flash_color = "danger"
+            self.editing_key = spec.key
+            await self.rerender(interaction)
+            return
+        try:
+            Image.open(io.BytesIO(data)).verify()
+        except Exception:
+            self.flash = await self.t("settings.image_invalid")
+            self.flash_color = "danger"
+            self.editing_key = spec.key
+            await self.rerender(interaction)
+            return
+        try:
+            if spec.key == "bot.avatar":
+                await me.edit(avatar=data)
+            else:
+                await me.edit(banner=data)
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            log.warning("Bot image update failed in %s: %s", self.guild_id, exc)
+            self.flash = await self.t("settings.image_failed")
+            self.flash_color = "danger"
+            self.editing_key = spec.key
+            await self.rerender(interaction)
+            return
+        await set_setting(self.bot.storage, self.guild_id, spec.key, True)
+        self.flash = await self.t("settings.image_done", setting=label)
+        self.flash_color = "success"
+        self.editing_key = spec.key
+        await self.rerender(interaction)
+
+    async def _image_remove(self, interaction: discord.Interaction) -> None:
+        """Remove the bot's per-guild image (the global one shows again)."""
+        key = interaction.custom_id.split(":", 1)[1]
+        spec = SETTINGS[key]
+        label = await self.t(f"settings.{spec.key}.label")
+        if not await self._ack(interaction):
+            return
+        me = self._bot_member()
+        if me is None:
+            self.flash = await self.t("settings.image_failed")
+            self.flash_color = "danger"
+            self.editing_key = spec.key
+            await self.rerender(interaction)
+            return
+        try:
+            if spec.key == "bot.avatar":
+                await me.edit(avatar=None)
+            else:
+                await me.edit(banner=None)
+        except (discord.Forbidden, discord.HTTPException) as exc:
+            log.warning("Bot image removal failed in %s: %s", self.guild_id, exc)
+            self.flash = await self.t("settings.image_failed")
+            self.flash_color = "danger"
+            self.editing_key = spec.key
+            await self.rerender(interaction)
+            return
+        await set_setting(self.bot.storage, self.guild_id, spec.key, False)
+        self.flash = await self.t("settings.image_removed", setting=label)
+        self.flash_color = "success"
+        self.editing_key = spec.key
+        await self.rerender(interaction)
+
     async def _set_value_button(self, interaction: discord.Interaction) -> None:
         _, key, raw = interaction.custom_id.split(":", 2)
         await self._apply_value(interaction, key, raw == "true")
@@ -415,6 +531,19 @@ class SettingsMenuView(Panel):
             await set_setting(self.bot.storage, self.guild_id, spec.key, raw, aliases=aliases)
             self.flash = await t(self.guild_id, "settings.saved", setting=label)
             self.flash_color = "success"
+            if spec.key == "bot.nickname":
+                # The nickname is the only per-guild identity Discord allows:
+                # the avatar/banner stay global. Apply it on save, not on boot.
+                guild = self.bot.get_guild(self.guild_id)
+                me = guild.get_member(self.bot.user.id) if guild else None
+                if me is not None:
+                    try:
+                        await me.edit(nick=str(raw or "").strip() or None)
+                    except discord.Forbidden:
+                        self.flash = await t(
+                            self.guild_id, "settings.bot_nickname_failed"
+                        )
+                        self.flash_color = "danger"
         except ValueError:
             self.flash = await t(self.guild_id, "settings.invalid_value", setting=label)
             self.flash_color = "danger"
@@ -1033,6 +1162,44 @@ class SettingsMenuView(Panel):
         self.nav_extra = []
         self.lines = [TextDisplay(await self.t("settings.select_value"))]
         actions: list[discord.ui.ViewItem] = []
+
+        if spec.value_type is SettingType.IMAGE:
+            me = self._bot_member()
+            url = ""
+            if me is not None:
+                asset = (
+                    me.guild_avatar
+                    if spec.key == "bot.avatar"
+                    else me.guild_banner
+                )
+                if asset is not None:
+                    url = asset.url
+            self.lines = [
+                TextDisplay(
+                    await self.t(
+                        "settings.image_current",
+                        url=f"`{url}`" if url else await self.t("settings.image_none"),
+                    )
+                )
+            ]
+            actions.append(
+                ActionRow(
+                    await self.button(
+                        f"settings_image_upload:{spec.key}",
+                        "settings.image_upload",
+                        style="primary",
+                        emoji="frame",
+                    ),
+                    await self.button(
+                        f"settings_image_remove:{spec.key}",
+                        "settings.image_remove",
+                        style="danger",
+                        emoji="trash",
+                        disabled=not url,
+                    ),
+                )
+            )
+            return await self.compose([], actions)
 
         if spec.value_type is SettingType.BOOLEAN:
             current = await get_setting(self.bot.storage, self.guild_id, spec.key)

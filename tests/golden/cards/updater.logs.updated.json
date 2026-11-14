@@ -3,7 +3,18 @@
   "embed": {
     "color": 3066993,
     "description": "Update aplicado: … → ….",
-    "fields": [],
+    "fields": [
+      {
+        "inline": false,
+        "name": "Release",
+        "value": "https://example.com"
+      },
+      {
+        "inline": false,
+        "name": "Novidades",
+        "value": "Novidades desta versão."
+      }
+    ],
     "footer": {
       "text": "01/01/2026 00:00"
     },

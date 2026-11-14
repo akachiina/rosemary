@@ -169,6 +169,7 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.cleaner import CleanerCog
         from rosemary.cogs.colors import ColorsCog
         from rosemary.cogs.confessions import ConfessionsCog
+        from rosemary.cogs.convert import ConvertCog
         from rosemary.cogs.debug import DebugCog
         from rosemary.cogs.info import InfoCog
         from rosemary.cogs.invites import InvitesCog
@@ -187,10 +188,12 @@ class RosemaryBot(commands.Bot):
         from rosemary.cogs.utility import UtilityCog
         from rosemary.cogs.welcome import WelcomeCog
         from rosemary.core import card_specs  # noqa: F401  (fills the card registry)
+        from rosemary.core.host import load_host_config
         from rosemary.core.i18n import Translator
         from rosemary.core.storage import GuildStorage
 
         self.start_time = time.monotonic()
+        self.host = load_host_config()
 
         data_dir = Path(__file__).resolve().parent / "data"
         self.storage = GuildStorage(data_dir=data_dir)
@@ -232,7 +235,8 @@ class RosemaryBot(commands.Bot):
         self.add_cog(RoleplayCog(self))
         self.add_cog(UtilityCog(self))
         self.add_cog(InfoCog(self))
-        self.add_cog(UpdaterCog(self))
+        self.add_cog(UpdaterCog(self, self.host))
+        self.add_cog(ConvertCog(self, self.host))
         self.add_cog(BoostRolesCog(self))
         self.add_cog(BumpReminderCog(self))
         self.add_cog(BumpLeaderboardCog(self))
@@ -362,9 +366,53 @@ class RosemaryBot(commands.Bot):
                 cmd.description = await t(guild.id, f"{key}.description")
                 await self._localize_options(guild.id, key, cmd)
             await self.sync_commands(guild_ids=[guild.id])
+            await self._apply_host_command_permissions(guild)
             if not hasattr(self, "_guild_subcommand_aliases"):
                 self._guild_subcommand_aliases = {}
             self._guild_subcommand_aliases[guild.id] = aliases
+
+    async def _apply_host_command_permissions(self, guild: discord.Guild) -> None:
+        """Hide the host commands from everyone but the configured hosts.
+
+        Discord has no global "owner-only" flag: the per-guild overrides are
+        the only way to keep ``/update``/``/restart`` out of the picker. The
+        runtime check in the commands is the real gate; a failure here (no
+        ``manage_guild``) only leaves the commands visible to server admins.
+        """
+        host = getattr(self, "host", None)
+        if host is None or not host.owner_ids:
+            return
+        me = guild.me
+        if me is None or not me.guild_permissions.manage_guild:
+            return
+        payload = []
+        for base in ("update", "restart"):
+            command = self._command_base_keys.get(base)
+            command_id = getattr(command, "id", None)
+            if command_id is None:
+                continue
+            payload.append(
+                {
+                    "id": command_id,
+                    "permissions": [
+                        {"id": guild.id, "type": 1, "permission": False},
+                        *[
+                            {"id": owner_id, "type": 2, "permission": True}
+                            for owner_id in host.owner_ids
+                        ],
+                    ],
+                }
+            )
+        if not payload:
+            return
+        try:
+            await self.http.bulk_edit_guild_application_command_permissions(
+                application_id=self.application_id,
+                guild_id=guild.id,
+                payload=payload,
+            )
+        except discord.HTTPException as exc:
+            log.debug("Host command permissions failed in %s: %s", guild.id, exc)
 
     async def _localized_name(
         self, guild_id: int, key: str, base_name: str, label: str
@@ -712,6 +760,29 @@ class RosemaryBot(commands.Bot):
             log.debug("modal_error ACK fallback also failed", exc_info=True)
 
 
+async def _cli_update(restart: bool) -> None:
+    """``python bot.py --update`` / ``--restart`` (no slash command needed)."""
+    from rosemary import __version__
+    from rosemary.core.host import load_host_config
+    from rosemary.core.updater import apply_release, is_newer, latest_release_tag
+
+    repo = Path(__file__).resolve().parent
+    if restart:
+        os.execv(sys.executable, [sys.executable, str(repo / "bot.py")])
+        return
+    host = load_host_config()
+    tag = await latest_release_tag(repo)
+    if tag is None or not is_newer(__version__, tag):
+        print("Rosemary is already up to date.")
+        return
+    if not await apply_release(repo, tag):
+        print("The update failed. Check the logs.")
+        raise SystemExit(1)
+    print(f"Updated to {tag}.")
+    if host.update_restart_after:
+        os.execv(sys.executable, [sys.executable, str(repo / "bot.py")])
+
+
 def main() -> None:
     """Boot the bot: load ``.env``, require ``BOT_TOKEN``, then run."""
     env_file = Path(__file__).resolve().parent / ".env"
@@ -721,6 +792,8 @@ def main() -> None:
         print("ERROR: BOT_TOKEN is not set. Add it to a .env file or export it.")
         raise SystemExit(1)
     setup_logging()
+    if "--update" in sys.argv or "--restart" in sys.argv:
+        asyncio.run(_cli_update("--restart" in sys.argv))
     RosemaryBot().run(token)
 
 

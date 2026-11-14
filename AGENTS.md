@@ -195,6 +195,47 @@ interactive UI).
   as the staff log channel (`logging.channel`), where the moderation card
   already landed. A ban never posts the leave card (`_recently_banned`).
 
+## Host, updates and conversion
+
+- **The host configuration is a file, not a setting**: `host.example.yaml` is
+  tracked; `host.yaml` (git-ignored) is the host's copy. `core/host.py` reads
+  it once at boot (`HostConfig`): `host.owner_ids` (the trusted hosts),
+  `host.identity_message` (a custom line for `/about`), `update.*` (the
+  command registration, the release watcher, the channel/branch, the backup)
+  and `convert.max_mb`/`convert.timeout_seconds`. There is no host command to
+  edit it: the host edits the file and restarts.
+- **The update is host-driven**: `update.auto` starts a global release watcher
+  (not per guild). The `stable` channel checks the GitHub release and applies
+  the tarball over the repo (no `git clone`, keeping `data/`, `.env`,
+  `host.yaml` and `venv/`); the `git` channel fetches and resets. The host
+  can also run `python bot.py --update` (or `--restart`) without a slash
+  command. `/update` and `/restart` are registered only when the host allows
+  it, hidden from everyone but `owner_ids` through the per-guild command
+  permission overrides (`bot.py::_apply_host_command_permissions`) and gated
+  again at runtime. `updater.notify_admins` (per guild) controls the DM to the
+  owner and admins; the log embed goes to the logging channel.
+- **`/convert file`** (`cogs/convert.py`, `core/convert_registry.py`,
+  `core/convert.py`, `ui/convert_panel.py`): one attachment, an ephemeral
+  card with **one select per export category** (a PNG never offers MP4). The
+  format catalogue is declarative (`core/convert_registry.py`): each entry
+  names its category, source kinds, theme icon and catalog copy, so the
+  picker and the engine read the same list. Images go through Pillow; video,
+  audio and documents through `ffmpeg`/PyMuPDF; GIFs use the two-pass palette
+  and retry at a lower frame rate/size. The **Discord Sticker** target is a
+  plain file: a 320x320 PNG/GIF under 512 KB from an image or a short clip
+  (a video sticker is an animated GIF, falling back to a static frame), which
+  the member can upload as a sticker (no API, no `manage_expressions`). The
+  result is an ephemeral `convert.result` card with the file attached; the
+  limits come from `host.yaml`.
+- **The bot identity is real per guild**: the nickname (`bot.nickname`),
+  the avatar (`bot.avatar`) and the banner (`bot.banner`) are the bot's own
+  member profile in that server (`Member.edit(avatar=..., banner=...)`), with
+  the global image as the fallback. The settings menu uploads the image
+  through the native `FileUpload` modal and removes it (back to the global).
+  The `/about` card uses the member's `display_avatar`/`guild_banner` URLs.
+- **`/about` shows the build**: version, channel, commit, tag and a "local"
+  note when the tree is dirty, plus the host's `identity_message` when set.
+
 ## i18n (`core/i18n.py`, `language/<code>/<feature>.yaml`)
 
 - The catalogs are **modular**: one folder per language
@@ -777,10 +818,10 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   `category_<value>` token and every `SettingType` a `type_<value>` token; the
   close of a themed panel is `secondary` with the `door` token. Component
   `emoji=` must be RGI-valid or Discord 400s the whole payload.
-- **Custom emoji recipe**: drop `assets/emojis/<name>.png` (an application
-  emoji), use `{emojis/<name>}` as the value of a theme token, and restart the
-  bot: the boot uploads only the files Discord does not have yet. Per-server
-  emoji (`assets/emojis/<server>/`) stays reserved.
+- **Custom emoji recipe**: drop `assets/emojis/<name>.png/.gif/.jpg/.webp`
+  (an application emoji), use `{emojis/<name>}` as the value of a theme token,
+  and restart the bot: the boot uploads only the files Discord does not have
+  yet. Per-server emoji (`assets/emojis/<server>/`) stays reserved.
 - **Machine values render as inline code in every card**: snowflake IDs, command
   usages (`!ban`, `/configuracoes`), the text-command prefix, version/channel and
   file names sit inside single backticks. Mentions, `<t:...>` timestamps, plain

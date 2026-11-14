@@ -148,11 +148,37 @@ emojis:
   type_channel_list: "🗂️"
   type_category: "📁"
   type_role: "🏷️"
+  type_image: "🖼️"
 
 # markdown: structural text templates rendered inside TextDisplay components.
 # These are visual/theme-level, NOT translated. Placeholders are filled via
 # Theme.md(name, **kwargs); the emojis above are injected automatically, so any
 # template can reference them (e.g. "{success}").
+  # The /convert file format icons (the picker's select options).
+  convert_png: "🖼️"
+  convert_jpg: "🖼️"
+  convert_webp: "🖼️"
+  convert_gif: "🎞️"
+  convert_bmp: "🖼️"
+  convert_tiff: "🖼️"
+  convert_ico: "🔖"
+  convert_pdf: "📄"
+  convert_pdf_page: "🖼️"
+  convert_txt: "📝"
+  convert_mp4: "🎬"
+  convert_webm: "🎬"
+  convert_mov: "🎬"
+  convert_mkv: "🎬"
+  convert_gif_video: "🎞️"
+  convert_mp3: "🎵"
+  convert_ogg: "🎵"
+  convert_wav: "🎧"
+  convert_m4a: "🎧"
+  convert_flac: "🎧"
+  convert_aac: "🎧"
+  convert_opus: "🎧"
+  convert_sticker: "🏷️"
+
 markdown:
   title: "**{title}**"
   category: "**{category_label}:** {category}"

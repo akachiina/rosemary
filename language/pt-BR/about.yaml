@@ -5,6 +5,7 @@ about:
   title: Sobre a Rosemary
   text: A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.
   version: 'Versão: `{version}` (`{channel}`)'
+  build: 'Build: {build}'
 actions:
   open_ticket:
     label: Abrir ticket

@@ -93,7 +93,7 @@ def coerce_value(
             return (False, None)
         return (True, value)
 
-    if value_type is SettingType.BOOLEAN:
+    if value_type in (SettingType.BOOLEAN, SettingType.IMAGE):
         if isinstance(raw, bool):
             return (True, raw)
         return (False, None)
@@ -156,7 +156,7 @@ def format_value(spec: SettingSpec, value: Any) -> FormattedValue:
     is_default = value == spec.default
     value_type = spec.value_type
 
-    if value_type is SettingType.BOOLEAN:
+    if value_type in (SettingType.BOOLEAN, SettingType.IMAGE):
         return FormattedValue(
             "settings.bool.true" if value else "settings.bool.false",
             translate=True,

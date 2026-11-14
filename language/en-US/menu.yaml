@@ -91,6 +91,9 @@ card:
         title: Confession reply DM
       banned:
         title: Confession ban DM
+  convert:
+    result:
+      title: Conversion result
   utility:
     ping:
       title: Latency card
@@ -338,6 +341,9 @@ card:
       ended:
         title: 'Log: broadcast ended'
   updater:
+    dm:
+      release:
+        title: Update DM
     confirm:
       title: Update confirmation text
     logs:
@@ -595,7 +601,8 @@ debug:
     logging: 'Logging: {logging}'
     audit: 'Audit log: {audit}'
 general:
-  unknown_error: '{error} An **unexpected error** occurred.'
+  unknown_error: '{error} An **unexpected error** occurred.
+    The programmer has a nap. Hold out! Programmer! {emojis/timestone_green}'
   'yes': 'Yes'
   'no': 'No'
   no_permission: '{lock} Only **server administrators** can use this command.'
@@ -645,6 +652,15 @@ updater:
   confirm_button: Update and restart
   cancel_button: Cancel
   cancelled: Update cancelled.
+  error_host: '{error} Only the bot hosts can do that.'
+  restart_title: Restart the bot?
+  restart_confirm: Restart now? The bot goes offline for a few seconds.
+  restart_button: Restart
+  restarting: Restarting...
+  updating_now: Updating...
+  dm:
+    release: '{success} **Rosemary was updated to version `{version}`!!** See what is new:'
+    release_button: Open release
   logs:
     updating:
       title: '{refresh} Bot Updating'
@@ -655,6 +671,12 @@ updater:
     updated:
       title: '{success} Bot Updated'
       description: 'Update applied: {previous} → {current}.'
+      release_label: Release
+      notes_label: What's new
+restart:
+  command:
+    name: restart
+    description: '[HOST] Restart the bot'
 variables:
   user:
     label: User
@@ -985,7 +1007,16 @@ variables:
     description: Image URL of the sticker
   format:
     label: Format
-    description: Image format of the sticker
+    description: File format
+  filename:
+    label: File name
+    description: Name of the converted file
+  size:
+    label: Size
+    description: Size of the converted file
+  preview:
+    label: Preview
+    description: Preview of the converted file
   tags:
     label: Tags
     description: Tags of the sticker
@@ -1277,6 +1308,24 @@ variables:
   title_emoji:
     label: Title emoji
     description: Random emoji that rides the fruit name in the confession title
+  release_name:
+    label: Release name
+    description: Published version name
+  notes:
+    label: Notes
+    description: Release notes
+  build:
+    label: Build
+    description: Commit and tag of the current build
+  host_line:
+    label: Host line
+    description: Host message shown on /about
+  bot_avatar:
+    label: Bot avatar
+    description: Bot avatar URL used in the cards
+  bot_banner:
+    label: Bot banner
+    description: Bot banner URL used in the cards
   op_emoji:
     label: OP emoji
     description: Emoji that marks the author of the confession

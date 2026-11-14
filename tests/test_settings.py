@@ -28,6 +28,7 @@ async def test_registry_covers_all_types_and_categories():
         SettingType.CATEGORY,
         SettingType.CHOICE,
         SettingType.ROLE,
+        SettingType.IMAGE,
     }
     categories = {s.category for s in SETTINGS.values()}
     assert categories == set(SettingCategory)

@@ -17,6 +17,9 @@ dist/
 # Runtime data
 data/
 
+# Host configuration (the example is tracked)
+host.yaml
+
 # Legacy archive - alecrins-dourados-bot
 legacy/
 

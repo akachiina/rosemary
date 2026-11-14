@@ -181,6 +181,7 @@ def _register_all(bot: commands.Bot) -> None:
     from rosemary.cogs.cleaner import CleanerCog
     from rosemary.cogs.colors import ColorsCog
     from rosemary.cogs.confessions import ConfessionsCog
+    from rosemary.cogs.convert import ConvertCog
     from rosemary.cogs.debug import DebugCog
     from rosemary.cogs.info import InfoCog
     from rosemary.cogs.invites import InvitesCog
@@ -211,6 +212,7 @@ def _register_all(bot: commands.Bot) -> None:
         CleanerCog,
         ColorsCog,
         ConfessionsCog,
+        ConvertCog,
         DebugCog,
         InfoCog,
         InvitesCog,

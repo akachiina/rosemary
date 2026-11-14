@@ -1,0 +1,101 @@
+{
+  "buttons": [
+    {
+      "custom_id": "panel_close",
+      "disabled": false,
+      "emoji": "🚪",
+      "label": "Fechar",
+      "style": "secondary"
+    }
+  ],
+  "selects": [
+    {
+      "custom_id": "convert:go:image",
+      "disabled": false,
+      "options": [
+        {
+          "default": false,
+          "description": "Imagem PNG",
+          "emoji": "🖼️",
+          "label": "PNG",
+          "value": "png"
+        },
+        {
+          "default": false,
+          "description": "Imagem JPEG",
+          "emoji": "🖼️",
+          "label": "JPEG",
+          "value": "jpg"
+        },
+        {
+          "default": false,
+          "description": "Imagem WebP",
+          "emoji": "🖼️",
+          "label": "WebP",
+          "value": "webp"
+        },
+        {
+          "default": false,
+          "description": "GIF animado",
+          "emoji": "🎞️",
+          "label": "GIF",
+          "value": "gif"
+        },
+        {
+          "default": false,
+          "description": "Imagem BMP",
+          "emoji": "🖼️",
+          "label": "BMP",
+          "value": "bmp"
+        },
+        {
+          "default": false,
+          "description": "Imagem TIFF",
+          "emoji": "🖼️",
+          "label": "TIFF",
+          "value": "tiff"
+        },
+        {
+          "default": false,
+          "description": "Ícone (favicon)",
+          "emoji": "🔖",
+          "label": "ICO",
+          "value": "ico"
+        }
+      ],
+      "placeholder": "Imagem"
+    },
+    {
+      "custom_id": "convert:go:document",
+      "disabled": false,
+      "options": [
+        {
+          "default": false,
+          "description": "Documento PDF",
+          "emoji": "📄",
+          "label": "PDF",
+          "value": "pdf"
+        }
+      ],
+      "placeholder": "Documento"
+    },
+    {
+      "custom_id": "convert:go:sticker",
+      "disabled": false,
+      "options": [
+        {
+          "default": false,
+          "description": "320x320, até 512 KB, para enviar como sticker",
+          "emoji": "🏷️",
+          "label": "Discord Sticker (512 KB)",
+          "value": "sticker"
+        }
+      ],
+      "placeholder": "Sticker"
+    }
+  ],
+  "texts": [
+    "# Converter arquivo",
+    "Arquivo: `picture.png`. Escolha o formato de saída."
+  ]
+}

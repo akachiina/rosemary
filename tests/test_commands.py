@@ -71,8 +71,10 @@ def test_command_option_raw_types_are_classes() -> None:
 
     bot.add_cog(RoleplayCog(bot))
     from rosemary.cogs.confessions import ConfessionsCog
+    from rosemary.cogs.convert import ConvertCog
 
     bot.add_cog(ConfessionsCog(bot))
+    bot.add_cog(ConvertCog(bot))
 
     commands_ = _all_commands(bot)
     assert commands_, "expected the new slash commands to be registered"

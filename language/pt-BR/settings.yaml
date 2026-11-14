@@ -175,6 +175,19 @@ settings:
   select_value: Escolha um novo valor.
   saved: '{success} Valor definido para **{setting}**.'
   invalid_value: '{error} Valor **inválido** para {setting}.'
+  bot_nickname_failed: '{error} Não consegui mudar meu apelido aqui (preciso de "Gerenciar Apelidos").'
+  image_title: Enviar imagem do bot
+  image_label: Imagem
+  image_hint: PNG, JPG, GIF ou WebP (até 10 MB).
+  image_current: 'Imagem atual: {url}'
+  image_none: Nenhuma imagem definida.
+  image_upload: Enviar imagem
+  image_remove: Remover
+  image_done: '{success} Imagem de **{setting}** atualizada.'
+  image_removed: '{success} Imagem de **{setting}** removida.'
+  image_failed: '{error} Não consegui atualizar a imagem do bot.'
+  image_invalid: '{error} Envie uma imagem válida.'
+  image_too_large: '{error} A imagem passa de 10 MB.'
   default_value: 'Padrão: {value}'
   preview_value: 'Prévia: {value}…'
   none: Não definido
@@ -295,21 +308,18 @@ settings:
   broadcast.delay_seconds:
     label: Pausa entre DMs do broadcast (0-30s)
     description: Pausa entre DMs do broadcast.
-  updater.enabled:
-    label: Auto-update ativado
-    description: Verifica e aplica updates sozinho.
-  updater.check_interval_hours:
-    label: Checar a cada (horas)
-    description: Horas entre checagens automáticas (1-168).
-  updater.channel:
-    label: Canal de update
-    description: Releases estáveis ou cada push do git.
-    choices:
-      stable: Releases estáveis
-      git: Pushes do git
-  updater.branch:
-    label: Branch de update
-    description: Branch git de onde atualizar.
+  updater.notify_admins:
+    label: Avisar admins no update
+    description: Manda DM para o dono e os admins quando o bot atualiza.
+  bot.nickname:
+    label: Apelido do bot
+    description: Apelido do bot neste servidor. Vazio usa o nome global.
+  bot.avatar:
+    label: Avatar do bot
+    description: Imagem do bot neste servidor (o perfil do Discord é global; esta troca só aqui).
+  bot.banner:
+    label: Banner do bot
+    description: Banner do bot neste servidor (só aqui; o perfil do Discord é global).
   tickets.enabled:
     label: Tickets ativados
     description: Se o painel de tickets funciona.

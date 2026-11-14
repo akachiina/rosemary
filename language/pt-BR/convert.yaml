@@ -1,0 +1,103 @@
+convert:
+  command:
+    name: converter
+    description: Converte um arquivo anexado
+  title: 'Converter arquivo'
+  body: 'Arquivo: `{filename}`. Escolha o formato de saída.'
+  categories:
+    image: Imagem
+    video: Vídeo
+    audio: Áudio
+    document: Documento
+    sticker: Sticker
+  formats:
+    png:
+      label: PNG
+      description: Imagem PNG
+    jpg:
+      label: JPEG
+      description: Imagem JPEG
+    webp:
+      label: WebP
+      description: Imagem WebP
+    gif:
+      label: GIF
+      description: GIF animado
+    bmp:
+      label: BMP
+      description: Imagem BMP
+    tiff:
+      label: TIFF
+      description: Imagem TIFF
+    ico:
+      label: ICO
+      description: Ícone (favicon)
+    pdf:
+      label: PDF
+      description: Documento PDF
+    pdf_page:
+      label: 'PNG (1ª página)'
+      description: Primeira página do PDF em PNG
+    txt:
+      label: TXT
+      description: Texto extraído do PDF
+    mp4:
+      label: MP4
+      description: Vídeo comprimido
+    webm:
+      label: WEBM
+      description: Vídeo WebM
+    mov:
+      label: MOV
+      description: Vídeo QuickTime
+    mkv:
+      label: MKV
+      description: Vídeo Matroska
+    gif_video:
+      label: GIF
+      description: GIF animado do vídeo
+    mp3:
+      label: MP3
+      description: Áudio MP3
+    ogg:
+      label: OGG
+      description: Áudio Ogg
+    wav:
+      label: WAV
+      description: Áudio sem compressão
+    m4a:
+      label: M4A
+      description: Áudio AAC
+    flac:
+      label: FLAC
+      description: Áudio sem perdas
+    aac:
+      label: AAC
+      description: Áudio AAC
+    opus:
+      label: OPUS
+      description: Áudio Opus
+    sticker:
+      label: Discord Sticker (512 KB)
+      description: 320x320, até 512 KB, para enviar como sticker
+  result:
+    title: '{check} Conversão concluída'
+    body: '{filename} convertido para {format} ({size}).'
+  done: '{check} Conversão concluída.'
+  done_body: '{filename} foi convertido para {format}.'
+  too_large: '{error} O arquivo passa de {max_mb} MB.'
+  bad_type: '{error} Não sei converter este tipo de arquivo.'
+  error: '{error} Não consegui converter este arquivo.'
+  error_type: '{error} Não sei converter este tipo de arquivo.'
+  error_too_large: '{error} O arquivo convertido é grande demais.'
+  error_ffmpeg: '{error} O conversor falhou. Tente outro formato.'
+  error_timeout: '{error} A conversão demorou demais.'
+  error_pdf: '{error} Não consegui ler o PDF.'
+
+convert_file:
+  command:
+    name: arquivo
+    description: Converte um arquivo anexado
+    options:
+      attachment:
+        description: Arquivo a converter

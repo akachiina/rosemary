@@ -22,28 +22,28 @@
       "style": "secondary"
     },
     {
-      "custom_id": "settings_set_value:updater.enabled:true",
+      "custom_id": "settings_set_value:updater.notify_admins:false",
       "disabled": false,
-      "emoji": "❌",
-      "label": "Desativado",
-      "style": "danger"
+      "emoji": "✅",
+      "label": "Ativado",
+      "style": "success"
     },
     {
-      "custom_id": "settings_edit:updater.check_interval_hours",
-      "disabled": false,
-      "emoji": "⚙️",
-      "label": "Editar",
-      "style": "secondary"
-    },
-    {
-      "custom_id": "settings_edit:updater.channel",
+      "custom_id": "settings_edit:bot.nickname",
       "disabled": false,
       "emoji": "⚙️",
       "label": "Editar",
       "style": "secondary"
     },
     {
-      "custom_id": "settings_edit:updater.branch",
+      "custom_id": "settings_edit:bot.avatar",
+      "disabled": false,
+      "emoji": "⚙️",
+      "label": "Editar",
+      "style": "secondary"
+    },
+    {
+      "custom_id": "settings_edit:bot.banner",
       "disabled": false,
       "emoji": "⚙️",
       "label": "Editar",
@@ -198,9 +198,9 @@
     "**📝 Fuso horário:**\nPadrão: UTC",
     "**📝 Prefixo do bot:**\nPadrão: !",
     "**🔢 Tempo de expiração dos menus:**\nPadrão: 15m",
-    "**✅ Auto-update ativado:**\nPadrão: Desativado",
-    "**🔢 Checar a cada (horas):**\nPadrão: 24",
-    "**🔀 Canal de update:**\nPadrão: Releases estáveis",
-    "**📝 Branch de update:**\nPadrão: main"
+    "**✅ Avisar admins no update:**\nPadrão: Ativado",
+    "**📝 Apelido do bot:**\nPadrão: ",
+    "**🖼️ Avatar do bot:**\nPadrão: Desativado",
+    "**🖼️ Banner do bot:**\nPadrão: Desativado"
   ]
 }

@@ -134,3 +134,34 @@ async def test_reveal_author_is_saved_without_a_seal():
     )
 
     assert await get_setting(bot.storage, 1, "confessions.reveal_author") is True
+
+
+async def test_bot_image_upload_applies_to_the_member(monkeypatch):
+    """The per-guild bot image is the bot's own member (Discord profile)."""
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (64, 64), (255, 0, 0)).save(buffer, "PNG")
+    png = buffer.getvalue()
+
+    bot = make_bot()
+    view = SettingsMenuView(bot, 1, owner_id=1)
+    me = SimpleNamespace(edit=AsyncMock(), guild_avatar=None, guild_banner=None)
+    monkeypatch.setattr(view, "_bot_member", lambda: me)
+    await set_setting(bot.storage, 1, "bot.avatar", False)
+
+    response = SimpleNamespace(is_done=lambda: False, defer=AsyncMock())
+    interaction = SimpleNamespace(
+        response=response,
+        edit=AsyncMock(),
+        followup=SimpleNamespace(send=AsyncMock()),
+    )
+    attachment = SimpleNamespace(read=AsyncMock(return_value=png))
+
+    await view._image_submit("bot.avatar", interaction, [attachment])
+
+    me.edit.assert_awaited_once()
+    assert me.edit.await_args.kwargs["avatar"] == png
+    assert await get_setting(bot.storage, 1, "bot.avatar") is True

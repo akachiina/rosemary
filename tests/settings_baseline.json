@@ -468,57 +468,6 @@
     "default_catalog_key": null,
     "legacy_single_key": null
   },
-  "updater.enabled": {
-    "category": "general",
-    "type": "boolean",
-    "default": false,
-    "min": null,
-    "max": null,
-    "choices": [],
-    "duration": false,
-    "multiline": false,
-    "default_catalog_key": null,
-    "legacy_single_key": null
-  },
-  "updater.check_interval_hours": {
-    "category": "general",
-    "type": "integer",
-    "default": 24,
-    "min": 1,
-    "max": 168,
-    "choices": [],
-    "duration": false,
-    "multiline": false,
-    "default_catalog_key": null,
-    "legacy_single_key": null
-  },
-  "updater.channel": {
-    "category": "general",
-    "type": "choice",
-    "default": "stable",
-    "min": null,
-    "max": null,
-    "choices": [
-      "stable",
-      "git"
-    ],
-    "duration": false,
-    "multiline": false,
-    "default_catalog_key": null,
-    "legacy_single_key": null
-  },
-  "updater.branch": {
-    "category": "general",
-    "type": "string",
-    "default": "main",
-    "min": null,
-    "max": null,
-    "choices": [],
-    "duration": false,
-    "multiline": false,
-    "default_catalog_key": null,
-    "legacy_single_key": null
-  },
   "moderation.mute_seconds": {
     "category": "moderation",
     "type": "integer",
@@ -1485,6 +1434,54 @@
     "default": 10,
     "min": 5,
     "max": 25,
+    "choices": [],
+    "duration": false,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
+  },
+  "updater.notify_admins": {
+    "category": "general",
+    "type": "boolean",
+    "default": true,
+    "min": null,
+    "max": null,
+    "choices": [],
+    "duration": false,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
+  },
+  "bot.nickname": {
+    "category": "general",
+    "type": "string",
+    "default": "",
+    "min": null,
+    "max": null,
+    "choices": [],
+    "duration": false,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
+  },
+  "bot.avatar": {
+    "category": "general",
+    "type": "image",
+    "default": false,
+    "min": null,
+    "max": null,
+    "choices": [],
+    "duration": false,
+    "multiline": false,
+    "default_catalog_key": null,
+    "legacy_single_key": null
+  },
+  "bot.banner": {
+    "category": "general",
+    "type": "image",
+    "default": false,
+    "min": null,
+    "max": null,
     "choices": [],
     "duration": false,
     "multiline": false,

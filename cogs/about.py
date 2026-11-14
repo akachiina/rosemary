@@ -10,11 +10,14 @@ card. The default layout of both cards lives in the default package
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import discord
 from discord.ext import commands
 
 from rosemary import __version__
 from rosemary.core.card_service import simple_payload
+from rosemary.core.host import load_host_config
 from rosemary.ui.responses import PrefixContext
 
 #: ``!help`` sections: (group key, ((prefix command, description key), ...)).
@@ -62,6 +65,7 @@ class AboutCog(commands.Cog):
 
     def __init__(self, bot) -> None:
         self.bot = bot
+        self.host = load_host_config()
 
     @discord.slash_command(
         name="about",
@@ -69,20 +73,38 @@ class AboutCog(commands.Cog):
     )
     async def about(self, ctx: discord.ApplicationContext) -> None:
         """Show information about Rosemary."""
-        from rosemary.core.settings import get_setting
+        from rosemary.core.updater import build_info
 
         t = self.bot.translator.t
-        if ctx.guild_id is not None:
-            channel = await get_setting(self.bot.storage, ctx.guild_id, "updater.channel")
-        else:
-            channel = "stable"
+        guild = getattr(ctx, "guild", None)
+        me = guild.get_member(self.bot.user.id) if guild is not None else None
+        # The bot's own member carries the per-guild avatar/banner (the real
+        # Discord profile in this server); display_avatar falls back to the
+        # global image, so the card always has a face.
+        bot_avatar = me.display_avatar.url if me is not None else ""
+        banner = (me.guild_banner or me.banner) if me is not None else None
+        bot_banner = banner.url if banner is not None else ""
+        commit, tag, dirty = await build_info(Path(__file__).resolve().parents[1])
+        build = f"`{commit}`" if commit else ""
+        if tag:
+            build = f"{build} · `{tag}`" if build else f"`{tag}`"
+        if dirty:
+            build = f"{build} · local" if build else "local"
         from rosemary.core.card_service import render_card_message
 
-        variables = {"version": __version__, "channel": channel}
-        payload, _allowed = await render_card_message(
+        variables = {
+            "version": __version__,
+            "channel": self.host.update_channel,
+            "build": build,
+            "host_line": self.host.identity_line(),
+            "bot_avatar": bot_avatar,
+            "bot_banner": bot_banner,
+        }
+        payload, allowed = await render_card_message(
             self.bot, ctx.guild_id, "about.card", variables
         )
         if payload is None:
+            allowed = discord.AllowedMentions.none()
             # Sections require an accessory (Thumbnail/Button); plain text
             # must use TextDisplay directly to keep the message valid.
             payload = simple_payload(
@@ -97,13 +119,14 @@ class AboutCog(commands.Cog):
                             ctx.guild_id,
                             "about.version",
                             version=__version__,
-                            channel=channel,
+                            channel=self.host.update_channel,
                         ),
+                        await t(ctx.guild_id, "about.build", build=build),
                     ]
                 ),
                 color="neutral",
             )
-        await ctx.respond(**payload.message_kwargs())
+        await ctx.respond(**payload.message_kwargs(), allowed_mentions=allowed)
 
     #: prefix commands ---------------------------------------------------
 

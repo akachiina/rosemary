@@ -9,16 +9,38 @@
       "accent": "#949ba4",
       "children": [
         {
-          "content": "**Sobre a Rosemary**",
+          "accessory": {
+            "type": "Thumbnail",
+            "url": "https://cdn.discordapp.com/embed/avatars/0.png"
+          },
+          "children": [
+            {
+              "content": "**Sobre a Rosemary**",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "Versão: `v1.0.0` (`#…`)",
+              "type": "TextDisplay"
+            }
+          ],
+          "type": "Section"
+        },
+        {
+          "content": "Build: `abc1234`",
           "type": "TextDisplay"
         },
         {
-          "content": "A Rosemary é um bot minimalista e multilíngue para Discord, construído com py-cord.",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "Versão: `v1.0.0` (`#…`)",
-          "type": "TextDisplay"
+          "children": [
+            {
+              "type": "MediaGalleryItem",
+              "url": "https://cdn.discordapp.com/embed/avatars/1.png"
+            }
+          ],
+          "type": "MediaGallery"
         }
       ],
       "type": "Container"

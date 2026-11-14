@@ -115,6 +115,33 @@ async def is_clean(repo: Path) -> bool:
     return code == 0 and out == ""
 
 
+async def origin_slug(repo: Path) -> str:
+    """The ``owner/repo`` slug of ``origin`` (empty when unknown).
+
+    Handles both HTTPS (``https://github.com/owner/repo.git``) and SSH
+    (``git@github.com:owner/repo.git``) remotes.
+    """
+    code, out, _ = await _git(repo, "config", "--get", "remote.origin.url")
+    if code != 0 or not out:
+        return ""
+    cleaned = out.strip().removesuffix(".git")
+    if cleaned.startswith("git@"):
+        cleaned = cleaned.split(":", 1)[-1]
+    elif "github.com/" in cleaned:
+        cleaned = cleaned.split("github.com/", 1)[-1]
+    else:
+        return ""
+    return cleaned.strip("/") if cleaned.count("/") == 1 else ""
+
+
+async def build_info(repo: Path) -> tuple[str, str, bool]:
+    """``(commit, tag, dirty)`` for the ``/about`` build line."""
+    commit = (await _git(repo, "rev-parse", "--short", "HEAD"))[1]
+    tag = (await _git(repo, "describe", "--tags", "--exact-match"))[1]
+    _code, out, _err = await _git(repo, "status", "--porcelain")
+    return commit, tag, bool(out)
+
+
 async def compare(repo: Path, ref: str) -> tuple[int, int]:
     """Return ``(behind, ahead)`` commit counts vs ``ref`` (branch or tag)."""
     target = ref if "/" in ref or ref.startswith("v") else f"origin/{ref}"
@@ -157,3 +184,82 @@ def prune_backups(backup_root: Path, keep: int = 5) -> None:
     )
     for stale in backups[:-max(keep, 1)]:
         shutil.rmtree(stale, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# Release tarball (the stable channel, without git)
+# ---------------------------------------------------------------------------
+
+#: GitHub API root (public repositories need no token; 60 requests/hour).
+_GITHUB_API = "https://api.github.com"
+
+#: The files the release tarball must never overwrite (host data and config).
+_KEEP = {"data", "data_backups", ".env", "host.yaml", "venv", ".venv", ".git", "__pycache__"}
+
+
+async def latest_release_tag(repo: Path) -> str | None:
+    """The newest release tag from GitHub, falling back to the git tags."""
+    import aiohttp
+
+    slug = await origin_slug(repo)
+    if slug:
+        try:
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(timeout=timeout) as session, session.get(
+                f"{_GITHUB_API}/repos/{slug}/releases/latest",
+                headers={"User-Agent": "Rosemary"},
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    tag = str(data.get("tag_name") or "").strip()
+                    if tag:
+                        return tag
+        except (TimeoutError, aiohttp.ClientError, ValueError):
+            pass
+    return latest_stable(await fetch_tags(repo))
+
+
+async def apply_release(repo: Path, tag: str) -> bool:
+    """Download the release tarball and copy it over the repo."""
+    import tarfile
+    import tempfile
+
+    import aiohttp
+
+    slug = await origin_slug(repo)
+    if not slug:
+        return False
+    url = f"https://github.com/{slug}/archive/refs/tags/{tag}.tar.gz"
+    tmp = Path(tempfile.mkdtemp(prefix="rosemary-release-"))
+    try:
+        archive = tmp / "release.tar.gz"
+        timeout = aiohttp.ClientTimeout(total=300)
+        async with aiohttp.ClientSession(timeout=timeout) as session, session.get(
+            url, headers={"User-Agent": "Rosemary"}
+        ) as response:
+            if response.status != 200:
+                return False
+            archive.write_bytes(await response.read())
+        with tarfile.open(archive, "r:gz") as tar:
+            tar.extractall(tmp / "src", filter="data")
+        roots = list((tmp / "src").iterdir())
+        if len(roots) != 1 or not roots[0].is_dir():
+            return False
+        _copy_tree(roots[0], repo)
+        return True
+    except (TimeoutError, OSError, aiohttp.ClientError, tarfile.TarError):
+        return False
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _copy_tree(source: Path, target: Path) -> None:
+    """Copy the release over the repo, keeping the host-owned paths."""
+    for entry in source.iterdir():
+        if entry.name in _KEEP:
+            continue
+        destination = target / entry.name
+        if entry.is_dir():
+            shutil.copytree(entry, destination, dirs_exist_ok=True)
+        else:
+            shutil.copy2(entry, destination)

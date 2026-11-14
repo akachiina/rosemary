@@ -24,6 +24,7 @@ class SettingType(StrEnum):
     STRING = "string"
     INTEGER = "integer"
     BOOLEAN = "boolean"
+    IMAGE = "image"
     CHOICE = "choice"
     CHANNEL = "channel"
     CHANNEL_LIST = "channel_list"

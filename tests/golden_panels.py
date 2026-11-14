@@ -58,7 +58,7 @@ class PanelBot:
 
 
 #: The representative panels the fixtures capture (one per kit consumer).
-PANEL_NAMES = ("settings", "boost", "roleplay", "colors", "cleaner")
+PANEL_NAMES = ("settings", "boost", "roleplay", "colors", "cleaner", "convert")
 
 
 def make_bot() -> PanelBot:
@@ -131,8 +131,10 @@ def snapshot(view: Any) -> dict[str, Any]:
 
 async def _build_panels(bot: PanelBot) -> dict[str, Any]:
     from rosemary.cogs.cleaner import CleanerPurgeView, PurgeRequest
+    from rosemary.core.host import load_host_config
     from rosemary.ui.boost_menu import BoostMenuView
     from rosemary.ui.colors_menu import ColorsManagerView
+    from rosemary.ui.convert_panel import ConvertPanel
     from rosemary.ui.roleplay_menu import RoleplayManagerView
     from rosemary.ui.settings_menu import SettingsMenuView
 
@@ -151,6 +153,17 @@ async def _build_panels(bot: PanelBot) -> dict[str, Any]:
             request=PurgeRequest(mode="word", word="spam", criterion="spam"),
         ),
     }
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (64, 48), (255, 183, 197)).save(buffer, "PNG")
+    convert = ConvertPanel(
+        bot, GUILD_ID, buffer.getvalue(), "picture.png", "image", load_host_config()
+    )
+    await convert.open_screen()
+    panels["convert"] = convert
     snapshots: dict[str, Any] = {}
     for name, view in panels.items():
         assert name in PANEL_NAMES, name

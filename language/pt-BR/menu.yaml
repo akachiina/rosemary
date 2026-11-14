@@ -91,6 +91,9 @@ card:
         title: DM de resposta de confissão
       banned:
         title: DM de banimento das confissões
+  convert:
+    result:
+      title: Resultado da conversão
   utility:
     ping:
       title: Card de latência
@@ -358,6 +361,9 @@ card:
       ended:
         title: 'Log: broadcast encerrado'
   updater:
+    dm:
+      release:
+        title: DM de update
     confirm:
       title: Texto de confirmação do update
     logs:
@@ -595,7 +601,8 @@ debug:
     logging: 'Logs: {logging}'
     audit: 'Registro de eventos: {audit}'
 general:
-  unknown_error: '{error} Ocorreu um **erro inesperado**.'
+  unknown_error: '{error} Ocorreu um **erro inesperado**.
+    The programmer has a nap. Hold out! Programmer! {emojis/timestone_green}'
   'yes': Sim
   'no': Não
   no_permission: '{lock} Apenas **administradores do servidor** podem usar este comando.'
@@ -645,6 +652,15 @@ updater:
   confirm_button: Atualizar e reiniciar
   cancel_button: Cancelar
   cancelled: Update cancelado.
+  error_host: '{error} Só os hosts do bot podem fazer isso.'
+  restart_title: Reiniciar o bot?
+  restart_confirm: Reiniciar agora? O bot sai do ar por alguns segundos.
+  restart_button: Reiniciar
+  restarting: Reiniciando...
+  updating_now: Atualizando...
+  dm:
+    release: '{success} **Rosemary foi atualizado para a versão `{version}`!!** Confira o que há de novo:'
+    release_button: Abrir release
   logs:
     updating:
       title: '{refresh} Bot Atualizando'
@@ -655,6 +671,12 @@ updater:
     updated:
       title: '{success} Bot Atualizado'
       description: 'Update aplicado: {previous} → {current}.'
+      release_label: Release
+      notes_label: Novidades
+restart:
+  command:
+    name: reiniciar
+    description: '[HOST] Reinicia o bot'
 variables:
   user:
     label: Usuário
@@ -985,7 +1007,16 @@ variables:
     description: URL da imagem do sticker
   format:
     label: Formato
-    description: Formato de imagem do sticker
+    description: Formato do arquivo
+  filename:
+    label: Nome do arquivo
+    description: Nome do arquivo convertido
+  size:
+    label: Tamanho
+    description: Tamanho do arquivo convertido
+  preview:
+    label: Prévia
+    description: Prévia do arquivo convertido
   tags:
     label: Tags
     description: Tags do sticker
@@ -1277,6 +1308,24 @@ variables:
   title_emoji:
     label: Emoji do título
     description: Emoji sorteado que acompanha o nome da fruta no título da confissão
+  release_name:
+    label: Nome do release
+    description: Nome da versão publicada
+  notes:
+    label: Notas
+    description: Notas do release
+  build:
+    label: Build
+    description: Commit e tag da build atual
+  host_line:
+    label: Linha do host
+    description: Mensagem do host mostrada no /about
+  bot_avatar:
+    label: Avatar do bot
+    description: URL do avatar do bot nos cards
+  bot_banner:
+    label: Banner do bot
+    description: URL do banner do bot nos cards
   op_emoji:
     label: Emoji de autor
     description: Emoji que marca o autor da confissão

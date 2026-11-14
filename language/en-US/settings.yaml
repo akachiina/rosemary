@@ -175,6 +175,19 @@ settings:
   select_value: Choose a new value.
   saved: '{success} Value set for **{setting}**.'
   invalid_value: '{error} **Invalid** value for {setting}.'
+  bot_nickname_failed: '{error} I could not change my nickname here (I need "Manage Nicknames").'
+  image_title: Upload bot image
+  image_label: Image
+  image_hint: PNG, JPG, GIF or WebP (up to 10 MB).
+  image_current: 'Current image: {url}'
+  image_none: No image set.
+  image_upload: Upload image
+  image_remove: Remove
+  image_done: '{success} **{setting}** image updated.'
+  image_removed: '{success} **{setting}** image removed.'
+  image_failed: '{error} I could not update the bot image.'
+  image_invalid: '{error} Send a valid image.'
+  image_too_large: '{error} The image is larger than 10 MB.'
   default_value: 'Default: {value}'
   preview_value: 'Preview: {value}…'
   test:
@@ -295,21 +308,18 @@ settings:
   broadcast.delay_seconds:
     label: Broadcast DM delay (0-30s)
     description: Pause between broadcast DMs.
-  updater.enabled:
-    label: Auto-update enabled
-    description: Check and apply updates automatically.
-  updater.check_interval_hours:
-    label: Auto-check every (hours)
-    description: Hours between automatic checks (1-168).
-  updater.channel:
-    label: Update channel
-    description: Stable releases or every git push.
-    choices:
-      stable: Stable releases
-      git: Git pushes
-  updater.branch:
-    label: Update branch
-    description: Git branch to update from.
+  updater.notify_admins:
+    label: Notify admins on update
+    description: DM the owner and the admins when the bot updates.
+  bot.nickname:
+    label: Bot nickname
+    description: The bot nickname in this server. Empty uses the global name.
+  bot.avatar:
+    label: Bot avatar
+    description: Bot image in this server (the Discord profile is global; this changes only here).
+  bot.banner:
+    label: Bot banner
+    description: Bot banner in this server (only here; the Discord profile is global).
   tickets.enabled:
     label: Tickets enabled
     description: Whether the ticket panel works.

@@ -199,14 +199,18 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     if body:
         if card.thumbnail:
             # The picture rides the first section (a section carries three
-            # text blocks at most, so a longer body opens more sections).
-            for index, group in enumerate(_sections(body)):
-                children.append(
-                    Section(
-                        children=tuple(group),
-                        accessory=Thumbnail(url=card.thumbnail) if index == 0 else None,
-                    )
+            # text blocks at most). A longer body opens plain text blocks
+            # below it: a section without an accessory is not valid, and
+            # py-cord would fill the empty accessory with a blank thumbnail.
+            groups = _sections(body)
+            children.append(
+                Section(
+                    children=tuple(groups[0]),
+                    accessory=Thumbnail(url=card.thumbnail),
                 )
+            )
+            for group in groups[1:]:
+                children.extend(group)
         else:
             children.extend(body)
     if card.image:
