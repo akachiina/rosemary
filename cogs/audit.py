@@ -224,6 +224,24 @@ class AuditCog(commands.Cog):
             template, {**self.bot.theme.emojis, "file_url": file_url}
         )
 
+    async def _file_line(self, guild_id: int, file_url: str) -> str:
+        """``card.audit.bulk_delete.file_line`` prefixed with a newline, or empty.
+
+        Composed here, like ``_reason_line``: the template becomes a nested
+        value inside the body and a later render pass never re-formats
+        another substitution's value, so resolving the theme emoji and the
+        transcript URL first keeps ``{scroll}``/``{file_url}`` from leaking
+        into the live purge card.
+        """
+        template = await _line(self.bot, guild_id, "bulk_delete.file_line")
+        if not template:
+            return ""
+        from rosemary.core.cards import safe_format
+
+        return "\n" + safe_format(
+            template, {**self.bot.theme.emojis, "file_url": file_url}
+        )
+
     async def _attachments_line(self, guild_id: int, attachments: str) -> str:
         """``card.audit.attachments_line`` prefixed with a newline, or empty.
 
@@ -459,7 +477,7 @@ class AuditCog(commands.Cog):
                     "message_link": message.jump_url,
                     **await self._snapshot_vars(guild, guild.id, message),
                     "attachment_lines": attachments,
-                    "attachments_line": await self._attachments_line(guild.id, attachments),
+                    "attachments_line": attachments,
                     "image_url": image_url,
                 },
             )
@@ -493,7 +511,7 @@ class AuditCog(commands.Cog):
                     "message_link": after.jump_url,
                     **await self._snapshot_vars(guild, guild.id, after, before=before),
                     "attachment_lines": attachments,
-                    "attachments_line": await self._attachments_line(guild.id, attachments),
+                    "attachments_line": attachments,
                     "image_url": image_url,
                 },
             )

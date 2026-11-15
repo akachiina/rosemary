@@ -7,49 +7,22 @@ bump:
     ping_leaderboard: 'Congratulations, {winner_mention}!'
     anti_camping: '{warning} The channel is temporarily locked. Bump will be available shortly!'
     thank_you_title: '{tada} Bump Recorded!'
-    thank_you_description: '
-      **{clock} Next bump:** <t:{next_bump_timestamp}:R>
-
-      **{hourglass} Reminder:** I''ll be back to remind you in **{cooldown}!**
-
-
-      {trophy} Use `/bump leaderboard` to check the weekly rank and compete for **Bump-MVP**!
-
-      '
+    thank_you_next: '**{clock} Next bump:** <t:{next_bump_timestamp}:R>'
+    thank_you_reminder: '**{hourglass} Reminder:** I''ll be back to remind you in **{cooldown}!**'
+    thank_you_hint: '{trophy} Use `/bump leaderboard` to check the weekly rank and compete for **Bump-MVP**!'
     reminder_title: '{clock} Bump Time!'
-    reminder_description: 'The {cooldown} cooldown has passed since the last bump!
-
-
-      **{rocket} Your turn to help:** use `/bump` and earn a point on the board!
-
-      '
+    reminder_description: 'The {cooldown} cooldown has passed since the last bump!'
+    reminder_turn_label: '{rocket} Your turn to help'
     leaderboard_title: '{trophy} Weekly Bump Leaderboard'
-    leaderboard_description: 'Check out who helped the server the most this week!
-
-
-      **{calendar} Period:** <t:{start_timestamp}:d> to <t:{end_timestamp}:d>
-
-      **{hourglass} The week ends in:** <t:{next_reset_timestamp}:R>
-
-      **{crown} Winner:** {@winner_mention} with **{winner_count}** bumps!
-
-
-      **{gift} Prize:** Customizable **{role_name}** role for 1 week!
-
-      Use `/boost panel` to customize name, color, emoji and invite members.
-
-
-      {leaderboard_list}
-
-      '
+    leaderboard_description: 'Check out who helped the server the most this week!'
+    leaderboard_period_label: '{calendar} Period'
+    leaderboard_ends_label: '{hourglass} The week ends in'
+    leaderboard_winner_label: '{crown} Winner'
+    leaderboard_prize_label: '{gift} Prize'
     leaderboard_line: '{medal} **#{position}** · {user_mention} **{bump_count}** bumps'
     no_bumps_title: '{trophy} Weekly Bump Leaderboard'
-    no_bumps_description: 'Nobody bumped the server this week! {cry}
-
-
-      **{rocket} Be the first:** use `/bump` in the bump channel and earn a point!
-
-      '
+    no_bumps_description: 'Nobody bumped the server this week! {cry}'
+    no_bumps_first_label: '{rocket} Be the first'
     no_bumps_you: '{bar_chart} You haven''t bumped this week yet! Use `/bump` in the bump channel.'
   dm:
     winner_new: '{success} You are the Bump-MVP of the Week!'

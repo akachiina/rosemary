@@ -6,8 +6,23 @@
       "name": "@you"
     },
     "color": 15844367,
-    "description": "**🔢 Apagadas:** 1 em #….\n\n**⚙️ Moderador:** <@0>\n**📜 Transcrição completa:** [abrir arquivo](https://example.com/purge.txt)\n",
-    "fields": [],
+    "fields": [
+      {
+        "inline": false,
+        "name": "🔢 Apagadas",
+        "value": "1 em #…"
+      },
+      {
+        "inline": false,
+        "name": "⚙️ Moderador",
+        "value": "<@0>"
+      },
+      {
+        "inline": false,
+        "name": "📜 Transcrição completa",
+        "value": "[abrir arquivo](https://example.com/purge.txt)"
+      }
+    ],
     "footer": {
       "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
       "text": "por @you · 01/01/2026 00:00"

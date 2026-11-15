@@ -20,7 +20,11 @@
           "type": "TextDisplay"
         },
         {
-          "content": "Já se passou o cooldown de … desde o último bump!\n\n**🚀 Sua vez de ajudar:** use `/bump` e ganhe um ponto no placar!\n",
+          "content": "Já se passou o cooldown de … desde o último bump!",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "**🚀 Sua vez de ajudar:** use `/bump` e ganhe um ponto no placar!",
           "type": "TextDisplay"
         }
       ],

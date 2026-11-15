@@ -391,55 +391,31 @@ card:
       body: '{user_name} (`{user_id}`) foi desbanido.{reason_line}{moderator_line}'
     message_delete:
       title: Mensagem deletada
-      body: '**{people} Autor:** {message_author}
-
-        **{speech} Canal:** {channel}
-
-
-        {message}
-
-        '
-      attachments_line: '**{scroll} Anexos:** {attachment_lines}'
+      author_label: '{people} Autor'
+      channel_label: '{speech} Canal'
+      message_label: '{pencil} Mensagem'
+      attachments_label: '{scroll} Anexos'
     message_edit:
       title: Mensagem editada
-      body: '**{people} Autor:** {message_author}
-
-        **{speech} Canal:** {channel}
-
-
-        **{pencil} Antes:**
-
-        {message}
-
-
-        **{pencil} Depois:**
-
-        {new_message}
-
-        '
-      attachments_line: '**{scroll} Anexos:** {attachment_lines}'
+      author_label: '{people} Autor'
+      channel_label: '{speech} Canal'
+      before_label: '{pencil} Antes'
+      after_label: '{pencil} Depois'
+      attachments_label: '{scroll} Anexos'
     bulk_delete:
       title: Purga de mensagens
-      body: '**{numbers} Apagadas:** {count} em {channel}.
-
-        {moderator_line}{file_line}
-
-        '
-      file_line: '**{scroll} Transcrição completa:** [abrir arquivo]({file_url})'
+      deleted_label: '{numbers} Apagadas'
+      moderator_label: '{gear} Moderador'
+      file_label: '{scroll} Transcrição completa'
+      file_line: '{scroll} Transcrição completa: [abrir arquivo]({file_url})'
     nickname:
       title: Apelido alterado
-      body: '**{pencil} Antes:** {old_name}
-
-        **{pencil} Agora:** {new_name}
-
-        '
+      before_label: '{pencil} Antes'
+      after_label: '{pencil} Agora'
     avatar:
       title: Avatar alterado
-      body: '**{frame} Antes:** [ver avatar]({old_avatar})
-
-        **{frame} Agora:** [ver avatar]({new_avatar})
-
-        '
+      before_label: '{frame} Antes'
+      after_label: '{frame} Agora'
     roles:
       title: Cargos alterados
       body: '{role}'
@@ -455,13 +431,9 @@ card:
       body: '{user_name} saiu de {channel}.'
     trap:
       title: Caiu na armadilha
-      body: '**{volume} Canal:** {channel}
-
-        **{gear} Consequência:** {action}
-
-        **{check} Resultado:** {outcome}
-
-        '
+      channel_label: '{volume} Canal'
+      consequence_label: '{gear} Consequência'
+      outcome_label: '{check} Resultado'
   birthdays:
     list:
       title: Lista de aniversários
@@ -596,7 +568,7 @@ debug:
   test_log_not_sent: '{error} Não foi possível enviar a mensagem de teste. Verifique a definição do canal de log.'
   panel:
     title: Painel de debug
-    version: 'Versão: {version}'
+    version: 'Versão: `{version}`'
     theme: 'Tema: {theme}'
     logging: 'Logs: {logging}'
     audit: 'Registro de eventos: {audit}'
@@ -1014,9 +986,15 @@ variables:
   size:
     label: Tamanho
     description: Tamanho do arquivo convertido
+  size_before:
+    label: Tamanho original
+    description: Tamanho do arquivo antes da conversão
   preview:
     label: Prévia
     description: Prévia do arquivo convertido
+  file:
+    label: Arquivo
+    description: Arquivo convertido para baixar
   tags:
     label: Tags
     description: Tags do sticker

@@ -267,23 +267,21 @@ async def test_leaderboard_week_end_timestamp_renders():
     pt = Translator(LANG_DIR, resolver=_resolver("pt-BR"), default_placeholders=theme.emojis)
     # The winner line is a `{@winner_mention}` content mention: resolved with
     # safe_format_mentions, never t() (str.format chokes on the marker).
-    template = await pt.raw(1, "bump.messages.leaderboard_description")
-    desc, mentions = safe_format_mentions(
-        template,
+    desc = await pt.t(1, "bump.messages.leaderboard_description")
+    assert desc == "Confira quem mais ajudou o servidor esta semana!"
+    # The ends line is a field value with the relative timestamp.
+    ends = await pt.t(1, "bump.messages.leaderboard_ends_label", next_reset_timestamp=333)
+    assert ends == "⏳ A semana termina em"
+    # The winner line is a content mention: resolved with safe_format_mentions.
+    winner_val, mentions = safe_format_mentions(
+        "{@winner_mention} com **{winner_count}** bumps!",
         {
             **theme.emojis,
-            "start_timestamp": 111,
-            "end_timestamp": 222,
-            "next_reset_timestamp": 333,
             "winner_mention": "<@1>",
             "winner_count": 1,
-            "role_name": "Bump-MVP",
-            "leaderboard_list": "- x",
         },
     )
-    assert "<t:333:R>" in desc
-    assert "⏳" in desc
-    assert "<@1>" in desc
+    assert "<@1>" in winner_val
     assert mentions.get("winner_mention") == ("user", 1)
     assert await pt.t(1, "bump.stats.week_end", next_reset_ts=444) == (
         "**⏳ A semana termina em:** <t:444:R>"
@@ -397,15 +395,20 @@ def test_field_lines_carry_theme_emoji_token():
     en = load_catalog("en-US")
 
     expectations = {
-        # Audit bodies: label fields carry the semantic emoji.
-        ("card", "audit", "message_delete", "body"): ("people", "speech"),
-        ("card", "audit", "message_edit", "body"): ("people", "speech"),
-        # bulk_delete's moderator arrives via the optional {moderator_line}
+        # Audit fields: label fields carry the semantic emoji.
+        ("card", "audit", "message_delete", "author_label"): ("people",),
+        ("card", "audit", "message_delete", "channel_label"): ("speech",),
+        ("card", "audit", "message_edit", "author_label"): ("people",),
+        ("card", "audit", "message_edit", "channel_label"): ("speech",),
+        # bulk_delete: moderator arrives via the optional {moderator_line}
         # fragment (pre-resolved at the send site), so the body guarantees
         # only the fixed lines' tokens.
-        ("card", "audit", "bulk_delete", "body"): ("numbers",),
-        ("card", "audit", "nickname", "body"): ("pencil",),
-        ("card", "audit", "avatar", "body"): ("frame",),
+        ("card", "audit", "bulk_delete", "deleted_label"): ("numbers",),
+        ("card", "audit", "bulk_delete", "file_label"): ("scroll",),
+        ("card", "audit", "nickname", "before_label"): ("pencil",),
+        ("card", "audit", "nickname", "after_label"): ("pencil",),
+        ("card", "audit", "avatar", "before_label"): ("frame",),
+        ("card", "audit", "avatar", "after_label"): ("frame",),
         # Cleaner panel lines.
         ("cleaner", "progress_criterion"): ("search",),
         ("cleaner", "progress_current"): ("speech",),

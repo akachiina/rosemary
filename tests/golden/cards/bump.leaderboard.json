@@ -25,11 +25,19 @@
               "type": "TextDisplay"
             },
             {
-              "content": "Confira quem mais ajudou o servidor esta semana!\n\n**📅 Período:** <t:1111111111:d> até <t:1111111111:d>\n**⏳ A semana termina em:** <t:1111111111:R>\n**👑 Vencedor:** <@0> com **1** bumps!\n\n**🎁 Prêmio:** Cargo **…** customizável por 1 semana!\nUse `/boost painel` para personalizar nome, cor, emoji e convidar membros.\n\n…\n",
+              "content": "Use `/boost painel` para personalizar nome, cor, emoji e convidar membros.",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "…",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
+        },
+        {
+          "content": "**📅 Período:** <t:1111111111:d> até <t:1111111111:d>\n**⏳ A semana termina em:** <t:1111111111:R>\n**👑 Vencedor:** <@0> com **1** bumps!\n**🎁 Prêmio:** Cargo **…** customizável por 1 semana!",
+          "type": "TextDisplay"
         },
         {
           "type": "Separator"

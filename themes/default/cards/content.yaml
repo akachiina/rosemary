@@ -858,9 +858,12 @@ convert.result:
   title: '{convert.result.title}'
   description: '{convert.result.body}'
   image: '{preview}'
+  file: '{file}'
   variables:
   - filename
   - format
+  - size_before
   - size
   - preview
+  - file
   category: general

@@ -834,6 +834,7 @@ def _build_block(
         "text": _build_text,
         "divider": _build_divider,
         "gallery": _build_gallery,
+        "file": _build_file,
         "row": _build_row,
         "section": _build_section,
         "container": _build_container,
@@ -920,6 +921,17 @@ def _build_gallery(
         # {image_url}): the gallery contributes nothing to the message.
         return None
     return discord.ui.MediaGallery(*items)
+
+
+def _build_file(
+    block: dict[str, Any], theme: Any, mapping: dict[str, Any], resolved: bool = False
+) -> discord.ui.File | None:
+    url = _fill(block.get("url", ""), mapping, resolved)
+    if not url.strip():
+        # No upload (e.g. a non-image target the send site did not fill):
+        # the component would point at nothing, so it does not ship.
+        return None
+    return discord.ui.File(url)
 
 
 def _build_link_button(

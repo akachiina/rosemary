@@ -13,11 +13,7 @@
           "type": "TextDisplay"
         },
         {
-          "content": "**Dono:**\n<@0>",
-          "type": "TextDisplay"
-        },
-        {
-          "content": "**Membros:**\n1/10 membros",
+          "content": "**Dono:** <@0>\n**Membros:** 1/10 membros",
           "type": "TextDisplay"
         }
       ],

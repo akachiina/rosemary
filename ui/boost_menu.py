@@ -29,6 +29,7 @@ import discord
 from rosemary.core.boost_roles import BoostRoleStore, parse_datetime
 from rosemary.core.debug import send_log
 from rosemary.core.settings import get_setting
+from rosemary.core.sizes import human_size
 from rosemary.ui import boost_dm as dm
 from rosemary.ui.color_palette import COLOR_PALETTE
 from rosemary.ui.kit import (
@@ -774,7 +775,12 @@ class BoostMenuView(_BaseMenu):
             await self._flash("boost.errors.image_download_failed", color="danger")
             return await self.rerender(interaction)
         if len(data) > 1_048_576:
-            await self._flash("boost.errors.icon_too_large", color="danger")
+            await self._flash(
+                "boost.errors.icon_too_large",
+                size=human_size(len(data)),
+                max_mb=1,
+                color="danger",
+            )
             return await self.rerender(interaction)
         role = self._current_role()
         if role is None:

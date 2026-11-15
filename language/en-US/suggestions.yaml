@@ -33,7 +33,7 @@ suggest:
   error_empty: '{error} Your suggestion cannot be empty.'
   error_too_long: '{error} Your suggestion is too long.'
   error_bad_image: '{error} Please attach an image file.'
-  error_image_too_large: '{error} The image is too large (limit 8 MB).'
+  error_image_too_large: '{error} The image is {size}, but the limit is {max_mb} MB.'
   error_gone: '{error} That suggestion no longer exists.'
   error_not_found: '{error} Suggestion #{suggestion_number} not found.'
   error_decided: '{error} Suggestion #{suggestion_number} was already decided.'

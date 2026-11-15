@@ -96,16 +96,13 @@ invites:
   logs:
     join:
       title: '{rocket} Membro Entrou Com Convite'
-      description: '**Convidado:** {user}
-
-        **Código:** `{code}`
-
-        **Convidador:** {inviter}{label}{flags}'
+      member_label: '{people} Convidado'
+      code_label: '{ticket} Código'
+      inviter_label: '{people} Convidador'
     leave:
       title: '{door} Membro Saiu'
-      description: '**Membro:** {user}
-
-        **Convidador:** {inviter}'
+      member_label: '{people} Membro'
+      inviter_label: '{people} Convidador'
     bonus:
       title: '{plus} Bônus Ajustado'
       description: '{moderator} ajustou {user} em {amount} (total: {total}).'

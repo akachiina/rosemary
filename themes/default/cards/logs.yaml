@@ -781,7 +781,16 @@ invites.logs.join:
   form: embed
   color: success
   title: '{invites.logs.join.title}'
-  description: '{invites.logs.join.description}'
+  fields:
+  - label: '{invites.logs.join.member_label}'
+    value: '{user}'
+    inline: true
+  - label: '{invites.logs.join.code_label}'
+    value: '{code}'
+    inline: true
+  - label: '{invites.logs.join.inviter_label}'
+    value: '{inviter}'
+    inline: true
   author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true
@@ -801,7 +810,13 @@ invites.logs.leave:
   form: embed
   color: info
   title: '{invites.logs.leave.title}'
-  description: '{invites.logs.leave.description}'
+  fields:
+  - label: '{invites.logs.leave.member_label}'
+    value: '{user}'
+    inline: true
+  - label: '{invites.logs.leave.inviter_label}'
+    value: '{inviter}'
+    inline: true
   author: '{user_name}'
   author_icon: '{user_avatar}'
   timestamp: true

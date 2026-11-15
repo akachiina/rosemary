@@ -265,7 +265,7 @@ boost:
     requires_boost_level_2: '{error} This server needs Boost Level 2 for role emojis and icons.'
     invalid_image: '{error} Invalid image. Upload a PNG, JPG or GIF.'
     image_download_failed: '{error} Could not download the image.'
-    icon_too_large: '{error} The image is too large (limit 1 MB).'
+    icon_too_large: '{error} The image is {size}, but the limit is {max_mb} MB.'
     invalid_hex_color: '{error} Invalid color. Use hex format (e.g. #FF5733).'
     member_not_found: '{error} Member not found.'
     member_is_owner: '{error} The owner already has the role automatically.'

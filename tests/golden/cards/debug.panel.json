@@ -13,7 +13,7 @@
           "type": "TextDisplay"
         },
         {
-          "content": "Servidores: 1\nMembros: 1\nLatência: 42 ms\nAtivo há: 1d 2h 3m\nVersão: v1.0.0\nTema: default\nLogs: On\nRegistro de eventos: On",
+          "content": "Servidores: 1\nMembros: 1\nLatência: 42 ms\nAtivo há: 1d 2h 3m\nVersão: `v1.0.0`\nTema: default\nLogs: On\nRegistro de eventos: On",
           "type": "TextDisplay"
         },
         {

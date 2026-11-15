@@ -28,6 +28,7 @@ from rosemary.core.design.ir import (
     Card,
     Container,
     Divider,
+    File,
     Gallery,
     Row,
     Section,
@@ -216,6 +217,10 @@ def card_to_v2(card: Card, theme: Any = None) -> dict[str, Any]:
     if card.image:
         # The image rides a gallery (the V2 way of showing one picture).
         children.append(Gallery(urls=(card.image,)))
+    if card.file:
+        # A file (musi c/PDF) rides a File component: a V2 message hides
+        # plain attachments, so the component is what exposes the upload.
+        children.append(File(url=card.file))
     if card.fields:
         lines = "\n".join(
             f"**{field.name}:** {field_value(field)}" for field in card.fields

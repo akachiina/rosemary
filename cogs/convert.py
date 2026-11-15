@@ -12,6 +12,7 @@ from discord.ext import commands
 from rosemary.core.convert import kind_of
 from rosemary.core.host import HostConfig, load_host_config
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
+from rosemary.core.sizes import human_size
 from rosemary.ui import runtime
 from rosemary.ui.convert_panel import ConvertPanel
 
@@ -49,7 +50,10 @@ class ConvertCog(commands.Cog):
         if size > self.host.convert_max_mb * 1024 * 1024:
             return await ctx.respond(
                 await t(
-                    guild.id, "convert.too_large", max_mb=self.host.convert_max_mb
+                    guild.id,
+                    "convert.too_large",
+                    size=human_size(size),
+                    max_mb=self.host.convert_max_mb,
                 ),
                 ephemeral=True,
             )

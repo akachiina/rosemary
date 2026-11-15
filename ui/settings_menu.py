@@ -36,6 +36,7 @@ from rosemary.core.settings import (
     set_setting,
     settings_for_category,
 )
+from rosemary.core.sizes import human_size
 from rosemary.core.time_parser import TimeParser, localized_aliases
 from rosemary.ui.kit import ActionRow, EmptyState, Panel, Section, TextDisplay, divider
 from rosemary.ui.modals import make_file_modal, make_text_modal
@@ -350,7 +351,11 @@ class SettingsMenuView(Panel):
         except (discord.Forbidden, discord.HTTPException):
             data = b""
         if not data or len(data) > 10 * 1024 * 1024:
-            self.flash = await self.t("settings.image_too_large")
+            self.flash = await self.t(
+                "settings.image_too_large",
+                size=human_size(len(data)),
+                max_mb=10,
+            )
             self.flash_color = "danger"
             self.editing_key = spec.key
             await self.rerender(interaction)

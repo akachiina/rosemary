@@ -265,7 +265,7 @@ boost:
     requires_boost_level_2: '{error} Este servidor precisa de Nível 2 de Boost para emojis e ícones em cargos.'
     invalid_image: '{error} Imagem inválida. Envie um PNG, JPG ou GIF.'
     image_download_failed: '{error} Não foi possível baixar a imagem.'
-    icon_too_large: '{error} A imagem é grande demais (limite de 1 MB).'
+    icon_too_large: '{error} A imagem tem {size}, mas o limite é {max_mb} MB.'
     invalid_hex_color: '{error} Cor inválida. Use o formato hexadecimal (ex.: #FF5733).'
     member_not_found: '{error} Membro não encontrado.'
     member_is_owner: '{error} O dono já possui o cargo automaticamente.'

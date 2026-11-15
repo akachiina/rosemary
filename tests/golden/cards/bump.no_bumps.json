@@ -13,7 +13,11 @@
           "type": "TextDisplay"
         },
         {
-          "content": "Ninguém deu bump esta semana! 😢\n\n**🚀 Seja o primeiro:** use `/bump` no canal de bump e ganhe um ponto no placar!\n",
+          "content": "Ninguém deu bump esta semana! 😢",
+          "type": "TextDisplay"
+        },
+        {
+          "content": "**🚀 Seja o primeiro:** use `/bump` no canal de bump e ganhe um ponto no placar!",
           "type": "TextDisplay"
         }
       ],

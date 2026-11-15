@@ -27,6 +27,7 @@ from rosemary.core.debug import send_log
 from rosemary.core.interactions import ack
 from rosemary.core.localized_group import LocalizedSlashCommandGroup
 from rosemary.core.settings import get_setting
+from rosemary.core.sizes import human_size
 from rosemary.core.suggestions import SuggestionStore
 from rosemary.core.themes import theme_for
 from rosemary.ui.menu import MenuView
@@ -873,7 +874,13 @@ class SuggestionsCog(commands.Cog):
                 )
             if (picked.size or 0) > SUGGEST_IMAGE_MAX_BYTES:
                 return await interaction.followup.send(
-                    await t(guild.id, "suggest.error_image_too_large"), ephemeral=True
+                    await t(
+                        guild.id,
+                        "suggest.error_image_too_large",
+                        size=human_size(picked.size or 0),
+                        max_mb=SUGGEST_IMAGE_MAX_BYTES // (1024 * 1024),
+                    ),
+                    ephemeral=True,
                 )
             try:
                 data = await picked.read()

@@ -121,7 +121,11 @@ async def test_the_leave_log_uses_the_avatar_as_the_author_icon():
     assert embed.author.name == "Ana"
     assert embed.author.icon_url == "https://cdn.example/left.png"
     assert embed.thumbnail is None
-    assert embed.description == "**Membro:** <@2>\n**Convidador:** <@3>"
+    assert embed.description is None
+    assert [(f.name, f.value) for f in embed.fields] == [
+        ("👥 Membro", "<@2>"),
+        ("👥 Convidador", "<@3>"),
+    ]
     assert embed.footer.text == "10/11/2026 17:08"
 
 

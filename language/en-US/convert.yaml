@@ -3,7 +3,7 @@ convert:
     name: convert
     description: Convert an attached file
   title: 'Convert file'
-  body: 'File: `{filename}`. Choose the output format.'
+  body: 'File: `{filename}` ({size}). Choose the output format.'
   categories:
     image: Image
     video: Video
@@ -82,14 +82,10 @@ convert:
       description: 320x320, up to 512 KB, to upload as a sticker
   result:
     title: '{check} Conversion complete'
-    body: '{filename} converted to {format} ({size}).'
-  done: '{check} Conversion complete.'
-  done_body: '{filename} was converted to {format}.'
-  too_large: '{error} The file is larger than {max_mb} MB.'
+    body: '`{filename}`: {size_before} → {size} · {format}'
+  too_large: '{error} The file is {size}, but the limit is {max_mb} MB.'
   bad_type: '{error} I do not know how to convert this file type.'
   error: '{error} I could not convert this file.'
-  error_type: '{error} I do not know how to convert this file type.'
-  error_too_large: '{error} The converted file is too large.'
   error_ffmpeg: '{error} The converter failed. Try another format.'
   error_timeout: '{error} The conversion took too long.'
   error_pdf: '{error} I could not read the PDF.'

@@ -6,8 +6,18 @@
       "name": "@you"
     },
     "color": 3447003,
-    "description": "**Membro:** <@0>\n**Convidador:** <@0>",
-    "fields": [],
+    "fields": [
+      {
+        "inline": true,
+        "name": "👥 Membro",
+        "value": "<@0>"
+      },
+      {
+        "inline": true,
+        "name": "👥 Convidador",
+        "value": "<@0>"
+      }
+    ],
     "footer": {
       "text": "01/01/2026 00:00"
     },

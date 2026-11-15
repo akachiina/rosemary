@@ -898,7 +898,7 @@ async def test_purge_card_carries_resolved_transcript_link(tmp_path):
     await asyncio.sleep(3.6)
     assert audit_channel.send.await_count == 1
     joined = " ".join(_payload_texts(audit_channel.send.await_args.kwargs))
-    assert "Transcrição completa:" in joined, joined
+    assert "Transcrição completa" in joined, joined
     assert "(https://cdn.example/purga.txt)" in joined, joined
     assert "{scroll}" not in joined, joined
     assert "{file_url}" not in joined, joined

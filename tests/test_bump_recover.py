@@ -182,19 +182,32 @@ async def test_send_reminder_sends_the_ping_with_the_card(tmp_path):
     mod.get_setting = fake_get_setting
     mod.send_log = AsyncMock()
 
+    from rosemary.core.card_payload import CardPayload
+
+    payload = CardPayload(
+        content=None,
+        embed=None,
+        view=MagicMock(),
+    )
+
+    async def fake_render(bot, guild_id, key, variables):
+        return payload, discord.AllowedMentions(roles=[MagicMock(id=42)])
+
+    import rosemary.core.card_service as cs
+    orig_render = cs.render_card_message
+    cs.render_card_message = fake_render
+
     cog = BumpReminderCog.__new__(BumpReminderCog)
     cog.bot = bot
     cog.store = AsyncMock()
     cog.store.mark_reminder_sent = AsyncMock()
-    card = MagicMock()
-    card.message_kwargs.return_value = {"embed": MagicMock()}
-    cog._build_reminder_payload = AsyncMock(return_value=card)
 
     try:
         await cog.send_reminder(1)
     finally:
         mod.get_setting = orig_get_setting
         mod.send_log = orig_send_log
+        cs.render_card_message = orig_render
 
     # One send call: the ping travels in the card, never in a message of
     # its own.
@@ -202,8 +215,9 @@ async def test_send_reminder_sends_the_ping_with_the_card(tmp_path):
 
     call = channel.send.await_args_list[0]
 
-    # The card alone (no content beside it): the reminder is an embed.
-    assert call.kwargs.get("embed") is not None
+    # The card alone (no content beside it): the reminder is a V2 view.
+    assert call.kwargs.get("view") is not None
+    assert call.kwargs.get("embed") is None
     assert len(call.args) == 0
     # The role may ping: the policy carries the role the card names.
     assert call.kwargs["allowed_mentions"].to_dict()["roles"] == [42]

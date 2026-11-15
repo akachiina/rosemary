@@ -322,7 +322,7 @@ confess:
   error_empty: '{error} Sua confissão não pode estar vazia.'
   error_too_long: '{error} Sua confissão é longa demais.'
   error_bad_image: '{error} Anexe um arquivo de imagem.'
-  error_image_too_large: '{error} A imagem é grande demais (limite de 8 MB).'
+  error_image_too_large: '{error} A imagem tem {size}, mas o limite é {max_mb} MB.'
   error_gone: '{error} Essa confissão não existe mais.'
   error_not_found: '{error} Confissão #{confession_number} não encontrada.'
   error_staff_only: '{error} Só a staff pode fazer isso.'

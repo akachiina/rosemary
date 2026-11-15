@@ -116,9 +116,13 @@ boost.preview:
   archetype: panel
   color: success
   title: '@{role_name}'
-  paragraphs:
-  - "**{boost.emoji.owner}:**\n{owner}"
-  - "**{boost.emoji.members}:**\n{boost.descriptions.members_count}"
+  fields:
+  - label: '{boost.emoji.owner}'
+    value: '{owner}'
+    inline: false
+  - label: '{boost.emoji.members}'
+    value: '{boost.descriptions.members_count}'
+    inline: false
   variables:
   - role_name
   - owner

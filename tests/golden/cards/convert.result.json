@@ -13,7 +13,7 @@
           "type": "TextDisplay"
         },
         {
-          "content": "video.mp4 convertido para … (1.2 MB).",
+          "content": "`video.mp4`: 12.0 MB → 1.2 MB · …",
           "type": "TextDisplay"
         },
         {
@@ -24,6 +24,10 @@
             }
           ],
           "type": "MediaGallery"
+        },
+        {
+          "type": "File",
+          "url": "attachment://video.mp4"
         }
       ],
       "type": "Container"

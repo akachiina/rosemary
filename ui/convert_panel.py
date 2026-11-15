@@ -23,22 +23,13 @@ from rosemary.core.convert_registry import (
     options_for,
 )
 from rosemary.core.host import HostConfig
+from rosemary.core.sizes import human_size
 from rosemary.ui.kit import Panel
 
 log = logging.getLogger(__name__)
 
 #: The target values that are pictures (the result card previews them).
 _PREVIEW_TARGETS = {"png", "jpg", "webp", "gif", "bmp", "tiff", "ico", "sticker"}
-
-
-def human_size(size: int) -> str:
-    """A short human-readable byte count (``1.2 MB``)."""
-    value = float(size)
-    for unit in ("B", "KB", "MB", "GB"):
-        if value < 1024 or unit == "GB":
-            return f"{value:.0f} {unit}" if unit == "B" else f"{value:.1f} {unit}"
-        value /= 1024
-    return f"{value:.1f} GB"
 
 
 class ConvertPanel(Panel):
@@ -66,6 +57,7 @@ class ConvertPanel(Panel):
             "convert.title",
             "convert.body",
             filename=self.filename,
+            size=human_size(len(self.data)),
             color="support",
         )
         self.nav("close")
@@ -121,7 +113,16 @@ class ConvertPanel(Panel):
                 timeout=self.host.convert_timeout,
             )
         except ConvertError as exc:
-            self.flash = await self.t(f"convert.error_{exc.code}")
+            if exc.code == "too_large":
+                self.flash = await self.t(
+                    "convert.too_large",
+                    size=human_size(len(self.data)),
+                    max_mb=self.host.convert_max_mb,
+                )
+            elif exc.code == "type":
+                self.flash = await self.t("convert.bad_type")
+            else:
+                self.flash = await self.t(f"convert.error_{exc.code}")
             self.flash_color = "danger"
             await self.rerender(interaction)
             return
@@ -132,12 +133,20 @@ class ConvertPanel(Panel):
             await self.rerender(interaction)
             return
         format_label = await self._format_label(target)
-        preview = f"attachment://{name}" if target in _PREVIEW_TARGETS else ""
-        await self._send_result(interaction, data, name, format_label, preview)
+        # An image rides the gallery (inline preview); a music/PDF file rides
+        # a File component (V2 hides plain attachments, so the component is
+        # what exposes the upload).
+        if target in _PREVIEW_TARGETS:
+            preview, file_url = f"attachment://{name}", ""
+        else:
+            preview, file_url = "", f"attachment://{name}"
+        await self._send_result(interaction, data, name, format_label, preview, file_url)
         await self.set_screen(
-            "convert.done",
-            "convert.done_body",
+            "convert.result.title",
+            "convert.result.body",
             filename=self.filename,
+            size_before=human_size(len(self.data)),
+            size=human_size(len(data)),
             format=format_label,
             color="success",
         )
@@ -157,14 +166,17 @@ class ConvertPanel(Panel):
         name: str,
         format_label: str,
         preview: str,
+        file_url: str = "",
     ) -> None:
         from rosemary.core.card_service import render_card_message, simple_payload
 
         variables = {
             "filename": self.filename,
             "format": format_label,
+            "size_before": human_size(len(self.data)),
             "size": human_size(len(data)),
             "preview": preview,
+            "file": file_url,
         }
         payload, allowed = await render_card_message(
             self.bot, self.guild_id, "convert.result", variables
@@ -178,8 +190,9 @@ class ConvertPanel(Panel):
                 body=await self.t(
                     "convert.result.body",
                     filename=self.filename,
-                    format=format_label,
+                    size_before=human_size(len(self.data)),
                     size=human_size(len(data)),
+                    format=format_label,
                 ),
                 color="success",
             )
@@ -193,4 +206,4 @@ class ConvertPanel(Panel):
         )
 
 
-__all__ = ["ConvertPanel", "human_size"]
+__all__ = ["ConvertPanel"]

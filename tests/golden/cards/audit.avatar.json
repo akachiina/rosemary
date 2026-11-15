@@ -6,8 +6,18 @@
       "name": "@you"
     },
     "color": 3447003,
-    "description": "**🖼️ Antes:** [ver avatar](https://cdn.discordapp.com/embed/avatars/0.png)\n**🖼️ Agora:** [ver avatar](https://cdn.discordapp.com/embed/avatars/1.png)\n",
-    "fields": [],
+    "fields": [
+      {
+        "inline": false,
+        "name": "🖼️ Antes",
+        "value": "[ver avatar](https://cdn.discordapp.com/embed/avatars/0.png)"
+      },
+      {
+        "inline": false,
+        "name": "🖼️ Agora",
+        "value": "[ver avatar](https://cdn.discordapp.com/embed/avatars/1.png)"
+      }
+    ],
     "footer": {
       "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
       "text": "por @you · 01/01/2026 00:00"

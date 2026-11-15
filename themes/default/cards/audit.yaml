@@ -26,7 +26,17 @@ audit.bulk_delete:
   archetype: audit_event
   color: warning
   title: '{trash} {card.audit.bulk_delete.title}'
-  description: '{card.audit.bulk_delete.body}'
+  fields:
+  - label: '{card.audit.bulk_delete.deleted_label}'
+    value: '{count} em {channel}'
+    inline: false
+  - label: '{card.audit.bulk_delete.moderator_label}'
+    value: '{moderator}'
+    inline: false
+  - label: '{card.audit.bulk_delete.file_label}'
+    value: '[abrir arquivo]({file_url})'
+    inline: false
+    optional: true
   actor: '{moderator}'
   rich: false
 
@@ -34,13 +44,25 @@ audit.nickname:
   archetype: audit_event
   color: info
   title: '{swap} {card.audit.nickname.title}'
-  description: '{card.audit.nickname.body}'
+  fields:
+  - label: '{card.audit.nickname.before_label}'
+    value: '{old_name}'
+    inline: false
+  - label: '{card.audit.nickname.after_label}'
+    value: '{new_name}'
+    inline: false
 
 audit.avatar:
   archetype: audit_event
   color: info
   title: '{frame} {card.audit.avatar.title}'
-  description: '{card.audit.avatar.body}'
+  fields:
+  - label: '{card.audit.avatar.before_label}'
+    value: '[ver avatar]({old_avatar})'
+    inline: false
+  - label: '{card.audit.avatar.after_label}'
+    value: '[ver avatar]({new_avatar})'
+    inline: false
 
 audit.roles:
   archetype: audit_event
@@ -70,7 +92,16 @@ audit.trap:
   archetype: audit_event
   color: danger
   title: '{lock} {card.audit.trap.title}'
-  description: '{card.audit.trap.body}'
+  fields:
+  - label: '{card.audit.trap.channel_label}'
+    value: '{channel}'
+    inline: false
+  - label: '{card.audit.trap.consequence_label}'
+    value: '{action}'
+    inline: false
+  - label: '{card.audit.trap.outcome_label}'
+    value: '{outcome}'
+    inline: false
   # The trap card names the consequence and the outcome the send site decided.
   variables:
     $append: true
@@ -82,7 +113,20 @@ audit.message_delete:
   archetype: audit_event
   color: warning
   title: '{trash} {card.audit.message_delete.title}'
-  description: '{card.audit.message_delete.body}{attachments_line}'
+  fields:
+  - label: '{card.audit.message_delete.author_label}'
+    value: '{message_author}'
+    inline: true
+  - label: '{card.audit.message_delete.channel_label}'
+    value: '{channel}'
+    inline: true
+  - label: '{card.audit.message_delete.message_label}'
+    value: '{message}'
+    inline: false
+  - label: '{card.audit.message_delete.attachments_label}'
+    value: '{attachments_line}'
+    inline: false
+    optional: true
   image:
     - '{chat_image}'
     - '{image_url}'
@@ -91,7 +135,23 @@ audit.message_edit:
   archetype: audit_event
   color: info
   title: '{pencil} {card.audit.message_edit.title}'
-  description: '{card.audit.message_edit.body}{attachments_line}'
+  fields:
+  - label: '{card.audit.message_edit.author_label}'
+    value: '{message_author}'
+    inline: true
+  - label: '{card.audit.message_edit.channel_label}'
+    value: '{channel}'
+    inline: true
+  - label: '{card.audit.message_edit.before_label}'
+    value: '{message}'
+    inline: false
+  - label: '{card.audit.message_edit.after_label}'
+    value: '{new_message}'
+    inline: false
+  - label: '{card.audit.message_edit.attachments_label}'
+    value: '{attachments_line}'
+    inline: false
+    optional: true
   image:
     - '{chat_image}'
     - '{image_url}'

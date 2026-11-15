@@ -443,11 +443,13 @@ says *what* it is; the serializer says how Discord writes it. The package
 holds **only** the model and its two ends (the meta de 900 linhas):
 
 - `core/design/ir.py`: the model (`Card`, `Field`, `Author`, `Action`, `Text`,
-  `Divider`, `Gallery`, `Thumbnail`, `Row`, `Section`, `Container`) and the
-  block converters. A card is native in one shape: `blocks` (V2), `slots`
+  `Divider`, `Gallery`, `File`, `Thumbnail`, `Row`, `Section`, `Container`) and
+  the block converters. A card is native in one shape: `blocks` (V2), `slots`
   (semantic fields) or `content` (plain text). The `content_line` slot is the
   sentence an embed ships in the message `content`: it is not a field and
-  never becomes one.
+  never becomes one. The `file` slot exposes an upload through a Components
+  V2 `File` component: a V2 message hides plain attachments, so a file
+  (music, PDF) only appears when the card names it.
 - `core/design/compile.py`: the placeholders resolved **once** (`{name}` and
   `{@name}`) and the mention ids collected. The `color` slot resolves too
   (the state may choose the token): a hex is accepted as it is, a token that
@@ -827,6 +829,12 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   file names sit inside single backticks. Mentions, `<t:...>` timestamps, plain
   counters and links never do. Swept in both catalogs and the info-family
   footers by `tests/test_card_formatting.py`.
+- **File sizes are human-readable everywhere**: a byte count the member reads
+  goes through `core/sizes.py::human_size` (`1.2 MB`), never a raw number. A
+  "too large" notice names both the actual size and the limit (`{size}` /
+  `{max_mb}`), and a result card shows the size before and after the
+  conversion. The converter, the image uploads (settings, boost icon,
+  confessions, suggestions) and the attachment limit all follow this.
 - Panels (`core/panels.py`): panels register repaint callback + setting keys of
   interest; `on_theme_changed` repaints + re-syncs dispatch, `repaint_all` at boot.
   Every code path editing theme files must call `ThemeStore.invalidate_guild`

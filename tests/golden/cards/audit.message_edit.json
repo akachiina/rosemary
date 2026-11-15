@@ -6,8 +6,33 @@
       "name": "@you"
     },
     "color": 3447003,
-    "description": "**👥 Autor:** <@0>\n**💬 Canal:** #…\n\n**✏️ Antes:**\n…\n\n**✏️ Depois:**\n…\n\n[arquivo.png](https://example.com/arquivo.png)",
-    "fields": [],
+    "fields": [
+      {
+        "inline": true,
+        "name": "👥 Autor",
+        "value": "<@0>"
+      },
+      {
+        "inline": true,
+        "name": "💬 Canal",
+        "value": "#…"
+      },
+      {
+        "inline": false,
+        "name": "✏️ Antes",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "✏️ Depois",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "📜 Anexos",
+        "value": "[arquivo.png](https://example.com/arquivo.png)"
+      }
+    ],
     "footer": {
       "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
       "text": "por @you · 01/01/2026 00:00"

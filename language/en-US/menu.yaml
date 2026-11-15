@@ -391,55 +391,31 @@ card:
       body: '{user_name} (`{user_id}`) was unbanned.{reason_line}{moderator_line}'
     message_delete:
       title: Message deleted
-      body: '**{people} Author:** {message_author}
-
-        **{speech} Channel:** {channel}
-
-
-        {message}
-
-        '
-      attachments_line: '**{scroll} Attachments:** {attachment_lines}'
+      author_label: '{people} Author'
+      channel_label: '{speech} Channel'
+      message_label: '{pencil} Message'
+      attachments_label: '{scroll} Attachments'
     message_edit:
       title: Message edited
-      body: '**{people} Author:** {message_author}
-
-        **{speech} Channel:** {channel}
-
-
-        **{pencil} Before:**
-
-        {message}
-
-
-        **{pencil} After:**
-
-        {new_message}
-
-        '
-      attachments_line: '**{scroll} Attachments:** {attachment_lines}'
+      author_label: '{people} Author'
+      channel_label: '{speech} Channel'
+      before_label: '{pencil} Before'
+      after_label: '{pencil} After'
+      attachments_label: '{scroll} Attachments'
     bulk_delete:
       title: Message purge
-      body: '**{numbers} Deleted:** {count} in {channel}.
-
-        {moderator_line}{file_line}
-
-        '
-      file_line: '**{scroll} Full transcript:** [open file]({file_url})'
+      deleted_label: '{numbers} Deleted'
+      moderator_label: '{gear} Moderator'
+      file_label: '{scroll} Full transcript'
+      file_line: '{scroll} Full transcript: [open file]({file_url})'
     nickname:
       title: Nickname changed
-      body: '**{pencil} Before:** {old_name}
-
-        **{pencil} Now:** {new_name}
-
-        '
+      before_label: '{pencil} Before'
+      after_label: '{pencil} Now'
     avatar:
       title: Avatar changed
-      body: '**{frame} Before:** [view avatar]({old_avatar})
-
-        **{frame} Now:** [view avatar]({new_avatar})
-
-        '
+      before_label: '{frame} Before'
+      after_label: '{frame} Now'
     roles:
       title: Roles changed
       body: '{role}'
@@ -455,13 +431,9 @@ card:
       body: '{user_name} left {channel}.'
     trap:
       title: Fell into the trap
-      body: '**{volume} Channel:** {channel}
-
-        **{gear} Consequence:** {action}
-
-        **{check} Result:** {outcome}
-
-        '
+      channel_label: '{volume} Channel'
+      consequence_label: '{gear} Consequence'
+      outcome_label: '{check} Result'
   birthdays:
     list:
       title: Birthday list
@@ -596,7 +568,7 @@ debug:
   test_log_not_sent: '{error} Could not send the test message. Check the log channel setting.'
   panel:
     title: Debug panel
-    version: 'Version: {version}'
+    version: 'Version: `{version}`'
     theme: 'Theme: {theme}'
     logging: 'Logging: {logging}'
     audit: 'Audit log: {audit}'
@@ -1014,9 +986,15 @@ variables:
   size:
     label: Size
     description: Size of the converted file
+  size_before:
+    label: Original size
+    description: Size of the file before the conversion
   preview:
     label: Preview
     description: Preview of the converted file
+  file:
+    label: File
+    description: Converted file to download
   tags:
     label: Tags
     description: Tags of the sticker

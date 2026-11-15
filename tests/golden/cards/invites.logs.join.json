@@ -6,8 +6,23 @@
       "name": "@you"
     },
     "color": 3066993,
-    "description": "**Convidado:** <@0>\n**Código:** `abc123`\n**Convidador:** <@0>…",
-    "fields": [],
+    "fields": [
+      {
+        "inline": true,
+        "name": "👥 Convidado",
+        "value": "<@0>"
+      },
+      {
+        "inline": true,
+        "name": "🎫 Código",
+        "value": "abc123"
+      },
+      {
+        "inline": true,
+        "name": "👥 Convidador",
+        "value": "<@0>"
+      }
+    ],
     "footer": {
       "text": "01/01/2026 00:00"
     },

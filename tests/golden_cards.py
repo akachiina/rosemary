@@ -64,7 +64,7 @@ EXTRA_LINES = {
     "moderator_line": ("card.audit.moderator_line", "\n", "moderator"),
     "file_line": ("card.audit.bulk_delete.file_line", "\n", "file_url"),
     "duration_line": ("card.audit.timeout.until_line", "\n", "duration"),
-    "attachments_line": ("card.audit.attachments_line", "\n", "attachment_lines"),
+    "attachments_line": ("card.audit.attachments_line", "", "attachment_lines"),
 }
 
 #: A family whose copy differs composes its own line: the card key names it

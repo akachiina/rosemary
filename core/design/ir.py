@@ -100,6 +100,19 @@ class Gallery:
 
 
 @dataclass(frozen=True)
+class File:
+    """An attached file (Components V2).
+
+    Discord's V2 messages do not show attachments by default: a file is
+    exposed through a ``File`` component that references the upload with
+    the ``attachment://<filename>`` protocol.
+    """
+
+    url: str
+    id: str = ""
+
+
+@dataclass(frozen=True)
 class Thumbnail:
     """The accessory of a section (Components V2)."""
 
@@ -132,7 +145,7 @@ class Container:
     id: str = ""
 
 
-Block = Text | Divider | Gallery | Row | Section | Container
+Block = Text | Divider | Gallery | File | Row | Section | Container
 
 #: Discord's limit: a message carries at most ten embeds.
 MAX_EMBEDS = 10
@@ -163,6 +176,10 @@ class Card:
     actor: str = ""
     thumbnail: str = ""
     image: str = ""
+    #: The attached file the card exposes (Components V2): the URL of an
+    #: ``attachment://<filename>`` upload. A V2 message hides plain
+    #: attachments, so a file card needs this slot to show it.
+    file: str = ""
     footer: str = ""
     footer_icon: str = ""
     timestamp: int | None = None
@@ -234,6 +251,8 @@ def block_to_document(block: Block) -> dict[str, Any]:
         return _with_id(node, block)
     if isinstance(block, Gallery):
         return _with_id({"type": "gallery", "urls": list(block.urls)}, block)
+    if isinstance(block, File):
+        return _with_id({"type": "file", "url": block.url}, block)
     if isinstance(block, Row):
         return _with_id(
             {
@@ -312,6 +331,8 @@ def document_to_block(node: Any) -> Block | None:
             urls=tuple(str(url) for url in urls or []),
             id=block_id,
         )
+    if kind == "file":
+        return File(url=str(node.get("url") or ""), id=block_id)
     if kind == "row":
         buttons = node.get("buttons") or []
         return Row(
@@ -381,6 +402,7 @@ __all__ = [
     "Container",
     "Divider",
     "Field",
+    "File",
     "Form",
     "Gallery",
     "NATIVE_BLOCKS",

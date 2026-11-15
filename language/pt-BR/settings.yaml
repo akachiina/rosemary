@@ -187,7 +187,7 @@ settings:
   image_removed: '{success} Imagem de **{setting}** removida.'
   image_failed: '{error} Não consegui atualizar a imagem do bot.'
   image_invalid: '{error} Envie uma imagem válida.'
-  image_too_large: '{error} A imagem passa de 10 MB.'
+  image_too_large: '{error} A imagem tem {size}, mas o limite é {max_mb} MB.'
   default_value: 'Padrão: {value}'
   preview_value: 'Prévia: {value}…'
   none: Não definido

@@ -6,8 +6,23 @@
       "name": "@you"
     },
     "color": 15158332,
-    "description": "**🔊 Canal:** #…\n**⚙️ Consequência:** …\n**✅ Resultado:** …\n",
-    "fields": [],
+    "fields": [
+      {
+        "inline": false,
+        "name": "🔊 Canal",
+        "value": "#…"
+      },
+      {
+        "inline": false,
+        "name": "⚙️ Consequência",
+        "value": "…"
+      },
+      {
+        "inline": false,
+        "name": "✅ Resultado",
+        "value": "…"
+      }
+    ],
     "footer": {
       "icon_url": "https://cdn.discordapp.com/embed/avatars/0.png",
       "text": "por @you · 01/01/2026 00:00"

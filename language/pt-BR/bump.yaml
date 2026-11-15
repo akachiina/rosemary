@@ -7,49 +7,22 @@ bump:
     ping_leaderboard: 'Parabéns, {winner_mention}!'
     anti_camping: '{warning} O canal foi bloqueado temporariamente. O bump estará disponível em instantes!'
     thank_you_title: '{tada} Bump Registrado!'
-    thank_you_description: '
-      **{clock} Próximo bump:** <t:{next_bump_timestamp}:R>
-
-      **{hourglass} Lembrete:** volto para te avisar em **{cooldown}!**
-
-
-      {trophy} Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!
-
-      '
+    thank_you_next: '**{clock} Próximo bump:** <t:{next_bump_timestamp}:R>'
+    thank_you_reminder: '**{hourglass} Lembrete:** volto para te avisar em **{cooldown}!**'
+    thank_you_hint: '{trophy} Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!'
     reminder_title: '{clock} Hora do Bump!'
-    reminder_description: 'Já se passou o cooldown de {cooldown} desde o último bump!
-
-
-      **{rocket} Sua vez de ajudar:** use `/bump` e ganhe um ponto no placar!
-
-      '
+    reminder_description: 'Já se passou o cooldown de {cooldown} desde o último bump!'
+    reminder_turn_label: '{rocket} Sua vez de ajudar'
     leaderboard_title: '{trophy} Placar Semanal de Bumps'
-    leaderboard_description: 'Confira quem mais ajudou o servidor esta semana!
-
-
-      **{calendar} Período:** <t:{start_timestamp}:d> até <t:{end_timestamp}:d>
-
-      **{hourglass} A semana termina em:** <t:{next_reset_timestamp}:R>
-
-      **{crown} Vencedor:** {@winner_mention} com **{winner_count}** bumps!
-
-
-      **{gift} Prêmio:** Cargo **{role_name}** customizável por 1 semana!
-
-      Use `/boost painel` para personalizar nome, cor, emoji e convidar membros.
-
-
-      {leaderboard_list}
-
-      '
+    leaderboard_description: 'Confira quem mais ajudou o servidor esta semana!'
+    leaderboard_period_label: '{calendar} Período'
+    leaderboard_ends_label: '{hourglass} A semana termina em'
+    leaderboard_winner_label: '{crown} Vencedor'
+    leaderboard_prize_label: '{gift} Prêmio'
     leaderboard_line: '{medal} **{position}º** · {user_mention} **{bump_count}** bumps'
     no_bumps_title: '{trophy} Placar Semanal de Bumps'
-    no_bumps_description: 'Ninguém deu bump esta semana! {cry}
-
-
-      **{rocket} Seja o primeiro:** use `/bump` no canal de bump e ganhe um ponto no placar!
-
-      '
+    no_bumps_description: 'Ninguém deu bump esta semana! {cry}'
+    no_bumps_first_label: '{rocket} Seja o primeiro'
     no_bumps_you: '{bar_chart} Você ainda não deu nenhum bump esta semana! Use `/bump` no canal de bump.'
   dm:
     winner_new: '{success} Você é o Bump-MVP da Semana!'

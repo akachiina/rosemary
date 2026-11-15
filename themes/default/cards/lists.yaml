@@ -32,7 +32,11 @@ bump.reminder:
   archetype: listing
   color: brand
   title: '{bump.messages.reminder_title}'
-  description: '{bump.messages.reminder_description}'
+  description: 'Já se passou o cooldown de {cooldown} desde o último bump!'
+  fields:
+  - label: '{bump.messages.reminder_turn_label}'
+    value: 'use `/bump` e ganhe um ponto no placar!'
+    inline: false
   # The role ping rides the opening line of the card (the first block of the
   # V2, above the frame), so the reminder is one message: the ping and the
   # card travel together.
@@ -46,7 +50,11 @@ bump.reminder:
 bump.no_bumps:
   archetype: listing
   title: '{bump.messages.no_bumps_title}'
-  description: '{bump.messages.no_bumps_description}'
+  description: 'Ninguém deu bump esta semana! {cry}'
+  fields:
+  - label: '{bump.messages.no_bumps_first_label}'
+    value: 'use `/bump` no canal de bump e ganhe um ponto no placar!'
+    inline: false
   variables: []
   category: bump
 
@@ -60,7 +68,10 @@ bump.thank_you:
   - '{state_color}'
   - 'brand'
   title: '{bump.messages.thank_you_title}'
-  description: '{bump.messages.thank_you_description}'
+  paragraphs:
+  - '{bump.messages.thank_you_next}'
+  - '{bump.messages.thank_you_reminder}'
+  - '{bump.messages.thank_you_hint}'
   ping_line: '{bump.messages.ping_thank_you}'
   thumbnail: '{user_avatar}'
   footer: '{timestamp}'
@@ -86,7 +97,23 @@ bump.leaderboard:
   - '{state_color}'
   - 'warning'
   title: '{bump.messages.leaderboard_title}'
-  description: '{bump.messages.leaderboard_description}'
+  description: 'Confira quem mais ajudou o servidor esta semana!'
+  fields:
+  - label: '{bump.messages.leaderboard_period_label}'
+    value: '<t:{start_timestamp}:d> até <t:{end_timestamp}:d>'
+    inline: false
+  - label: '{bump.messages.leaderboard_ends_label}'
+    value: '<t:{next_reset_timestamp}:R>'
+    inline: false
+  - label: '{bump.messages.leaderboard_winner_label}'
+    value: '{@winner_mention} com **{winner_count}** bumps!'
+    inline: false
+  - label: '{bump.messages.leaderboard_prize_label}'
+    value: 'Cargo **{role_name}** customizável por 1 semana!'
+    inline: false
+  paragraphs:
+  - 'Use `/boost painel` para personalizar nome, cor, emoji e convidar membros.'
+  - '{leaderboard_list}'
   ping_line: '{bump.messages.ping_leaderboard}'
   thumbnail: '{winner_avatar}'
   footer: '{timestamp}'

@@ -25,11 +25,19 @@
               "type": "TextDisplay"
             },
             {
-              "content": " **⏰ Próximo bump:** <t:1111111111:R>\n**⏳ Lembrete:** volto para te avisar em **…!**\n\n🏆 Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!\n",
+              "content": "**⏰ Próximo bump:** <t:1111111111:R>",
+              "type": "TextDisplay"
+            },
+            {
+              "content": "**⏳ Lembrete:** volto para te avisar em **…!**",
               "type": "TextDisplay"
             }
           ],
           "type": "Section"
+        },
+        {
+          "content": "🏆 Use `/bump leaderboard` para ver o placar e disputar o **Bump-MVP**!",
+          "type": "TextDisplay"
         },
         {
           "type": "Separator"

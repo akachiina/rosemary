@@ -287,6 +287,7 @@ def _compile_slots(card: Card, mapping: Mapping[str, Any], mentions: _Mentions) 
         author=author,
         thumbnail=_url(_resolve(card.thumbnail, mapping)[0]),
         image=_url(_resolve(card.image, mapping)[0]),
+        file=_url(_resolve(card.file, mapping)[0]),
         footer=footer,
         footer_icon=_url(_resolve(card.footer_icon, mapping)[0]),
         fields=tuple(fields),
