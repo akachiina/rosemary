@@ -21,11 +21,13 @@ option parsing (the ``attachment`` option).
 
 import contextlib
 import io
+from pathlib import Path
 
 import discord
 from discord.ext import commands
 
-from rosemary.ui.kit import ActionRow, Panel, TextDisplay, divider
+from rosemary.ui.kit import ActionRow, EmptyState, Panel, TextDisplay, divider
+from rosemary.ui.modals import make_text_file_modal
 
 #: The shapes the preview offers (the card pipeline's own three).
 _PREVIEW_FORMS = ("text", "embed", "card")
@@ -38,35 +40,56 @@ def _file(data: bytes, filename: str) -> discord.File:
     return discord.File(io.BytesIO(data), filename=filename)
 
 
-class ThemesMenuView(Panel):
-    """One-panel theme manager; ids are stable for the persistent fallback."""
+async def _rejection_reason(bot, guild_id: int, exc: Exception) -> str:
+    """Translate a ThemeError into the guild language (or a short fallback)."""
+    from rosemary.core.v2_convert import ThemeError
 
-    #: The panel owns its button rows: no shared navigation (the close button
-    #: rides the flow row, as it always did).
-    nav_actions: tuple[str, ...] = ()
+    if isinstance(exc, ThemeError) and exc.issues:
+        codes = ", ".join(issue.code for issue in exc.issues[:3])
+        return await bot.translator.t(guild_id, "themes.rejection_codes", codes=codes)
+    return type(exc).__name__
+
+
+class ThemesMenuView(Panel):
+    """The theme manager: home -> detail -> preview (the /settings pattern).
+
+    Three screens keep each message focused: *home* picks a theme, *detail*
+    shows its metadata and the actions (activate, export, remove, validate,
+    diff, preview), and *preview* renders one card in each shape.
+    """
+
+    #: The shared navigation (the chrome names the actions; the ids stay
+    #: stable for the persistent fallback).
+    nav_ids = {"back": "themes_back", "close": "themes_close"}
+    nav_labels = {"back": "themes.back", "close": "themes.close"}
 
     def __init__(self, bot, guild_id: int, *, owner_id: int) -> None:
         super().__init__(bot, guild_id, author_id=owner_id)
         self.flash: str | None = None
         self.flash_color = "success"
-        #: The theme the panel inspects (the active one by default).
+        #: The current screen: "home" | "detail" | "preview".
+        self._screen = "home"
+        #: The theme the panel inspects/manages (the active one by default).
         self._inspect: str | None = None
         #: The card the preview renders.
         self._preview_key: str | None = None
         #: The shape the preview renders.
         self._preview_form = "card"
         self.register("themes_select", self._select)
+        self.register("themes_activate", self._activate)
         self.register("themes_export", self._export)
+        self.register("themes_export_base", self._export_base)
+        self.register("themes_import", self._import)
         self.register("themes_remove", self._remove)
         self.register("themes_reset", self._reset)
         self.register("themes_reload", self._reload)
         self.register("themes_close", self._close)
-        self.register("themes_inspect", self._inspect_select)
         self.register("themes_preview_card", self._preview_card_select)
         self.register("themes_preview_form", self._preview_form_select)
         self.register("themes_validate", self._validate)
         self.register("themes_diff", self._diff)
         self.register("themes_preview", self._preview)
+        self.register("themes_preview_open", self._preview_open)
 
     async def prepare(self) -> None:
         """Load the panel state, then rebuild children (``MenuView.prepare``)."""
@@ -114,6 +137,18 @@ class ThemesMenuView(Panel):
         except (ThemeError, OSError):
             return None
 
+    def _theme_label(self, name: str) -> str:
+        """The select label of a theme: ``<icon> <display name>``."""
+        from rosemary.core.assets import resolve_refs
+
+        meta = self.bot._theme_store.metadata(name, self.guild_id)
+        icon = meta.icon
+        if "{" in icon:
+            icon = resolve_refs(icon).strip()
+        label = meta.label(name)
+        text = f"{icon} {label}".strip() if icon else label
+        return text[:100]
+
     async def set_flash(self, key: str, color: str = "success", **variables) -> None:
         """Set the one-shot flash: the copy and the tone.
 
@@ -137,12 +172,23 @@ class ThemesMenuView(Panel):
     #: handlers ------------------------------------------------------------
 
     async def _select(self, interaction: discord.Interaction) -> None:
+        """Pick a theme: open its detail screen (activation is a button there)."""
         values = (interaction.data or {}).get("values") or []
         if not values:
             return
         if not await self._ack(interaction):
             return
-        name = str(values[0])
+        self._inspect = str(values[0])
+        self._screen = "detail"
+        await self.rerender(interaction)
+
+    async def _activate(self, interaction: discord.Interaction) -> None:
+        """Make the selected theme the active one."""
+        if not await self._ack(interaction):
+            return
+        name = self._inspect
+        if not name:
+            return await self.rerender(interaction)
         try:
             await self.bot._theme_store.set_active(self.guild_id, name)
         except Exception:
@@ -151,13 +197,27 @@ class ThemesMenuView(Panel):
             await self.set_flash("themes.selected", "success", theme=name)
         await self._rerender_with_snapshot(interaction)
 
-    async def _export(self, interaction: discord.Interaction) -> None:
-        values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
+    async def _preview_open(self, interaction: discord.Interaction) -> None:
+        """Open the preview screen for the selected theme."""
         if not await self._ack(interaction):
             return
-        name = str(values[0])
+        self._screen = "preview"
+        await self.rerender(interaction)
+
+    async def on_back(self, interaction: discord.Interaction) -> None:
+        """Back from detail/preview to home."""
+        if not await self._ack(interaction):
+            return
+        self._screen = "home"
+        await self.rerender(interaction)
+
+    async def _export(self, interaction: discord.Interaction) -> None:
+        """Download the selected theme."""
+        if not await self._ack(interaction):
+            return
+        name = self._inspect
+        if not name:
+            return await self.rerender(interaction)
         payload = self.bot._theme_store.export_theme(self.guild_id, name)
         if payload is None:
             await self.set_flash("themes.not_found", "danger")
@@ -169,13 +229,79 @@ class ThemesMenuView(Panel):
             await self.set_flash("themes.export_failed", "danger")
         await self._rerender_with_snapshot(interaction)
 
-    async def _remove(self, interaction: discord.Interaction) -> None:
-        values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
+    async def _export_base(self, interaction: discord.Interaction) -> None:
+        """Download the built-in theme as an editable ZIP (the base to edit)."""
         if not await self._ack(interaction):
             return
-        name = str(values[0])
+        payload = self.bot._theme_store.export_base()
+        if payload is None:
+            await self.set_flash("themes.not_found", "danger")
+            return await self.rerender(interaction)
+        filename, data = payload
+        try:
+            await interaction.followup.send(file=_file(data, filename), ephemeral=True)
+        except discord.HTTPException:
+            await self.set_flash("themes.export_failed", "danger")
+            return await self.rerender(interaction)
+        await self.set_flash("themes.exported_base", "success")
+        await self._rerender_with_snapshot(interaction)
+
+    async def _import(self, interaction: discord.Interaction) -> None:
+        """Open the name + file modal (the no-attachment import path)."""
+        t = self.bot.translator.t
+        modal = make_text_file_modal(
+            title=(await t(self.guild_id, "themes.import_title"))[:45],
+            custom_id="themes_import_modal",
+            label=await t(self.guild_id, "themes.import_name_label"),
+            placeholder=await t(self.guild_id, "themes.import_name_placeholder"),
+            required=False,
+            file_label=await t(self.guild_id, "themes.import_file_label"),
+            file_description=await t(self.guild_id, "themes.import_file_hint"),
+            file_required=True,
+            on_submit=self._import_submit,
+        )
+        await interaction.response.send_modal(modal)
+
+    async def _import_submit(
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        files: list[discord.Attachment],
+    ) -> None:
+        """Read the uploaded file and import it under the chosen name."""
+        if not await self._ack(interaction):
+            return
+        attachment = files[0] if files else None
+        if attachment is None:
+            await self.set_flash("themes.import_no_file", "danger")
+            return await self.rerender(interaction)
+        try:
+            payload = await attachment.read()
+            chosen = (name or "").strip() or Path(attachment.filename).stem
+            imported = await self.bot._theme_store.import_theme(
+                self.guild_id,
+                attachment.filename,
+                payload,
+                name=chosen or None,
+            )
+        except Exception as exc:
+            reason = await _rejection_reason(self.bot, self.guild_id, exc)
+            await self.set_flash("themes.rejected", "danger", reason=reason)
+            return await self.rerender(interaction)
+        # Theme emojis the host allows: index and upload the imported package.
+        sync_theme_emojis = getattr(self.bot, "sync_theme_emojis", None)
+        if callable(sync_theme_emojis):
+            await sync_theme_emojis()
+        await self.set_flash("themes.imported", "success", theme=imported)
+        await self._rerender_with_snapshot(interaction)
+
+    async def _remove(self, interaction: discord.Interaction) -> None:
+        """Remove the selected theme (guild imports only)."""
+        if not await self._ack(interaction):
+            return
+        name = self._inspect
+        if not name:
+            return await self.rerender(interaction)
         was_active = self._active == name
         removed = await self.bot._theme_store.remove_guild_theme(self.guild_id, name)
         if not removed:
@@ -183,6 +309,8 @@ class ThemesMenuView(Panel):
         else:
             key = "themes.removed_active" if was_active else "themes.removed"
             await self.set_flash(key, "success", theme=name)
+        # The selected theme is gone: go back home.
+        self._screen = "home"
         await self._rerender_with_snapshot(interaction)
 
     async def _reset(self, interaction: discord.Interaction) -> None:
@@ -209,16 +337,6 @@ class ThemesMenuView(Panel):
         await close(self, interaction)
 
     #: inspection -----------------------------------------------------------
-
-    async def _inspect_select(self, interaction: discord.Interaction) -> None:
-        """Pick the theme the panel inspects."""
-        values = (interaction.data or {}).get("values") or []
-        if not values:
-            return
-        if not await self._ack(interaction):
-            return
-        self._inspect = str(values[0])
-        await self.rerender(interaction)
 
     async def _preview_card_select(self, interaction: discord.Interaction) -> None:
         """Pick the card the preview renders."""
@@ -341,6 +459,7 @@ class ThemesMenuView(Panel):
             key,
             self._preview_form,
             theme=self._inspected_theme(),
+            user_id=self.author_id,
         )
         if payload is None:
             await self.set_flash(
@@ -370,86 +489,150 @@ class ThemesMenuView(Panel):
 
     #: rendering -----------------------------------------------------------
 
+    #: rendering -----------------------------------------------------------
+
     async def build_items(self) -> list[discord.ui.ViewItem]:
+        """Dispatch to the current screen (home / detail / preview)."""
+        if self.expired:
+            return await self.expired_items()
+        if self._screen == "detail":
+            return await self._detail_screen()
+        if self._screen == "preview":
+            return await self._preview_screen()
+        return await self._home_screen()
+
+    async def _home_screen(self) -> list[discord.ui.ViewItem]:
+        """The list: the active theme, a picker and the import/base actions."""
         t = self.bot.translator.t
         t_ = self.guild_id
-
         active_label = (
             await t(t_, "themes.active_label", theme=self._active)
             if self._active
             else await t(t_, "themes.active_none")
         )
-        await self.set_screen("themes.title", heading="themes.title")
+        await self.set_screen(
+            "themes.title", "themes.hint", heading="themes.title", color="support"
+        )
         self.lines = [TextDisplay(active_label)]
-        self.color = self.flash_color if self.flash else "support"
-
-        sections: list[discord.ui.ViewItem] = [divider("large")]
-
-        # Manager rows: one select per action, shown only when usable.
+        self.nav("close")
+        sections: list[discord.ui.ViewItem] = [divider()]
         if self._theme_names:
             sections.append(
                 ActionRow(
                     await self.select(
                         "themes_select",
-                        "themes.select_placeholder",
+                        "themes.manage_placeholder",
                         [
                             discord.SelectOption(
-                                label=name, value=name, default=name == self._active
+                                label=self._theme_label(name),
+                                value=name,
+                                default=name == self._inspect,
                             )
                             for name in self._theme_names[:25]
                         ],
                     )
                 )
             )
-        if self._imports:
+        else:
             sections.append(
+                EmptyState(
+                    await t(t_, "themes.none_yet"),
+                    icon=self.emoji("info") or self.emoji("folder"),
+                ).item()
+            )
+        actions = [
+            ActionRow(
+                await self.button(
+                    "themes_import", "themes.import_button", emoji="plus", style="primary"
+                ),
+                await self.button(
+                    "themes_export_base", "themes.export_base_button", emoji="folder"
+                ),
+                await self.button(
+                    "themes_reset", "themes.reset_button", emoji="refresh"
+                ),
+            ),
+        ]
+        return await self.compose(sections, actions)
+
+    async def _detail_screen(self) -> list[discord.ui.ViewItem]:
+        """One theme: its metadata and the actions (activate, export, ...)."""
+        t = self.bot.translator.t
+        t_ = self.guild_id
+        name = self._inspect or ""
+        meta = self.bot._theme_store.metadata(name, self.guild_id)
+        label = meta.label(name)
+        icon = meta.icon
+        if "{" in icon:
+            from rosemary.core.assets import resolve_refs
+
+            icon = resolve_refs(icon).strip()
+        title = f"{icon} {label}".strip() if icon else label
+        await self.set_screen(
+            "themes.detail_title", "themes.detail_hint", color="support", theme=title
+        )
+        self.nav("back", "close")
+        sections: list[discord.ui.ViewItem] = [divider()]
+        if self._active == name:
+            sections.append(TextDisplay(await t(t_, "themes.active_label", theme=name)))
+        meta_lines: list[str] = []
+        if meta.creator:
+            meta_lines.append(await t(t_, "themes.meta_creator", creator=meta.creator))
+        if meta.notes:
+            meta_lines.append(await t(t_, "themes.meta_notes", notes=meta.notes))
+        if meta_lines:
+            sections.append(TextDisplay("\n".join(meta_lines)))
+        actions: list[discord.ui.ViewItem] = [
+            ActionRow(
+                await self.button(
+                    "themes_activate",
+                    "themes.activate_button",
+                    emoji="check",
+                    style="success",
+                    disabled=self._active == name,
+                ),
+                await self.button("themes_export", "themes.export_button", emoji="folder"),
+            )
+        ]
+        if name in self._imports:
+            actions.append(
                 ActionRow(
-                    await self.select(
+                    await self.button(
                         "themes_remove",
-                        "themes.remove_placeholder",
-                        [
-                            discord.SelectOption(label=name, value=name)
-                            for name in sorted(self._imports)[:25]
-                        ],
+                        "themes.remove_button",
+                        emoji="trash",
+                        style="danger",
                     )
                 )
             )
-        if self._theme_names:
-            sections.append(
-                ActionRow(
-                    await self.select(
-                        "themes_export",
-                        "themes.export_placeholder",
-                        [
-                            discord.SelectOption(label=name, value=name)
-                            for name in self._theme_names[:25]
-                        ],
-                    )
-                )
+        actions.append(
+            ActionRow(
+                await self.button(
+                    "themes_validate", "themes.validate_button", emoji="check"
+                ),
+                await self.button("themes_diff", "themes.diff_button", emoji="scroll"),
+                await self.button(
+                    "themes_preview_open", "themes.preview_button", emoji="frame"
+                ),
             )
-        if not self._theme_names:
-            sections.append(TextDisplay(await t(t_, "themes.none_yet")))
-        sections.append(TextDisplay(await t(t_, "themes.hint")))
+        )
+        actions.append(divider())
+        actions.append(
+            ActionRow(
+                await self.button("themes_reload", "themes.reload_button", emoji="clock"),
+            )
+        )
+        return await self.compose(sections, actions)
 
-        sections.append(divider("large"))
-
-        # Inspection rows: the theme to look at, the card to preview and the
-        # shape to preview it in.
-        if self._theme_names:
-            sections.append(
-                ActionRow(
-                    await self.select(
-                        "themes_inspect",
-                        "themes.inspect_placeholder",
-                        [
-                            discord.SelectOption(
-                                label=name, value=name, default=name == self._inspect
-                            )
-                            for name in self._theme_names[:25]
-                        ],
-                    )
-                )
-            )
+    async def _preview_screen(self) -> list[discord.ui.ViewItem]:
+        """The preview: pick a card and a shape, then render it."""
+        t = self.bot.translator.t
+        t_ = self.guild_id
+        await self.set_screen(
+            "themes.preview_title", "themes.preview_hint", color="support"
+        )
+        self.nav("back", "close")
+        sections: list[discord.ui.ViewItem] = [divider()]
         if self._preview_options:
             sections.append(
                 ActionRow(
@@ -481,53 +664,14 @@ class ThemesMenuView(Panel):
                     )
                 )
             )
-        sections.append(
+        actions = [
             ActionRow(
-                self.make_button(
-                    custom_id="themes_validate",
-                    label=await t(t_, "themes.validate_button"),
-                    style=discord.ButtonStyle.secondary,
-                    emoji=self.emoji("check") or self.emoji("shield"),
-                ),
-                self.make_button(
-                    custom_id="themes_diff",
-                    label=await t(t_, "themes.diff_button"),
-                    style=discord.ButtonStyle.secondary,
-                    emoji=self.emoji("scroll"),
-                ),
-                self.make_button(
-                    custom_id="themes_preview",
-                    label=await t(t_, "themes.preview_button"),
-                    style=discord.ButtonStyle.secondary,
-                    emoji=self.emoji("frame") or self.emoji("search"),
+                await self.button(
+                    "themes_preview", "themes.preview_button", emoji="frame"
                 ),
             )
-        )
-
-        sections.append(divider("large"))
-        sections.append(
-            ActionRow(
-                self.make_button(
-                    custom_id="themes_reset",
-                    label=await t(t_, "themes.reset_button"),
-                    style=discord.ButtonStyle.secondary,
-                    emoji=self.emoji("refresh"),
-                ),
-                self.make_button(
-                    custom_id="themes_reload",
-                    label=await t(t_, "themes.reload_button"),
-                    style=discord.ButtonStyle.secondary,
-                    emoji=self.emoji("clock"),
-                ),
-                self.make_button(
-                    custom_id="themes_close",
-                    label=await t(t_, "themes.close"),
-                    style=discord.ButtonStyle.secondary,
-                    emoji=self.emoji("door"),
-                ),
-            )
-        )
-        return await self.compose(sections)
+        ]
+        return await self.compose(sections, actions)
 
 class ThemesCog(commands.Cog):
     """The ``/themes`` command (decorator name ``themes``)."""
@@ -557,7 +701,7 @@ class ThemesCog(commands.Cog):
                 payload = await attachment.read()
                 name = await store.import_theme(ctx.guild_id, filename, payload)
             except Exception as exc:
-                reason = await self._rejection_reason(ctx.guild_id, exc)
+                reason = await _rejection_reason(self.bot, ctx.guild_id, exc)
                 from rosemary.core.feedback import respond as respond_line
 
                 await respond_line(
@@ -569,6 +713,10 @@ class ThemesCog(commands.Cog):
                 )
                 return
             imported = name
+            # Theme emojis the host allows: index and upload the package.
+            sync_theme_emojis = getattr(self.bot, "sync_theme_emojis", None)
+            if callable(sync_theme_emojis):
+                await sync_theme_emojis()
             from rosemary.core.panels import on_theme_changed
 
             await on_theme_changed(self.bot, ctx.guild_id)
@@ -581,14 +729,3 @@ class ThemesCog(commands.Cog):
         # Heading is theme-customizable (card.themes.title): trace the path.
         await trace_card_path(self.bot, ctx.guild_id, "themes.title")
         await ctx.respond(view=view, ephemeral=True)
-
-    async def _rejection_reason(self, guild_id: int, exc: Exception) -> str:
-        """Translate a ThemeError into the guild language (or a short fallback)."""
-        from rosemary.core.v2_convert import ThemeError
-
-        if isinstance(exc, ThemeError) and exc.issues:
-            codes = ", ".join(issue.code for issue in exc.issues[:3])
-            return await self.bot.translator.t(
-                guild_id, "themes.rejection_codes", codes=codes
-            )
-        return type(exc).__name__

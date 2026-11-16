@@ -6,22 +6,36 @@ themes:
       attachment:
         description: Arquivo de tema opcional para importar (.yaml ou pacote .zip)
   title: Temas
-  hint: Importe um arquivo de tema, escolha o ativo ou exporte/baixe os instalados.
+  hint: Importe um arquivo de tema (fica só neste servidor), escolha o ativo ou baixe os instalados.
+  manage_placeholder: Escolha um tema para gerenciar...
+  detail_title: Tema
+  detail_hint: Veja os detalhes e as ações do tema **{theme}**.
+  activate_button: Ativar
+  export_button: Exportar
+  remove_button: Remover
+  preview_title: Prévia
+  preview_hint: Escolha o card e o formato da prévia.
+  back: Voltar
   active_none: Padrão embutido
   active_label: 'Tema ativo: **{theme}**'
   import_title: Importar tema
-  import_label: Arquivo de tema (.yaml ou .zip)
-  import_description: Um YAML de tema (ou um pacote .zip) exportado antes do Rosemary ou escrito à mão.
   imported: '{register} Tema **{theme}** importado e validado.'
-  select_placeholder: Escolha o tema ativo...
   selected: '{palette} O tema **{theme}** agora está ativo.'
-  export_placeholder: Escolha um tema para baixar...
   export_failed: '{error} Não foi possível enviar esse arquivo de tema.'
+  export_base_button: Baixar tema base
+  exported_base: '{check} Tema base enviado: edite o pacote e reenvie em /temas.'
+  import_button: Importar tema
+  import_name_label: Nome do tema
+  import_name_placeholder: meu-tema
+  import_file_label: Arquivo do tema
+  import_file_hint: Um .yaml ou um pacote .zip (com a pasta assets, se tiver)
+  import_no_file: '{error} Nenhum arquivo foi enviado.'
+  meta_creator: 'Criado por **{creator}**'
+  meta_notes: '{notes}'
   reset_done: '{reset} De volta ao tema padrão embutido.'
   reset_button: Tema padrão
   reload_button: Recarregar arquivos
   reloaded: '{refresh} Arquivos de tema relidos do disco; painéis atualizados.'
-  remove_placeholder: Escolha um tema importado para remover...
   removed: '{trash} Tema **{theme}** removido.'
   removed_active: '{trash} Tema **{theme}** removido: de volta ao padrão embutido.'
   not_found: '{error} Tema não encontrado.'
@@ -29,7 +43,6 @@ themes:
   none_yet: '*Nenhum tema importado ainda: anexe um arquivo ``.yaml`` ao /temas para adicionar.*'
   close: Fechar
   rejection_codes: 'Problemas encontrados: {codes}'
-  inspect_placeholder: Escolha um tema para inspecionar...
   validate_button: Validar
   diff_button: Diferenças
   preview_button: Prévia

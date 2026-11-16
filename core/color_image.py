@@ -26,7 +26,10 @@ from __future__ import annotations
 import html as _html
 import logging
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
+
+from rosemary.core.theme_assets import resolve_media_refs
 
 log = logging.getLogger(__name__)
 
@@ -329,8 +332,13 @@ def render_panel(
     colors: list[PanelColor],
     template: str | None = None,
     item: str | None = None,
+    media: Mapping[str, str] | None = None,
 ) -> bytes | None:
     """Render the panel image for ``colors`` (sorted row list).
+
+    ``media`` maps a theme media key to its ``file://`` URL: every
+    ``{media/<name>}`` in the templates is replaced before the HTML is
+    rendered, so a theme can point at its own ``assets/media/`` files.
 
     Returns transparent PNG bytes, or ``None`` when nothing is drawable
     (no colors), the renderer is unavailable, or the template failed.
@@ -339,8 +347,11 @@ def render_panel(
     if not colors:
         return None
     base_template, base_item = default_templates()
-    base_template = template if template else base_template
-    base_item = item if item else base_item
+    media_map = media or {}
+    # Resolve the media placeholders before ``str.format``/WeasyPrint: a raw
+    # ``{media/...}`` would break the item format (KeyError) or ship literally.
+    base_template = resolve_media_refs(template if template else base_template, media_map)
+    base_item = resolve_media_refs(item if item else base_item, media_map)
 
     items = []
     for entry in colors:

@@ -5,7 +5,10 @@
 #   tokens.yaml    the look & feel (the colors, the emojis, the styles);
 #   archetypes.yaml the frames of the cards (the log_event, the announcement);
 #   fragments.yaml  the reusable pieces (the attribution line);
-#   cards/*.yaml   the card documents, one file per family.
+#   cards/*.yaml   the card documents, one file per family;
+#   assets/media/  images, fonts and other files the theme references;
+#   assets/emojis/ emoji images the theme uploads as application emojis
+#                  (only when the host sets themes.assets.emojis: true).
 #
 # The selection name stays "default": the package is the theme every other
 # theme extends (the baseline of the tokens and the base of the cards).
@@ -13,3 +16,12 @@
 version: 2
 name: default
 extends: null
+metadata:
+  display_name: "Rosemary Clássico"
+  icon: "🎨"
+  creator: "Rosemary"
+  notes: |
+    O tema padrão do Rosemary: os cards, painéis e logs no visual de origem.
+    Edite os tokens (cores, emojis, estilos) e os documentos de card para
+    criar o seu; exporte este pacote em /temas para ter uma base completa.
+  tags: ["default", "classico"]

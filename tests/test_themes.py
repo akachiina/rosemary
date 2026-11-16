@@ -302,3 +302,29 @@ def test_theme_file_extends_the_built_in_tokens(tmp_path):
 def test_themeerror_carries_issue_codes():
     err = ThemeError([CardIssue("theme_bad_name", (("name", "X"),))])
     assert "theme_bad_name" in str(err)
+
+
+async def test_card_origin_reports_a_delta_theme(tmp_path):
+    """A modern theme customizes via a delta: the trace must not say default."""
+    themes = tmp_path / "themes"
+    themes.mkdir()
+    package = themes / "fancy"
+    (package / "cards").mkdir(parents=True)
+    (package / "theme.yaml").write_text(
+        "version: 2\nname: fancy\nextends: null\n", encoding="utf-8"
+    )
+    (package / "tokens.yaml").write_text(
+        'colors:\n  brand: "#ff00ff"\n', encoding="utf-8"
+    )
+    (package / "cards" / "audit.yaml").write_text(
+        "audit.ban:\n  title: 'Custom'\n", encoding="utf-8"
+    )
+    store = ThemeStore(tmp_path, themes_dir=themes)
+    bot = ThemeBot(tmp_path, store)
+    bot.guilds = [type("G", (), {"id": 1})()]
+    await store.set_active(1, "fancy")
+    from rosemary.core.themes import preload_themes
+
+    await preload_themes(bot)
+    assert card_origin(bot, 1, "audit.ban") == ("fancy", "audit.ban")
+    assert card_origin(bot, 1, "other.card") == (None, None)

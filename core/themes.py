@@ -17,7 +17,7 @@ inherited) and a cycle is rejected with a clear error.
 Layout::
 
     themes/default/               # the built-in package (the base of the cards)
-    themes/ridiculous_theme.yaml  # a global theme (the old single-file format)
+    themes/<name>.yaml            # a global theme (the old single-file format)
     data/<guild_id>/themes/       # the themes a guild imported via /themes
     data/<guild_id>/themes.json   # {"active": "cute"} per-guild selection
 
@@ -51,8 +51,19 @@ from rosemary.core.cards import (
 )
 from rosemary.core.documents.merge import DocumentError, keep_removals, merge
 from rosemary.core.documents.semantic import is_semantic_document, validate_keys
+from rosemary.core.host import HostConfig, ThemeAssetsConfig
 from rosemary.core.storage import GuildStorage
-from rosemary.core.theme_package import PACKAGE_DIR, ThemePackage, load_theme_package
+from rosemary.core.theme_assets import (
+    ThemeAssets,
+    validate_theme_assets,
+)
+from rosemary.core.theme_package import (
+    PACKAGE_DIR,
+    ThemeMetadata,
+    ThemePackage,
+    load_theme_package,
+    parse_metadata,
+)
 from rosemary.core.v2_convert import _HEX_RE, ThemeError, convert_card_entry
 from rosemary.ui.theme import Theme
 
@@ -108,6 +119,75 @@ _RENAMED_CARDS: dict[str, str] = {
 }
 
 
+def _requested_name(name: str | None) -> str | None:
+    """The name a host chose for an import (``None`` when not given).
+
+    An invalid name is rejected with the same stable code the file-name path
+    uses, so the member always gets a translated reason.
+    """
+    if name is None:
+        return None
+    clean = name.strip().lower().replace(" ", "_")
+    if not _NAME_RE.match(clean):
+        raise ThemeError([CardIssue("theme_bad_name", (("name", name),))])
+    return clean
+
+
+def _rewrite_manifest_name(path: Path, name: str) -> None:
+    """Rewrite the ``name:`` line of a manifest, keeping comments and fields."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    new, count = re.subn(r"(?m)^name:\s*.*$", f"name: {name}", text, count=1)
+    if count == 0:
+        new = f"name: {name}\n" + text
+    try:
+        path.write_text(new, encoding="utf-8")
+    except OSError:
+        log.warning("Could not rewrite the manifest name of %s", path)
+
+
+def _rewrite_theme_emoji_refs(root: Path, old: str, new: str) -> None:
+    """Point ``{emojis/<old>/...}`` at the new theme name (rename import).
+
+    Theme emojis are referenced with the theme name in the path, so renaming
+    a package on import must follow the references or they would resolve to
+    nothing.
+    """
+    if not old or old == new:
+        return
+    needle = "{emojis/" + old + "/"
+    replacement = "{emojis/" + new + "/"
+    paths = [root / "tokens.yaml"]
+    cards = root / "cards"
+    if cards.is_dir():
+        paths.extend(sorted(cards.glob("*.yaml")))
+    for path in paths:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if needle in text:
+            try:
+                path.write_text(text.replace(needle, replacement), encoding="utf-8")
+            except OSError:
+                log.warning("Could not rewrite emoji refs of %s", path)
+
+
+def _asset_gate_problems(assets: ThemeAssets, config: ThemeAssetsConfig) -> list[str]:
+    """The assets the host forbids.
+
+    Only **media** is gated at import: a host who turns ``media`` off rejects
+    a theme that carries media files. Emojis are always kept (the theme may
+    reference them later if the host enables indexing); they are only skipped
+    at upload time.
+    """
+    if assets.media and not config.media:
+        return ["media assets are disabled by the host"]
+    return []
+
+
 #: The built-in theme, loaded once: the baseline every other theme extends.
 _BASELINE: Theme | None = None
 
@@ -152,9 +232,17 @@ class RosemaryTheme(Theme):
         archetypes: dict[str, dict[str, Any]] | None = None,
         fragments: dict[str, dict[str, Any]] | None = None,
         extends: str | None = None,
+        metadata: ThemeMetadata | None = None,
+        assets: ThemeAssets | None = None,
     ) -> None:
         super().__init__(colors, emojis, markdown, styles, bump, medals, star_tier_emoji)
         self.name = name
+        # The human-facing metadata (the manifest's ``metadata:``): the name
+        # to show, the icon, the creator and the notes. Cosmetic only: it
+        # never changes how a card renders.
+        self.metadata = metadata or ThemeMetadata()
+        # The theme's own asset files (media + emojis), indexed by key.
+        self.assets = assets or ThemeAssets()
         self.cards = cards or {}
         self.pings = pings or {}
         self.card_forms = card_forms or {}
@@ -208,6 +296,10 @@ class _Layers:
     fragments: dict[str, dict[str, Any]] = field(default_factory=dict)
     #: The theme this one extends.
     extends: str | None = None
+    #: The human-facing metadata (the manifest's ``metadata:``).
+    metadata: ThemeMetadata = field(default_factory=ThemeMetadata)
+    #: The theme's own asset files (only a package carries them).
+    assets: ThemeAssets = field(default_factory=ThemeAssets)
 
 
 def load_theme_file(path: Path, *, name: str | None = None) -> RosemaryTheme:
@@ -236,6 +328,8 @@ def _file_layers(path: Path, *, name: str) -> _Layers:
     layers.extends = _extends_of(data)
     layers.cards, layers.deltas, layers.forms = _split_cards(data.get("cards"))
     layers.pings = _parse_pings(data.get("pings"))
+    # A single-file theme carries no ``assets/`` folder: only a package can.
+    layers.metadata = parse_metadata(data.get("metadata"))
     return layers
 
 
@@ -249,6 +343,8 @@ def _package_layers(package: ThemePackage, *, is_base: bool) -> _Layers:
     layers.extends = package.extends
     layers.archetypes = package.archetypes
     layers.fragments = package.fragments
+    layers.metadata = package.metadata
+    layers.assets = package.assets
     if not is_base:
         layers.cards, layers.deltas, layers.forms = _split_cards(package.documents)
     return layers
@@ -463,6 +559,8 @@ def _build_theme(name: str, layers: _Layers) -> RosemaryTheme:
         archetypes=merge(base.archetypes, layers.archetypes),
         fragments=merge(base.fragments, layers.fragments),
         extends=layers.extends,
+        metadata=layers.metadata,
+        assets=layers.assets,
     )
     for key, doc in layers.cards.items():
         _validate_card_colors(key, doc, theme)
@@ -566,6 +664,24 @@ def _validate_delta_colors(key: str, doc: dict[str, Any], theme: RosemaryTheme) 
         )
 
 
+def _merge_metadata(base: ThemeMetadata, overlay: ThemeMetadata) -> ThemeMetadata:
+    """Two metadata blocks (the overlay's non-empty fields win)."""
+    return ThemeMetadata(
+        display_name=overlay.display_name or base.display_name,
+        icon=overlay.icon or base.icon,
+        creator=overlay.creator or base.creator,
+        notes=overlay.notes or base.notes,
+        tags=overlay.tags or base.tags,
+    )
+
+
+def _merge_assets(base: ThemeAssets, overlay: ThemeAssets) -> ThemeAssets:
+    """Two asset sets (the overlay's files win on a key clash)."""
+    media = {**base.media, **overlay.media}
+    emojis = {**base.emojis, **overlay.emojis}
+    return ThemeAssets(media=media, emojis=emojis)
+
+
 def _merge_layers(base: _Layers, overlay: _Layers) -> _Layers:
     """Two layers of the chain, merged (the overlay wins).
 
@@ -582,6 +698,8 @@ def _merge_layers(base: _Layers, overlay: _Layers) -> _Layers:
         archetypes=merge(base.archetypes, overlay.archetypes),
         fragments=merge(base.fragments, overlay.fragments),
         extends=overlay.extends,
+        metadata=_merge_metadata(base.metadata, overlay.metadata),
+        assets=_merge_assets(base.assets, overlay.assets),
     )
     for key, doc in base.deltas.items():
         out.deltas[key] = doc
@@ -607,9 +725,16 @@ def _is_base_package(source: Path) -> bool:
 class ThemeStore:
     """Discovers, validates, imports and selects themes per guild."""
 
-    def __init__(self, data_dir: Path | str, themes_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        data_dir: Path | str,
+        themes_dir: Path | None = None,
+        host_config: HostConfig | None = None,
+    ) -> None:
         self.themes_dir = Path(themes_dir) if themes_dir else THEMES_DIR
         self._data_dir = Path(data_dir)
+        # The host's asset policy (which custom-theme assets are allowed).
+        self.host_config = host_config or HostConfig()
         self._selection = GuildStorage(
             self._data_dir, filename="themes.json", use_defaults=False
         )
@@ -632,6 +757,26 @@ class ThemeStore:
     def list_all(self, guild_id: int) -> list[str]:
         """Every selectable theme name for a guild, sorted."""
         return sorted(set(self.list_global()) | set(self.list_guild(guild_id)))
+
+    def iter_theme_packages(self):
+        """Yield ``(name, package_dir)`` for every package theme.
+
+        Global packages first, then the guild-imported ones. Only real
+        packages (a folder with ``theme.yaml``) are yielded: a single-file
+        theme has no ``assets/`` folder to scan.
+        """
+        if self.themes_dir.is_dir():
+            for child in sorted(self.themes_dir.iterdir()):
+                if child.is_dir() and (child / "theme.yaml").is_file():
+                    yield child.name, child
+        if self._data_dir.is_dir():
+            for guild_dir in sorted(self._data_dir.iterdir()):
+                themes = guild_dir / "themes"
+                if not themes.is_dir():
+                    continue
+                for child in sorted(themes.iterdir()):
+                    if child.is_dir() and (child / "theme.yaml").is_file():
+                        yield child.name, child
 
     @staticmethod
     def _names_in(directory: Path) -> list[str]:
@@ -800,21 +945,29 @@ class ThemeStore:
 
     #: import / export ----------------------------------------------------
 
-    async def import_theme(self, guild_id: int, filename: str, payload: bytes) -> str:
+    async def import_theme(
+        self,
+        guild_id: int,
+        filename: str,
+        payload: bytes,
+        name: str | None = None,
+    ) -> str:
         """Validate and store an uploaded theme; returns its name.
 
         The upload is parsed and fully validated *before* anything is
         written, so a rejected import leaves the guild's theme folder
         untouched. Two shapes are accepted: the single YAML file (the old
-        format) and the ZIP of a theme package.
+        format) and the ZIP of a theme package. ``name`` overrides the
+        package's own name (the "rename on import" of the export base).
         """
+        chosen = _requested_name(name)
         if filename.lower().endswith(".zip"):
-            return await self._import_package(guild_id, filename, payload)
-        stem = Path(filename).stem.lower().replace(" ", "_")
-        if not _NAME_RE.match(stem):
-            raise ThemeError([CardIssue("theme_bad_name", (("name", stem),))])
+            return await self._import_package(guild_id, filename, payload, chosen)
         if not filename.lower().endswith((".yaml", ".yml")):
             raise ThemeError([CardIssue("theme_bad_extension")])
+        stem = chosen or Path(filename).stem.lower().replace(" ", "_")
+        if not _NAME_RE.match(stem):
+            raise ThemeError([CardIssue("theme_bad_name", (("name", stem),))])
         if len(payload) > _MAX_THEME_BYTES:
             raise ThemeError([CardIssue("theme_too_large")])
         target = self._guild_dir(guild_id) / f"{stem}.yaml"
@@ -829,7 +982,11 @@ class ThemeStore:
         return stem
 
     async def _import_package(
-        self, guild_id: int, filename: str, payload: bytes
+        self,
+        guild_id: int,
+        filename: str,
+        payload: bytes,
+        name_override: str | None = None,
     ) -> str:
         """Import a theme package (the ZIP of a folder with ``theme.yaml``)."""
         if len(payload) > _MAX_PACKAGE_BYTES:
@@ -841,7 +998,7 @@ class ThemeStore:
             if source is None:
                 raise ThemeError([CardIssue("theme_package_no_manifest")])
             package = load_theme_package(source)
-            name = package.name.strip()
+            name = (name_override or package.name).strip()
             if not _NAME_RE.match(name):
                 raise ThemeError([CardIssue("theme_bad_name", (("name", name),))])
             if len(package.documents) > _MAX_PACKAGE_CARDS:
@@ -853,6 +1010,17 @@ class ThemeStore:
                         )
                     ]
                 )
+            # The host's asset policy: a theme that carries forbidden media
+            # is rejected whole (emojis are kept; only the upload is gated).
+            gate = _asset_gate_problems(
+                package.assets, self.host_config.theme_assets
+            )
+            asset_problems = validate_theme_assets(source)
+            if gate or asset_problems:
+                issues = [CardIssue("theme_assets_invalid")]
+                for reason in [*gate, *asset_problems][:3]:
+                    issues.append(CardIssue("theme_assets_detail", (("detail", reason),)))
+                raise ThemeError(issues)
             # Validate the whole chain (the package and its parents) before
             # anything is written.
             target = self._guild_dir(guild_id) / name
@@ -860,6 +1028,11 @@ class ThemeStore:
             if target.exists():
                 shutil.rmtree(target)
             shutil.copytree(source, target)
+            if name != package.name:
+                # The manifest keeps the name the guild will select.
+                _rewrite_manifest_name(target / "theme.yaml", name)
+                # Emoji references carry the theme name in the path.
+                _rewrite_theme_emoji_refs(target, package.name, name)
             try:
                 self.load(name, guild_id=guild_id)
             except (ThemeError, OSError):
@@ -867,6 +1040,28 @@ class ThemeStore:
                 raise
         self._cache.pop((guild_id, name), None)
         return name
+
+    def export_base(self) -> tuple[str, bytes] | None:
+        """The built-in theme as a ZIP (the "download the base" of /themes).
+
+        The package is the guild's own ``default`` when it has one, else the
+        shipped one: either way the ZIP is a complete, editable copy with an
+        ``assets/`` folder for the theme's media and emojis.
+        """
+        base = self.themes_dir / "default"
+        source = base if (base / "theme.yaml").is_file() else PACKAGE_DIR
+        if not (source / "theme.yaml").is_file():
+            return None
+        return ("default.zip", _zip_package(source))
+
+    def metadata(self, name: str, guild_id: int | None = None) -> ThemeMetadata:
+        """The manifest metadata of ``name`` (no full chain load)."""
+        source = self._source_for(guild_id, name)
+        if source is None:
+            return ThemeMetadata()
+        if source.is_dir():
+            return load_theme_package(source).metadata
+        return parse_metadata(_read_yaml(source).get("metadata"))
 
     def export_theme(self, guild_id: int, name: str) -> tuple[str, bytes] | None:
         """The bytes of ``name`` (guild's own first, then global).
@@ -941,7 +1136,7 @@ def theme_store(bot) -> ThemeStore:
     store = getattr(bot, "_theme_store", None)
     if store is not None:
         return store
-    return ThemeStore(bot.storage.data_dir)
+    return ThemeStore(bot.storage.data_dir, host_config=getattr(bot, "host", None))
 
 
 #: resolution ------------------------------------------------------------
@@ -992,11 +1187,16 @@ async def card_document(bot, guild_id: int | None, key: str) -> dict[str, Any] |
     Resolution: active theme file's ``cards.<key>`` -> ``None`` (the caller
     keeps its own catalog/builder default). Validates lazily too: files were
     already validated at load, this is belt-and-braces against hand edits.
+
+    Reads the guild's theme **snapshot** (:func:`theme_for`), like
+    :func:`card_delta` and :func:`card_form`: the ``/themes`` preview swaps
+    the snapshot for the inspected theme, and this is what makes a legacy
+    full card (``cards:``) preview faithfully instead of falling back to the
+    active (or built-in) theme.
     """
     if guild_id is None:
         return None
-    store = theme_store(bot)
-    theme = await store.effective_theme(bot, guild_id)
+    theme = theme_for(bot, guild_id)
     cards = getattr(theme, "cards", None)
     doc = cards.get(key) if isinstance(cards, dict) else None
     if doc is None and isinstance(cards, dict):
@@ -1068,14 +1268,27 @@ def card_form(bot, guild_id: int | None, key: str) -> str | None:
 def card_origin(bot, guild_id: int | None, key: str) -> tuple[str | None, str | None]:
     """``(theme_name, key)`` when the active theme overrides ``key``, else ``(None, None)``.
 
+    A theme overrides a card in four ways, and all of them count: a legacy
+    full card (``cards``), a semantic document (``deltas``), a form-only
+    override (``card_forms``) and a mention toggle (``pings``). The trace
+    (``debug.card_paths``) reports the real origin instead of "default" for
+    a modern theme that only writes a delta.
+
     Synchronous on purpose: reads the same snapshot :func:`theme_for` uses.
     """
     if guild_id is None:
         return (None, None)
     theme = theme_for(bot, guild_id)
-    cards = getattr(theme, "cards", None)
-    if isinstance(cards, dict) and key in cards:
-        return (getattr(theme, "name", None) or "?", key)
+    name = getattr(theme, "name", None) or "?"
+    for attr in ("cards", "deltas", "card_forms", "pings"):
+        section = getattr(theme, attr, None)
+        if not isinstance(section, dict):
+            continue
+        if key in section:
+            return (name, key)
+        legacy = _RENAMED_CARDS.get(key)
+        if legacy is not None and legacy in section:
+            return (name, key)
     return (None, None)
 
 

@@ -275,10 +275,12 @@ class Theme:
         """The theme's built-in gif list for an interaction action.
 
         Theme ``roleplay.gifs.<action>:`` is a list of entries: either
-        ``{url: ...}`` (a fixed gif) or ``{api: <category>}`` (a random
-        gif from that nekos.best category at send time). Malformed entries
-        are skipped, never raised: a broken theme section must not break a
-        send (the cog degrades to the no-gif error).
+        ``{url: ...}`` (a fixed gif), ``{file: <key>}`` (a file under the
+        theme's ``assets/media/``, uploaded as an attachment at send time) or
+        ``{api: <category>}`` (a random gif from that nekos.best category at
+        send time). Malformed entries are skipped, never raised: a broken
+        theme section must not break a send (the cog degrades to the no-gif
+        error).
         """
         raw = getattr(self, "roleplay", None)
         gifs = raw.get("gifs") if isinstance(raw, dict) else None
@@ -290,9 +292,12 @@ class Theme:
             if not isinstance(entry, dict):
                 continue
             url = str(entry.get("url") or "").strip()
+            file_key = str(entry.get("file") or "").strip()
             api = str(entry.get("api") or "").strip().lower()
             if url:
                 parsed.append({"url": url})
+            elif file_key:
+                parsed.append({"file": file_key})
             elif api:
                 parsed.append({"api": api})
         return parsed

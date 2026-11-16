@@ -27,3 +27,16 @@ update:
 convert:
   max_mb: 25              # maximum input file size
   timeout_seconds: 120    # conversion timeout
+
+themes:
+  # Which assets a custom theme package may bring (its assets/ folder).
+  assets:
+    # Images, fonts, video and audio a theme references in its HTML templates,
+    # cards and roleplay gifs. Allowed by default; a theme that carries media
+    # while this is false is rejected on import.
+    media: true
+    # Emoji images a theme uploads as GLOBAL application emojis (namespaced
+    # t_<theme>_<name>). Off by default: every uploaded emoji consumes the
+    # application quota. A theme may always reference an emoji by its plain
+    # server id (<:name:123>) even when this is false.
+    emojis: false

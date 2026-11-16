@@ -278,7 +278,9 @@ class _ThemeBot:
         self.theme = load_theme()
         self.translator = _FakeTranslator()
         self._theme_store = ThemeStore(tmp_path, themes_dir=themes_dir)
-        self.guilds = []
+        # preload_themes snapshots per guild: a guild must exist for the cache
+        # to warm (production always has the bot's guilds).
+        self.guilds = [type("G", (), {"id": 1})()]
         self._theme_cache: dict = {}
 
     async def activate(self, name: str) -> None:

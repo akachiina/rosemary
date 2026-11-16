@@ -90,27 +90,24 @@ async def test_panel_renders_items_and_select_options(tmp_path):
     )
     assert "themes.title" in texts
     assert "themes.active_none" in texts
+    # Home screen: one picker (goes to detail) + import/base/reset buttons.
     selects = [i for i in _walk(items) if isinstance(i, discord.ui.Select)]
-    assert [s.custom_id for s in selects] == [
-        "themes_select",
-        "themes_export",
-        "themes_inspect",
-        "themes_preview_card",
-        "themes_preview_form",
-    ]
-    assert any(
-        isinstance(b, discord.ui.Button) and b.custom_id == "themes_reset"
-        for b in _walk(items)
-    )
+    assert [s.custom_id for s in selects] == ["themes_select"]
+    buttons = {
+        b.custom_id for b in _walk(items) if isinstance(b, discord.ui.Button)
+    }
+    assert {"themes_import", "themes_export_base", "themes_reset", "themes_close"} <= buttons
 
 
 async def test_select_switches_active_theme_and_snapshots(tmp_path):
     bot, store, view = await make(tmp_path)
-    interaction = FakeInteraction(values=["cute"])
-    await view._select(interaction)
+    # Selecting opens the detail screen; activation is a button there.
+    await view._select(FakeInteraction(values=["cute"]))
+    assert view._screen == "detail"
+    assert view._inspect == "cute"
+    await view._activate(FakeInteraction())
     assert await store.get_active(1) == "cute"
     assert theme_name(bot, 1) == "cute"  # snapshot refreshed
-    assert "themes.selected" in _texts(view)
 
 
 async def test_reset_clears_active(tmp_path):
@@ -176,10 +173,21 @@ async def test_remove_only_lists_guild_imports(tmp_path):
     await preload_themes(bot)
     view = ThemesMenuView(bot, 1, owner_id=9)
     await view.prepare()
+    view._screen = "detail"
+    # A guild import offers the remove button.
+    view._inspect = "local"
     items = await view.build_items()
-    selects = [i for i in _walk(items) if isinstance(i, discord.ui.Select)]
-    remove = next(s for s in selects if s.custom_id == "themes_remove")
-    assert [o.value for o in remove.options] == ["local"]  # global not listed
+    assert any(
+        isinstance(b, discord.ui.Button) and b.custom_id == "themes_remove"
+        for b in _walk(items)
+    )
+    # A global theme does not (the guild never owned it).
+    view._inspect = "cute"
+    items = await view.build_items()
+    assert not any(
+        isinstance(b, discord.ui.Button) and b.custom_id == "themes_remove"
+        for b in _walk(items)
+    )
 
 
 #: the inspection -------------------------------------------------------------

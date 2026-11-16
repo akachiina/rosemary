@@ -48,6 +48,20 @@ audit.ban:
   description: '{card.audit.ban.body}'
 """
 
+#: A theme with a **legacy full card** (raw Components V2): it replaces the
+#: whole card, so the preview must show it, not the built-in one. Legacy full
+#: cards live in a single-file theme (a package's ``cards/*.yaml`` takes
+#: semantic documents only).
+FULL_CARD_FILE = """name: fancy
+cards:
+  audit.ban:
+  - type: 17
+    accent_color: "#ff00ff"
+    components:
+    - type: 10
+      content: "## CIRCUS BAN"
+"""
+
 
 class FakeTranslator:
     """Resolves the real catalog copy (the keys it does not have stay)."""
@@ -204,3 +218,50 @@ async def test_the_preview_renders_the_inspected_theme(tmp_path):
     from rosemary.core.themes import theme_for
 
     assert theme_for(bot, 1) is bot.theme
+
+
+async def test_the_preview_renders_the_inspected_legacy_card(tmp_path):
+    """A legacy full card previews the inspected theme, not the built-in one.
+
+    Regression: ``card_document`` used to read the active theme from disk, so
+    the preview's snapshot swap never reached raw ``cards:`` and a non-active
+    theme showed the default card (or nothing).
+    """
+    themes = tmp_path / "themes"
+    themes.mkdir()
+    (themes / "fancy.yaml").write_text(FULL_CARD_FILE, encoding="utf-8")
+    store = ThemeStore(tmp_path, themes_dir=themes)
+    bot = FakeBot(tmp_path, store)
+    await preload_themes(bot)
+    theme = store.load("fancy")
+    payload, _allowed = await preview_card(bot, 1, "audit.ban", "card", theme=theme)
+    assert payload is not None and payload.view is not None
+    texts = [getattr(i, "content", None) for i in payload.view.walk_children()]
+    assert any("CIRCUS BAN" in (text or "") for text in texts), texts
+
+
+async def test_the_preview_fills_real_data(tmp_path):
+    """The preview uses the real guild, version and theme, not only samples."""
+    from rosemary import __version__
+    from rosemary.core.theme_tools import _real_variables
+
+    bot = FakeBot(tmp_path, _store(tmp_path))
+    guild = type(
+        "G",
+        (),
+        {
+            "id": 1,
+            "name": "Servidor Real",
+            "member_count": 42,
+            "icon": None,
+            "banner": None,
+            "get_member": lambda self, uid: None,
+        },
+    )()
+    bot.get_guild = lambda gid: guild if gid == 1 else None
+    values = await _real_variables(bot, 1, "fancy", None)
+    assert values["server"] == "Servidor Real"
+    assert values["server_name"] == "Servidor Real"
+    assert values["members"] == 42
+    assert values["version"] == __version__
+    assert values["theme"] == "fancy"

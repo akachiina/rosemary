@@ -192,6 +192,30 @@ class AssetRegistry:
 
     # -- uploading -----------------------------------------------------------
 
+    def scan_theme_emojis(self, theme_name: str, package_dir: Path) -> list[Asset]:
+        """Index the ``assets/emojis/`` of a theme package (namespaced).
+
+        Theme emojis are application emojis: the key is ``<theme>/<name>``
+        and the Discord name is prefixed (``t_<theme>_<name>``) so two themes
+        can carry the same local name without colliding in the global
+        application quota. This only registers them; the caller uploads via
+        :meth:`sync` when the host allows it (``themes.assets.emojis``).
+        """
+        from rosemary.core.theme_assets import emoji_asset_filename, scan_theme_assets
+
+        found: list[Asset] = []
+        for key, path in scan_theme_assets(package_dir).emojis.items():
+            full = f"{theme_name}/{key}"
+            asset = Asset(
+                key=full,
+                name=emoji_asset_filename(theme_name, key),
+                scope="app",
+                path=path,
+            )
+            self._assets[full] = asset
+            found.append(asset)
+        return found
+
     async def sync(self, bot: Any) -> int:
         """Upload the application emojis Discord does not have yet.
 

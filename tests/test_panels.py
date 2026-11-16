@@ -1,4 +1,4 @@
-"""Panel repaint registry + the bugs found by the ridiculous test theme.
+"""Panel repaint registry + the bugs found by a deliberately garish test theme.
 
 Covers: active-theme emoji resolution (render used the built-in theme), the
 in-place panel repaint on theme change, and stable themed button ids across

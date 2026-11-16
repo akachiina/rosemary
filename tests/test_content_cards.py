@@ -46,6 +46,9 @@ def make_bot():
     bot = MagicMock()
     bot.theme = load_theme()
     bot.translator = FakeTranslator()
+    # The theme snapshot is a real dict: the card pipeline reads it through
+    # theme_for (like production).
+    bot._theme_cache = {}
     # The card pipeline reads the guild's theme and settings through real
     # objects (a mock would break the await).
     root = Path(tempfile.mkdtemp())

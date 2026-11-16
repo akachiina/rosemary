@@ -194,7 +194,11 @@ def pick_gif(
     to one of them are skipped, unless that would leave nothing to send, in
     which case the full list applies (a repeat beats silence).
     """
-    usable = [g for g in gifs if isinstance(g, dict) and (g.get("url") or g.get("api"))]
+    usable = [
+        g
+        for g in gifs
+        if isinstance(g, dict) and (g.get("url") or g.get("api") or g.get("file"))
+    ]
     if exclude:
         excluded = set(exclude)
         # ``api`` entries carry no url yet, so they always survive the filter
@@ -299,6 +303,39 @@ async def resolve_gif(
 def category_for(action: str) -> str | None:
     """The built-in nekos.best category of an action (``None``: unknown)."""
     return DEFAULT_CATEGORIES.get(action)
+
+
+async def resolve_gif_full(
+    gifs: list[dict[str, Any]],
+    fallback_category: str | None,
+    exclude: list[str] | None = None,
+) -> dict[str, Any] | None:
+    """Resolve one gif entry into a ``{kind: url|file, ...}`` map (or ``None``).
+
+    ``kind="url"`` carries ``url`` and ``from_api`` (ephemeral: no source
+    link on the card). ``kind="file"`` carries the theme media ``key``: the
+    caller resolves it against the active theme's ``assets/media/`` and
+    uploads it as an attachment, because a local file has no URL.
+    """
+    excluded = set(exclude or [])
+    entry = pick_gif(gifs, exclude)
+    if entry is not None:
+        url = str(entry.get("url") or "").strip()
+        if url:
+            return {"kind": "url", "url": url, "from_api": False}
+        file_key = str(entry.get("file") or "").strip()
+        if file_key and not entry.get("api"):
+            return {"kind": "file", "key": file_key}
+        category = str(entry.get("api") or "").strip()
+        if category:
+            fetched = await _fetch_fresh(category, excluded)
+            if fetched:
+                return {"kind": "url", "url": fetched, "from_api": True}
+    if fallback_category:
+        fetched = await _fetch_fresh(fallback_category, excluded)
+        if fetched:
+            return {"kind": "url", "url": fetched, "from_api": True}
+    return None
 
 
 _CATEGORY_RE = re.compile(r"^[a-z0-9]+$")

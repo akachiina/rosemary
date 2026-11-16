@@ -20,6 +20,8 @@ import contextlib
 import dataclasses
 from typing import Any
 
+import discord
+
 from rosemary.core.documents.merge import DocumentError, resolve_layers
 from rosemary.core.documents.templates import TOKEN_RE
 from rosemary.core.theme_package import default_package
@@ -274,13 +276,14 @@ def _texts(doc: Any) -> list[str]:
 
 
 async def preview_card(
-    bot, guild_id: int, key: str, form: str, theme: Any = None
+    bot, guild_id: int, key: str, form: str, theme: Any = None, user_id: int | None = None
 ) -> tuple[Any, Any]:
     """Render a card of a theme in one shape.
 
-    The variables are the samples of the contract (the same ones the editor
-    preview uses), so the admin sees what a member would receive. Returns
-    the ``(payload, allowed_mentions)`` pair of the card pipeline.
+    The variables are the samples of the contract, but the ones the preview
+    can know for real (the bot's version, the guild, the invoker, the bot's
+    own avatar) are filled with real values, so the admin sees a preview
+    close to what a member would receive instead of a wall of samples.
 
     ``theme`` previews a theme that is not the active one: the guild's
     snapshot is swapped for the render and restored right after, so the
@@ -291,8 +294,110 @@ async def preview_card(
 
     contract = _contract(key)
     variables = preview_variables(*contract)
+    real = await _real_variables(bot, guild_id, getattr(theme, "name", None), user_id)
+    for name in contract:
+        if name in real:
+            variables[name] = real[name]
     with _using_theme(bot, guild_id, theme):
         return await render_card_message(bot, guild_id, key, variables, form=form)
+
+
+async def _real_variables(
+    bot, guild_id: int, theme_name: str | None, user_id: int | None
+) -> dict[str, Any]:
+    """Real values for the variables the preview can know (the rest stays sample).
+
+    The preview is generic, but a few variables are the same for every send:
+    the bot's version, the host line, the guild name/counts, the bot's own
+    avatar and the invoker (the admin clicking preview). Filling them makes
+    the preview look like the real card instead of a wall of samples.
+    """
+    from rosemary import __version__
+
+    values: dict[str, Any] = {
+        "version": __version__,
+        "theme": theme_name or "default",
+        "origin": theme_name or "default",
+        "timestamp": discord.utils.format_dt(discord.utils.utcnow(), style="R"),
+    }
+
+    host = getattr(bot, "host", None)
+    if host is not None:
+        values["channel"] = getattr(host, "update_channel", "stable")
+        identity = getattr(host, "identity_line", None)
+        if callable(identity):
+            values["host_line"] = identity()
+
+    guild = None
+    get_guild = getattr(bot, "get_guild", None)
+    if callable(get_guild) and guild_id is not None:
+        guild = get_guild(guild_id)
+    if guild is not None:
+        name = getattr(guild, "name", "") or ""
+        values.update(
+            {
+                "server": name,
+                "guild": name,
+                "server_name": name,
+                "members": getattr(guild, "member_count", 0) or 0,
+            }
+        )
+        icon = getattr(guild, "icon", None)
+        if icon is not None:
+            values["server_icon"] = icon.url
+        banner = getattr(guild, "banner", None)
+        if banner is not None:
+            values["banner_url"] = banner.url
+        bot_user = getattr(bot, "user", None)
+        get_member = getattr(guild, "get_member", None)
+        if bot_user is not None and callable(get_member):
+            me = get_member(bot_user.id)
+            if me is not None:
+                values["bot_avatar"] = me.display_avatar.url
+                me_banner = getattr(me, "guild_banner", None) or getattr(me, "banner", None)
+                if me_banner is not None:
+                    values["bot_banner"] = me_banner.url
+
+    user = None
+    if guild is not None and user_id is not None and callable(getattr(guild, "get_member", None)):
+        user = guild.get_member(user_id)
+    if user is None and user_id is not None:
+        get_user = getattr(bot, "get_user", None)
+        if callable(get_user):
+            user = get_user(user_id)
+    if user is not None:
+        mention = getattr(user, "mention", "")
+        display = getattr(user, "display_name", "") or getattr(user, "name", "")
+        avatar = getattr(user, "display_avatar", None)
+        avatar_url = avatar.url if avatar is not None else ""
+        values.update(
+            {
+                "user": mention,
+                "user_mention": mention,
+                "user_name": display,
+                "user_avatar": avatar_url,
+                "user_id": str(getattr(user, "id", "")),
+                "member": mention,
+                "member_mention": mention,
+                "member_name": display,
+                "member_avatar": avatar_url,
+                "member_id": str(getattr(user, "id", "")),
+                "author": mention,
+                "author_name": display,
+                "author_avatar": avatar_url,
+            }
+        )
+
+    if guild_id is not None:
+        try:
+            from rosemary.core.settings import get_setting
+
+            prefix = await get_setting(bot.storage, guild_id, "general.prefix")
+            if prefix:
+                values["prefix"] = prefix
+        except Exception:
+            pass
+    return values
 
 
 @contextlib.contextmanager

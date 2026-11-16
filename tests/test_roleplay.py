@@ -298,6 +298,33 @@ async def test_card_flow_posts_gallery_and_regive(tmp_path):
     }
 
 
+async def test_theme_media_file_gif_is_attached(tmp_path):
+    """A theme's ``{file: key}`` hug gif rides the message as an attachment."""
+    from rosemary.cogs.roleplay import RoleplayCog
+    from rosemary.core.theme_assets import ThemeAssets
+
+    bot = _bot(tmp_path)
+    cog = RoleplayCog(bot)
+    media = tmp_path / "assets" / "media"
+    media.mkdir(parents=True)
+    gif = media / "hug.gif"
+    gif.write_bytes(b"gif89a-local")
+    bot.theme.roleplay = {"gifs": {"hug": [{"file": "hug"}]}}
+    bot.theme.assets = ThemeAssets(media={"hug": gif})
+    channel = _channel()
+    guild = _guild(channel)
+    posted = await cog.send_interaction_card(
+        guild, _member(1), _member(2), "hug", channel=channel
+    )
+    assert posted is True
+    kwargs = channel.send.await_args.kwargs
+    assert kwargs.get("file") is not None
+    assert kwargs["file"].filename == "hug.gif"
+    # A local file has no URL: the regive row carries no source link.
+    context = await cog.store.get_regive(1, 999)
+    assert context["source_url"] == ""
+
+
 async def test_theme_api_seed_posts_without_configuration(tmp_path):
     """No guild override: the theme's ``api`` seed fetches a fresh gif (the
     default theme seeds every action with one)."""

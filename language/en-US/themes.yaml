@@ -6,22 +6,36 @@ themes:
       attachment:
         description: Optional theme file to import (.yaml or a .zip package)
   title: Themes
-  hint: Import a theme file, pick the active one, or export/download what is installed.
+  hint: Import a theme file (this server only), pick the active one, or export/download what is installed.
+  manage_placeholder: Choose a theme to manage...
+  detail_title: Theme
+  detail_hint: The details and actions of **{theme}**.
+  activate_button: Activate
+  export_button: Export
+  remove_button: Remove
+  preview_title: Preview
+  preview_hint: Pick the card and the shape of the preview.
+  back: Back
   active_none: Built-in default
   active_label: 'Active theme: **{theme}**'
   import_title: Import theme
-  import_label: Theme file (.yaml or .zip)
-  import_description: A theme YAML (or a package .zip) previously exported from Rosemary or written by hand.
   imported: '{register} Theme **{theme}** imported and validated.'
-  select_placeholder: Choose the active theme...
   selected: '{palette} Theme **{theme}** is now active.'
-  export_placeholder: Choose a theme to download...
   export_failed: '{error} Could not send that theme file.'
+  export_base_button: Download base theme
+  exported_base: '{check} Base theme sent: edit the package and re-upload it in /themes.'
+  import_button: Import theme
+  import_name_label: Theme name
+  import_name_placeholder: my-theme
+  import_file_label: Theme file
+  import_file_hint: A .yaml or a .zip package (with the assets folder, if any)
+  import_no_file: '{error} No file was uploaded.'
+  meta_creator: 'Created by **{creator}**'
+  meta_notes: '{notes}'
   reset_done: '{reset} Back to the built-in default theme.'
   reset_button: Default theme
   reload_button: Reload files
   reloaded: '{refresh} Theme files re-read from disk; panels refreshed.'
-  remove_placeholder: Choose an imported theme to remove...
   removed: '{trash} Theme **{theme}** removed.'
   removed_active: '{trash} Theme **{theme}** removed: back to the built-in default.'
   not_found: '{error} Theme not found.'
@@ -29,7 +43,6 @@ themes:
   none_yet: '*No themes imported yet: attach a ``.yaml`` file to /themes to add one.*'
   close: Close
   rejection_codes: 'Problems found: {codes}'
-  inspect_placeholder: Choose a theme to inspect...
   validate_button: Validate
   diff_button: Diff
   preview_button: Preview

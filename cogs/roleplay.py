@@ -27,6 +27,7 @@ annotations break option parsing (same rule as moderation/invites/info).
 """
 
 import contextlib
+import io
 import logging
 from typing import Any
 
@@ -41,7 +42,7 @@ from rosemary.core.roleplay import (
     ACTIONS,
     RoleplayStore,
     category_for,
-    resolve_gif,
+    resolve_gif_full,
 )
 from rosemary.core.settings import get_setting
 from rosemary.ui.menu import MenuView
@@ -614,6 +615,32 @@ class RoleplayCog(commands.Cog):
         theme = self.bot.theme
         return theme.roleplay_gifs(action) if theme is not None else []
 
+    def _theme_gif_file(
+        self, guild_id: int, key: str
+    ) -> tuple[discord.File | None, str]:
+        """The theme media file for a roleplay ``{file: key}`` entry.
+
+        Returns ``(file, attachment_url)`` or ``(None, "")`` when the active
+        theme has no such file (the caller falls back to the default API).
+        """
+        from rosemary.core.theme_assets import ThemeAssets
+        from rosemary.core.themes import theme_for
+
+        theme = theme_for(self.bot, guild_id)
+        assets = getattr(theme, "assets", None) or ThemeAssets()
+        path = assets.media_path(key)
+        if path is None:
+            return None, ""
+        try:
+            data = path.read_bytes()
+        except OSError:
+            log.warning("Roleplay media %r could not be read", key)
+            return None, ""
+        return (
+            discord.File(io.BytesIO(data), filename=path.name),
+            f"attachment://{path.name}",
+        )
+
     #: card send -------------------------------------------------------------
 
     async def send_interaction_card(
@@ -635,11 +662,23 @@ class RoleplayCog(commands.Cog):
             await get_setting(self.bot.storage, guild_id, "roleplay.no_repeat_gifs")
         )
         recent = await self.store.get_recent(guild_id, action) if no_repeat else []
-        gif_url, from_api = await resolve_gif(
-            configured, category_for(action), recent
-        )
-        if gif_url is None:
+        gif_file: discord.File | None = None
+        resolved = await resolve_gif_full(configured, category_for(action), recent)
+        if resolved is None:
             return False
+        if resolved["kind"] == "file":
+            gif_file, gif_url = self._theme_gif_file(guild_id, resolved["key"])
+            source_url = ""
+            if gif_file is None:
+                # The theme media file is gone: fall back to the default API.
+                resolved = await resolve_gif_full([], category_for(action), recent)
+                if resolved is None or resolved["kind"] != "url":
+                    return False
+                gif_url = resolved["url"]
+                source_url = gif_url
+        else:
+            gif_url = resolved["url"]
+            source_url = gif_url
         if channel is None:
             return False
         if no_repeat:
@@ -670,7 +709,7 @@ class RoleplayCog(commands.Cog):
         # The source link always points at the resolved gif (API gifs
         # included: that exact url IS the source). The re-give label names
         # the action, so the row says what it does.
-        row = await view.build_row(action=action, source_url=gif_url)
+        row = await view.build_row(action=action, source_url=source_url)
         view.add_item(row)
         if payload.embed is not None:
             embed_view = payload.view or discord.ui.View(timeout=None)
@@ -683,8 +722,17 @@ class RoleplayCog(commands.Cog):
             )
         else:
             payload.view.add_item(row)
+        kwargs = dict(payload.message_kwargs())
+        kwargs["allowed_mentions"] = allowed
+        if gif_file is not None:
+            # A local gif (the theme's assets/media): the file rides the
+            # message and the card references it via attachment://.
+            if kwargs.get("files"):
+                kwargs["files"] = [gif_file, *kwargs["files"]]
+            else:
+                kwargs["file"] = gif_file
         try:
-            sent = await channel.send(**payload.message_kwargs(), allowed_mentions=allowed)
+            sent = await channel.send(**kwargs)
         except (discord.Forbidden, discord.HTTPException) as exc:
             log.warning("Interaction card send failed in %s: %s", guild_id, exc)
             return True
@@ -699,7 +747,7 @@ class RoleplayCog(commands.Cog):
                 action,
                 actor.id,
                 target.id,
-                source_url=gif_url,
+                source_url=source_url,
             )
         return True
 

@@ -111,6 +111,30 @@ def test_render_panel_png_transparent_and_growing():
     assert eight[1] > four[1]  # more colors -> taller image
 
 
+def test_render_panel_resolves_theme_media(tmp_path):
+    """A ``{media/<name>}`` in the item resolves before ``str.format``.
+
+    If the placeholder survived, ``item.format(...)`` would raise KeyError;
+    a PNG back proves the theme media was resolved into the HTML.
+    """
+    import io
+
+    from PIL import Image
+
+    from rosemary.core.color_image import render_panel
+
+    scratch = io.BytesIO()
+    Image.new("RGBA", (2, 2), (255, 0, 0, 255)).save(scratch, format="PNG")
+    media = tmp_path / "assets" / "media"
+    media.mkdir(parents=True)
+    (media / "dot.png").write_bytes(scratch.getvalue())
+    item = '<img src="{media/dot}" style="width:10px;height:10px">{number}. {name}'
+    out = render_panel(
+        _panel_colors(1), item=item, media={"dot": (media / "dot.png").as_uri()}
+    )
+    assert out is not None and out[:4] == b"\x89PNG"
+
+
 def test_render_panel_edge_cases():
     from rosemary.core.color_image import render_panel
 

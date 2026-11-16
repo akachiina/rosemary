@@ -24,9 +24,11 @@ import base64
 import html as _html
 import logging
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from rosemary.core.color_image import rasterize_pdf
+from rosemary.core.theme_assets import resolve_media_refs
 
 log = logging.getLogger(__name__)
 
@@ -254,6 +256,7 @@ def render_bubbles(
     image: str | None = None,
     emojis: dict[str, str] | None = None,
     edited_marker: str = "",
+    media: Mapping[str, str] | None = None,
 ) -> bytes | None:
     """Rasterize the chat bubbles for the resolved values (or ``None``).
 
@@ -262,14 +265,18 @@ def render_bubbles(
     callers degrade to a text-only card. Content-less bubbles render an
     em-space so the bubble frame still shows (a message can be image-only).
     ``edited_marker`` is the localized ``(editado)`` text for bubbles flagged
-    ``edited`` (empty disables the marker entirely).
+    ``edited`` (empty disables the marker entirely). ``media`` maps a theme
+    media key to its ``file://`` URL (see ``color_image.render_panel``).
     """
     if not bubbles:
         return None
     base_template, base_bubble = default_templates()
-    base_template = template if template else base_template
-    base_bubble = bubble if bubble else base_bubble
-    image_template = image if image else DEFAULT_BUBBLE_IMAGE
+    media_map = media or {}
+    # Resolve media before ``safe_format`` (which would otherwise let the
+    # asset registry eat the ``{media/...}`` placeholder).
+    base_template = resolve_media_refs(template if template else base_template, media_map)
+    base_bubble = resolve_media_refs(bubble if bubble else base_bubble, media_map)
+    image_template = resolve_media_refs(image if image else DEFAULT_BUBBLE_IMAGE, media_map)
     theme_emojis = emojis or {}
 
     def render_one(info: Bubble) -> str:

@@ -270,7 +270,9 @@ medals:
 # __PANEL_W__/__PANEL_H__ anchor the PDF page (the PNG is cropped to
 # content, so page size only matters for layout). `item` is one row per
 # color: {number}, {name}, {color}/{hex} (same value), all HTML-escaped
-# except the color itself. Layout notes: WeasyPrint speaks a CSS subset - # multi-column + inline-block render faithfully; flexbox/grid do not.
+# except the color itself. A theme can point at its own files with
+# {media/<name>} (a file under assets/media/, resolved to a file:// URL).
+# Layout notes: WeasyPrint speaks a CSS subset - # multi-column + inline-block render faithfully; flexbox/grid do not.
 color_panel:
   html: |
     <style>
@@ -308,7 +310,9 @@ color_panel:
 # {author_avatar} (data URI), {bot} (APP badge or empty), {time}
 # (dd/mm/yyyy hh:mm:ss), {content} (HTML-escaped, newlines as <br>, capped),
 # {edited} (the localized (editado) marker on edited-state bubbles) and
-# {image}. Layout notes: WeasyPrint speaks a CSS subset - tables +
+# {image}. A theme can point at its own files with {media/<name>} (a file
+# under assets/media/, resolved to a file:// URL).
+# Layout notes: WeasyPrint speaks a CSS subset - tables +
 # inline-block render faithfully; flexbox/grid do not; HTML width/height
 # attributes on <img> are IGNORED (size images with CSS width/height only);
 # word-break: break-word is rejected (use overflow-wrap). Keep the image
@@ -359,11 +363,12 @@ panels:
       - {action: close, label: "{ui.close}", emoji: door}
 
 # Interactions (roleplay) gifs: the DEFAULT source per action, used when a
-# guild has no own list (the manager seeds it on first edit). Two entry
+# guild has no own list (the manager seeds it on first edit). Three entry
 # shapes: `api: <category>` fetches a RANDOM gif from that nekos.best
-# category at every send (no keys, free API), and `url: <link>` pins one
-# static gif. A guild that edits its list in /settings replaces this whole
-# section for itself (mix both shapes freely there).
+# category at every send (no keys, free API), `url: <link>` pins one
+# static gif, and `file: <key>` uses a file under the theme's assets/media/
+# (uploaded as an attachment). A guild that edits its list in /settings
+# replaces this whole section for itself (mix the shapes freely there).
 roleplay:
   gifs:
     hug:

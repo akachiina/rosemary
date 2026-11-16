@@ -199,7 +199,7 @@ class RosemaryBot(commands.Bot):
         self.storage = GuildStorage(data_dir=data_dir)
         from rosemary.core.themes import ThemeStore
 
-        self._theme_store = ThemeStore(data_dir)
+        self._theme_store = ThemeStore(data_dir, host_config=self.host)
 
         async def _resolver(guild_id: int | None) -> str:
             settings = await self.storage.get(guild_id) if guild_id is not None else {}
@@ -219,6 +219,13 @@ class RosemaryBot(commands.Bot):
         # are uploaded at startup, and every {emojis/...} reference resolves
         # through this registry.
         self.assets.scan()
+        # Theme-owned emojis (assets/emojis of the theme packages) join the
+        # same registry only when the host allows it: every uploaded emoji is
+        # a global application emoji. The upload itself happens in the async
+        # asset sync (bot._sync_assets), never here.
+        if self.host.theme_assets.emojis:
+            for name, package in self._theme_store.iter_theme_packages():
+                self.assets.scan_theme_emojis(name, package)
 
         self.add_cog(AboutCog(self))
         self.add_cog(LanguageCog(self))
@@ -320,6 +327,28 @@ class RosemaryBot(commands.Bot):
             return
         if sent:
             log.info("Uploaded %d asset emoji(s)", sent)
+
+    async def sync_theme_emojis(self) -> None:
+        """Index and upload the theme-owned emojis the host allows.
+
+        Called after a guild imports a theme (the cog path) and available for
+        a manual refresh. A no-op when ``themes.assets.emojis`` is off, so a
+        host who never enabled it never pays the global emoji quota.
+        """
+        if not self.host.theme_assets.emojis:
+            return
+        scanned = 0
+        for name, package in self._theme_store.iter_theme_packages():
+            scanned += len(self.assets.scan_theme_emojis(name, package))
+        if not scanned:
+            return
+        try:
+            sent = await self.assets.sync(self)
+        except Exception as exc:
+            log.warning("Theme emoji sync failed: %s", exc)
+            return
+        if sent:
+            log.info("Uploaded %d theme asset emoji(s)", sent)
 
     async def _get_prefix(self, bot, message) -> str:
         """Resolve the guild-scoped command prefix for a message."""

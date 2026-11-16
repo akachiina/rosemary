@@ -786,7 +786,7 @@ invites.logs.join:
     value: '{user}'
     inline: true
   - label: '{invites.logs.join.code_label}'
-    value: '{code}'
+    value: '`{code}`'
     inline: true
   - label: '{invites.logs.join.inviter_label}'
     value: '{inviter}'

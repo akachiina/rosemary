@@ -32,15 +32,6 @@
         {
           "content": "Build: `abc1234`",
           "type": "TextDisplay"
-        },
-        {
-          "children": [
-            {
-              "type": "MediaGalleryItem",
-              "url": "https://cdn.discordapp.com/embed/avatars/1.png"
-            }
-          ],
-          "type": "MediaGallery"
         }
       ],
       "type": "Container"

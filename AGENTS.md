@@ -671,7 +671,8 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   full editor). The title and the body come either from the catalog (the
   copy of the feature) or from the send site (the `{title}` and `{body}`
   variables). A body of several paragraphs uses the `paragraphs` slot (the
-  about card: the text and the version line).
+  about card: the text and the version line). The about card shows the bot's
+  avatar as the thumbnail and **no banner** (`image` was removed).
 - The **bump reminder is one message**: the role ping rides the `ping_line`
   of the document (the opening line, the first block of the V2, above the
   frame), so `cogs/bump_reminder.py::send_reminder` sends the card alone and
@@ -752,6 +753,35 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   `colors`/`emojis`/`markdown`/`styles` + optional `cards:`/`pings:`/
   `color_panel:`/`snapshot:`. Active theme resolves via sync
   `theme_for(bot, guild_id)` (boot snapshot).
+- **The manifest carries metadata** (`metadata:` in `theme.yaml`, read by
+  `core/theme_package.py::parse_metadata` into `ThemeMetadata`): `display_name`
+  (the name shown in `/themes`, falls back to `name`), `icon` (a Unicode emoji
+  or `{emojis/token}`), `creator`, `notes` (free text) and `tags`. It is
+  cosmetic: it never changes how a card renders. `/themes` shows the icon +
+  display name on the selects and the creator/notes of the inspected theme.
+- **A theme package may ship `assets/`** (`core/theme_assets.py`), split in
+  `assets/media/` (images, fonts, video, audio) and `assets/emojis/` (emoji
+  images). The host gates them in `host.yaml` (`themes.assets.media: true`,
+  `themes.assets.emojis: false`): media is allowed by default, emojis are off
+  because every theme emoji is a **global** application emoji (namespaced
+  `t_<theme>_<name>`, uploaded at boot by `bot.sync_theme_emojis`). A theme may
+  always reference an emoji by its plain server id (`<:name:123>`). Exporting
+  the base (`ThemeStore.export_base`) creates the `assets/` folders.
+- **A theme's media files are referenced with `{media/<name>}`** (the key is
+  the path under `assets/media/` without the extension). They resolve in three
+  places: the HTML renderers (`core/color_image.py::render_panel`,
+  `core/chat_bubble.py::render_bubbles`, via `media_urls` → `file://` URLs),
+  the roleplay gifs (`{file: <key>}` in `roleplay.gifs`, uploaded as an
+  attachment), and the card URL slots (`core/card_media.py::resolve_card_media`
+  rewrites `image`/`thumbnail`/`file`/gallery urls to `attachment://` and
+  returns the `discord.File` list the send attaches). An unknown reference
+  disappears (never the raw placeholder).
+- **`/themes` exports the base**: *Baixar tema base* sends the built-in
+  package as `default.zip` (with an `assets/` folder), the complete editable
+  starting point. *Importar tema* opens a name + file modal; a package import
+  may override its name (`import_theme(..., name=...)`), which rewrites the
+  manifest and any `{emojis/<old>/...}` references. A single-file theme has no
+  `assets/`.
 - **A theme extends another one** (`extends: <name>`): the chain merges from
   the root to the child (the tokens deeply, the card documents as documents:
   the fields the child does not declare are inherited). A cycle is rejected
@@ -762,11 +792,13 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   **semantic document** (a delta over the packaged document: the fields it
   does not declare are inherited). A delta wins over a legacy card of the
   same key. `{"form": ...}` only picks the shape of the default content.
-- **`/themes` inspects a theme**: *validate* reports what is wrong with it
-  (the cards it names, the copy it points at, the variables it fills),
-  *diff* says what it changes against the built-in one and *preview* renders
-  one of its cards in each shape (the plain text, the classic embed, the
-  Components V2). The logic lives in `core/theme_tools.py`.
+- **`/themes` is a multi-screen panel** (the `/settings` pattern): *home*
+  (the active theme, a picker, import, download the base, reset), *detail*
+  (the theme's metadata and the actions: activate, export, remove, validate,
+  diff, preview) and *preview* (one card in each shape: the plain text, the
+  classic embed, the Components V2). The preview fills the variables it can
+  know for real (the bot's version, the guild, the invoker, the bot's own
+  avatar) instead of only samples. The logic lives in `core/theme_tools.py`.
 - **A guild theme extends the built-in one**: the tokens it does not define
   (`colors`, `emojis`, `markdown`, `styles`) keep the built-in value
   (`core/themes.py::baseline_theme`). A theme customizes the bot, it never
@@ -825,10 +857,10 @@ reusable pieces) and `cards/*.yaml` (one document per card family).
   and restart the bot: the boot uploads only the files Discord does not have
   yet. Per-server emoji (`assets/emojis/<server>/`) stays reserved.
 - **Machine values render as inline code in every card**: snowflake IDs, command
-  usages (`!ban`, `/configuracoes`), the text-command prefix, version/channel and
-  file names sit inside single backticks. Mentions, `<t:...>` timestamps, plain
-  counters and links never do. Swept in both catalogs and the info-family
-  footers by `tests/test_card_formatting.py`.
+  usages (`!ban`, `/configuracoes`), the text-command prefix, version/channel,
+  invite codes and file names sit inside single backticks. Mentions,
+  `<t:...>` timestamps, plain counters and links never do. Swept in both
+  catalogs and the info-family footers by `tests/test_card_formatting.py`.
 - **File sizes are human-readable everywhere**: a byte count the member reads
   goes through `core/sizes.py::human_size` (`1.2 MB`), never a raw number. A
   "too large" notice names both the actual size and the limit (`{size}` /

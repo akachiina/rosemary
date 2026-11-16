@@ -28,11 +28,56 @@ from typing import Any
 import yaml
 
 from rosemary.core.documents.merge import DocumentError, resolve_document
+from rosemary.core.theme_assets import ThemeAssets, scan_theme_assets
 
 log = logging.getLogger(__name__)
 
 #: The built-in package: ``rosemary/themes/default``.
 PACKAGE_DIR = Path(__file__).resolve().parents[1] / "themes" / "default"
+
+
+@dataclasses.dataclass(frozen=True)
+class ThemeMetadata:
+    """The human-facing metadata of a theme (the manifest's ``metadata:``).
+
+    Everything here is optional and cosmetic: it never changes how a card
+    renders, only how the theme presents itself in ``/themes``. A field that
+    is absent is empty, and :meth:`label` falls back to the theme name.
+    """
+
+    display_name: str = ""
+    icon: str = ""
+    creator: str = ""
+    notes: str = ""
+    tags: tuple[str, ...] = ()
+
+    def label(self, fallback: str) -> str:
+        """The name to show (``display_name`` or the theme's id)."""
+        return self.display_name.strip() or fallback
+
+
+def parse_metadata(raw: Any) -> ThemeMetadata:
+    """Read a ``metadata:`` block (tolerant: absent/wrong types = empty)."""
+    if not isinstance(raw, dict):
+        return ThemeMetadata()
+
+    def _text(key: str) -> str:
+        value = raw.get(key)
+        return value.strip() if isinstance(value, str) else ""
+
+    raw_tags = raw.get("tags")
+    tags: tuple[str, ...] = ()
+    if isinstance(raw_tags, (list, tuple)):
+        tags = tuple(str(tag).strip() for tag in raw_tags if str(tag).strip())
+    return ThemeMetadata(
+        display_name=_text("display_name"),
+        icon=_text("icon"),
+        creator=_text("creator"),
+        notes=str(raw.get("notes") or "").strip()
+        if isinstance(raw.get("notes"), str)
+        else "",
+        tags=tags,
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -56,6 +101,8 @@ class ThemePackage:
     archetypes: dict[str, dict[str, Any]] = dataclasses.field(default_factory=dict)
     fragments: dict[str, dict[str, Any]] = dataclasses.field(default_factory=dict)
     documents: dict[str, dict[str, Any]] = dataclasses.field(default_factory=dict)
+    metadata: ThemeMetadata = dataclasses.field(default_factory=ThemeMetadata)
+    assets: ThemeAssets = dataclasses.field(default_factory=ThemeAssets)
 
     def document(self, key: str) -> dict[str, Any] | None:
         """The document of ``key`` (``None`` when the package has none)."""
@@ -134,6 +181,8 @@ def load_theme_package(directory: Path | str) -> ThemePackage:
         archetypes=_read_section(root / "archetypes.yaml", "archetypes"),
         fragments=_read_section(root / "fragments.yaml", "fragments"),
         documents=_read_documents(root),
+        metadata=parse_metadata(manifest.get("metadata")),
+        assets=scan_theme_assets(root),
     )
 
 
@@ -240,11 +289,13 @@ def legacy_body_key(doc: Mapping[str, Any], key: str = "") -> str:
 __all__ = [
     "PACKAGE_DIR",
     "Package",
+    "ThemeMetadata",
     "ThemePackage",
     "default_package",
     "document_metadata",
     "legacy_body_key",
     "load_package",
     "load_theme_package",
+    "parse_metadata",
     "reload_package",
 ]

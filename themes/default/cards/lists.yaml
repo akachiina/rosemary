@@ -13,7 +13,6 @@ about.card:
   color: neutral
   title: '{about.title}'
   thumbnail: '{bot_avatar}'
-  image: '{bot_banner}'
   paragraphs:
   - '{about.text}'
   - '{about.version}'

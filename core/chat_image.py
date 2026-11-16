@@ -253,6 +253,7 @@ def render_snapshot(
     image: str | None = None,
     emojis: dict[str, str] | None = None,
     edited_marker: str = "",
+    media: dict[str, str] | None = None,
 ) -> bytes | None:
     """Rasterize the chat snapshot for the resolved bubbles (or ``None``).
 
@@ -266,6 +267,7 @@ def render_snapshot(
         image=image,
         emojis=emojis,
         edited_marker=edited_marker,
+        media=media,
     )
 
 
@@ -284,6 +286,9 @@ async def render_message_snapshot(
 
         theme = theme_for(bot, getattr(message, "guild_id", None))
         templates = getattr(theme, "snapshot", None) or {}
+        from rosemary.core.theme_assets import ThemeAssets, media_urls
+
+        media = media_urls(getattr(theme, "assets", None) or ThemeAssets())
         info = await build_snapshot_message(bot, message, before=before)
         infos = [info]
         if before is not None and (before.content or "") != (message.content or ""):
@@ -301,6 +306,7 @@ async def render_message_snapshot(
             templates.get("image"),
             getattr(theme, "emojis", {}) or {},
             edited_marker=edited_marker,
+            media=media,
         )
     except Exception:
         log.warning("chat snapshot render failed", exc_info=True)

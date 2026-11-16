@@ -384,3 +384,80 @@ def test_a_theme_file_still_loads_standalone(tmp_path):
     theme = load_theme_file(path)
     assert theme.name == "cute"
     assert theme.colors["brand"] == "#ff8fc7"
+
+
+def test_the_manifest_metadata_is_parsed(tmp_path):
+    themes = tmp_path / "themes"
+    themes.mkdir()
+    _package(
+        themes,
+        "fancy",
+        **{
+            "theme.yaml": (
+                "version: 2\nname: fancy\nextends: null\n"
+                "metadata:\n"
+                '  display_name: "Fancy"\n'
+                '  icon: "\U0001f3a8"\n'
+                '  creator: "someone"\n'
+                "  tags: [a, b]\n"
+            ),
+            "tokens.yaml": 'colors:\n  brand: "#ff00ff"\n',
+        },
+    )
+    store = ThemeStore(tmp_path, themes_dir=themes)
+    meta = store.metadata("fancy")
+    assert meta.display_name == "Fancy"
+    assert meta.icon == "\U0001f3a8"
+    assert meta.creator == "someone"
+    assert meta.tags == ("a", "b")
+    assert meta.label("fallback") == "Fancy"
+
+
+def test_export_base_zips_the_default_package(tmp_path):
+    themes = tmp_path / "themes"
+    themes.mkdir()
+    _package(
+        themes,
+        "default",
+        **{
+            "tokens.yaml": 'colors:\n  brand: "#ff00ff"\n',
+            "assets/media/.gitkeep": "",
+            "assets/emojis/.gitkeep": "",
+        },
+    )
+    store = ThemeStore(tmp_path, themes_dir=themes)
+    payload = store.export_base()
+    assert payload is not None
+    filename, data = payload
+    assert filename == "default.zip"
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        names = archive.namelist()
+        assert "theme.yaml" in names
+        assert "assets/media/.gitkeep" in names
+
+
+async def test_import_renames_the_package_and_its_emoji_refs(tmp_path):
+    themes = tmp_path / "themes"
+    themes.mkdir()
+    package = _package(
+        themes,
+        "fancy",
+        **{
+            "tokens.yaml": (
+                'colors:\n  brand: "#ff00ff"\n'
+                "emojis:\n"
+                '  miao: "{emojis/fancy/miao}"\n'
+            ),
+            "cards/audit.yaml": "audit.ban:\n  title: 'Custom'\n",
+        },
+    )
+    store = ThemeStore(tmp_path, themes_dir=themes)
+    name = await store.import_theme(1, "fancy.zip", _zip(package), name="meu-tema")
+    assert name == "meu-tema"
+    target = tmp_path / "1" / "themes" / "meu-tema"
+    assert (target / "theme.yaml").is_file()
+    assert "name: meu-tema" in (target / "theme.yaml").read_text(encoding="utf-8")
+    # The emoji reference followed the rename.
+    assert "{emojis/meu-tema/miao}" in (target / "tokens.yaml").read_text(
+        encoding="utf-8"
+    )

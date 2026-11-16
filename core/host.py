@@ -14,7 +14,7 @@ Discord permission overrides are a hint (a server admin can change them).
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +55,20 @@ def _as_ids(value: Any) -> tuple[int, ...]:
 
 
 @dataclass(frozen=True)
+class ThemeAssetsConfig:
+    """Which custom-theme assets the host allows.
+
+    ``media`` (images, fonts, video, audio) is allowed by default: a theme
+    bundling a logo or a background is the normal case. ``emojis`` is off by
+    default: every theme emoji is uploaded as a **global** application emoji
+    (namespaced), so it consumes the bot's application emoji quota.
+    """
+
+    media: bool = True
+    emojis: bool = False
+
+
+@dataclass(frozen=True)
 class HostConfig:
     """The host options read from ``host.yaml`` (defaults when absent)."""
 
@@ -72,6 +86,7 @@ class HostConfig:
     update_sync_after: bool = True
     convert_max_mb: int = 25
     convert_timeout: int = 120
+    theme_assets: ThemeAssetsConfig = field(default_factory=ThemeAssetsConfig)
 
     def is_owner(self, user_id: int | None) -> bool:
         """Whether the user id is one of the trusted hosts."""
@@ -118,6 +133,8 @@ def load_host_config(path: Path | str | None = None) -> HostConfig:
     host = _section(raw, "host")
     update = _section(raw, "update")
     convert = _section(raw, "convert")
+    themes = _section(raw, "themes")
+    assets = _section(themes, "assets")
     channel = str(update.get("channel") or "stable").strip().lower()
     return HostConfig(
         owner_ids=_as_ids(host.get("owner_ids")),
@@ -134,7 +151,11 @@ def load_host_config(path: Path | str | None = None) -> HostConfig:
         update_sync_after=_as_bool(update.get("sync_after"), True),
         convert_max_mb=_as_int(convert.get("max_mb"), 25, minimum=1, maximum=512),
         convert_timeout=_as_int(convert.get("timeout_seconds"), 120, minimum=5, maximum=900),
+        theme_assets=ThemeAssetsConfig(
+            media=_as_bool(assets.get("media"), True),
+            emojis=_as_bool(assets.get("emojis"), False),
+        ),
     )
 
 
-__all__ = ["HOST_FILE", "HostConfig", "load_host_config"]
+__all__ = ["HOST_FILE", "HostConfig", "ThemeAssetsConfig", "load_host_config"]

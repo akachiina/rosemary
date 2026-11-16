@@ -23,6 +23,7 @@ from typing import Any
 
 import discord
 
+from rosemary.core.card_media import resolve_card_media
 from rosemary.core.card_payload import (
     CardPayload,
     RenderedMessage,
@@ -203,12 +204,19 @@ async def render_card_messages(
     if not cards:
         return []
     theme = theme_for(bot, guild_id)
+    assets = getattr(theme, "assets", None)
     base_mapping = {
         **(getattr(theme, "emojis", {}) or {}),
         **(dict(ECHO_VARIABLES) if variables is None else variables),
     }
     rendered: list[RenderedMessage] = []
     for card in cards:
+        # A theme's media files (assets/media): resolve the {media/...} refs
+        # into attachment:// URLs before compiling, and collect the files the
+        # send must attach.
+        files: list[discord.File] = []
+        if assets is not None and not assets.is_empty():
+            card, files = resolve_card_media(card, assets)
         mapping = reserve_contract(card, base_mapping, variables)
         try:
             if card.blocks:
@@ -237,6 +245,9 @@ async def render_card_messages(
                 "card %s for guild %s is invalid, using default: %s", key, guild_id, exc
             )
             continue
+        if files:
+            # The media files the card references (image/thumbnail/file).
+            payload = dataclasses.replace(payload, files=files)
         allowed = await _allowed_for_card(bot, guild_id, key, compiled, content, silent)
         rendered.append(RenderedMessage(payload=payload, allowed=allowed))
     if rendered:

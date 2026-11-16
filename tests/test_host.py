@@ -67,3 +67,20 @@ def test_is_owner_only_for_the_configured_ids(tmp_path):
     assert config.is_owner(7) is True
     assert config.is_owner(9) is False
     assert config.is_owner(None) is False
+
+
+def test_theme_assets_default_to_media_on_emojis_off(tmp_path):
+    config = load_host_config(tmp_path / "missing.yaml")
+    assert config.theme_assets.media is True
+    assert config.theme_assets.emojis is False
+
+
+def test_theme_assets_read_the_themes_section(tmp_path):
+    path = tmp_path / "host.yaml"
+    path.write_text(
+        "themes:\n  assets:\n    media: false\n    emojis: true\n",
+        encoding="utf-8",
+    )
+    config = load_host_config(path)
+    assert config.theme_assets.media is False
+    assert config.theme_assets.emojis is True

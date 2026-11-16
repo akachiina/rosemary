@@ -84,6 +84,9 @@ def chunk_containers(
     templates = getattr(theme, "color_panel", {}) or {}
     template = templates.get("html")
     item = templates.get("item")
+    from rosemary.core.theme_assets import ThemeAssets, media_urls
+
+    media = media_urls(getattr(theme, "assets", None) or ThemeAssets())
     guild = bot.get_guild(guild_id)
     live = (
         {role.id: getattr(role.color, "value", 0) or 0 for role in guild.roles}
@@ -97,7 +100,7 @@ def chunk_containers(
             PanelColor(number, entry.name, resolve_color(live, entry))
             for number, entry in chunk
         ]
-        png = render_panel(rows, template, item)
+        png = render_panel(rows, template, item, media=media)
         filename = _IMAGE_NAME.format(n=index)
         children: list[dict] = []
         if png is not None:
